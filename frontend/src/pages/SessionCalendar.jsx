@@ -214,6 +214,8 @@ export default function SessionCalendar() {
                         onClick={() => {
                           if (session.status === 'completed') {
                             navigate(`/session/${session.id}/review`);
+                          } else if (session.status === 'planned') {
+                            navigate(`/session/${session.id}/setup`);
                           } else {
                             navigate(`/session/${session.id}/observe`);
                           }
