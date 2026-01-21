@@ -331,11 +331,11 @@ export default function LiveObservation() {
   const activePart = session.sessionParts.find(p => p.id === session.activePartId);
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-100 flex flex-col safe-area-inset">
       {/* Status Bar - Always Visible */}
-      <header className="bg-white border-b border-slate-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 safe-area-top">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -343,17 +343,18 @@ export default function LiveObservation() {
                 saveSession();
                 navigate('/');
               }}
+              className="shrink-0"
               data-testid="back-btn"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="font-semibold text-slate-900 font-['Manrope']">{session.name}</h1>
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant="outline" className="font-medium">
+            <div className="min-w-0">
+              <h1 className="font-semibold text-slate-900 font-['Manrope'] text-sm sm:text-base truncate">{session.name}</h1>
+              <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap">
+                <Badge variant="outline" className="font-medium text-xs">
                   {activePart?.name || 'No Part'}
                 </Badge>
-                <span className="text-slate-400">•</span>
+                <span className="text-slate-400 hidden sm:inline">•</span>
                 <span className={cn(
                   "flex items-center gap-1 font-medium",
                   session.ballRolling ? "text-orange-600" : "text-slate-500"
@@ -361,12 +362,14 @@ export default function LiveObservation() {
                   {session.ballRolling ? (
                     <>
                       <Circle className="w-3 h-3 fill-current ball-rolling-indicator" />
-                      Ball Rolling
+                      <span className="hidden sm:inline">Ball Rolling</span>
+                      <span className="sm:hidden">Rolling</span>
                     </>
                   ) : (
                     <>
                       <Square className="w-3 h-3" />
-                      Ball Stopped
+                      <span className="hidden sm:inline">Ball Stopped</span>
+                      <span className="sm:hidden">Stopped</span>
                     </>
                   )}
                 </span>
@@ -375,31 +378,42 @@ export default function LiveObservation() {
           </div>
           
           {/* Timer */}
-          <div className="text-center">
-            <div className="text-3xl font-bold font-mono timer-display text-slate-900" data-testid="session-timer">
+          <div className="text-center shrink-0">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-mono timer-display text-slate-900" data-testid="session-timer">
               {formatTime(elapsedTime)}
             </div>
-            <div className="text-xs text-slate-500">Session Time</div>
+            <div className="text-xs text-slate-500 hidden sm:block">Session Time</div>
           </div>
           
           {/* Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {session.events.length > 0 && (
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={handleUndo}
-                className="undo-btn"
+                className="undo-btn hidden sm:flex"
                 data-testid="undo-btn"
               >
                 <Undo2 className="w-4 h-4 mr-1" />
                 Undo
               </Button>
             )}
+            {session.events.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleUndo}
+                className="undo-btn sm:hidden"
+                data-testid="undo-btn-mobile"
+              >
+                <Undo2 className="w-4 h-4" />
+              </Button>
+            )}
             {!isRunning ? (
               <Button 
                 onClick={handleStart}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-sm sm:text-base px-3 sm:px-4"
                 data-testid="start-btn"
               >
                 Start
@@ -408,9 +422,11 @@ export default function LiveObservation() {
               <Button 
                 onClick={handleStop}
                 variant="destructive"
+                className="text-sm sm:text-base px-2 sm:px-4"
                 data-testid="stop-btn"
               >
-                End Session
+                <span className="hidden sm:inline">End Session</span>
+                <span className="sm:hidden">End</span>
               </Button>
             )}
           </div>
