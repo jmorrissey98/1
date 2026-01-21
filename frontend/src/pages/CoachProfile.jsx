@@ -156,6 +156,48 @@ export default function CoachProfile() {
     }
   };
 
+  const handleExportReport = async (format) => {
+    if (!reportStartDate || !reportEndDate) {
+      toast.error('Please select both start and end dates');
+      return;
+    }
+    
+    const start = new Date(reportStartDate);
+    const end = new Date(reportEndDate);
+    end.setHours(23, 59, 59, 999); // Include full end date
+    
+    if (start > end) {
+      toast.error('Start date must be before end date');
+      return;
+    }
+    
+    // Filter sessions within date range
+    const filteredSessions = sessions.filter(s => {
+      const sessionDate = new Date(s.createdAt);
+      return sessionDate >= start && sessionDate <= end && s.status === 'completed';
+    });
+    
+    if (filteredSessions.length === 0) {
+      toast.error('No completed sessions found in selected date range');
+      return;
+    }
+    
+    setIsExporting(true);
+    try {
+      if (format === 'pdf') {
+        await exportCoachReportPDF(coach, filteredSessions, reportStartDate, reportEndDate);
+      } else {
+        exportCoachReportCSV(coach, filteredSessions, reportStartDate, reportEndDate);
+      }
+      toast.success(`Report exported as ${format.toUpperCase()}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to export report');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleDeleteCoach = () => {
     storage.deleteCoach(coachId);
     toast.success('Coach profile deleted');
