@@ -225,18 +225,9 @@ export default function ReviewSession() {
     toast.success('Attachment removed');
   };
 
-  const handleSaveNotes = () => {
-    const updated = {
-      ...session,
-      sessionNotes: sessionNotes
-    };
-    saveSession(updated);
-    toast.success('Notes saved');
-  };
-
   const handleGenerateSummary = async () => {
     if (session.events.length === 0) {
-      toast.error('No events to summarize');
+      toast.error('No interventions to summarize');
       return;
     }
     
@@ -244,9 +235,10 @@ export default function ReviewSession() {
     try {
       const stats = getStats();
       
-      // Prepare event breakdown
+      // Prepare intervention breakdown
+      const interventionTypes = session.interventionTypes || session.eventTypes || [];
       const eventBreakdown = {};
-      session.eventTypes.forEach(et => {
+      interventionTypes.forEach(et => {
         eventBreakdown[et.name] = stats.eventCounts[et.id] || 0;
       });
       
