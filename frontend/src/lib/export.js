@@ -104,7 +104,7 @@ export const exportToPDF = async (session) => {
     return [et.name, count.toString(), `${pct}%`];
   });
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['Event Type', 'Count', 'Percentage']],
     body: eventTableData,
@@ -137,7 +137,7 @@ export const exportToPDF = async (session) => {
     (desc1Counts[d.id] || 0).toString()
   ]);
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['Descriptor', 'Count']],
     body: desc1Data,
@@ -158,7 +158,7 @@ export const exportToPDF = async (session) => {
     (desc2Counts[d.id] || 0).toString()
   ]);
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['Descriptor', 'Count']],
     body: desc2Data,
@@ -188,7 +188,7 @@ export const exportToPDF = async (session) => {
     ];
   });
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['Session Part', 'Events', 'Duration', 'Ball Rolling %']],
     body: partsData,
@@ -224,7 +224,7 @@ export const exportToPDF = async (session) => {
       ];
     });
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [['Time', 'Event', 'Part', 'Ball', session.descriptorGroup1.name, session.descriptorGroup2.name]],
       body: timelineData,
