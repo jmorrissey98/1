@@ -29,8 +29,9 @@ Build a lightweight iPad-first coach observation app for coach education. Design
 - ✅ Template management system (full editing capability)
 - ✅ Live observation screen with 3-column grid
 - ✅ Real-time timer display
-- ✅ Ball rolling toggle with time tracking (persists across part changes)
+- ✅ Ball rolling toggle with time tracking (tracks from session start, defaults to "not rolling")
 - ✅ Session parts switching + add parts during session
+- ✅ Unused parts automatically removed on session end
 - ✅ Default parts renamed to Part 1, Part 2, Part 3, Part 4
 - ✅ Event logging with toast feedback
 - ✅ Descriptor selection (inline, no modals)
@@ -39,10 +40,21 @@ Build a lightweight iPad-first coach observation app for coach education. Design
 - ✅ Whole session / per-part data toggle
 - ✅ Event editing/deletion in review
 - ✅ Session notes (observer can add reflections)
-- ✅ AI-generated session summary (GPT-5.2 via Emergent LLM key)
+- ✅ AI-generated session summary with suggested development targets
 - ✅ PDF export with styled report (includes AI summary + notes)
 - ✅ CSV export with raw data
 - ✅ Local storage persistence
+
+### Coach Management System
+- ✅ My Coaches section with list of coach profiles
+- ✅ Coach profile page with Overview, Targets, Sessions tabs
+- ✅ Add/edit coach name, role, general notes
+- ✅ Development targets per coach (add, toggle achieved, delete)
+- ✅ Session history per coach
+- ✅ AI-generated trends summary across all sessions for a coach
+- ✅ Link sessions to coaches during setup
+- ✅ One-off sessions supported (no coach linked)
+- ✅ AI summary references coach targets and previous sessions
 
 ### UX Polish
 - ✅ Large touch-friendly buttons (64px+)
