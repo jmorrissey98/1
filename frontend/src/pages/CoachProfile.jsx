@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, Loader2, Eye, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, Loader2, Eye, Play, Download, FileText } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -8,9 +8,11 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { storage } from '../lib/storage';
-import { formatDate, formatTime, generateId } from '../lib/utils';
+import { formatDate, formatTime, generateId, calcPercentage, countBy } from '../lib/utils';
+import { exportCoachReportPDF, exportCoachReportCSV } from '../lib/export';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
