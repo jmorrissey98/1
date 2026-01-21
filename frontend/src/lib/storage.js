@@ -204,26 +204,83 @@ export const storage = {
 
   getCoachSessions: (coachId) => {
     return storage.getSessions().filter(s => s.coachId === coachId);
+  },
+
+  // Users
+  getUsers: () => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.USERS);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveUser: (user) => {
+    const users = storage.getUsers();
+    const index = users.findIndex(u => u.id === user.id);
+    if (index >= 0) {
+      users[index] = user;
+    } else {
+      users.push(user);
+    }
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    return user;
+  },
+
+  getCurrentUser: () => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  setCurrentUser: (user) => {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+  },
+
+  // Planned sessions (future dated)
+  getPlannedSessions: () => {
+    return storage.getSessions().filter(s => s.status === 'planned');
+  },
+
+  getSessionsByDate: (date) => {
+    const dateStr = new Date(date).toISOString().split('T')[0];
+    return storage.getSessions().filter(s => {
+      const sessionDate = s.plannedDate || s.createdAt;
+      return sessionDate?.split('T')[0] === dateStr;
+    });
   }
 };
 
 // Create a new session object
-export const createSession = (name, template = null, coachId = null) => {
-  const tmpl = template || getDefaultTemplate();
+export const createSession = (name, template = null, coachId = null, options = {}) => {
+  const tmpl = migrateTemplate(template || getDefaultTemplate());
   const now = new Date().toISOString();
+  const interventions = tmpl.interventionTypes || tmpl.eventTypes || DEFAULT_INTERVENTION_TYPES;
   
   return {
     id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name: name || `Session ${new Date().toLocaleDateString()}`,
     createdAt: now,
     updatedAt: now,
-    status: 'draft', // draft, active, completed
+    status: options.planned ? 'planned' : 'draft', // planned, draft, active, completed
+    
+    // Observation context
+    observationContext: options.observationContext || OBSERVATION_CONTEXTS.TRAINING,
+    
+    // Planned session date (for future sessions)
+    plannedDate: options.plannedDate || null,
     
     // Coach reference (optional - null for one-off sessions)
     coachId: coachId,
     
-    // Configuration (from template)
-    eventTypes: [...tmpl.eventTypes],
+    // Configuration (from template) - renamed to interventionTypes
+    interventionTypes: [...interventions],
+    // Keep eventTypes for backward compatibility
+    eventTypes: [...interventions],
     descriptorGroup1: { ...tmpl.descriptorGroup1, descriptors: [...tmpl.descriptorGroup1.descriptors] },
     descriptorGroup2: { ...tmpl.descriptorGroup2, descriptors: [...tmpl.descriptorGroup2.descriptors] },
     sessionParts: tmpl.sessionParts.map(p => ({
@@ -232,7 +289,7 @@ export const createSession = (name, template = null, coachId = null) => {
       endTime: null,
       ballRollingTime: 0,
       ballNotRollingTime: 0,
-      used: false // Track if part was used during session
+      used: false
     })),
     
     // Runtime data
@@ -244,17 +301,24 @@ export const createSession = (name, template = null, coachId = null) => {
     ballRollingTime: 0,
     ballNotRollingTime: 0,
     
-    // Events log
+    // Interventions log (renamed from events)
     events: [],
     
     // Ball rolling state changes log
     ballRollingLog: [],
     
-    // Session notes (user can add during/after observation)
+    // Reflections
+    observerReflections: [], // Array of { id, text, timestamp, author: 'observer' }
+    coachReflections: [], // Array of { id, text, timestamp, author: 'coach' }
+    
+    // Session notes (legacy - kept for compatibility)
     sessionNotes: '',
     
     // AI-generated summary
-    aiSummary: ''
+    aiSummary: '',
+    
+    // Attachments (file references)
+    attachments: [] // Array of { id, name, type, size, uploadedAt, url }
   };
 };
 
