@@ -8,6 +8,8 @@ import TemplateManager from "./pages/TemplateManager";
 import MyCoaches from "./pages/MyCoaches";
 import CoachProfile from "./pages/CoachProfile";
 import SessionCalendar from "./pages/SessionCalendar";
+import UserSettings from "./pages/UserSettings";
+import CoachView from "./pages/CoachView";
 import "./App.css";
 
 function App() {
@@ -24,6 +26,8 @@ function App() {
           <Route path="/coaches" element={<MyCoaches />} />
           <Route path="/coaches/:coachId" element={<CoachProfile />} />
           <Route path="/calendar" element={<SessionCalendar />} />
+          <Route path="/settings" element={<UserSettings />} />
+          <Route path="/coach-view/:coachId" element={<CoachView />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-center" richColors closeButton />

@@ -1,20 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Trash2, Settings, FileText, Users, Calendar } from 'lucide-react';
+import { Plus, Play, Eye, Trash2, Settings, FileText, Users, Calendar, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
-import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
+import { storage, OBSERVATION_CONTEXTS, USER_ROLES } from '../lib/storage';
 import { formatDate, formatTime } from '../lib/utils';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Check if user is in Coach role and redirect
+  useEffect(() => {
+    const user = storage.getCurrentUser();
+    setCurrentUser(user);
+    
+    // If user is a Coach with a linked profile, redirect to Coach View
+    if (user?.role === USER_ROLES.COACH && user?.linkedCoachId) {
+      navigate(`/coach-view/${user.linkedCoachId}`);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
-  }, []);
+  }, [currentUser]);
 
   const handleDelete = (sessionId) => {
     storage.deleteSession(sessionId);
@@ -69,6 +81,14 @@ export default function HomePage() {
             >
               <Settings className="w-4 h-4 mr-2" />
               Templates
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/settings')}
+              data-testid="user-settings-btn"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Settings
             </Button>
           </div>
         </div>
