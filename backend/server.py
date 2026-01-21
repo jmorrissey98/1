@@ -72,10 +72,61 @@ class CoachTrendRequest(BaseModel):
 class CoachTrendResponse(BaseModel):
     trend_summary: str
 
+class FileUploadResponse(BaseModel):
+    id: str
+    name: str
+    type: str
+    size: int
+    url: str
+    uploadedAt: str
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
+
+@api_router.post("/upload", response_model=FileUploadResponse)
+async def upload_file(file: UploadFile = File(...)):
+    """Upload a file and return its metadata"""
+    try:
+        file_id = str(uuid.uuid4())
+        file_ext = Path(file.filename).suffix
+        safe_filename = f"{file_id}{file_ext}"
+        file_path = UPLOAD_DIR / safe_filename
+        
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        return FileUploadResponse(
+            id=file_id,
+            name=file.filename,
+            type=file.content_type or 'application/octet-stream',
+            size=len(content),
+            url=f"/api/files/{safe_filename}",
+            uploadedAt=datetime.now(timezone.utc).isoformat()
+        )
+    except Exception as e:
+        logger.error(f"File upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@api_router.get("/files/{filename}")
+async def get_file(filename: str):
+    """Retrieve an uploaded file"""
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+@api_router.delete("/files/{file_id}")
+async def delete_file(file_id: str):
+    """Delete an uploaded file"""
+    # Find file with this ID
+    for f in UPLOAD_DIR.iterdir():
+        if f.stem == file_id:
+            f.unlink()
+            return {"status": "deleted"}
+    raise HTTPException(status_code=404, detail="File not found")
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
