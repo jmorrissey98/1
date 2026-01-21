@@ -146,6 +146,41 @@ export const storage = {
 
   saveSettings: (settings) => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  },
+
+  // Coaches
+  getCoaches: () => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.COACHES);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveCoach: (coach) => {
+    const coaches = storage.getCoaches();
+    const index = coaches.findIndex(c => c.id === coach.id);
+    if (index >= 0) {
+      coaches[index] = coach;
+    } else {
+      coaches.push(coach);
+    }
+    localStorage.setItem(STORAGE_KEYS.COACHES, JSON.stringify(coaches));
+    return coach;
+  },
+
+  deleteCoach: (coachId) => {
+    const coaches = storage.getCoaches().filter(c => c.id !== coachId);
+    localStorage.setItem(STORAGE_KEYS.COACHES, JSON.stringify(coaches));
+  },
+
+  getCoach: (coachId) => {
+    return storage.getCoaches().find(c => c.id === coachId);
+  },
+
+  getCoachSessions: (coachId) => {
+    return storage.getSessions().filter(s => s.coachId === coachId);
   }
 };
 
