@@ -183,7 +183,11 @@ export default function ReviewSession() {
         descriptor2_name: session.descriptorGroup2.name,
         descriptor2_breakdown: desc2Breakdown,
         session_parts: sessionPartsData,
-        user_notes: sessionNotes
+        user_notes: sessionNotes,
+        // Coach context if linked
+        coach_name: session.coachId ? storage.getCoach(session.coachId)?.name : null,
+        coach_targets: session.coachId ? (storage.getCoach(session.coachId)?.targets || []).filter(t => t.status === 'active').map(t => t.text) : null,
+        previous_sessions_summary: session.coachId ? getPreviousSessionsSummary() : null
       });
       
       const updated = {
