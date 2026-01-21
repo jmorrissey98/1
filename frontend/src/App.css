@@ -130,3 +130,130 @@
     display: block !important;
   }
 }
+
+/* Responsive header for all screens */
+.responsive-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Responsive button groups */
+.btn-group-responsive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .btn-group-responsive {
+    flex-wrap: nowrap;
+  }
+}
+
+/* iPad touch target sizing */
+@media (pointer: coarse) {
+  .touch-target-coarse {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  button, 
+  [role="button"],
+  .clickable {
+    min-height: 44px;
+  }
+}
+
+/* Responsive tabs */
+.tabs-responsive {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-responsive::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive modal/dialog */
+@media (max-width: 640px) {
+  .dialog-responsive {
+    width: calc(100% - 2rem);
+    max-width: none;
+  }
+}
+
+/* Large touch targets for observation buttons */
+.observation-btn {
+  min-height: 80px;
+  font-size: 1rem;
+}
+
+@media (min-width: 768px) {
+  .observation-btn {
+    min-height: 96px;
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .observation-btn {
+    min-height: 88px;
+    font-size: 1rem;
+  }
+}
+
+/* Responsive text sizing */
+.text-responsive-sm {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-sm {
+    font-size: 1rem;
+  }
+}
+
+.text-responsive-lg {
+  font-size: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-lg {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-lg {
+    font-size: 1.75rem;
+  }
+}
+
+/* Timer responsive sizing */
+.timer-responsive {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .timer-responsive {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .timer-responsive {
+    font-size: 2.25rem;
+  }
+}
