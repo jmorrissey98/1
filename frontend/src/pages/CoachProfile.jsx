@@ -30,6 +30,11 @@ export default function CoachProfile() {
   const [editNotes, setEditNotes] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [isGeneratingTrends, setIsGeneratingTrends] = useState(false);
+  
+  // Report export state
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     loadCoach();
