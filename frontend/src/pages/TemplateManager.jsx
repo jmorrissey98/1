@@ -324,7 +324,7 @@ export default function TemplateManager() {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        {template.eventTypes.map(event => (
+                        {(template.eventTypes || []).map(event => (
                           <div key={event.id} className="flex items-center gap-2">
                             <Input
                               value={event.name}
@@ -351,7 +351,7 @@ export default function TemplateManager() {
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded bg-sky-400" />
                           <Input
-                            value={template.descriptorGroup1.name}
+                            value={template.descriptorGroup1?.name || 'Group 1'}
                             onChange={(e) => updateGroupName(template.id, 1, e.target.value)}
                             className="font-medium border-0 p-0 h-auto focus-visible:ring-0 w-40"
                           />
@@ -362,7 +362,7 @@ export default function TemplateManager() {
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {template.descriptorGroup1.descriptors.map(desc => (
+                        {(template.descriptorGroup1?.descriptors || []).map(desc => (
                           <div key={desc.id} className="flex items-center gap-1 bg-sky-100 rounded-lg pl-3 pr-1 py-1">
                             <Input
                               value={desc.name}
