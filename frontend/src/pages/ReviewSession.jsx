@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -9,11 +9,12 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Progress } from '../components/ui/progress';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { storage } from '../lib/storage';
-import { formatTime, formatDateTime, calcPercentage, countBy, cn } from '../lib/utils';
+import { storage, OBSERVATION_CONTEXTS, USER_ROLES } from '../lib/storage';
+import { formatTime, formatDateTime, calcPercentage, countBy, cn, generateId } from '../lib/utils';
 import { exportToPDF, exportToCSV } from '../lib/export';
 import axios from 'axios';
 
@@ -26,11 +27,17 @@ export default function ReviewSession() {
   const { sessionId } = useParams();
   
   const [session, setSession] = useState(null);
-  const [viewMode, setViewMode] = useState('whole'); // whole or part id
+  const [viewMode, setViewMode] = useState('whole');
   const [editingEvent, setEditingEvent] = useState(null);
   const [editNote, setEditNote] = useState('');
-  const [sessionNotes, setSessionNotes] = useState('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [aiSummaryExpanded, setAiSummaryExpanded] = useState(false);
+  const [newReflection, setNewReflection] = useState('');
+  const [newCoachReflection, setNewCoachReflection] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const currentUser = storage.getCurrentUser();
+  const isCoachView = currentUser?.role === USER_ROLES.COACH;
 
   useEffect(() => {
     const loaded = storage.getSession(sessionId);
@@ -40,7 +47,6 @@ export default function ReviewSession() {
       return;
     }
     setSession(loaded);
-    setSessionNotes(loaded.sessionNotes || '');
   }, [sessionId, navigate]);
 
   const saveSession = (updated) => {
