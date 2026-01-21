@@ -56,6 +56,14 @@ export default function HomePage() {
             </Button>
             <Button 
               variant="outline" 
+              onClick={() => navigate('/calendar')}
+              data-testid="calendar-btn"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Calendar
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={() => navigate('/templates')}
               data-testid="manage-templates-btn"
             >
