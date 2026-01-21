@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { Progress } from '../components/ui/progress';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
@@ -14,7 +15,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { storage } from '../lib/storage';
 import { formatTime, formatDateTime, calcPercentage, countBy, cn } from '../lib/utils';
 import { exportToPDF, exportToCSV } from '../lib/export';
+import axios from 'axios';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
 
 export default function ReviewSession() {
@@ -25,6 +29,8 @@ export default function ReviewSession() {
   const [viewMode, setViewMode] = useState('whole'); // whole or part id
   const [editingEvent, setEditingEvent] = useState(null);
   const [editNote, setEditNote] = useState('');
+  const [sessionNotes, setSessionNotes] = useState('');
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   useEffect(() => {
     const loaded = storage.getSession(sessionId);
@@ -34,6 +40,7 @@ export default function ReviewSession() {
       return;
     }
     setSession(loaded);
+    setSessionNotes(loaded.sessionNotes || '');
   }, [sessionId, navigate]);
 
   const saveSession = (updated) => {
