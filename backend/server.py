@@ -723,6 +723,117 @@ async def link_user_to_coach(user_id: str, request: Request):
     
     return {"status": "linked", "coach_id": coach_id}
 
+# Session Parts endpoints
+@api_router.get("/session-parts", response_model=List[SessionPartResponse])
+async def get_session_parts(request: Request):
+    """Get all session parts (defaults + custom)"""
+    await require_auth(request)
+    
+    # Initialize defaults if not present
+    existing_defaults = await db.session_parts.find({"is_default": True}, {"_id": 0}).to_list(100)
+    existing_ids = {p["part_id"] for p in existing_defaults}
+    
+    # Add missing defaults
+    for default_part in DEFAULT_SESSION_PARTS:
+        if default_part["part_id"] not in existing_ids:
+            await db.session_parts.insert_one({
+                **default_part,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Get all parts
+    parts = await db.session_parts.find({}, {"_id": 0}).to_list(200)
+    
+    return [
+        SessionPartResponse(
+            part_id=p["part_id"],
+            name=p["name"],
+            is_default=p.get("is_default", False),
+            created_by=p.get("created_by"),
+            created_at=p.get("created_at", "")
+        )
+        for p in parts
+    ]
+
+@api_router.get("/session-parts/defaults", response_model=List[SessionPartResponse])
+async def get_default_session_parts(request: Request):
+    """Get only default session parts"""
+    await require_auth(request)
+    
+    # Initialize defaults if not present
+    existing_defaults = await db.session_parts.find({"is_default": True}, {"_id": 0}).to_list(100)
+    existing_ids = {p["part_id"] for p in existing_defaults}
+    
+    for default_part in DEFAULT_SESSION_PARTS:
+        if default_part["part_id"] not in existing_ids:
+            await db.session_parts.insert_one({
+                **default_part,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    parts = await db.session_parts.find({"is_default": True}, {"_id": 0}).to_list(100)
+    
+    return [
+        SessionPartResponse(
+            part_id=p["part_id"],
+            name=p["name"],
+            is_default=True,
+            created_by=p.get("created_by"),
+            created_at=p.get("created_at", "")
+        )
+        for p in parts
+    ]
+
+@api_router.post("/session-parts", response_model=SessionPartResponse)
+async def create_session_part(part_data: SessionPartCreate, request: Request):
+    """Create a new session part (Coach Developer only for defaults)"""
+    user = await require_auth(request)
+    
+    # Only Coach Developers can create default parts
+    if part_data.is_default and user.role != "coach_developer":
+        raise HTTPException(status_code=403, detail="Only Coach Developers can create default session parts")
+    
+    # Check if name already exists
+    existing = await db.session_parts.find_one({"name": part_data.name}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Session part with this name already exists")
+    
+    part_id = f"part_{uuid.uuid4().hex[:12]}"
+    new_part = {
+        "part_id": part_id,
+        "name": part_data.name,
+        "is_default": part_data.is_default,
+        "created_by": user.user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.session_parts.insert_one(new_part)
+    
+    return SessionPartResponse(
+        part_id=part_id,
+        name=part_data.name,
+        is_default=part_data.is_default,
+        created_by=user.user_id,
+        created_at=new_part["created_at"]
+    )
+
+@api_router.delete("/session-parts/{part_id}")
+async def delete_session_part(part_id: str, request: Request):
+    """Delete a custom session part (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    # Check if it's a built-in default
+    builtin_ids = {p["part_id"] for p in DEFAULT_SESSION_PARTS}
+    if part_id in builtin_ids:
+        raise HTTPException(status_code=400, detail="Cannot delete built-in default session parts")
+    
+    result = await db.session_parts.delete_one({"part_id": part_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Session part not found")
+    
+    return {"status": "deleted"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
