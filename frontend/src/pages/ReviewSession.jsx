@@ -302,14 +302,34 @@ export default function ReviewSession() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-6">
         <Tabs defaultValue="summary" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
+            <TabsTrigger value="notes" data-testid="tab-notes">Notes & AI</TabsTrigger>
             <TabsTrigger value="timeline" data-testid="tab-timeline">Timeline</TabsTrigger>
             <TabsTrigger value="charts" data-testid="tab-charts">Charts</TabsTrigger>
           </TabsList>
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6">
+            {/* AI Summary Display */}
+            {session.aiSummary && (
+              <Card className="border-purple-200 bg-purple-50/50">
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
+                    <Sparkles className="w-5 h-5" />
+                    AI Session Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-slate prose-sm max-w-none">
+                    {session.aiSummary.split('\n').map((paragraph, i) => (
+                      <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Key Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
