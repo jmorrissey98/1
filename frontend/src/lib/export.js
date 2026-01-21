@@ -14,7 +14,7 @@ export const exportToPDF = async (session) => {
     doc.setFontSize(options.size || 12);
     doc.setFont('helvetica', options.style || 'normal');
     doc.setTextColor(options.color || '#0F172A');
-    doc.text(text, x, y, options.align ? { align: options.align } : undefined);
+    doc.text(String(text), x, y, options.align ? { align: options.align } : undefined);
   };
 
   // Helper to check page break
@@ -50,12 +50,13 @@ export const exportToPDF = async (session) => {
 
   // Calculate stats
   const eventCounts = countBy(session.events, 'eventTypeId');
-  const ballRollingPct = calcPercentage(session.ballRollingTime, session.totalDuration);
+  const totalTime = session.ballRollingTime + session.ballNotRollingTime;
+  const ballRollingPct = calcPercentage(session.ballRollingTime, totalTime || session.totalDuration);
 
   // Metrics boxes
   const metricsData = [
     { label: 'Total Duration', value: formatTime(session.totalDuration) },
-    { label: 'Total Events', value: session.events.length.toString() },
+    { label: 'Total Events', value: String(session.events.length) },
     { label: 'Ball Rolling', value: `${ballRollingPct}%` },
     { label: 'Ball Stopped', value: `${100 - ballRollingPct}%` }
   ];
@@ -85,12 +86,13 @@ export const exportToPDF = async (session) => {
   // Ball rolling portion
   if (ballRollingPct > 0) {
     doc.setFillColor('#F97316');
-    doc.roundedRect(14, yPos, barWidth * (ballRollingPct / 100), barHeight, 2, 2, 'F');
+    const rollingWidth = Math.max(1, barWidth * (ballRollingPct / 100));
+    doc.roundedRect(14, yPos, rollingWidth, barHeight, 2, 2, 'F');
   }
   
   yPos += barHeight + 5;
-  addText(`Rolling: ${formatTime(session.ballRollingTime)}`, 14, yPos, { size: 9, color: '#F97316' });
-  addText(`Stopped: ${formatTime(session.ballNotRollingTime)}`, pageWidth - 14, yPos, { size: 9, color: '#64748B', align: 'right' });
+  addText(`Rolling: ${formatTime(session.ballRollingTime || 0)}`, 14, yPos, { size: 9, color: '#F97316' });
+  addText(`Stopped: ${formatTime(session.ballNotRollingTime || 0)}`, pageWidth - 14, yPos, { size: 9, color: '#64748B', align: 'right' });
   yPos += 15;
 
   // Events by Type Table
@@ -101,10 +103,10 @@ export const exportToPDF = async (session) => {
   const eventTableData = session.eventTypes.map(et => {
     const count = eventCounts[et.id] || 0;
     const pct = calcPercentage(count, session.events.length);
-    return [et.name, count.toString(), `${pct}%`];
+    return [et.name, String(count), `${pct}%`];
   });
 
-  autoTable(doc, {
+  const eventTable = autoTable(doc, {
     startY: yPos,
     head: [['Event Type', 'Count', 'Percentage']],
     body: eventTableData,
@@ -113,7 +115,7 @@ export const exportToPDF = async (session) => {
     styles: { fontSize: 10 },
     margin: { left: 14, right: 14 }
   });
-  yPos = doc.lastAutoTable.finalY + 15;
+  yPos = (doc.lastAutoTable?.finalY || yPos + 40) + 15;
 
   // Descriptor Groups
   checkPageBreak(80);
@@ -124,8 +126,8 @@ export const exportToPDF = async (session) => {
   const desc1Counts = {};
   const desc2Counts = {};
   session.events.forEach(e => {
-    e.descriptors1.forEach(d => { desc1Counts[d] = (desc1Counts[d] || 0) + 1; });
-    e.descriptors2.forEach(d => { desc2Counts[d] = (desc2Counts[d] || 0) + 1; });
+    (e.descriptors1 || []).forEach(d => { desc1Counts[d] = (desc1Counts[d] || 0) + 1; });
+    (e.descriptors2 || []).forEach(d => { desc2Counts[d] = (desc2Counts[d] || 0) + 1; });
   });
 
   // Group 1
@@ -134,7 +136,7 @@ export const exportToPDF = async (session) => {
 
   const desc1Data = session.descriptorGroup1.descriptors.map(d => [
     d.name,
-    (desc1Counts[d.id] || 0).toString()
+    String(desc1Counts[d.id] || 0)
   ]);
 
   autoTable(doc, {
@@ -149,13 +151,13 @@ export const exportToPDF = async (session) => {
   });
 
   // Group 2 (side by side)
-  const group1EndY = doc.lastAutoTable.finalY;
+  const group1EndY = doc.lastAutoTable?.finalY || yPos + 30;
   
   addText(session.descriptorGroup2.name, pageWidth / 2 + 5, yPos - 5, { size: 10, style: 'bold', color: '#22C55E' });
 
   const desc2Data = session.descriptorGroup2.descriptors.map(d => [
     d.name,
-    (desc2Counts[d.id] || 0).toString()
+    String(desc2Counts[d.id] || 0)
   ]);
 
   autoTable(doc, {
@@ -169,7 +171,7 @@ export const exportToPDF = async (session) => {
     tableWidth: (pageWidth - 28) / 2 - 5
   });
 
-  yPos = Math.max(group1EndY, doc.lastAutoTable.finalY) + 15;
+  yPos = Math.max(group1EndY, doc.lastAutoTable?.finalY || yPos + 30) + 15;
 
   // Session Parts Summary
   checkPageBreak(60);
@@ -178,11 +180,11 @@ export const exportToPDF = async (session) => {
 
   const partsData = session.sessionParts.map(part => {
     const partEvents = session.events.filter(e => e.sessionPartId === part.id);
-    const partTotal = part.ballRollingTime + part.ballNotRollingTime;
-    const partBallPct = calcPercentage(part.ballRollingTime, partTotal);
+    const partTotal = (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
+    const partBallPct = calcPercentage(part.ballRollingTime || 0, partTotal);
     return [
       part.name,
-      partEvents.length.toString(),
+      String(partEvents.length),
       formatTime(partTotal),
       `${partBallPct}%`
     ];
@@ -197,7 +199,7 @@ export const exportToPDF = async (session) => {
     styles: { fontSize: 10 },
     margin: { left: 14, right: 14 }
   });
-  yPos = doc.lastAutoTable.finalY + 15;
+  yPos = (doc.lastAutoTable?.finalY || yPos + 40) + 15;
 
   // Event Timeline (condensed)
   if (session.events.length > 0) {
@@ -207,10 +209,10 @@ export const exportToPDF = async (session) => {
 
     const timelineData = session.events.slice(0, 20).map(event => {
       const part = session.sessionParts.find(p => p.id === event.sessionPartId);
-      const desc1Names = event.descriptors1.map(d => 
+      const desc1Names = (event.descriptors1 || []).map(d => 
         session.descriptorGroup1.descriptors.find(x => x.id === d)?.name || ''
       ).filter(Boolean).join(', ');
-      const desc2Names = event.descriptors2.map(d => 
+      const desc2Names = (event.descriptors2 || []).map(d => 
         session.descriptorGroup2.descriptors.find(x => x.id === d)?.name || ''
       ).filter(Boolean).join(', ');
       
@@ -243,9 +245,42 @@ export const exportToPDF = async (session) => {
     });
 
     if (session.events.length > 20) {
-      yPos = doc.lastAutoTable.finalY + 5;
+      yPos = (doc.lastAutoTable?.finalY || yPos + 40) + 5;
       addText(`... and ${session.events.length - 20} more events`, pageWidth / 2, yPos, { size: 8, color: '#64748B', align: 'center' });
     }
+  }
+
+  // AI Summary if present
+  if (session.aiSummary) {
+    doc.addPage();
+    yPos = 20;
+    addText('AI Session Summary', 14, yPos, { size: 14, style: 'bold' });
+    yPos += 10;
+    
+    // Split and wrap text
+    const lines = doc.splitTextToSize(session.aiSummary, pageWidth - 28);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(lines, 14, yPos);
+  }
+
+  // Observer Notes if present
+  if (session.sessionNotes) {
+    if (!session.aiSummary) {
+      doc.addPage();
+      yPos = 20;
+    } else {
+      yPos = doc.lastAutoTable?.finalY || yPos + 60;
+      checkPageBreak(40);
+    }
+    
+    addText('Observer Notes', 14, yPos, { size: 14, style: 'bold' });
+    yPos += 10;
+    
+    const noteLines = doc.splitTextToSize(session.sessionNotes, pageWidth - 28);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(noteLines, 14, yPos);
   }
 
   // Footer on each page
@@ -282,10 +317,10 @@ export const exportToCSV = (session) => {
     const part = session.sessionParts.find(p => p.id === event.sessionPartId);
     
     const desc1Values = session.descriptorGroup1.descriptors.map(d => 
-      event.descriptors1.includes(d.id) ? '1' : '0'
+      (event.descriptors1 || []).includes(d.id) ? '1' : '0'
     );
     const desc2Values = session.descriptorGroup2.descriptors.map(d => 
-      event.descriptors2.includes(d.id) ? '1' : '0'
+      (event.descriptors2 || []).includes(d.id) ? '1' : '0'
     );
 
     return [
@@ -306,9 +341,9 @@ export const exportToCSV = (session) => {
   rows.push(['Date', formatDateTime(session.createdAt)]);
   rows.push(['Total Duration (seconds)', session.totalDuration]);
   rows.push(['Total Events', session.events.length]);
-  rows.push(['Ball Rolling Time (seconds)', session.ballRollingTime]);
-  rows.push(['Ball Not Rolling Time (seconds)', session.ballNotRollingTime]);
-  rows.push(['Ball Rolling %', calcPercentage(session.ballRollingTime, session.totalDuration)]);
+  rows.push(['Ball Rolling Time (seconds)', Math.round(session.ballRollingTime || 0)]);
+  rows.push(['Ball Not Rolling Time (seconds)', Math.round(session.ballNotRollingTime || 0)]);
+  rows.push(['Ball Rolling %', calcPercentage(session.ballRollingTime || 0, session.totalDuration)]);
 
   // Convert to CSV string
   const csvContent = [
