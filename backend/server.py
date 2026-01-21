@@ -51,9 +51,21 @@ class SessionSummaryRequest(BaseModel):
     descriptor2_breakdown: Dict[str, int]
     session_parts: List[Dict[str, Any]]
     user_notes: Optional[str] = ""
+    # Coach context (optional)
+    coach_name: Optional[str] = None
+    coach_targets: Optional[List[str]] = None
+    previous_sessions_summary: Optional[str] = None
 
 class SessionSummaryResponse(BaseModel):
     summary: str
+
+class CoachTrendRequest(BaseModel):
+    coach_name: str
+    sessions_data: List[Dict[str, Any]]  # List of session summaries
+    current_targets: List[str]
+
+class CoachTrendResponse(BaseModel):
+    trend_summary: str
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
