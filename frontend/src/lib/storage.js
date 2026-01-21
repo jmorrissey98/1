@@ -118,8 +118,9 @@ export const storage = {
   getTemplates: () => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-      const templates = data ? JSON.parse(data) : [];
-      // Always include default template
+      let templates = data ? JSON.parse(data) : [];
+      // Migrate and include default template
+      templates = templates.map(migrateTemplate);
       if (!templates.find(t => t.id === 'default')) {
         templates.unshift(getDefaultTemplate());
       }
