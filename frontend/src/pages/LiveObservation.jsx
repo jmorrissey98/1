@@ -258,13 +258,13 @@ export default function LiveObservation() {
         ...prev,
         // Update overall session ball time
         [ballTimeKey]: prev[ballTimeKey] + duration,
-        // Update parts - end current, start new
+        // Update parts - end current, start new, mark as used
         sessionParts: prev.sessionParts.map(p => {
           if (p.id === prev.activePartId) {
             return { ...p, [ballTimeKey]: p[ballTimeKey] + duration, endTime: nowIso };
           }
           if (p.id === partId) {
-            return { ...p, startTime: p.startTime || nowIso };
+            return { ...p, startTime: p.startTime || nowIso, used: true };
           }
           return p;
         }),
@@ -277,7 +277,7 @@ export default function LiveObservation() {
       setSession(prev => ({
         ...prev,
         sessionParts: prev.sessionParts.map(p => 
-          p.id === partId ? { ...p, startTime: p.startTime || nowIso } : p
+          p.id === partId ? { ...p, startTime: p.startTime || nowIso, used: true } : p
         ),
         activePartId: partId
       }));
