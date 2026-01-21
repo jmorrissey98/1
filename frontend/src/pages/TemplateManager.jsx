@@ -145,11 +145,12 @@ export default function TemplateManager() {
     const template = templates.find(t => t.id === templateId);
     if (template) {
       const key = `descriptorGroup${groupNum}`;
+      const group = template[key] || { name: '', descriptors: [] };
       saveAndRefresh({
         ...template,
         [key]: {
-          ...template[key],
-          descriptors: template[key].descriptors.map(d => d.id === descId ? { ...d, name } : d)
+          ...group,
+          descriptors: (group.descriptors || []).map(d => d.id === descId ? { ...d, name } : d)
         }
       });
     }
@@ -159,11 +160,12 @@ export default function TemplateManager() {
     const template = templates.find(t => t.id === templateId);
     if (template) {
       const key = `descriptorGroup${groupNum}`;
+      const group = template[key] || { name: '', descriptors: [] };
       saveAndRefresh({
         ...template,
         [key]: {
-          ...template[key],
-          descriptors: template[key].descriptors.filter(d => d.id !== descId)
+          ...group,
+          descriptors: (group.descriptors || []).filter(d => d.id !== descId)
         }
       });
     }
@@ -173,8 +175,9 @@ export default function TemplateManager() {
   const addSessionPart = (templateId) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      const newPart = { id: generateId('part'), name: `Part ${template.sessionParts.length + 1}`, order: template.sessionParts.length };
-      saveAndRefresh({ ...template, sessionParts: [...template.sessionParts, newPart] });
+      const parts = template.sessionParts || [];
+      const newPart = { id: generateId('part'), name: `Part ${parts.length + 1}`, order: parts.length };
+      saveAndRefresh({ ...template, sessionParts: [...parts, newPart] });
     }
   };
 
@@ -183,7 +186,7 @@ export default function TemplateManager() {
     if (template) {
       saveAndRefresh({
         ...template,
-        sessionParts: template.sessionParts.map(p => p.id === partId ? { ...p, name } : p)
+        sessionParts: (template.sessionParts || []).map(p => p.id === partId ? { ...p, name } : p)
       });
     }
   };
