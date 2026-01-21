@@ -126,6 +126,33 @@ class RoleUpdateRequest(BaseModel):
     user_id: str
     new_role: str
 
+# Session Parts Models
+class SessionPart(BaseModel):
+    part_id: str
+    name: str
+    is_default: bool = True
+    created_by: Optional[str] = None  # user_id of creator
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class SessionPartCreate(BaseModel):
+    name: str
+    is_default: bool = False  # Whether to add as global default
+
+class SessionPartResponse(BaseModel):
+    part_id: str
+    name: str
+    is_default: bool
+    created_by: Optional[str] = None
+    created_at: str
+
+# Default session parts
+DEFAULT_SESSION_PARTS = [
+    {"part_id": "default_technique", "name": "Develop the technique", "is_default": True},
+    {"part_id": "default_game_model", "name": "Develop the game model", "is_default": True},
+    {"part_id": "default_performance", "name": "Develop performance", "is_default": True},
+    {"part_id": "default_mentality", "name": "Develop mentality", "is_default": True},
+]
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
