@@ -62,9 +62,15 @@ export default function SessionSetup() {
         startTime: null,
         endTime: null,
         ballRollingTime: 0,
-        ballNotRollingTime: 0
+        ballNotRollingTime: 0,
+        used: false
       }))
     }));
+  };
+
+  const handleCoachChange = (coachId) => {
+    setSelectedCoachId(coachId);
+    updateSession({ coachId: coachId === 'none' ? null : coachId });
   };
 
   const updateSession = (updates) => {
