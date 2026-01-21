@@ -81,6 +81,51 @@ class FileUploadResponse(BaseModel):
     url: str
     uploadedAt: str
 
+# User & Auth Models
+class User(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    user_id: str
+    email: str
+    name: str
+    picture: Optional[str] = None
+    role: str = "coach"  # "coach_developer" or "coach"
+    linked_coach_id: Optional[str] = None  # Links to coach profile
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class UserResponse(BaseModel):
+    user_id: str
+    email: str
+    name: str
+    picture: Optional[str] = None
+    role: str
+    linked_coach_id: Optional[str] = None
+
+class Invite(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    invite_id: str
+    email: str
+    role: str  # "coach_developer" or "coach"
+    invited_by: str  # user_id of inviter
+    coach_id: Optional[str] = None  # Link to coach profile if inviting a coach
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    used: bool = False
+
+class InviteCreate(BaseModel):
+    email: str
+    role: str
+    coach_id: Optional[str] = None
+
+class InviteResponse(BaseModel):
+    invite_id: str
+    email: str
+    role: str
+    coach_id: Optional[str] = None
+    created_at: str
+
+class RoleUpdateRequest(BaseModel):
+    user_id: str
+    new_role: str
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
