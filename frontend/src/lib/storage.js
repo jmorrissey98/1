@@ -335,14 +335,40 @@ export const createCoach = (name) => {
     // Coach info
     role: '', // e.g., "U14 Head Coach"
     organization: '',
+    email: '',
     notes: '', // General notes about the coach
     
+    // Profile photo (base64 or URL)
+    photoUrl: null,
+    
     // Development targets
-    targets: [], // Array of { id, text, status: 'active' | 'achieved', createdAt }
+    targets: [], // Array of { id, text, status: 'active' | 'achieved', createdAt, ageGroup }
+    
+    // Intervention style targets (optional)
+    interventionTargets: [], // Array of { id, interventionType, targetPercentage, ageGroup, enabled }
     
     // AI-generated trend summary
     aiTrendSummary: '',
-    aiTrendSummaryDate: null
+    aiTrendSummaryDate: null,
+    
+    // Attachments (file references)
+    attachments: [], // Array of { id, name, type, size, uploadedAt, url }
+    
+    // Linked user account (for coach view)
+    userId: null
+  };
+};
+
+// Create a user profile
+export const createUser = (name, role = USER_ROLES.COACH_DEVELOPER) => {
+  const now = new Date().toISOString();
+  
+  return {
+    id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: name || 'User',
+    createdAt: now,
+    role: role, // coach_developer or coach
+    linkedCoachId: null // For coach role, links to their coach profile
   };
 };
 
