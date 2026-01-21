@@ -463,6 +463,79 @@ export default function ReviewSession() {
             </div>
           </TabsContent>
 
+          {/* Notes & AI Tab */}
+          <TabsContent value="notes" className="space-y-6">
+            {/* Session Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <StickyNote className="w-5 h-5" />
+                  Observer Notes
+                </CardTitle>
+                <CardDescription>
+                  Add your observations, reflections, and any context for this session.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  value={sessionNotes}
+                  onChange={(e) => setSessionNotes(e.target.value)}
+                  placeholder="Add your notes about this session... These will be included when generating the AI summary."
+                  className="min-h-[150px] resize-y"
+                  data-testid="session-notes-textarea"
+                />
+                <Button onClick={handleSaveNotes} variant="outline" data-testid="save-notes-btn">
+                  <Check className="w-4 h-4 mr-2" />
+                  Save Notes
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* AI Summary Generation */}
+            <Card className="border-purple-200">
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
+                  <Sparkles className="w-5 h-5" />
+                  AI Summary
+                </CardTitle>
+                <CardDescription>
+                  Generate an AI-powered summary of your observation session. Your notes will be included for context.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button 
+                  onClick={handleGenerateSummary}
+                  disabled={isGeneratingSummary || session.events.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="generate-summary-btn"
+                >
+                  {isGeneratingSummary ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {session.aiSummary ? 'Regenerate Summary' : 'Generate Summary'}
+                    </>
+                  )}
+                </Button>
+                
+                {session.aiSummary && (
+                  <div className="mt-4 p-4 bg-purple-50 rounded-lg">
+                    <h4 className="font-semibold text-purple-900 mb-3">Generated Summary</h4>
+                    <div className="prose prose-slate prose-sm max-w-none">
+                      {session.aiSummary.split('\n').map((paragraph, i) => (
+                        paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Timeline Tab */}
           <TabsContent value="timeline">
             <Card>
