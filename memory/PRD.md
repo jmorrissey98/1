@@ -98,6 +98,12 @@ Build a lightweight iPad-first coach observation app for coach education. Design
 - ✅ Subtle event feedback (pulse animation + toast)
 - ✅ Fast descriptor selection without modals
 - ✅ Professional, calm design
+- ✅ **Responsive design for iPad and laptop**
+  - Safe area insets for iPad
+  - Touch-optimized button sizes
+  - Responsive grids (2-col on iPad, 3-col on laptop)
+  - Flexible header layouts
+  - Proper text scaling across devices
 
 ## Prioritized Backlog
 
