@@ -1,210 +1,412 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Shield, Eye, Check } from 'lucide-react';
+import { ArrowLeft, Users, Mail, Shield, UserPlus, Trash2, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { storage, createUser, USER_ROLES } from '../lib/storage';
-import { cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
+import { storage } from '../lib/storage';
 
 export default function UserSettings() {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user, logout, isCoachDeveloper } = useAuth();
+  const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+  
+  const [users, setUsers] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [coaches, setCoaches] = useState([]);
-  const [userName, setUserName] = useState('');
-  const [selectedRole, setSelectedRole] = useState(USER_ROLES.COACH_DEVELOPER);
-  const [linkedCoachId, setLinkedCoachId] = useState('none');
+  const [loading, setLoading] = useState(true);
+  
+  // Invite form state
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('coach');
+  const [inviteCoachId, setInviteCoachId] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
-    const user = storage.getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-      setUserName(user.name);
-      setSelectedRole(user.role);
-      setLinkedCoachId(user.linkedCoachId || 'none');
-    }
-    setCoaches(storage.getCoaches());
+    loadData();
   }, []);
 
-  const handleSave = () => {
-    if (!userName.trim()) {
-      toast.error('Please enter a name');
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Load coaches from local storage
+      setCoaches(storage.getCoaches());
+      
+      if (isCoachDeveloper()) {
+        // Load users and invites from backend
+        const [usersRes, invitesRes] = await Promise.all([
+          fetch(`${API_URL}/api/users`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/invites`, { credentials: 'include' })
+        ]);
+        
+        if (usersRes.ok) {
+          setUsers(await usersRes.json());
+        }
+        if (invitesRes.ok) {
+          setInvites(await invitesRes.json());
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) {
+      toast.error('Please enter an email address');
       return;
     }
 
-    const user = currentUser || createUser(userName, selectedRole);
-    const updatedUser = {
-      ...user,
-      name: userName,
-      role: selectedRole,
-      linkedCoachId: selectedRole === USER_ROLES.COACH ? (linkedCoachId !== 'none' ? linkedCoachId : null) : null
-    };
+    setInviting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          role: inviteRole,
+          coach_id: inviteRole === 'coach' ? inviteCoachId || null : null
+        })
+      });
 
-    storage.saveUser(updatedUser);
-    storage.setCurrentUser(updatedUser);
-    setCurrentUser(updatedUser);
-    toast.success('Settings saved');
-  };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to create invite');
+      }
 
-  const handleSwitchToCoachView = () => {
-    if (!currentUser?.linkedCoachId) {
-      toast.error('Please link to a coach profile first');
-      return;
+      toast.success(`Invite sent to ${inviteEmail}`);
+      setInviteEmail('');
+      setInviteCoachId('');
+      loadData();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setInviting(false);
     }
-    navigate(`/coach-view/${currentUser.linkedCoachId}`);
   };
+
+  const handleDeleteInvite = async (inviteId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/invites/${inviteId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete invite');
+      }
+
+      toast.success('Invite deleted');
+      loadData();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      const response = await fetch(`${API_URL}/api/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ user_id: userId, new_role: newRole })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update role');
+      }
+
+      toast.success('Role updated');
+      loadData();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const getCoachName = (coachId) => {
+    const coach = coaches.find(c => c.id === coachId);
+    return coach?.name || 'Unknown';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">User Settings</h1>
-            <p className="text-sm text-slate-500">Manage your profile and role</p>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 font-['Manrope']">Settings</h1>
+              <p className="text-xs sm:text-sm text-slate-500">Manage your account and team</p>
+            </div>
           </div>
+          <Button variant="outline" onClick={handleLogout} className="text-red-600 hover:text-red-700">
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Profile */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-['Manrope'] flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Profile
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="user-name">Your Name</Label>
-              <Input
-                id="user-name"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="Enter your name"
-                className="mt-1"
-                data-testid="user-name-input"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Role Selection */}
-        <Card>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+        {/* Current User Info */}
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle className="font-['Manrope'] flex items-center gap-2">
               <Shield className="w-5 h-5" />
-              Role
+              Your Account
             </CardTitle>
-            <CardDescription>
-              Select your role to determine what you can access
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setSelectedRole(USER_ROLES.COACH_DEVELOPER)}
-                className={cn(
-                  "p-4 rounded-lg border-2 text-left transition-all",
-                  selectedRole === USER_ROLES.COACH_DEVELOPER
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
-                )}
-                data-testid="role-coach-developer"
-              >
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-slate-900">Coach Developer</span>
-                </div>
-                <p className="text-sm text-slate-500 mt-2">
-                  Full access to observe coaches, view all data, and generate reports
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedRole(USER_ROLES.COACH)}
-                className={cn(
-                  "p-4 rounded-lg border-2 text-left transition-all",
-                  selectedRole === USER_ROLES.COACH
-                    ? "border-green-500 bg-green-50"
-                    : "border-slate-200 hover:border-slate-300"
-                )}
-                data-testid="role-coach"
-              >
-                <div className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-green-600" />
-                  <span className="font-semibold text-slate-900">Coach</span>
-                </div>
-                <p className="text-sm text-slate-500 mt-2">
-                  View your own sessions, add reflections, and track your development
-                </p>
-              </button>
-            </div>
-
-            {/* Coach linking */}
-            {selectedRole === USER_ROLES.COACH && (
-              <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                <Label htmlFor="linked-coach">Link to Coach Profile</Label>
-                <Select value={linkedCoachId} onValueChange={setLinkedCoachId}>
-                  <SelectTrigger className="mt-1" data-testid="linked-coach-select">
-                    <SelectValue placeholder="Select your coach profile" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not linked</SelectItem>
-                    {coaches.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-500 mt-2">
-                  Link your account to your coach profile to access the Coach View
-                </p>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              {user?.picture && (
+                <img 
+                  src={user.picture} 
+                  alt={user.name} 
+                  className="w-16 h-16 rounded-full"
+                />
+              )}
+              <div className="flex-1">
+                <p className="font-semibold text-lg">{user?.name}</p>
+                <p className="text-slate-500">{user?.email}</p>
+                <Badge className={user?.role === 'coach_developer' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
+                  {user?.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
+                </Badge>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Button onClick={handleSave} data-testid="save-settings-btn">
-            <Check className="w-4 h-4 mr-2" />
-            Save Settings
-          </Button>
+        {/* Coach Developer Only: Team Management */}
+        {isCoachDeveloper() && (
+          <Tabs defaultValue="invites" className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="invites" data-testid="tab-invites">
+                <Mail className="w-4 h-4 mr-2" />
+                Invites
+              </TabsTrigger>
+              <TabsTrigger value="users" data-testid="tab-users">
+                <Users className="w-4 h-4 mr-2" />
+                Users
+              </TabsTrigger>
+            </TabsList>
 
-          {currentUser?.role === USER_ROLES.COACH && currentUser?.linkedCoachId && (
-            <Button variant="outline" onClick={handleSwitchToCoachView}>
-              <Eye className="w-4 h-4 mr-2" />
-              Open Coach View
-            </Button>
-          )}
-        </div>
+            {/* Invites Tab */}
+            <TabsContent value="invites">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <UserPlus className="w-5 h-5" />
+                    Invite New User
+                  </CardTitle>
+                  <CardDescription>
+                    Send an invite to allow someone to create an account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateInvite} className="space-y-4">
+                    <div>
+                      <Label htmlFor="invite-email">Email Address</Label>
+                      <Input
+                        id="invite-email"
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="coach@example.com"
+                        className="mt-1"
+                        data-testid="invite-email-input"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="invite-role">Role</Label>
+                      <Select value={inviteRole} onValueChange={setInviteRole}>
+                        <SelectTrigger className="mt-1" data-testid="invite-role-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="coach">Coach</SelectItem>
+                          <SelectItem value="coach_developer">Coach Developer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-        {/* Current Status */}
-        {currentUser && (
+                    {inviteRole === 'coach' && coaches.length > 0 && (
+                      <div>
+                        <Label htmlFor="invite-coach">Link to Coach Profile (Optional)</Label>
+                        <Select value={inviteCoachId} onValueChange={setInviteCoachId}>
+                          <SelectTrigger className="mt-1" data-testid="invite-coach-select">
+                            <SelectValue placeholder="Select a coach profile..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">No profile</SelectItem>
+                            {coaches.map(coach => (
+                              <SelectItem key={coach.id} value={coach.id}>
+                                {coach.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-slate-500 mt-1">
+                          If selected, the user will automatically be linked to this coach profile
+                        </p>
+                      </div>
+                    )}
+
+                    <Button type="submit" disabled={inviting} data-testid="send-invite-btn">
+                      {inviting ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Mail className="w-4 h-4 mr-2" />
+                      )}
+                      Send Invite
+                    </Button>
+                  </form>
+
+                  {/* Pending Invites */}
+                  {invites.length > 0 && (
+                    <div className="mt-6 border-t pt-6">
+                      <h4 className="font-medium text-slate-700 mb-3">Pending Invites</h4>
+                      <div className="space-y-2">
+                        {invites.map(invite => (
+                          <div key={invite.invite_id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div>
+                              <p className="font-medium">{invite.email}</p>
+                              <div className="flex items-center gap-2 text-sm text-slate-500">
+                                <Badge variant="outline">
+                                  {invite.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
+                                </Badge>
+                                {invite.coach_id && (
+                                  <span>→ {getCoachName(invite.coach_id)}</span>
+                                )}
+                              </div>
+                            </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-red-600">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Invite?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will revoke the invite for {invite.email}.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteInvite(invite.invite_id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Users Tab */}
+            <TabsContent value="users">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Team Members
+                  </CardTitle>
+                  <CardDescription>
+                    Manage user roles and permissions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {users.length === 0 ? (
+                    <p className="text-slate-500 text-center py-4">No users yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {users.map(u => (
+                        <div key={u.user_id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {u.picture && (
+                              <img src={u.picture} alt={u.name} className="w-10 h-10 rounded-full" />
+                            )}
+                            <div>
+                              <p className="font-medium">
+                                {u.name}
+                                {u.user_id === user?.user_id && (
+                                  <span className="text-slate-500 text-sm ml-2">(You)</span>
+                                )}
+                              </p>
+                              <p className="text-sm text-slate-500">{u.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {u.user_id !== user?.user_id ? (
+                              <Select 
+                                value={u.role} 
+                                onValueChange={(newRole) => handleRoleChange(u.user_id, newRole)}
+                              >
+                                <SelectTrigger className="w-[160px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="coach">Coach</SelectItem>
+                                  <SelectItem value="coach_developer">Coach Developer</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge className="bg-purple-100 text-purple-800">
+                                Coach Developer
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Coach-only view */}
+        {!isCoachDeveloper() && (
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                  <User className="w-5 h-5 text-slate-500" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900">{currentUser.name}</p>
-                  <Badge variant={currentUser.role === USER_ROLES.COACH_DEVELOPER ? 'default' : 'secondary'}>
-                    {currentUser.role === USER_ROLES.COACH_DEVELOPER ? 'Coach Developer' : 'Coach'}
-                  </Badge>
-                </div>
-              </div>
+            <CardContent className="py-8 text-center">
+              <p className="text-slate-500">
+                Contact your Coach Developer to update your account settings.
+              </p>
             </CardContent>
           </Card>
         )}
