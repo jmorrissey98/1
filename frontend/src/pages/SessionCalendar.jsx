@@ -169,17 +169,17 @@ export default function SessionCalendar() {
               </div>
 
               {/* Legend */}
-              <div className="flex gap-4 mt-4 pt-4 border-t">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+              <div className="flex flex-wrap gap-2 sm:gap-4 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
+                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-600">
+                  <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-blue-500" />
                   Planned
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-600">
+                  <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-orange-500" />
                   In Progress
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-600">
+                  <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-green-500" />
                   Completed
                 </div>
               </div>
@@ -187,11 +187,11 @@ export default function SessionCalendar() {
           </Card>
 
           {/* Selected Day Sessions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                {selectedDate ? format(selectedDate, 'EEEE, d MMM') : 'Select a Day'}
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-2 sm:pb-4">
+              <CardTitle className="font-['Manrope'] flex items-center gap-2 text-base sm:text-lg">
+                <CalendarIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+                {selectedDate ? format(selectedDate, 'EEE, d MMM') : 'Select a Day'}
               </CardTitle>
             </CardHeader>
             <CardContent>
