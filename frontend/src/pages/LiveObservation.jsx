@@ -434,14 +434,15 @@ export default function LiveObservation() {
       </header>
 
       {/* Session Parts Tabs */}
-      <div className="bg-white border-b border-slate-200 px-4">
-        <div className="flex gap-1 overflow-x-auto py-2 items-center">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6">
+        <div className="flex gap-1 overflow-x-auto py-2 items-center tabs-responsive">
           {session.sessionParts.map((part) => (
             <button
               key={part.id}
               onClick={() => handlePartChange(part.id)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap touch-button",
+                "px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap",
+                "min-h-[44px] touch-action-manipulation",
                 part.id === session.activePartId
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -457,7 +458,7 @@ export default function LiveObservation() {
                 value={newPartName}
                 onChange={(e) => setNewPartName(e.target.value)}
                 placeholder="Part name"
-                className="w-28 h-9 text-sm"
+                className="w-24 sm:w-28 h-9 text-sm"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleAddPart()}
                 data-testid="new-part-input"
@@ -472,36 +473,36 @@ export default function LiveObservation() {
           ) : (
             <button
               onClick={() => setShowAddPart(true)}
-              className="px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all whitespace-nowrap flex items-center gap-1"
+              className="px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all whitespace-nowrap flex items-center gap-1 min-h-[44px]"
               data-testid="add-part-btn"
             >
               <Plus className="w-4 h-4" />
-              Add Part
+              <span className="hidden sm:inline">Add Part</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Ball Rolling Toggle */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
         <button
           onClick={handleBallToggle}
           className={cn(
-            "w-full py-4 rounded-xl font-bold text-lg transition-all touch-button",
+            "w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all min-h-[56px] sm:min-h-[64px]",
             session.ballRolling
-              ? "bg-orange-500 text-white hover:bg-orange-600"
-              : "bg-slate-600 text-white hover:bg-slate-700"
+              ? "bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700"
+              : "bg-slate-600 text-white hover:bg-slate-700 active:bg-slate-800"
           )}
           data-testid="ball-toggle-btn"
         >
           {session.ballRolling ? (
             <span className="flex items-center justify-center gap-2">
-              <Circle className="w-5 h-5 fill-current ball-rolling-indicator" />
+              <Circle className="w-4 sm:w-5 h-4 sm:h-5 fill-current ball-rolling-indicator" />
               Ball Rolling
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              <Square className="w-5 h-5" />
+              <Square className="w-4 sm:w-5 h-4 sm:h-5" />
               Ball Not Rolling
             </span>
           )}
@@ -509,32 +510,34 @@ export default function LiveObservation() {
       </div>
 
       {/* Code Window Grid */}
-      <main className="flex-1 p-4 overflow-auto">
-        <div className="grid grid-cols-3 gap-3 max-w-5xl mx-auto">
+      <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4 max-w-6xl mx-auto">
           {/* Column 1: Coach Interventions (Yellow) */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3 col-span-2 sm:col-span-1">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
               Coach Interventions
             </div>
-            {(session.interventionTypes || session.eventTypes || []).map((eventType) => (
-              <button
-                key={eventType.id}
-                onClick={() => handleEventTap(eventType)}
-                className={cn(
-                  "w-full h-24 rounded-xl font-bold text-lg shadow-md transition-all touch-button",
-                  "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-                  "border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1",
-                  flashEvent === eventType.id && "event-logged"
-                )}
-                data-testid={`event-btn-${eventType.id}`}
-              >
-                {eventType.name}
-              </button>
-            ))}
+            <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
+              {(session.interventionTypes || session.eventTypes || []).map((eventType) => (
+                <button
+                  key={eventType.id}
+                  onClick={() => handleEventTap(eventType)}
+                  className={cn(
+                    "w-full h-16 sm:h-20 lg:h-24 rounded-xl font-bold text-sm sm:text-base lg:text-lg shadow-md transition-all",
+                    "bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-slate-900",
+                    "border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1",
+                    flashEvent === eventType.id && "event-logged"
+                  )}
+                  data-testid={`event-btn-${eventType.id}`}
+                >
+                  {eventType.name}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Column 2: Descriptor Group 1 (Blue) */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
               {session.descriptorGroup1.name}
             </div>
@@ -546,17 +549,17 @@ export default function LiveObservation() {
                   onClick={() => handleDescriptorToggle(1, desc.id)}
                   disabled={!lastEvent}
                   className={cn(
-                    "w-full h-20 rounded-xl font-semibold transition-all touch-button",
+                    "w-full h-14 sm:h-16 lg:h-20 rounded-xl font-semibold text-sm sm:text-base transition-all",
                     "border-2",
                     !lastEvent && "opacity-40 cursor-not-allowed",
                     isSelected
                       ? "bg-sky-500 text-white border-sky-700 shadow-lg"
-                      : "bg-sky-400 text-white border-transparent hover:bg-sky-500"
+                      : "bg-sky-400 text-white border-transparent hover:bg-sky-500 active:bg-sky-600"
                   )}
                   data-testid={`desc1-btn-${desc.id}`}
                 >
-                  <span className="flex items-center justify-center gap-2">
-                    {isSelected && <Check className="w-4 h-4" />}
+                  <span className="flex items-center justify-center gap-1 sm:gap-2">
+                    {isSelected && <Check className="w-3 sm:w-4 h-3 sm:h-4" />}
                     {desc.name}
                   </span>
                 </button>
@@ -565,7 +568,7 @@ export default function LiveObservation() {
           </div>
 
           {/* Column 3: Descriptor Group 2 (Green) */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
               {session.descriptorGroup2.name}
             </div>
@@ -577,17 +580,17 @@ export default function LiveObservation() {
                   onClick={() => handleDescriptorToggle(2, desc.id)}
                   disabled={!lastEvent}
                   className={cn(
-                    "w-full h-20 rounded-xl font-semibold transition-all touch-button",
+                    "w-full h-14 sm:h-16 lg:h-20 rounded-xl font-semibold text-sm sm:text-base transition-all",
                     "border-2",
                     !lastEvent && "opacity-40 cursor-not-allowed",
                     isSelected
                       ? "bg-green-500 text-white border-green-700 shadow-lg"
-                      : "bg-green-400 text-white border-transparent hover:bg-green-500"
+                      : "bg-green-400 text-white border-transparent hover:bg-green-500 active:bg-green-600"
                   )}
                   data-testid={`desc2-btn-${desc.id}`}
                 >
-                  <span className="flex items-center justify-center gap-2">
-                    {isSelected && <Check className="w-4 h-4" />}
+                  <span className="flex items-center justify-center gap-1 sm:gap-2">
+                    {isSelected && <Check className="w-3 sm:w-4 h-3 sm:h-4" />}
                     {desc.name}
                   </span>
                 </button>
