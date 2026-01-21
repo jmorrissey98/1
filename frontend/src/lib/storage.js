@@ -5,7 +5,8 @@ const STORAGE_KEYS = {
   SESSIONS: 'mcd_sessions',
   TEMPLATES: 'mcd_templates',
   ACTIVE_SESSION: 'mcd_active_session',
-  SETTINGS: 'mcd_settings'
+  SETTINGS: 'mcd_settings',
+  COACHES: 'mcd_coaches'
 };
 
 // Default event types (yellow buttons)
