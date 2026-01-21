@@ -43,14 +43,24 @@ export default function HomePage() {
             </h1>
             <p className="text-sm text-slate-500">Coach Observation Tool</p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/templates')}
-            data-testid="manage-templates-btn"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Templates
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/coaches')}
+              data-testid="my-coaches-btn"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              My Coaches
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/templates')}
+              data-testid="manage-templates-btn"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Templates
+            </Button>
+          </div>
         </div>
       </header>
 
