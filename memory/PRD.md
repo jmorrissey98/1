@@ -136,8 +136,16 @@ All core observation and review features implemented
 - Judgement/grading of coaching quality
 
 ## Next Tasks
-1. Coach profile photo upload
-2. File attachments for coach profiles (development plans, etc.)
-3. iPad-specific optimizations (orientation, safe areas)
+1. Test Google OAuth flow end-to-end
+2. Coach profile photo upload
+3. File attachments for coach profiles
 4. Optional non-evaluative targets feature
-4. Session comparison feature
+
+## Authentication System
+- ✅ Emergent Google OAuth integration
+- ✅ Invite-only registration (Coach Developers invite coaches)
+- ✅ First user becomes Coach Developer (admin)
+- ✅ Role-based access control (coach_developer vs coach)
+- ✅ Auto-link coach profiles to user accounts via email
+- ✅ User Settings page with invite management
+- ✅ Protected routes based on role
