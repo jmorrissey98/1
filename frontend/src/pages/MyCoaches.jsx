@@ -96,6 +96,24 @@ export default function MyCoaches() {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="coach-email">
+                    <Mail className="w-4 h-4 inline mr-1" />
+                    Email Address
+                  </Label>
+                  <Input
+                    id="coach-email"
+                    type="email"
+                    value={newCoachEmail}
+                    onChange={(e) => setNewCoachEmail(e.target.value)}
+                    placeholder="coach@example.com"
+                    className="mt-1"
+                    data-testid="new-coach-email-input"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    The coach can create an account with this email to view their observations
+                  </p>
+                </div>
+                <div>
                   <Label htmlFor="coach-role">Role (optional)</Label>
                   <Input
                     id="coach-role"
