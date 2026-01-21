@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Undo2, Square, Circle, MessageSquare, Check, X } from 'lucide-react';
+import { ArrowLeft, Undo2, Square, Circle, MessageSquare, Check, X, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
+import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { storage, createEvent } from '../lib/storage';
-import { formatTime, cn } from '../lib/utils';
+import { formatTime, cn, generateId } from '../lib/utils';
 
 export default function LiveObservation() {
   const navigate = useNavigate();
