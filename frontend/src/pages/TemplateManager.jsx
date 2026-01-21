@@ -30,16 +30,16 @@ export default function TemplateManager() {
       ...template,
       id: generateId('template'),
       name: `${template.name} (Copy)`,
-      eventTypes: template.eventTypes.map(e => ({ ...e, id: generateId('event') })),
+      eventTypes: (template.eventTypes || []).map(e => ({ ...e, id: generateId('event') })),
       descriptorGroup1: {
-        ...template.descriptorGroup1,
-        descriptors: template.descriptorGroup1.descriptors.map(d => ({ ...d, id: generateId('desc') }))
+        ...(template.descriptorGroup1 || { name: 'Group 1', descriptors: [] }),
+        descriptors: (template.descriptorGroup1?.descriptors || []).map(d => ({ ...d, id: generateId('desc') }))
       },
       descriptorGroup2: {
-        ...template.descriptorGroup2,
-        descriptors: template.descriptorGroup2.descriptors.map(d => ({ ...d, id: generateId('desc') }))
+        ...(template.descriptorGroup2 || { name: 'Group 2', descriptors: [] }),
+        descriptors: (template.descriptorGroup2?.descriptors || []).map(d => ({ ...d, id: generateId('desc') }))
       },
-      sessionParts: template.sessionParts.map(p => ({ ...p, id: generateId('part') }))
+      sessionParts: (template.sessionParts || []).map(p => ({ ...p, id: generateId('part') }))
     };
     
     storage.saveTemplate(newTemplate);
