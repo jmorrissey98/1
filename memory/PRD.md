@@ -130,7 +130,8 @@ All core observation and review features implemented
 - Judgement/grading of coaching quality
 
 ## Next Tasks
-1. User testing with real coach educators
-2. iPad-specific optimizations (orientation, safe areas)
-3. Cloud backup integration (optional)
+1. Coach profile photo upload
+2. File attachments for coach profiles (development plans, etc.)
+3. iPad-specific optimizations (orientation, safe areas)
+4. Optional non-evaluative targets feature
 4. Session comparison feature
