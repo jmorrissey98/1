@@ -232,27 +232,44 @@ export default function LiveObservation() {
   };
 
   const handlePartChange = (partId) => {
+    if (partId === session.activePartId) return; // Already on this part
+    
     const now = Date.now();
     const nowIso = new Date().toISOString();
     
-    if (partStartTime.current && isRunning) {
-      // End current part
+    if (isRunning && lastBallStateChange.current) {
+      // Calculate time spent in current ball state for current part
+      const duration = (now - lastBallStateChange.current) / 1000;
+      const ballTimeKey = session.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
+      
       setSession(prev => ({
         ...prev,
-        sessionParts: prev.sessionParts.map(p => 
-          p.id === prev.activePartId 
-            ? { ...p, endTime: nowIso }
-            : p.id === partId
-            ? { ...p, startTime: nowIso }
-            : p
-        ),
+        // Update overall session ball time
+        [ballTimeKey]: prev[ballTimeKey] + duration,
+        // Update parts - end current, start new
+        sessionParts: prev.sessionParts.map(p => {
+          if (p.id === prev.activePartId) {
+            return { ...p, [ballTimeKey]: p[ballTimeKey] + duration, endTime: nowIso };
+          }
+          if (p.id === partId) {
+            return { ...p, startTime: p.startTime || nowIso };
+          }
+          return p;
+        }),
         activePartId: partId
       }));
+      
+      // Reset the ball state timer for the new part
+      lastBallStateChange.current = now;
     } else {
       setSession(prev => ({
         ...prev,
+        sessionParts: prev.sessionParts.map(p => 
+          p.id === partId ? { ...p, startTime: p.startTime || nowIso } : p
+        ),
         activePartId: partId
       }));
+      lastBallStateChange.current = now;
     }
     
     partStartTime.current = now;
