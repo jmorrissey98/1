@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, User, Target, Calendar, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, User, Target, Calendar, ChevronRight, Mail } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -16,6 +16,7 @@ export default function MyCoaches() {
   const [showNewCoach, setShowNewCoach] = useState(false);
   const [newCoachName, setNewCoachName] = useState('');
   const [newCoachRole, setNewCoachRole] = useState('');
+  const [newCoachEmail, setNewCoachEmail] = useState('');
 
   useEffect(() => {
     loadCoaches();
@@ -40,10 +41,12 @@ export default function MyCoaches() {
     
     const coach = createCoach(newCoachName.trim());
     coach.role = newCoachRole.trim();
+    coach.email = newCoachEmail.trim();
     storage.saveCoach(coach);
     
     setNewCoachName('');
     setNewCoachRole('');
+    setNewCoachEmail('');
     setShowNewCoach(false);
     loadCoaches();
     toast.success('Coach profile created');
