@@ -655,10 +655,10 @@ export default function LiveObservation() {
         </div>
       )}
 
-      {/* Event Count Badge */}
+      {/* Intervention Count Badge */}
       <div className="fixed bottom-4 right-4">
         <Badge className="bg-slate-900 text-white text-lg px-3 py-1" data-testid="event-count-badge">
-          {session.events.length} events
+          {session.events.length} interventions
         </Badge>
       </div>
     </div>
