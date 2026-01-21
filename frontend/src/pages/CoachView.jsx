@@ -7,20 +7,21 @@ import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Progress } from '../components/ui/progress';
 import { toast } from 'sonner';
-import { storage, USER_ROLES } from '../lib/storage';
+import { storage } from '../lib/storage';
 import { formatDate, formatTime, calcPercentage } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function CoachView() {
   const navigate = useNavigate();
   const { coachId } = useParams();
+  const { user } = useAuth();
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
-  const currentUser = storage.getCurrentUser();
 
   useEffect(() => {
-    // Verify access
-    if (!currentUser || (currentUser.role === USER_ROLES.COACH && currentUser.linkedCoachId !== coachId)) {
+    // Verify access - only allow if user is a coach linked to this profile or a coach developer
+    if (user?.role === 'coach' && user?.linked_coach_id !== coachId) {
       toast.error('Access denied');
       navigate('/');
       return;
@@ -38,7 +39,7 @@ export default function CoachView() {
       .filter(s => s.status === 'completed')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     setSessions(coachSessions);
-  }, [coachId, navigate, currentUser]);
+  }, [coachId, navigate, user]);
 
   if (!coach) return null;
 
