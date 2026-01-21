@@ -76,7 +76,7 @@ export default function UserSettings() {
         body: JSON.stringify({
           email: inviteEmail.trim(),
           role: inviteRole,
-          coach_id: inviteRole === 'coach' ? inviteCoachId || null : null
+          coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
         })
       });
 
