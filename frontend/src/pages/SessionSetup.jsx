@@ -40,7 +40,11 @@ export default function SessionSetup() {
         navigate('/');
       }
     } else {
-      const newSession = createSession('', null, preselectedCoachId || null);
+      const newSession = createSession('', null, preselectedCoachId || null, {
+        observationContext: OBSERVATION_CONTEXTS.TRAINING,
+        plannedDate: plannedDate || null,
+        planned: !!plannedDate
+      });
       // If coach is preselected, set a default name
       if (preselectedCoachId) {
         const coach = storage.getCoach(preselectedCoachId);
@@ -49,6 +53,7 @@ export default function SessionSetup() {
         }
       }
       setSession(newSession);
+      if (plannedDate) setSessionDate(plannedDate);
     }
   }, [sessionId, isEditing, navigate, preselectedCoachId]);
 
