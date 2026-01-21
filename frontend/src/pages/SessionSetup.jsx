@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, X, GripVertical, Play } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Plus, X, GripVertical, Play, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -13,27 +13,41 @@ import { generateId } from '../lib/utils';
 export default function SessionSetup() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
+  const [searchParams] = useSearchParams();
+  const preselectedCoachId = searchParams.get('coachId');
   const isEditing = !!sessionId;
   
   const [templates, setTemplates] = useState([]);
+  const [coaches, setCoaches] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('default');
+  const [selectedCoachId, setSelectedCoachId] = useState(preselectedCoachId || 'none');
   const [session, setSession] = useState(null);
 
   useEffect(() => {
     setTemplates(storage.getTemplates());
+    setCoaches(storage.getCoaches());
     
     if (isEditing) {
       const existing = storage.getSession(sessionId);
       if (existing) {
         setSession(existing);
+        setSelectedCoachId(existing.coachId || 'none');
       } else {
         toast.error('Session not found');
         navigate('/');
       }
     } else {
-      setSession(createSession(''));
+      const newSession = createSession('', null, preselectedCoachId || null);
+      // If coach is preselected, set a default name
+      if (preselectedCoachId) {
+        const coach = storage.getCoach(preselectedCoachId);
+        if (coach) {
+          newSession.name = `${coach.name} - ${new Date().toLocaleDateString()}`;
+        }
+      }
+      setSession(newSession);
     }
-  }, [sessionId, isEditing, navigate]);
+  }, [sessionId, isEditing, navigate, preselectedCoachId]);
 
   const handleTemplateChange = (templateId) => {
     setSelectedTemplate(templateId);
