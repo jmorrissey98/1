@@ -91,7 +91,7 @@ export default function TemplateManager() {
     const template = templates.find(t => t.id === templateId);
     if (template) {
       const newEvent = { id: generateId('event'), name: 'New Event', color: 'yellow' };
-      saveAndRefresh({ ...template, eventTypes: [...template.eventTypes, newEvent] });
+      saveAndRefresh({ ...template, eventTypes: [...(template.eventTypes || []), newEvent] });
     }
   };
 
@@ -100,17 +100,17 @@ export default function TemplateManager() {
     if (template) {
       saveAndRefresh({
         ...template,
-        eventTypes: template.eventTypes.map(e => e.id === eventId ? { ...e, name } : e)
+        eventTypes: (template.eventTypes || []).map(e => e.id === eventId ? { ...e, name } : e)
       });
     }
   };
 
   const removeEventType = (templateId, eventId) => {
     const template = templates.find(t => t.id === templateId);
-    if (template && template.eventTypes.length > 1) {
+    if (template && (template.eventTypes || []).length > 1) {
       saveAndRefresh({
         ...template,
-        eventTypes: template.eventTypes.filter(e => e.id !== eventId)
+        eventTypes: (template.eventTypes || []).filter(e => e.id !== eventId)
       });
     } else {
       toast.error('Need at least one event type');
