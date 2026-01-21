@@ -245,6 +245,16 @@ export default function SessionCalendar() {
                       </div>
                     );
                   })}
+                  {/* Add another session button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => navigate(`/session/new?date=${format(selectedDate, 'yyyy-MM-dd')}`)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Plan Another Session
+                  </Button>
                 </div>
               )}
             </CardContent>
