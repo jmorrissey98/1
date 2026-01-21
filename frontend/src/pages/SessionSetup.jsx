@@ -55,7 +55,7 @@ export default function SessionSetup() {
       setSession(newSession);
       if (plannedDate) setSessionDate(plannedDate);
     }
-  }, [sessionId, isEditing, navigate, preselectedCoachId]);
+  }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate]);
 
   const handleTemplateChange = (templateId) => {
     setSelectedTemplate(templateId);
