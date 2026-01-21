@@ -561,77 +561,246 @@ export default function ReviewSession() {
             </div>
           </TabsContent>
 
-          {/* Notes & AI Tab */}
+          {/* Reflections & AI Tab - Updated */}
           <TabsContent value="notes" className="space-y-6">
-            {/* Session Notes */}
+            {/* Observer Reflections */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <StickyNote className="w-5 h-5" />
-                  Observer Notes
+                  <User className="w-5 h-5" />
+                  Observer Reflections
                 </CardTitle>
                 <CardDescription>
-                  Add your observations, reflections, and any context for this session.
+                  Add your observations and reflections on this session.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Textarea
-                  value={sessionNotes}
-                  onChange={(e) => setSessionNotes(e.target.value)}
-                  placeholder="Add your notes about this session... These will be included when generating the AI summary."
-                  className="min-h-[150px] resize-y"
-                  data-testid="session-notes-textarea"
-                />
-                <Button onClick={handleSaveNotes} variant="outline" data-testid="save-notes-btn">
+                {/* Existing reflections */}
+                {(session.observerReflections || []).length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {session.observerReflections.map(r => (
+                      <div key={r.id} className="p-3 bg-slate-50 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-slate-700">{r.text}</p>
+                            <p className="text-xs text-slate-400 mt-1">{formatDateTime(r.timestamp)}</p>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-slate-400 hover:text-red-600"
+                            onClick={() => handleDeleteReflection('observer', r.id)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Add new reflection */}
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newReflection}
+                    onChange={(e) => setNewReflection(e.target.value)}
+                    placeholder="Add a reflection..."
+                    className="min-h-[80px] resize-y flex-1"
+                    data-testid="observer-reflection-textarea"
+                  />
+                </div>
+                <Button 
+                  onClick={() => handleAddReflection('observer')} 
+                  variant="outline" 
+                  disabled={!newReflection.trim()}
+                  data-testid="add-observer-reflection-btn"
+                >
                   <Check className="w-4 h-4 mr-2" />
-                  Save Notes
+                  Add Reflection
                 </Button>
               </CardContent>
             </Card>
 
-            {/* AI Summary Generation */}
-            <Card className="border-purple-200">
+            {/* Coach Reflections */}
+            <Card>
               <CardHeader>
-                <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
-                  <Sparkles className="w-5 h-5" />
-                  AI Summary
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <User className="w-5 h-5 text-green-600" />
+                  Coach Reflections
                 </CardTitle>
                 <CardDescription>
-                  Generate an AI-powered summary of your observation session. Your notes will be included for context.
+                  {isCoachView ? 'Add your reflections on this session.' : 'Reflections from the coach.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button 
-                  onClick={handleGenerateSummary}
-                  disabled={isGeneratingSummary || session.events.length === 0}
-                  className="bg-purple-600 hover:bg-purple-700"
-                  data-testid="generate-summary-btn"
-                >
-                  {isGeneratingSummary ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      {session.aiSummary ? 'Regenerate Summary' : 'Generate Summary'}
-                    </>
-                  )}
-                </Button>
-                
-                {session.aiSummary && (
-                  <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-                    <h4 className="font-semibold text-purple-900 mb-3">Generated Summary</h4>
-                    <div className="prose prose-slate prose-sm max-w-none">
-                      {session.aiSummary.split('\n').map((paragraph, i) => (
-                        paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
-                      ))}
-                    </div>
+                {(session.coachReflections || []).length > 0 ? (
+                  <div className="space-y-3">
+                    {session.coachReflections.map(r => (
+                      <div key={r.id} className="p-3 bg-green-50 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-slate-700">{r.text}</p>
+                            <p className="text-xs text-slate-400 mt-1">{formatDateTime(r.timestamp)}</p>
+                          </div>
+                          {isCoachView && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-slate-400 hover:text-red-600"
+                              onClick={() => handleDeleteReflection('coach', r.id)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <p className="text-slate-400 italic text-sm">No coach reflections yet</p>
+                )}
+                
+                {/* Coach can add reflections */}
+                {isCoachView && (
+                  <>
+                    <Textarea
+                      value={newCoachReflection}
+                      onChange={(e) => setNewCoachReflection(e.target.value)}
+                      placeholder="Add your reflection..."
+                      className="min-h-[80px] resize-y"
+                      data-testid="coach-reflection-textarea"
+                    />
+                    <Button 
+                      onClick={() => handleAddReflection('coach')} 
+                      variant="outline"
+                      disabled={!newCoachReflection.trim()}
+                      className="border-green-300 text-green-700 hover:bg-green-50"
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Add Reflection
+                    </Button>
+                  </>
                 )}
               </CardContent>
             </Card>
+
+            {/* Attachments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <Paperclip className="w-5 h-5" />
+                  Attachments
+                </CardTitle>
+                <CardDescription>
+                  Session plans, supporting documents, and other files.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(session.attachments || []).length > 0 && (
+                  <div className="space-y-2">
+                    {session.attachments.map(a => (
+                      <div key={a.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                        <a 
+                          href={`${BACKEND_URL}${a.url}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          {a.name}
+                        </a>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-slate-400 hover:text-red-600"
+                          onClick={() => handleDeleteAttachment(a.id)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div>
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    Upload File
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Summary - Collapsible by default */}
+            <Collapsible open={aiSummaryExpanded} onOpenChange={setAiSummaryExpanded}>
+              <Card className="border-purple-200">
+                <CardHeader className="cursor-pointer" onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
+                      <Sparkles className="w-5 h-5" />
+                      AI Summary
+                      {session.aiSummary && (
+                        <Badge variant="secondary" className="ml-2">Generated</Badge>
+                      )}
+                    </CardTitle>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        {aiSummaryExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CardDescription>
+                    AI-powered analysis based on observation data and reflections.
+                  </CardDescription>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <Button 
+                      onClick={handleGenerateSummary}
+                      disabled={isGeneratingSummary || session.events.length === 0}
+                      className="bg-purple-600 hover:bg-purple-700"
+                      data-testid="generate-summary-btn"
+                    >
+                      {isGeneratingSummary ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          {session.aiSummary ? 'Regenerate Summary' : 'Generate Summary'}
+                        </>
+                      )}
+                    </Button>
+                    
+                    {session.aiSummary && (
+                      <div className="p-4 bg-purple-50 rounded-lg">
+                        <div className="prose prose-slate prose-sm max-w-none">
+                          {session.aiSummary.split('\n').map((paragraph, i) => (
+                            paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </TabsContent>
 
           {/* Timeline Tab */}
