@@ -54,6 +54,22 @@ export default function ReviewSession() {
     return session.events.filter(e => e.sessionPartId === viewMode);
   };
 
+  const getPreviousSessionsSummary = () => {
+    if (!session.coachId) return null;
+    
+    const previousSessions = storage.getCoachSessions(session.coachId)
+      .filter(s => s.id !== session.id && s.status === 'completed')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 3); // Last 3 sessions
+    
+    if (previousSessions.length === 0) return null;
+    
+    return previousSessions.map(s => {
+      const brPct = calcPercentage(s.ballRollingTime, s.ballRollingTime + s.ballNotRollingTime);
+      return `${s.name} (${formatDateTime(s.createdAt)}): ${s.events?.length || 0} events, ${brPct}% ball rolling`;
+    }).join('; ');
+  };
+
   const getStats = () => {
     const events = getFilteredEvents();
     const eventCounts = countBy(events, 'eventTypeId');
