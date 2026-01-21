@@ -185,7 +185,7 @@ export const storage = {
 };
 
 // Create a new session object
-export const createSession = (name, template = null) => {
+export const createSession = (name, template = null, coachId = null) => {
   const tmpl = template || getDefaultTemplate();
   const now = new Date().toISOString();
   
@@ -196,6 +196,9 @@ export const createSession = (name, template = null) => {
     updatedAt: now,
     status: 'draft', // draft, active, completed
     
+    // Coach reference (optional - null for one-off sessions)
+    coachId: coachId,
+    
     // Configuration (from template)
     eventTypes: [...tmpl.eventTypes],
     descriptorGroup1: { ...tmpl.descriptorGroup1, descriptors: [...tmpl.descriptorGroup1.descriptors] },
@@ -205,7 +208,8 @@ export const createSession = (name, template = null) => {
       startTime: null,
       endTime: null,
       ballRollingTime: 0,
-      ballNotRollingTime: 0
+      ballNotRollingTime: 0,
+      used: false // Track if part was used during session
     })),
     
     // Runtime data
@@ -228,6 +232,30 @@ export const createSession = (name, template = null) => {
     
     // AI-generated summary
     aiSummary: ''
+  };
+};
+
+// Create a new coach profile
+export const createCoach = (name) => {
+  const now = new Date().toISOString();
+  
+  return {
+    id: `coach_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: name || 'New Coach',
+    createdAt: now,
+    updatedAt: now,
+    
+    // Coach info
+    role: '', // e.g., "U14 Head Coach"
+    organization: '',
+    notes: '', // General notes about the coach
+    
+    // Development targets
+    targets: [], // Array of { id, text, status: 'active' | 'achieved', createdAt }
+    
+    // AI-generated trend summary
+    aiTrendSummary: '',
+    aiTrendSummaryDate: null
   };
 };
 
