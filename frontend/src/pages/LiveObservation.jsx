@@ -88,7 +88,7 @@ export default function LiveObservation() {
         status: 'active',
         startTime: prev.startTime || now,
         sessionParts: prev.sessionParts.map((p, i) => 
-          i === 0 && !p.startTime ? { ...p, startTime: now } : p
+          p.id === prev.activePartId ? { ...p, startTime: now, used: true } : p
         )
       }));
       setIsRunning(true);
@@ -100,30 +100,42 @@ export default function LiveObservation() {
 
   const handleStop = () => {
     if (isRunning) {
-      // Calculate final ball rolling time
+      // Calculate final ball rolling time for current state
       if (lastBallStateChange.current) {
         const duration = (Date.now() - lastBallStateChange.current) / 1000;
+        const ballTimeKey = session.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
+        
         setSession(prev => {
-          const ballTimeKey = prev.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
-          return {
-            ...prev,
-            [ballTimeKey]: prev[ballTimeKey] + duration,
-            sessionParts: prev.sessionParts.map(p => 
+          // Filter out unused parts and update times
+          const usedParts = prev.sessionParts
+            .filter(p => p.used)
+            .map(p => 
               p.id === prev.activePartId 
                 ? { ...p, [ballTimeKey]: p[ballTimeKey] + duration, endTime: new Date().toISOString() }
                 : p
-            )
+            );
+          
+          return {
+            ...prev,
+            [ballTimeKey]: prev[ballTimeKey] + duration,
+            sessionParts: usedParts,
+            status: 'completed',
+            endTime: new Date().toISOString(),
+            totalDuration: elapsedTime
           };
         });
+      } else {
+        // No ball state changes - just filter unused parts
+        setSession(prev => ({
+          ...prev,
+          sessionParts: prev.sessionParts.filter(p => p.used),
+          status: 'completed',
+          endTime: new Date().toISOString(),
+          totalDuration: elapsedTime
+        }));
       }
       
       setIsRunning(false);
-      setSession(prev => ({
-        ...prev,
-        status: 'completed',
-        endTime: new Date().toISOString(),
-        totalDuration: elapsedTime
-      }));
       
       setTimeout(() => {
         saveSession();
