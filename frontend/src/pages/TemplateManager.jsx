@@ -250,7 +250,7 @@ export default function TemplateManager() {
                         )}
                       </div>
                       <CardDescription className="mt-1">
-                        {template.eventTypes.length} events • {template.descriptorGroup1.descriptors.length + template.descriptorGroup2.descriptors.length} descriptors • {template.sessionParts.length} parts
+                        {(template.eventTypes || []).length} events • {((template.descriptorGroup1?.descriptors || []).length + (template.descriptorGroup2?.descriptors || []).length)} descriptors • {(template.sessionParts || []).length} parts
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-1">
