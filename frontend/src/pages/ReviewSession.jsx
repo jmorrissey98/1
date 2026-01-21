@@ -134,7 +134,7 @@ export default function ReviewSession() {
     saveSession(updated);
     setEditingEvent(null);
     setEditNote('');
-    toast.success('Event updated');
+    toast.success('Intervention updated');
   };
 
   const handleDeleteEvent = (eventId) => {
@@ -143,7 +143,86 @@ export default function ReviewSession() {
       events: session.events.filter(e => e.id !== eventId)
     };
     saveSession(updated);
-    toast.success('Event deleted');
+    toast.success('Intervention deleted');
+  };
+
+  const handleAddReflection = (type) => {
+    const text = type === 'observer' ? newReflection : newCoachReflection;
+    if (!text.trim()) return;
+    
+    const reflection = {
+      id: generateId('reflection'),
+      text: text.trim(),
+      timestamp: new Date().toISOString(),
+      author: type
+    };
+    
+    const key = type === 'observer' ? 'observerReflections' : 'coachReflections';
+    const updated = {
+      ...session,
+      [key]: [...(session[key] || []), reflection]
+    };
+    saveSession(updated);
+    
+    if (type === 'observer') {
+      setNewReflection('');
+    } else {
+      setNewCoachReflection('');
+    }
+    toast.success('Reflection added');
+  };
+
+  const handleDeleteReflection = (type, reflectionId) => {
+    const key = type === 'observer' ? 'observerReflections' : 'coachReflections';
+    const updated = {
+      ...session,
+      [key]: (session[key] || []).filter(r => r.id !== reflectionId)
+    };
+    saveSession(updated);
+    toast.success('Reflection removed');
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const attachment = response.data;
+      const updated = {
+        ...session,
+        attachments: [...(session.attachments || []), attachment]
+      };
+      saveSession(updated);
+      toast.success('File uploaded');
+    } catch (err) {
+      console.error(err);
+      toast.error('Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId) => {
+    try {
+      await axios.delete(`${API}/files/${attachmentId}`);
+    } catch (err) {
+      console.warn('File may already be deleted');
+    }
+    
+    const updated = {
+      ...session,
+      attachments: (session.attachments || []).filter(a => a.id !== attachmentId)
+    };
+    saveSession(updated);
+    toast.success('Attachment removed');
   };
 
   const handleSaveNotes = () => {
