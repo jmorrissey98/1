@@ -56,15 +56,29 @@ export default function HomePage() {
               <p className="text-xs sm:text-sm text-slate-500">Coach Observation Tool</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/coaches')}
-                className="text-sm sm:text-base"
-                data-testid="my-coaches-btn"
-              >
-                <Users className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">My </span>Coaches
-              </Button>
+              {isCoachDeveloper() && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/coaches')}
+                    className="text-sm sm:text-base"
+                    data-testid="my-coaches-btn"
+                  >
+                    <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">My </span>Coaches
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/templates')}
+                    className="text-sm sm:text-base"
+                    data-testid="manage-templates-btn"
+                  >
+                    <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Templates</span>
+                    <span className="sm:hidden">Temp.</span>
+                  </Button>
+                </>
+              )}
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/calendar')}
@@ -73,16 +87,6 @@ export default function HomePage() {
               >
                 <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
                 Calendar
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/templates')}
-                className="text-sm sm:text-base"
-                data-testid="manage-templates-btn"
-              >
-                <Settings className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Templates</span>
-                <span className="sm:hidden">Temp.</span>
               </Button>
               <Button 
                 variant="outline" 
