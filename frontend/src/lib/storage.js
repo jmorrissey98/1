@@ -42,10 +42,10 @@ const DEFAULT_DESCRIPTOR_GROUP_2 = {
 
 // Default session parts
 const DEFAULT_SESSION_PARTS = [
-  { id: 'warmup', name: 'Warm Up', order: 0 },
-  { id: 'practice', name: 'Practice', order: 1 },
-  { id: 'game', name: 'Game', order: 2 },
-  { id: 'reflection', name: 'Reflection', order: 3 }
+  { id: 'part1', name: 'Part 1', order: 0 },
+  { id: 'part2', name: 'Part 2', order: 1 },
+  { id: 'part3', name: 'Part 3', order: 2 },
+  { id: 'part4', name: 'Part 4', order: 3 }
 ];
 
 // Get default template
@@ -185,7 +185,13 @@ export const createSession = (name, template = null) => {
     events: [],
     
     // Ball rolling state changes log
-    ballRollingLog: []
+    ballRollingLog: [],
+    
+    // Session notes (user can add during/after observation)
+    sessionNotes: '',
+    
+    // AI-generated summary
+    aiSummary: ''
   };
 };
 
