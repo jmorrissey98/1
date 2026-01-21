@@ -265,7 +265,7 @@ export default function UserSettings() {
                             <SelectValue placeholder="Select a coach profile..." />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">No profile</SelectItem>
+                            <SelectItem value="none">No profile</SelectItem>
                             {coaches.map(coach => (
                               <SelectItem key={coach.id} value={coach.id}>
                                 {coach.name}
