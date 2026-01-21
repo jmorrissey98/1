@@ -371,6 +371,331 @@ Keep the tone professional, supportive, and developmental throughout."""
         logger.error(f"Error generating trends: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate trends: {str(e)}")
 
+# Auth helper function
+async def get_current_user(request: Request) -> Optional[User]:
+    """Get current user from session token in cookie or Authorization header"""
+    # Check cookie first
+    session_token = request.cookies.get("session_token")
+    
+    # Fallback to Authorization header
+    if not session_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            session_token = auth_header[7:]
+    
+    if not session_token:
+        return None
+    
+    # Find session in database
+    session_doc = await db.user_sessions.find_one(
+        {"session_token": session_token},
+        {"_id": 0}
+    )
+    
+    if not session_doc:
+        return None
+    
+    # Check expiry
+    expires_at = session_doc.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        return None
+    
+    # Get user
+    user_doc = await db.users.find_one(
+        {"user_id": session_doc["user_id"]},
+        {"_id": 0}
+    )
+    
+    if not user_doc:
+        return None
+    
+    # Convert datetime if needed
+    if isinstance(user_doc.get("created_at"), str):
+        user_doc["created_at"] = datetime.fromisoformat(user_doc["created_at"])
+    
+    return User(**user_doc)
+
+async def require_auth(request: Request) -> User:
+    """Require authentication - raises 401 if not authenticated"""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+async def require_coach_developer(request: Request) -> User:
+    """Require Coach Developer role"""
+    user = await require_auth(request)
+    if user.role != "coach_developer":
+        raise HTTPException(status_code=403, detail="Coach Developer role required")
+    return user
+
+# Auth endpoints
+@api_router.post("/auth/session")
+async def exchange_session(request: Request, response: Response):
+    """Exchange session_id from Emergent Auth for session_token"""
+    try:
+        body = await request.json()
+        session_id = body.get("session_id")
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id required")
+        
+        # Exchange session_id with Emergent Auth
+        async with httpx.AsyncClient() as client:
+            auth_response = await client.get(
+                "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+                headers={"X-Session-ID": session_id}
+            )
+            
+            if auth_response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid session")
+            
+            auth_data = auth_response.json()
+        
+        email = auth_data.get("email")
+        name = auth_data.get("name")
+        picture = auth_data.get("picture")
+        session_token = auth_data.get("session_token")
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        
+        if existing_user:
+            # Update existing user
+            user_id = existing_user["user_id"]
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"name": name, "picture": picture}}
+            )
+            user_role = existing_user.get("role", "coach")
+            linked_coach_id = existing_user.get("linked_coach_id")
+        else:
+            # Check if there's an invite for this email
+            invite = await db.invites.find_one({"email": email, "used": False}, {"_id": 0})
+            
+            # Check if this is the first user (becomes Coach Developer)
+            user_count = await db.users.count_documents({})
+            
+            if user_count == 0:
+                # First user becomes Coach Developer
+                user_role = "coach_developer"
+                linked_coach_id = None
+            elif invite:
+                # Use invite role and coach_id
+                user_role = invite.get("role", "coach")
+                linked_coach_id = invite.get("coach_id")
+                # Mark invite as used
+                await db.invites.update_one(
+                    {"invite_id": invite["invite_id"]},
+                    {"$set": {"used": True}}
+                )
+            else:
+                # No invite - reject registration
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Registration requires an invite. Please contact a Coach Developer."
+                )
+            
+            # Create new user
+            user_id = f"user_{uuid.uuid4().hex[:12]}"
+            new_user = {
+                "user_id": user_id,
+                "email": email,
+                "name": name,
+                "picture": picture,
+                "role": user_role,
+                "linked_coach_id": linked_coach_id,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(new_user)
+        
+        # Store session
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": session_token,
+            "expires_at": expires_at.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Set cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=7 * 24 * 60 * 60,  # 7 days
+            path="/"
+        )
+        
+        return {
+            "user_id": user_id,
+            "email": email,
+            "name": name,
+            "picture": picture,
+            "role": user_role,
+            "linked_coach_id": linked_coach_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Auth error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(request: Request):
+    """Get current authenticated user"""
+    user = await require_auth(request)
+    return UserResponse(
+        user_id=user.user_id,
+        email=user.email,
+        name=user.name,
+        picture=user.picture,
+        role=user.role,
+        linked_coach_id=user.linked_coach_id
+    )
+
+@api_router.post("/auth/logout")
+async def logout(request: Request, response: Response):
+    """Logout - clear session"""
+    session_token = request.cookies.get("session_token")
+    if session_token:
+        await db.user_sessions.delete_one({"session_token": session_token})
+    
+    response.delete_cookie(key="session_token", path="/")
+    return {"status": "logged out"}
+
+# Invite endpoints
+@api_router.post("/invites", response_model=InviteResponse)
+async def create_invite(invite_data: InviteCreate, request: Request):
+    """Create an invite (Coach Developer only)"""
+    user = await require_coach_developer(request)
+    
+    # Check if invite already exists for this email
+    existing_invite = await db.invites.find_one(
+        {"email": invite_data.email, "used": False},
+        {"_id": 0}
+    )
+    if existing_invite:
+        raise HTTPException(status_code=400, detail="Invite already exists for this email")
+    
+    # Check if user already exists with this email
+    existing_user = await db.users.find_one({"email": invite_data.email}, {"_id": 0})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+    
+    invite_id = f"inv_{uuid.uuid4().hex[:12]}"
+    invite = {
+        "invite_id": invite_id,
+        "email": invite_data.email,
+        "role": invite_data.role,
+        "coach_id": invite_data.coach_id,
+        "invited_by": user.user_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "used": False
+    }
+    await db.invites.insert_one(invite)
+    
+    return InviteResponse(
+        invite_id=invite_id,
+        email=invite_data.email,
+        role=invite_data.role,
+        coach_id=invite_data.coach_id,
+        created_at=invite["created_at"]
+    )
+
+@api_router.get("/invites", response_model=List[InviteResponse])
+async def list_invites(request: Request):
+    """List all pending invites (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    invites = await db.invites.find({"used": False}, {"_id": 0}).to_list(100)
+    return [
+        InviteResponse(
+            invite_id=inv["invite_id"],
+            email=inv["email"],
+            role=inv["role"],
+            coach_id=inv.get("coach_id"),
+            created_at=inv["created_at"]
+        )
+        for inv in invites
+    ]
+
+@api_router.delete("/invites/{invite_id}")
+async def delete_invite(invite_id: str, request: Request):
+    """Delete an invite (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    result = await db.invites.delete_one({"invite_id": invite_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    return {"status": "deleted"}
+
+# User management endpoints
+@api_router.get("/users", response_model=List[UserResponse])
+async def list_users(request: Request):
+    """List all users (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    users = await db.users.find({}, {"_id": 0}).to_list(100)
+    return [
+        UserResponse(
+            user_id=u["user_id"],
+            email=u["email"],
+            name=u["name"],
+            picture=u.get("picture"),
+            role=u.get("role", "coach"),
+            linked_coach_id=u.get("linked_coach_id")
+        )
+        for u in users
+    ]
+
+@api_router.put("/users/{user_id}/role")
+async def update_user_role(user_id: str, role_data: RoleUpdateRequest, request: Request):
+    """Update a user's role (Coach Developer only)"""
+    current_user = await require_coach_developer(request)
+    
+    # Prevent changing own role
+    if user_id == current_user.user_id:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
+    
+    if role_data.new_role not in ["coach_developer", "coach"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    
+    result = await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"role": role_data.new_role}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"status": "updated", "new_role": role_data.new_role}
+
+@api_router.put("/users/{user_id}/link-coach")
+async def link_user_to_coach(user_id: str, request: Request):
+    """Link a user to a coach profile (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    body = await request.json()
+    coach_id = body.get("coach_id")
+    
+    result = await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"linked_coach_id": coach_id}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"status": "linked", "coach_id": coach_id}
+
 # Include the router in the main app
 app.include_router(api_router)
 
