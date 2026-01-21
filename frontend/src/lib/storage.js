@@ -6,11 +6,25 @@ const STORAGE_KEYS = {
   TEMPLATES: 'mcd_templates',
   ACTIVE_SESSION: 'mcd_active_session',
   SETTINGS: 'mcd_settings',
-  COACHES: 'mcd_coaches'
+  COACHES: 'mcd_coaches',
+  CURRENT_USER: 'mcd_current_user',
+  USERS: 'mcd_users'
 };
 
-// Default event types (yellow buttons)
-const DEFAULT_EVENT_TYPES = [
+// Observation contexts
+export const OBSERVATION_CONTEXTS = {
+  TRAINING: 'training',
+  GAME: 'game'
+};
+
+// User roles
+export const USER_ROLES = {
+  COACH_DEVELOPER: 'coach_developer',
+  COACH: 'coach'
+};
+
+// Default coach intervention types (yellow buttons) - renamed from "events"
+const DEFAULT_INTERVENTION_TYPES = [
   { id: 'command', name: 'Command', color: 'yellow' },
   { id: 'qa', name: 'Q&A', color: 'yellow' },
   { id: 'guided_discovery', name: 'Guided Discovery', color: 'yellow' }
@@ -53,11 +67,19 @@ const DEFAULT_SESSION_PARTS = [
 export const getDefaultTemplate = () => ({
   id: 'default',
   name: 'Default Template',
-  eventTypes: DEFAULT_EVENT_TYPES,
+  interventionTypes: DEFAULT_INTERVENTION_TYPES,
   descriptorGroup1: DEFAULT_DESCRIPTOR_GROUP_1,
   descriptorGroup2: DEFAULT_DESCRIPTOR_GROUP_2,
   sessionParts: DEFAULT_SESSION_PARTS
 });
+
+// Backward compatibility - map old eventTypes to interventionTypes
+const migrateTemplate = (template) => {
+  if (template.eventTypes && !template.interventionTypes) {
+    return { ...template, interventionTypes: template.eventTypes };
+  }
+  return template;
+};
 
 // Storage operations
 export const storage = {
