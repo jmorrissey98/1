@@ -1,34 +1,132 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* My Coach Developer - App Styles */
+
+.App {
+  min-height: 100vh;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* iPad-optimized touch targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.touch-target-lg {
+  min-height: 64px;
+  min-width: 64px;
 }
 
-.App-link {
-    color: #61dafb;
+/* Event button styles */
+.event-btn {
+  background-color: var(--event-yellow);
+  border-bottom: 4px solid var(--event-yellow-border);
+  transition: all 0.1s ease-out;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.event-btn:hover {
+  background-color: var(--event-yellow-hover);
+}
+
+.event-btn:active {
+  border-bottom-width: 0;
+  transform: translateY(4px);
+}
+
+/* Descriptor button styles */
+.descriptor-blue {
+  background-color: var(--descriptor-blue);
+  border: 2px solid transparent;
+}
+
+.descriptor-blue:hover {
+  background-color: var(--descriptor-blue-hover);
+}
+
+.descriptor-blue.selected {
+  border-color: #0369A1;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+}
+
+.descriptor-green {
+  background-color: var(--descriptor-green);
+  border: 2px solid transparent;
+}
+
+.descriptor-green:hover {
+  background-color: var(--descriptor-green-hover);
+}
+
+.descriptor-green.selected {
+  border-color: #15803D;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3);
+}
+
+/* Ball rolling toggle */
+.ball-toggle {
+  transition: all 0.2s ease-out;
+}
+
+.ball-toggle.rolling {
+  background-color: var(--ball-rolling);
+  color: white;
+}
+
+.ball-toggle.not-rolling {
+  background-color: var(--ball-not-rolling);
+  color: white;
+}
+
+/* Session part indicator */
+.session-part-btn {
+  transition: all 0.15s ease-out;
+}
+
+.session-part-btn.active {
+  box-shadow: inset 0 -3px 0 0 #0F172A;
+  font-weight: 600;
+}
+
+/* Timer styles */
+.timer-container {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Code window grid */
+.code-window {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* Feedback flash */
+@keyframes feedbackFlash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.feedback-flash {
+  animation: feedbackFlash 0.5s ease-out forwards;
+}
+
+/* Undo button */
+.undo-btn {
+  transition: all 0.15s ease-out;
+}
+
+.undo-btn:hover {
+  transform: translateX(-2px);
+}
+
+/* Charts container */
+.chart-container {
+  height: 200px;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
 }

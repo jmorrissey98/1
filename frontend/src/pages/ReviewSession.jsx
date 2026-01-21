@@ -1,0 +1,618 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2 } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
+import { Progress } from '../components/ui/progress';
+import { ScrollArea } from '../components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { storage } from '../lib/storage';
+import { formatTime, formatDateTime, calcPercentage, countBy, cn } from '../lib/utils';
+import { exportToPDF, exportToCSV } from '../lib/export';
+
+const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
+
+export default function ReviewSession() {
+  const navigate = useNavigate();
+  const { sessionId } = useParams();
+  
+  const [session, setSession] = useState(null);
+  const [viewMode, setViewMode] = useState('whole'); // whole or part id
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [editNote, setEditNote] = useState('');
+
+  useEffect(() => {
+    const loaded = storage.getSession(sessionId);
+    if (!loaded) {
+      toast.error('Session not found');
+      navigate('/');
+      return;
+    }
+    setSession(loaded);
+  }, [sessionId, navigate]);
+
+  const saveSession = (updated) => {
+    storage.saveSession(updated);
+    setSession(updated);
+  };
+
+  const getFilteredEvents = () => {
+    if (!session) return [];
+    if (viewMode === 'whole') return session.events;
+    return session.events.filter(e => e.sessionPartId === viewMode);
+  };
+
+  const getStats = () => {
+    const events = getFilteredEvents();
+    const eventCounts = countBy(events, 'eventTypeId');
+    
+    // Calculate descriptor counts
+    const desc1Counts = {};
+    const desc2Counts = {};
+    events.forEach(e => {
+      e.descriptors1.forEach(d => {
+        desc1Counts[d] = (desc1Counts[d] || 0) + 1;
+      });
+      e.descriptors2.forEach(d => {
+        desc2Counts[d] = (desc2Counts[d] || 0) + 1;
+      });
+    });
+    
+    // Ball rolling stats
+    let ballRollingTime, ballNotRollingTime, totalTime;
+    if (viewMode === 'whole') {
+      ballRollingTime = session.ballRollingTime;
+      ballNotRollingTime = session.ballNotRollingTime;
+      totalTime = session.totalDuration;
+    } else {
+      const part = session.sessionParts.find(p => p.id === viewMode);
+      ballRollingTime = part?.ballRollingTime || 0;
+      ballNotRollingTime = part?.ballNotRollingTime || 0;
+      totalTime = ballRollingTime + ballNotRollingTime;
+    }
+    
+    const ballRollingPct = calcPercentage(ballRollingTime, totalTime);
+    
+    return {
+      eventCounts,
+      desc1Counts,
+      desc2Counts,
+      ballRollingTime,
+      ballNotRollingTime,
+      ballRollingPct,
+      totalTime,
+      totalEvents: events.length
+    };
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event.id);
+    setEditNote(event.note || '');
+  };
+
+  const handleSaveEdit = (eventId) => {
+    const updated = {
+      ...session,
+      events: session.events.map(e => 
+        e.id === eventId ? { ...e, note: editNote } : e
+      )
+    };
+    saveSession(updated);
+    setEditingEvent(null);
+    setEditNote('');
+    toast.success('Event updated');
+  };
+
+  const handleDeleteEvent = (eventId) => {
+    const updated = {
+      ...session,
+      events: session.events.filter(e => e.id !== eventId)
+    };
+    saveSession(updated);
+    toast.success('Event deleted');
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      await exportToPDF(session);
+      toast.success('PDF exported');
+    } catch (err) {
+      console.error(err);
+      toast.error('Export failed');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      exportToCSV(session);
+      toast.success('CSV exported');
+    } catch (err) {
+      console.error(err);
+      toast.error('Export failed');
+    }
+  };
+
+  if (!session) return null;
+
+  const stats = getStats();
+  const events = getFilteredEvents();
+
+  // Prepare chart data
+  const eventChartData = session.eventTypes.map(et => ({
+    name: et.name,
+    count: stats.eventCounts[et.id] || 0
+  }));
+
+  const ballRollingData = [
+    { name: 'Ball Rolling', value: stats.ballRollingTime, color: '#F97316' },
+    { name: 'Ball Stopped', value: stats.ballNotRollingTime, color: '#64748B' }
+  ].filter(d => d.value > 0);
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.name}</h1>
+              <p className="text-sm text-slate-500">{formatDateTime(session.createdAt)}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportCSV} data-testid="export-csv-btn">
+              <Table className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
+            <Button onClick={handleExportPDF} data-testid="export-pdf-btn">
+              <FileText className="w-4 h-4 mr-2" />
+              PDF Report
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* View Toggle */}
+      <div className="bg-white border-b border-slate-200 px-4 py-3">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex gap-2 overflow-x-auto">
+            <button
+              onClick={() => setViewMode('whole')}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                viewMode === 'whole'
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              )}
+              data-testid="view-whole-btn"
+            >
+              Whole Session
+            </button>
+            {session.sessionParts.map((part) => (
+              <button
+                key={part.id}
+                onClick={() => setViewMode(part.id)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                  viewMode === part.id
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                )}
+                data-testid={`view-part-${part.id}`}
+              >
+                {part.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <Tabs defaultValue="summary" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
+            <TabsTrigger value="timeline" data-testid="tab-timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="charts" data-testid="tab-charts">Charts</TabsTrigger>
+          </TabsList>
+
+          {/* Summary Tab */}
+          <TabsContent value="summary" className="space-y-6">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-3xl font-bold font-mono text-slate-900" data-testid="total-duration">
+                    {formatTime(stats.totalTime)}
+                  </div>
+                  <div className="text-sm text-slate-500 mt-1">Total Duration</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-3xl font-bold text-slate-900" data-testid="total-events">
+                    {stats.totalEvents}
+                  </div>
+                  <div className="text-sm text-slate-500 mt-1">Total Events</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2">
+                    <Circle className="w-5 h-5 text-orange-500 fill-current" />
+                    <span className="text-3xl font-bold text-slate-900" data-testid="ball-rolling-pct">
+                      {stats.ballRollingPct}%
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-500 mt-1">Ball Rolling</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2">
+                    <Square className="w-5 h-5 text-slate-500" />
+                    <span className="text-3xl font-bold text-slate-900">
+                      {100 - stats.ballRollingPct}%
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-500 mt-1">Ball Stopped</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Ball Rolling Progress */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-['Manrope']">Ball Rolling Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-orange-600 font-medium">
+                      Rolling: {formatTime(stats.ballRollingTime)}
+                    </span>
+                    <span className="text-slate-500">
+                      Stopped: {formatTime(stats.ballNotRollingTime)}
+                    </span>
+                  </div>
+                  <Progress value={stats.ballRollingPct} className="h-3" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Event Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-['Manrope']">Events by Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {session.eventTypes.map((et) => {
+                    const count = stats.eventCounts[et.id] || 0;
+                    const pct = calcPercentage(count, stats.totalEvents);
+                    return (
+                      <div key={et.id} className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded bg-yellow-400" />
+                        <span className="flex-1 font-medium text-slate-700">{et.name}</span>
+                        <span className="text-slate-900 font-semibold">{count}</span>
+                        <Badge variant="secondary">{pct}%</Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Descriptor Breakdown */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
+                    <div className="w-3 h-3 rounded bg-sky-400" />
+                    {session.descriptorGroup1.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {session.descriptorGroup1.descriptors.map((desc) => {
+                      const count = stats.desc1Counts[desc.id] || 0;
+                      return (
+                        <div key={desc.id} className="flex items-center justify-between">
+                          <span className="text-slate-600">{desc.name}</span>
+                          <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">{count}</Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
+                    <div className="w-3 h-3 rounded bg-green-400" />
+                    {session.descriptorGroup2.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {session.descriptorGroup2.descriptors.map((desc) => {
+                      const count = stats.desc2Counts[desc.id] || 0;
+                      return (
+                        <div key={desc.id} className="flex items-center justify-between">
+                          <span className="text-slate-600">{desc.name}</span>
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{count}</Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Timeline Tab */}
+          <TabsContent value="timeline">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope']">Event Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {events.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    No events recorded in this view
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[500px] pr-4">
+                    <div className="space-y-3">
+                      {events.map((event, index) => {
+                        const part = session.sessionParts.find(p => p.id === event.sessionPartId);
+                        const isEditing = editingEvent === event.id;
+                        
+                        return (
+                          <div 
+                            key={event.id} 
+                            className="flex gap-4 p-3 bg-slate-50 rounded-lg group"
+                            data-testid={`event-row-${event.id}`}
+                          >
+                            <div className="flex flex-col items-center">
+                              <div className="w-3 h-3 rounded bg-yellow-400" />
+                              {index < events.length - 1 && (
+                                <div className="w-0.5 h-full bg-slate-200 mt-1" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <span className="font-semibold text-slate-900">{event.eventTypeName}</span>
+                                  <span className="text-sm text-slate-500 ml-2">
+                                    {new Date(event.timestamp).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7"
+                                    onClick={() => handleEditEvent(event)}
+                                    data-testid={`edit-event-${event.id}`}
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 text-red-600"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Event?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently remove this event from the session.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteEvent(event.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {part?.name || 'Unknown Part'}
+                                </Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-xs",
+                                    event.ballRolling ? "border-orange-300 text-orange-600" : "border-slate-300 text-slate-500"
+                                  )}
+                                >
+                                  {event.ballRolling ? 'Ball Rolling' : 'Ball Stopped'}
+                                </Badge>
+                                {event.descriptors1.map(d => {
+                                  const desc = session.descriptorGroup1.descriptors.find(x => x.id === d);
+                                  return desc && (
+                                    <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100 text-xs">
+                                      {desc.name}
+                                    </Badge>
+                                  );
+                                })}
+                                {event.descriptors2.map(d => {
+                                  const desc = session.descriptorGroup2.descriptors.find(x => x.id === d);
+                                  return desc && (
+                                    <Badge key={d} className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
+                                      {desc.name}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                              {isEditing ? (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Input
+                                    value={editNote}
+                                    onChange={(e) => setEditNote(e.target.value)}
+                                    placeholder="Add note..."
+                                    className="flex-1 h-8 text-sm"
+                                    data-testid={`edit-note-input-${event.id}`}
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => handleSaveEdit(event.id)}
+                                  >
+                                    <Check className="w-4 h-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => setEditingEvent(null)}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ) : event.note && (
+                                <p className="text-sm text-slate-600 mt-1 italic">"{event.note}"</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Charts Tab */}
+          <TabsContent value="charts" className="space-y-6">
+            {/* Events Bar Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope']">Events Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={eventChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="name" type="category" width={120} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#FACC15" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Ball Rolling Pie Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope']">Ball Rolling vs Stopped</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={ballRollingData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {ballRollingData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatTime(value)} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Descriptor Charts */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup1.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={session.descriptorGroup1.descriptors.map(d => ({
+                          name: d.name,
+                          count: stats.desc1Counts[d.id] || 0
+                        }))}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#38BDF8" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup2.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={session.descriptorGroup2.descriptors.map(d => ({
+                          name: d.name,
+                          count: stats.desc2Counts[d.id] || 0
+                        }))}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#4ADE80" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}
