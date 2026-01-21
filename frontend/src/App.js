@@ -5,6 +5,8 @@ import SessionSetup from "./pages/SessionSetup";
 import LiveObservation from "./pages/LiveObservation";
 import ReviewSession from "./pages/ReviewSession";
 import TemplateManager from "./pages/TemplateManager";
+import MyCoaches from "./pages/MyCoaches";
+import CoachProfile from "./pages/CoachProfile";
 import "./App.css";
 
 function App() {
@@ -18,6 +20,8 @@ function App() {
           <Route path="/session/:sessionId/observe" element={<LiveObservation />} />
           <Route path="/session/:sessionId/review" element={<ReviewSession />} />
           <Route path="/templates" element={<TemplateManager />} />
+          <Route path="/coaches" element={<MyCoaches />} />
+          <Route path="/coaches/:coachId" element={<CoachProfile />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-center" richColors closeButton />
