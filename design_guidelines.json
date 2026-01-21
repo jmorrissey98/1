@@ -1,0 +1,129 @@
+{
+  "brand_identity": {
+    "name": "My Coach Developer",
+    "tone": "Professional, Calm, Educational, Non-judgemental",
+    "archetype": "Organic & Earthy (Trust, Growth)",
+    "design_principles": [
+      "Clarity over Decoration: Every pixel must serve the observation task.",
+      "Low Cognitive Load: Interface must disappear during observation.",
+      "Touch-First: Buttons must be large (min 44px, preferred 64px+) for outdoor/iPad use.",
+      "High Contrast: Visible in bright sunlight (outdoor coaching)."
+    ]
+  },
+  "typography": {
+    "headings": {
+      "family": "Manrope, sans-serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Page titles, Session names, Modal headers"
+    },
+    "body": {
+      "family": "IBM Plex Sans, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "Data entry, descriptors, notes, buttons"
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "Timers, timestamps, raw data values"
+    }
+  },
+  "colors": {
+    "theme": "light",
+    "palette": {
+      "background": {
+        "default": "#F8FAFC", 
+        "paper": "#FFFFFF",
+        "subtle": "#F1F5F9"
+      },
+      "primary": {
+        "main": "#0F172A", 
+        "foreground": "#FFFFFF"
+      },
+      "secondary": {
+        "main": "#E2E8F0",
+        "foreground": "#1E293B"
+      },
+      "accent": {
+        "event_yellow": "#FACC15", 
+        "event_yellow_hover": "#EAB308",
+        "descriptor_blue": "#38BDF8",
+        "descriptor_green": "#4ADE80",
+        "ball_rolling": "#F97316"
+      },
+      "text": {
+        "primary": "#0F172A",
+        "secondary": "#64748B",
+        "muted": "#94A3B8"
+      },
+      "status": {
+        "success": "#22C55E",
+        "warning": "#F59E0B",
+        "error": "#EF4444"
+      }
+    },
+    "gradients": {
+      "subtle_overlay": "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 100%)"
+    }
+  },
+  "layout": {
+    "spacing_scale": ["0", "1", "2", "4", "6", "8", "12", "16", "24", "32", "48", "64"],
+    "container": {
+      "max_width": "1400px",
+      "padding": "p-4 md:p-6 lg:p-8"
+    },
+    "grids": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+      "observation_window": "grid grid-cols-12 gap-4 h-[calc(100vh-120px)]"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-6 rounded-lg font-medium shadow-sm transition-all active:scale-95",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-12 px-6 rounded-lg font-medium transition-all active:scale-95",
+      "event_action": "bg-accent-event_yellow text-black hover:bg-accent-event_yellow_hover h-24 w-full rounded-xl font-bold text-lg shadow-md border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 transition-all",
+      "descriptor": "h-16 w-full rounded-lg font-medium text-sm transition-all border-2 hover:brightness-95 active:scale-95"
+    },
+    "cards": {
+      "base": "bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6",
+      "interactive": "cursor-pointer hover:border-slate-300 active:border-slate-400"
+    },
+    "inputs": {
+      "base": "h-12 rounded-lg border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+    }
+  },
+  "feature_specs": {
+    "observation_screen": {
+      "layout_strategy": "Three-column layout. Left: Content Focus Descriptors (Blue). Center: Event Buttons (Yellow). Right: Delivery Method Descriptors (Green). Top Bar: Timer, Session Part Toggle, Ball Rolling Toggle.",
+      "timer": "Always visible, large font (text-4xl), mono-spaced.",
+      "ball_rolling_toggle": "Toggle switch or large distinct button. Orange when active.",
+      "session_parts": "Segmented control or Tabs: Warm up | Practice | Game | Reflection."
+    },
+    "data_storage": {
+      "strategy": "Local Storage (IndexedDB or localStorage). Offline first.",
+      "export": "PDF (using jspdf-autotable) and CSV."
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "home_hero",
+        "url": "https://images.pexels.com/photos/31543243/pexels-photo-31543243.jpeg",
+        "description": "Coach observing players (Abstract/Mood)"
+      },
+      {
+        "category": "empty_state",
+        "url": "https://images.pexels.com/photos/32613966/pexels-photo-32613966.jpeg",
+        "description": "Minimalist sports equipment"
+      }
+    ],
+    "icons": "Lucide React (default)"
+  },
+  "universal_guidelines": [
+    "Do not use gradients for the main background; keep it flat and clean for outdoor visibility.",
+    "Ensure all touch targets are at least 44x44px.",
+    "Use 'sonner' for toast notifications (e.g., 'Event Logged').",
+    "Implement 'Undo' as a floating action button or prominent top-bar button.",
+    "No video recording features.",
+    "No analytics dashboards (keep it to raw data/timeline review)."
+  ],
+  "instructions_to_main_agent": "1. Set up the 'Code Window' as the core feature. It must be a responsive grid. 2. Use the 'Manrope' font for headings. 3. Implement the 'Yellow' event buttons with the specific 'event_action' class defined in components. 4. Ensure the app works offline."
+}
