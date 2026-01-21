@@ -1,28 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Trash2, Settings, FileText, Users, Calendar, User } from 'lucide-react';
+import { Plus, Play, Eye, Trash2, Settings, FileText, Users, Calendar, User, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
-import { storage, OBSERVATION_CONTEXTS, USER_ROLES } from '../lib/storage';
+import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { formatDate, formatTime } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user, logout, isCoachDeveloper } = useAuth();
   const [sessions, setSessions] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
 
-  // Check if user is in Coach role and redirect
+  // Redirect coach users to their view
   useEffect(() => {
-    const user = storage.getCurrentUser();
-    setCurrentUser(user);
-    
-    // If user is a Coach with a linked profile, redirect to Coach View
-    if (user?.role === USER_ROLES.COACH && user?.linkedCoachId) {
-      navigate(`/coach-view/${user.linkedCoachId}`);
+    if (user?.role === 'coach' && user?.linked_coach_id) {
+      navigate(`/coach-view/${user.linked_coach_id}`);
     }
-  }, [navigate]);
+  }, [user, navigate]);
 
   useEffect(() => {
     setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
