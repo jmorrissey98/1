@@ -276,7 +276,8 @@ export default function ReviewSession() {
         descriptor2_name: session.descriptorGroup2.name,
         descriptor2_breakdown: desc2Breakdown,
         session_parts: sessionPartsData,
-        user_notes: sessionNotes,
+        user_notes: (session.observerReflections || []).map(r => r.text).join('\n'),
+        observation_context: session.observationContext || 'training',
         // Coach context if linked
         coach_name: session.coachId ? storage.getCoach(session.coachId)?.name : null,
         coach_targets: session.coachId ? (storage.getCoach(session.coachId)?.targets || []).filter(t => t.status === 'active').map(t => t.text) : null,
@@ -285,10 +286,10 @@ export default function ReviewSession() {
       
       const updated = {
         ...session,
-        aiSummary: response.data.summary,
-        sessionNotes: sessionNotes
+        aiSummary: response.data.summary
       };
       saveSession(updated);
+      setAiSummaryExpanded(true);
       toast.success('Summary generated');
     } catch (err) {
       console.error(err);
