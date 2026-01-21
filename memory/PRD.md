@@ -72,10 +72,25 @@ Build a lightweight iPad-first coach observation app for coach education. Design
 - ✅ AI summary references coach targets and previous sessions
 - ✅ Coach profile attachments support
 
-### User Roles (Data Model Ready)
+### User Roles & Access Control
 - ✅ Coach Developer role (full access)
 - ✅ Coach role (restricted view)
-- ⏳ Role-based access control UI (partially implemented)
+- ✅ User Settings page (/settings) with role selection
+- ✅ Coach role shows "Link to Coach Profile" option
+- ✅ Coach View page (/coach-view/:coachId) for restricted access
+- ✅ Auto-redirect Coach users to their Coach View
+
+### Coach Reporting
+- ✅ Time-period based report export on Coach Profile
+- ✅ Reports tab with date range pickers (start/end)
+- ✅ Quick date presets (Last 7 Days, 30 Days, 3 Months, Year to Date)
+- ✅ Export to PDF with aggregate statistics
+- ✅ Export to CSV with detailed data
+- ✅ Report preview showing session count in range
+
+### Session Planning Enhancements
+- ✅ Auto-fill date when planning from calendar
+- ✅ URL parameter ?date=YYYY-MM-DD support
 
 ### UX Polish
 - ✅ Large touch-friendly buttons (64px+)
