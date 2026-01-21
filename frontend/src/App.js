@@ -7,6 +7,7 @@ import ReviewSession from "./pages/ReviewSession";
 import TemplateManager from "./pages/TemplateManager";
 import MyCoaches from "./pages/MyCoaches";
 import CoachProfile from "./pages/CoachProfile";
+import SessionCalendar from "./pages/SessionCalendar";
 import "./App.css";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/templates" element={<TemplateManager />} />
           <Route path="/coaches" element={<MyCoaches />} />
           <Route path="/coaches/:coachId" element={<CoachProfile />} />
+          <Route path="/calendar" element={<SessionCalendar />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-center" richColors closeButton />
