@@ -490,14 +490,14 @@ export default function ReviewSession() {
               </CardContent>
             </Card>
 
-            {/* Event Breakdown */}
+            {/* Intervention Breakdown - renamed from Events */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base font-['Manrope']">Events by Type</CardTitle>
+                <CardTitle className="text-base font-['Manrope']">Coach Interventions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {session.eventTypes.map((et) => {
+                  {(session.interventionTypes || session.eventTypes || []).map((et) => {
                     const count = stats.eventCounts[et.id] || 0;
                     const pct = calcPercentage(count, stats.totalEvents);
                     return (
