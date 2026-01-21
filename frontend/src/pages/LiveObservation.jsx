@@ -20,6 +20,8 @@ export default function LiveObservation() {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [flashEvent, setFlashEvent] = useState(null);
+  const [showAddPart, setShowAddPart] = useState(false);
+  const [newPartName, setNewPartName] = useState('');
   
   const timerRef = useRef(null);
   const lastBallStateChange = useRef(null);
