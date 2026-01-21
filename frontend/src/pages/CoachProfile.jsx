@@ -547,6 +547,167 @@ export default function CoachProfile() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Export Report
+                </CardTitle>
+                <CardDescription>
+                  Generate a consolidated report for a specific time period
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Date Range Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="report-start-date">Start Date</Label>
+                    <Input
+                      id="report-start-date"
+                      type="date"
+                      value={reportStartDate}
+                      onChange={(e) => setReportStartDate(e.target.value)}
+                      className="mt-1"
+                      data-testid="report-start-date"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="report-end-date">End Date</Label>
+                    <Input
+                      id="report-end-date"
+                      type="date"
+                      value={reportEndDate}
+                      onChange={(e) => setReportEndDate(e.target.value)}
+                      className="mt-1"
+                      data-testid="report-end-date"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Date Presets */}
+                <div>
+                  <Label className="text-slate-500 text-sm">Quick Select</Label>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const lastWeek = new Date(today);
+                        lastWeek.setDate(today.getDate() - 7);
+                        setReportStartDate(lastWeek.toISOString().split('T')[0]);
+                        setReportEndDate(today.toISOString().split('T')[0]);
+                      }}
+                    >
+                      Last 7 Days
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const lastMonth = new Date(today);
+                        lastMonth.setMonth(today.getMonth() - 1);
+                        setReportStartDate(lastMonth.toISOString().split('T')[0]);
+                        setReportEndDate(today.toISOString().split('T')[0]);
+                      }}
+                    >
+                      Last 30 Days
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const last3Months = new Date(today);
+                        last3Months.setMonth(today.getMonth() - 3);
+                        setReportStartDate(last3Months.toISOString().split('T')[0]);
+                        setReportEndDate(today.toISOString().split('T')[0]);
+                      }}
+                    >
+                      Last 3 Months
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const startOfYear = new Date(today.getFullYear(), 0, 1);
+                        setReportStartDate(startOfYear.toISOString().split('T')[0]);
+                        setReportEndDate(today.toISOString().split('T')[0]);
+                      }}
+                    >
+                      Year to Date
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Export Preview */}
+                {reportStartDate && reportEndDate && (
+                  <div className="p-4 bg-slate-50 rounded-lg">
+                    <h4 className="font-medium text-slate-700 mb-2">Report Preview</h4>
+                    <p className="text-sm text-slate-600">
+                      Period: {formatDate(reportStartDate)} - {formatDate(reportEndDate)}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Completed Sessions: {sessions.filter(s => {
+                        const sessionDate = new Date(s.createdAt);
+                        const start = new Date(reportStartDate);
+                        const end = new Date(reportEndDate);
+                        end.setHours(23, 59, 59, 999);
+                        return sessionDate >= start && sessionDate <= end && s.status === 'completed';
+                      }).length}
+                    </p>
+                  </div>
+                )}
+
+                {/* Export Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => handleExportReport('pdf')}
+                    disabled={isExporting || !reportStartDate || !reportEndDate}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    data-testid="export-pdf-btn"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Export PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExportReport('csv')}
+                    disabled={isExporting || !reportStartDate || !reportEndDate}
+                    data-testid="export-csv-btn"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Export CSV
+                  </Button>
+                </div>
+
+                {/* Report Contents Description */}
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">Report includes:</h4>
+                  <ul className="text-sm text-slate-500 space-y-1 list-disc list-inside">
+                    <li>Session summaries and statistics</li>
+                    <li>Intervention breakdown by type</li>
+                    <li>Ball rolling time analysis</li>
+                    <li>AI-generated insights (if available)</li>
+                    <li>Progress towards targets</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
