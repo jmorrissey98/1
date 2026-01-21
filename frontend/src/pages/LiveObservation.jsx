@@ -258,6 +258,29 @@ export default function LiveObservation() {
     partStartTime.current = now;
   };
 
+  const handleAddPart = () => {
+    if (!newPartName.trim()) return;
+    
+    const newPart = {
+      id: generateId('part'),
+      name: newPartName.trim(),
+      order: session.sessionParts.length,
+      startTime: null,
+      endTime: null,
+      ballRollingTime: 0,
+      ballNotRollingTime: 0
+    };
+    
+    setSession(prev => ({
+      ...prev,
+      sessionParts: [...prev.sessionParts, newPart]
+    }));
+    
+    setNewPartName('');
+    setShowAddPart(false);
+    toast.success(`Added "${newPart.name}"`);
+  };
+
   const handleAddNote = () => {
     if (!lastEvent || !noteText.trim()) return;
     
