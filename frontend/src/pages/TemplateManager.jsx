@@ -388,7 +388,7 @@ export default function TemplateManager() {
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded bg-green-400" />
                           <Input
-                            value={template.descriptorGroup2.name}
+                            value={template.descriptorGroup2?.name || 'Group 2'}
                             onChange={(e) => updateGroupName(template.id, 2, e.target.value)}
                             className="font-medium border-0 p-0 h-auto focus-visible:ring-0 w-40"
                           />
@@ -399,7 +399,7 @@ export default function TemplateManager() {
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {template.descriptorGroup2.descriptors.map(desc => (
+                        {(template.descriptorGroup2?.descriptors || []).map(desc => (
                           <div key={desc.id} className="flex items-center gap-1 bg-green-100 rounded-lg pl-3 pr-1 py-1">
                             <Input
                               value={desc.name}
@@ -429,7 +429,7 @@ export default function TemplateManager() {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        {template.sessionParts.map((part, index) => (
+                        {(template.sessionParts || []).map((part, index) => (
                           <div key={part.id} className="flex items-center gap-2">
                             <span className="text-sm text-slate-400 w-6">{index + 1}</span>
                             <Input
