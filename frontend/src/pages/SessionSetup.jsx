@@ -282,6 +282,69 @@ export default function SessionSetup() {
           </CardContent>
         </Card>
 
+        {/* Observation Context */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-['Manrope']">Observation Type</CardTitle>
+            <CardDescription>
+              Select the context for this observation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => handleContextChange(OBSERVATION_CONTEXTS.TRAINING)}
+                className={cn(
+                  "p-4 rounded-lg border-2 text-left transition-all",
+                  observationContext === OBSERVATION_CONTEXTS.TRAINING
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-slate-200 hover:border-slate-300"
+                )}
+                data-testid="context-training"
+              >
+                <div className="font-semibold text-slate-900">Training Observation</div>
+                <div className="text-sm text-slate-500 mt-1">Observe a training session</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleContextChange(OBSERVATION_CONTEXTS.GAME)}
+                className={cn(
+                  "p-4 rounded-lg border-2 text-left transition-all",
+                  observationContext === OBSERVATION_CONTEXTS.GAME
+                    ? "border-green-500 bg-green-50"
+                    : "border-slate-200 hover:border-slate-300"
+                )}
+                data-testid="context-game"
+              >
+                <div className="font-semibold text-slate-900">Game Observation</div>
+                <div className="text-sm text-slate-500 mt-1">Observe during a match or game</div>
+              </button>
+            </div>
+            
+            {/* Planned Date */}
+            <div>
+              <Label htmlFor="session-date" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Schedule for Later (Optional)
+              </Label>
+              <Input
+                id="session-date"
+                type="date"
+                value={sessionDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="mt-1 max-w-xs"
+                data-testid="session-date-input"
+              />
+              {sessionDate && (
+                <p className="text-sm text-slate-500 mt-1">
+                  This session will be marked as planned and appear in your calendar.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Session Name & Template */}
         <Card>
           <CardHeader>
