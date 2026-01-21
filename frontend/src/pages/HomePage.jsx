@@ -105,17 +105,17 @@ export default function HomePage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Create New Session */}
         <Card 
-          className="mb-8 cursor-pointer hover:border-slate-400 transition-colors group"
+          className="mb-6 sm:mb-8 cursor-pointer hover:border-slate-400 transition-colors group"
           onClick={() => navigate('/session/new')}
           data-testid="create-session-card"
         >
-          <CardContent className="flex items-center justify-center py-8">
+          <CardContent className="flex items-center justify-center py-6 sm:py-8">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-slate-200 transition-colors">
-                <Plus className="w-8 h-8 text-slate-600" />
+              <div className="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-slate-200 transition-colors">
+                <Plus className="w-6 sm:w-8 h-6 sm:h-8 text-slate-600" />
               </div>
-              <h2 className="text-lg font-semibold text-slate-900 font-['Manrope']">New Observation Session</h2>
-              <p className="text-sm text-slate-500 mt-1">Start observing a coaching session</p>
+              <h2 className="text-base sm:text-lg font-semibold text-slate-900 font-['Manrope']">New Observation Session</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">Start observing a coaching session</p>
             </div>
           </CardContent>
         </Card>
