@@ -495,12 +495,12 @@ export default function LiveObservation() {
       {/* Code Window Grid */}
       <main className="flex-1 p-4 overflow-auto">
         <div className="grid grid-cols-3 gap-3 max-w-5xl mx-auto">
-          {/* Column 1: Events (Yellow) */}
+          {/* Column 1: Coach Interventions (Yellow) */}
           <div className="space-y-3">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
-              Events
+              Coach Interventions
             </div>
-            {session.eventTypes.map((eventType) => (
+            {(session.interventionTypes || session.eventTypes || []).map((eventType) => (
               <button
                 key={eventType.id}
                 onClick={() => handleEventTap(eventType)}
