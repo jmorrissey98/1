@@ -62,18 +62,18 @@ export default function SessionCalendar() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 safe-area-top">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">Session Calendar</h1>
-              <p className="text-sm text-slate-500">Plan and view observation sessions</p>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 font-['Manrope']">Session Calendar</h1>
+              <p className="text-xs sm:text-sm text-slate-500">Plan and view observation sessions</p>
             </div>
           </div>
-          <Button onClick={() => navigate('/session/new')} data-testid="new-session-btn">
+          <Button onClick={() => navigate('/session/new')} className="w-full sm:w-auto" data-testid="new-session-btn">
             <Plus className="w-4 h-4 mr-2" />
             Plan Session
           </Button>
@@ -81,8 +81,8 @@ export default function SessionCalendar() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="grid md:grid-cols-3 gap-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Calendar */}
           <Card className="md:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
