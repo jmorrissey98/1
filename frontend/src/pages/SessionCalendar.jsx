@@ -110,10 +110,10 @@ export default function SessionCalendar() {
               </div>
 
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {/* Padding for start of month */}
                 {Array.from({ length: startPadding }).map((_, i) => (
-                  <div key={`pad-start-${i}`} className="h-20 bg-slate-50 rounded-lg" />
+                  <div key={`pad-start-${i}`} className="h-12 sm:h-16 lg:h-20 bg-slate-50 rounded-lg" />
                 ))}
 
                 {/* Days */}
@@ -126,24 +126,24 @@ export default function SessionCalendar() {
                       key={day.toISOString()}
                       onClick={() => setSelectedDate(day)}
                       className={cn(
-                        "h-20 p-1 rounded-lg border text-left transition-all",
+                        "h-12 sm:h-16 lg:h-20 p-0.5 sm:p-1 rounded-lg border text-left transition-all min-h-[48px]",
                         isToday(day) && "border-blue-500",
                         isSelected ? "border-slate-900 bg-slate-100" : "border-transparent hover:bg-slate-50",
                         !isSameMonth(day, currentMonth) && "opacity-40"
                       )}
                     >
                       <div className={cn(
-                        "text-sm font-medium",
+                        "text-xs sm:text-sm font-medium",
                         isToday(day) ? "text-blue-600" : "text-slate-700"
                       )}>
                         {format(day, 'd')}
                       </div>
-                      <div className="mt-1 space-y-0.5">
+                      <div className="mt-0.5 sm:mt-1 space-y-0.5 hidden sm:block">
                         {daySessions.slice(0, 2).map(s => (
                           <div
                             key={s.id}
                             className={cn(
-                              "h-1.5 rounded-full",
+                              "h-1 sm:h-1.5 rounded-full",
                               getStatusColor(s.status)
                             )}
                           />
@@ -152,13 +152,19 @@ export default function SessionCalendar() {
                           <div className="text-xs text-slate-500">+{daySessions.length - 2}</div>
                         )}
                       </div>
+                      {/* Mobile indicator dot */}
+                      {daySessions.length > 0 && (
+                        <div className="sm:hidden flex justify-center mt-1">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", getStatusColor(daySessions[0].status))} />
+                        </div>
+                      )}
                     </button>
                   );
                 })}
 
                 {/* Padding for end of month */}
                 {Array.from({ length: endPadding }).map((_, i) => (
-                  <div key={`pad-end-${i}`} className="h-20 bg-slate-50 rounded-lg" />
+                  <div key={`pad-end-${i}`} className="h-12 sm:h-16 lg:h-20 bg-slate-50 rounded-lg" />
                 ))}
               </div>
 
