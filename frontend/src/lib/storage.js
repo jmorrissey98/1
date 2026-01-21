@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   SETTINGS: 'mcd_settings',
   COACHES: 'mcd_coaches',
   CURRENT_USER: 'mcd_current_user',
-  USERS: 'mcd_users'
+  USERS: 'mcd_users',
+  SESSION_PARTS_CACHE: 'mcd_session_parts_cache'
 };
 
 // Observation contexts
@@ -55,7 +56,15 @@ const DEFAULT_DESCRIPTOR_GROUP_2 = {
   ]
 };
 
-// Default session parts
+// Fallback default session parts (used when backend unavailable)
+const FALLBACK_SESSION_PARTS = [
+  { id: 'default_technique', name: 'Develop the technique', order: 0, isDefault: true },
+  { id: 'default_game_model', name: 'Develop the game model', order: 1, isDefault: true },
+  { id: 'default_performance', name: 'Develop performance', order: 2, isDefault: true },
+  { id: 'default_mentality', name: 'Develop mentality', order: 3, isDefault: true }
+];
+
+// Legacy default session parts (for backwards compatibility)
 const DEFAULT_SESSION_PARTS = [
   { id: 'part1', name: 'Part 1', order: 0 },
   { id: 'part2', name: 'Part 2', order: 1 },
