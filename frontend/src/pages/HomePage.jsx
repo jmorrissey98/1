@@ -23,7 +23,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
-  }, [currentUser]);
+  }, []);
 
   const handleDelete = (sessionId) => {
     storage.deleteSession(sessionId);
