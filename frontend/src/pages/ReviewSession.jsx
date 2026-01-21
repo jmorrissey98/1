@@ -124,6 +124,83 @@ export default function ReviewSession() {
     toast.success('Event deleted');
   };
 
+  const handleSaveNotes = () => {
+    const updated = {
+      ...session,
+      sessionNotes: sessionNotes
+    };
+    saveSession(updated);
+    toast.success('Notes saved');
+  };
+
+  const handleGenerateSummary = async () => {
+    if (session.events.length === 0) {
+      toast.error('No events to summarize');
+      return;
+    }
+    
+    setIsGeneratingSummary(true);
+    try {
+      const stats = getStats();
+      
+      // Prepare event breakdown
+      const eventBreakdown = {};
+      session.eventTypes.forEach(et => {
+        eventBreakdown[et.name] = stats.eventCounts[et.id] || 0;
+      });
+      
+      // Prepare descriptor breakdowns
+      const desc1Breakdown = {};
+      session.descriptorGroup1.descriptors.forEach(d => {
+        desc1Breakdown[d.name] = stats.desc1Counts[d.id] || 0;
+      });
+      
+      const desc2Breakdown = {};
+      session.descriptorGroup2.descriptors.forEach(d => {
+        desc2Breakdown[d.name] = stats.desc2Counts[d.id] || 0;
+      });
+      
+      // Prepare session parts
+      const sessionPartsData = session.sessionParts.map(part => {
+        const partEvents = session.events.filter(e => e.sessionPartId === part.id);
+        const partTotal = part.ballRollingTime + part.ballNotRollingTime;
+        return {
+          name: part.name,
+          events: partEvents.length,
+          ballRollingPct: calcPercentage(part.ballRollingTime, partTotal)
+        };
+      });
+      
+      const response = await axios.post(`${API}/generate-summary`, {
+        session_name: session.name,
+        total_duration: session.totalDuration,
+        total_events: session.events.length,
+        ball_rolling_time: Math.round(session.ballRollingTime),
+        ball_not_rolling_time: Math.round(session.ballNotRollingTime),
+        event_breakdown: eventBreakdown,
+        descriptor1_name: session.descriptorGroup1.name,
+        descriptor1_breakdown: desc1Breakdown,
+        descriptor2_name: session.descriptorGroup2.name,
+        descriptor2_breakdown: desc2Breakdown,
+        session_parts: sessionPartsData,
+        user_notes: sessionNotes
+      });
+      
+      const updated = {
+        ...session,
+        aiSummary: response.data.summary,
+        sessionNotes: sessionNotes
+      };
+      saveSession(updated);
+      toast.success('Summary generated');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to generate summary');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     try {
       await exportToPDF(session);
