@@ -84,9 +84,9 @@ export default function SessionCalendar() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Calendar */}
-          <Card className="md:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="font-['Manrope']">
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 sm:pb-4">
+              <CardTitle className="font-['Manrope'] text-base sm:text-lg">
                 {format(currentMonth, 'MMMM yyyy')}
               </CardTitle>
               <div className="flex gap-1">
@@ -98,12 +98,13 @@ export default function SessionCalendar() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-2 sm:px-6">
               {/* Day headers */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center text-sm font-medium text-slate-500 py-2">
-                    {day}
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                  <div key={i} className="text-center text-xs sm:text-sm font-medium text-slate-500 py-1 sm:py-2">
+                    <span className="sm:hidden">{day}</span>
+                    <span className="hidden sm:inline">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</span>
                   </div>
                 ))}
               </div>
