@@ -190,10 +190,10 @@ export default function TemplateManager() {
 
   const removeSessionPart = (templateId, partId) => {
     const template = templates.find(t => t.id === templateId);
-    if (template && template.sessionParts.length > 1) {
+    if (template && (template.sessionParts || []).length > 1) {
       saveAndRefresh({
         ...template,
-        sessionParts: template.sessionParts.filter(p => p.id !== partId)
+        sessionParts: (template.sessionParts || []).filter(p => p.id !== partId)
       });
     } else {
       toast.error('Need at least one session part');
