@@ -25,36 +25,57 @@ Build a lightweight iPad-first coach observation app for coach education. Design
 
 ### MVP Features
 - ✅ Home page with sessions list
-- ✅ Session setup with customizable events, descriptors, parts
+- ✅ Session setup with customizable interventions, descriptors, parts
 - ✅ Template management system (full editing capability)
 - ✅ Live observation screen with 3-column grid
 - ✅ Real-time timer display
-- ✅ Ball rolling toggle with time tracking (tracks from session start, defaults to "not rolling")
+- ✅ Ball rolling toggle with time tracking (persists across part changes)
 - ✅ Session parts switching + add parts during session
 - ✅ Unused parts automatically removed on session end
 - ✅ Default parts renamed to Part 1, Part 2, Part 3, Part 4
-- ✅ Event logging with toast feedback
+- ✅ Coach Intervention logging (renamed from Events)
 - ✅ Descriptor selection (inline, no modals)
 - ✅ Quick undo functionality
-- ✅ Post-session review with Summary, Notes & AI, Timeline, Charts tabs
+- ✅ Post-session review with Summary, Reflections & AI, Timeline, Charts tabs
 - ✅ Whole session / per-part data toggle
-- ✅ Event editing/deletion in review
-- ✅ Session notes (observer can add reflections)
+- ✅ Intervention editing/deletion in review
+- ✅ Observer reflections (timestamped, per session)
+- ✅ Coach reflections (timestamped, per session)
 - ✅ AI-generated session summary with suggested development targets
-- ✅ PDF export with styled report (includes AI summary + notes)
+- ✅ AI summary collapsible by default
+- ✅ Session attachments (file upload/download)
+- ✅ PDF export with styled report
 - ✅ CSV export with raw data
 - ✅ Local storage persistence
+
+### Observation Contexts
+- ✅ Training Observation context
+- ✅ Game Observation context
+- ✅ Context-aware labeling in summaries
+
+### Session Planning
+- ✅ Plan sessions in advance with date
+- ✅ Calendar view for all sessions
+- ✅ Planned sessions show as "Planned" status
+- ✅ Navigate directly from calendar to observation
 
 ### Coach Management System
 - ✅ My Coaches section with list of coach profiles
 - ✅ Coach profile page with Overview, Targets, Sessions tabs
 - ✅ Add/edit coach name, role, general notes
 - ✅ Development targets per coach (add, toggle achieved, delete)
+- ✅ Intervention style targets (optional, age-group specific)
 - ✅ Session history per coach
-- ✅ AI-generated trends summary across all sessions for a coach
+- ✅ AI-generated trends summary across all sessions
 - ✅ Link sessions to coaches during setup
 - ✅ One-off sessions supported (no coach linked)
 - ✅ AI summary references coach targets and previous sessions
+- ✅ Coach profile attachments support
+
+### User Roles (Data Model Ready)
+- ✅ Coach Developer role (full access)
+- ✅ Coach role (restricted view)
+- ⏳ Role-based access control UI (partially implemented)
 
 ### UX Polish
 - ✅ Large touch-friendly buttons (64px+)
