@@ -34,8 +34,17 @@ export default function SessionCalendar() {
   const getSessionsForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return sessions.filter(s => {
-      const sessionDate = s.plannedDate || s.createdAt?.split('T')[0];
-      return sessionDate === dateStr;
+      // Check plannedDate first, then fall back to createdAt
+      let sessionDate = s.plannedDate;
+      if (!sessionDate) {
+        sessionDate = s.createdAt;
+      }
+      // Handle both full ISO strings and date-only strings
+      if (sessionDate) {
+        const datePart = sessionDate.split('T')[0];
+        return datePart === dateStr;
+      }
+      return false;
     });
   };
 
