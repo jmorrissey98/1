@@ -228,6 +228,37 @@ export default function SessionSetup() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Coach Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-['Manrope'] flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Coach
+            </CardTitle>
+            <CardDescription>
+              Link this observation to a coach profile, or leave as one-off session
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedCoachId} onValueChange={handleCoachChange}>
+              <SelectTrigger data-testid="coach-select">
+                <SelectValue placeholder="Select a coach (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">One-off session (no coach linked)</SelectItem>
+                {coaches.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}{c.role && ` - ${c.role}`}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {coaches.length === 0 && (
+              <p className="text-sm text-slate-500 mt-2">
+                No coaches yet. <button className="text-blue-600 hover:underline" onClick={() => navigate('/coaches')}>Add a coach</button> to track their development over time.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Session Name & Template */}
         <Card>
           <CardHeader>
