@@ -83,6 +83,19 @@ export default function SessionSetup() {
     updateSession({ coachId: coachId === 'none' ? null : coachId });
   };
 
+  const handleContextChange = (context) => {
+    setObservationContext(context);
+    updateSession({ observationContext: context });
+  };
+
+  const handleDateChange = (date) => {
+    setSessionDate(date);
+    updateSession({ 
+      plannedDate: date || null,
+      status: date ? 'planned' : 'draft'
+    });
+  };
+
   const updateSession = (updates) => {
     setSession(prev => ({ ...prev, ...updates }));
   };
