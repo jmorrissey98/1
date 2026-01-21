@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Trash2, Settings, FileText, Users } from 'lucide-react';
+import { Plus, Play, Eye, Trash2, Settings, FileText, Users, Calendar } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
-import { storage } from '../lib/storage';
+import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { formatDate, formatTime } from '../lib/utils';
 
 export default function HomePage() {
@@ -23,6 +23,8 @@ export default function HomePage() {
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'planned':
+        return <Badge className="bg-blue-500 hover:bg-blue-500">Planned</Badge>;
       case 'active':
         return <Badge className="bg-orange-500 hover:bg-orange-500">In Progress</Badge>;
       case 'completed':
