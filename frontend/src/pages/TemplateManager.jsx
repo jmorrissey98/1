@@ -316,7 +316,7 @@ export default function TemplateManager() {
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-slate-700 flex items-center gap-2">
                           <div className="w-3 h-3 rounded bg-yellow-400" />
-                          Event Types
+                          Coaching Interventions
                         </h4>
                         <Button size="sm" variant="outline" onClick={() => addEventType(template.id)}>
                           <Plus className="w-3 h-3 mr-1" />
