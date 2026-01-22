@@ -1400,12 +1400,23 @@ async def delete_session_part(part_id: str, request: Request):
     return {"status": "deleted"}
 
 # Add CORS middleware BEFORE including routes (order matters!)
+# When allow_credentials=True, we cannot use "*" for origins
+# We must explicitly list allowed origins or use allow_origin_regex
+cors_origins_env = os.environ.get('CORS_ORIGINS', '')
+if cors_origins_env and cors_origins_env != '*':
+    cors_origins = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+else:
+    # Allow all origins dynamically when credentials are used
+    cors_origins = []
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
+    allow_origins=cors_origins if cors_origins else ["*"],
+    allow_origin_regex=r"https://.*\.emergentagent\.com|https://.*\.preview\.emergentagent\.com|http://localhost:\d+|https://mycoach\.dev" if not cors_origins else None,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include the router in the main app AFTER middleware
