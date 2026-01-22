@@ -73,14 +73,15 @@ export default function LoginPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.detail || 'Login failed');
+        toast.error(data.detail || 'Login failed');
+        return;
       }
       
       toast.success('Welcome back!');
       await checkAuth();
       
     } catch (err) {
-      toast.error(err.message || 'Login failed');
+      toast.error('Login failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
