@@ -755,8 +755,14 @@ async def signup(signup_data: SignupRequest, response: Response):
         if not is_valid:
             raise HTTPException(status_code=400, detail=error_msg)
         
-        # Check if user already exists
-        existing_user = await db.users.find_one({"email": signup_data.email}, {"_id": 0})
+        # Normalize email to lowercase for consistency
+        email_lower = signup_data.email.lower()
+        
+        # Check if user already exists (case-insensitive)
+        existing_user = await db.users.find_one(
+            {"email": {"$regex": f"^{email_lower}$", "$options": "i"}}, 
+            {"_id": 0}
+        )
         if existing_user:
             raise HTTPException(status_code=400, detail="An account with this email already exists")
         
@@ -768,8 +774,11 @@ async def signup(signup_data: SignupRequest, response: Response):
             user_role = "coach_developer"
             linked_coach_id = None
         else:
-            # Check if there's an invite for this email
-            invite = await db.invites.find_one({"email": signup_data.email, "used": False}, {"_id": 0})
+            # Check if there's an invite for this email (case-insensitive)
+            invite = await db.invites.find_one(
+                {"email": {"$regex": f"^{email_lower}$", "$options": "i"}, "used": False}, 
+                {"_id": 0}
+            )
             
             if invite:
                 # Use invite role and coach_id
