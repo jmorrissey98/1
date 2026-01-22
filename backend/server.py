@@ -314,12 +314,47 @@ async def require_coach(request: Request) -> "User":
     """
     Require authenticated user with coach role.
     Returns the user if authenticated and has coach role.
+    Auto-creates coach profile if none exists.
     """
     user = await require_auth(request)
     if user.role != "coach":
         raise HTTPException(status_code=403, detail="Coach access required")
+    
+    # If no linked_coach_id, try to find or create one
     if not user.linked_coach_id:
-        raise HTTPException(status_code=403, detail="No coach profile linked to your account")
+        # Check if a coach profile exists with this user's email
+        existing_coach = await db.coaches.find_one({"email": user.email}, {"_id": 0})
+        
+        if existing_coach:
+            # Link user to existing coach profile
+            linked_coach_id = existing_coach.get("id")
+            await db.users.update_one(
+                {"user_id": user.user_id},
+                {"$set": {"linked_coach_id": linked_coach_id}}
+            )
+            user.linked_coach_id = linked_coach_id
+        else:
+            # Create new coach profile for this user
+            coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+            new_coach = {
+                "id": coach_id,
+                "name": user.name,
+                "email": user.email,
+                "photo": user.picture,
+                "targets": [],
+                "createdAt": datetime.now(timezone.utc).isoformat(),
+                "updatedAt": datetime.now(timezone.utc).isoformat()
+            }
+            await db.coaches.insert_one(new_coach)
+            
+            # Link user to new coach profile
+            await db.users.update_one(
+                {"user_id": user.user_id},
+                {"$set": {"linked_coach_id": coach_id}}
+            )
+            user.linked_coach_id = coach_id
+            logger.info(f"Auto-created coach profile {coach_id} for user {user.email}")
+    
     return user
 
 async def get_coach_profile_for_user(user: "User") -> Optional[Dict[str, Any]]:
