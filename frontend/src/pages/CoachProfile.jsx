@@ -18,8 +18,8 @@ import { fetchSessionParts } from '../lib/sessionPartsApi';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
+const API = '/api';
 
 export default function CoachProfile() {
   const navigate = useNavigate();
