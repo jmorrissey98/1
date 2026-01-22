@@ -944,7 +944,7 @@ export default function CoachProfile() {
                   <div className="space-y-4 mt-6">
                     <h4 className="font-medium text-slate-700 flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      Achieved ({achievedTargets.length})
+                      Completed Focus Areas ({achievedTargets.length})
                     </h4>
                     <div className="space-y-2">
                       {achievedTargets.map(target => (
@@ -952,6 +952,7 @@ export default function CoachProfile() {
                           <button
                             onClick={() => handleToggleTarget(target.id)}
                             className="w-5 h-5 rounded border-2 border-green-500 bg-green-500 flex items-center justify-center"
+                            title="Mark as active again"
                           >
                             <Check className="w-3 h-3 text-white" />
                           </button>
