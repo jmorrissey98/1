@@ -87,12 +87,40 @@ export const fetchDefaultSessionParts = async () => {
 
 // Create a new session part
 export const createSessionPart = async (name, isDefault = false) => {
+  const partData = { name, is_default: isDefault };
+  
+  // If offline, queue the request and return a local version
+  if (!isOnline()) {
+    const localPart = {
+      part_id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      is_default: isDefault,
+      created_at: new Date().toISOString(),
+      pending_sync: true
+    };
+    
+    // Add to offline queue
+    addToOfflineQueue(
+      QueueItemType.CREATE_SESSION_PART,
+      partData,
+      localPart.part_id
+    );
+    
+    // Store locally in cache
+    const cached = getCachedParts();
+    if (cached) {
+      setCachedParts([...cached, localPart]);
+    }
+    
+    return localPart;
+  }
+  
   try {
     const response = await fetch(`${API_URL}/api/session-parts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ name, is_default: isDefault })
+      body: JSON.stringify(partData)
     });
     
     if (response.ok) {
@@ -104,6 +132,25 @@ export const createSessionPart = async (name, isDefault = false) => {
       throw new Error(error.detail || 'Failed to create session part');
     }
   } catch (err) {
+    // If network error, queue for offline sync
+    if (err.name === 'TypeError' || err.message.includes('fetch')) {
+      const localPart = {
+        part_id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name,
+        is_default: isDefault,
+        created_at: new Date().toISOString(),
+        pending_sync: true
+      };
+      
+      addToOfflineQueue(
+        QueueItemType.CREATE_SESSION_PART,
+        partData,
+        localPart.part_id
+      );
+      
+      return localPart;
+    }
+    
     console.error('Failed to create session part:', err);
     throw err;
   }
