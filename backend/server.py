@@ -188,6 +188,91 @@ class SessionPartResponse(BaseModel):
     created_by: Optional[str] = None
     created_at: str
 
+# ============================================
+# COACH ROLE MODELS
+# ============================================
+
+class CoachProfileUpdate(BaseModel):
+    """Limited fields coaches can edit on their own profile"""
+    photo: Optional[str] = None
+    role_title: Optional[str] = None  # e.g., "Head Coach U16s"
+    age_group: Optional[str] = None   # e.g., "Under 16s"
+    department: Optional[str] = None  # e.g., "Academy"
+    bio: Optional[str] = None         # Short coaching focus/bio
+
+class CoachProfileResponse(BaseModel):
+    """Coach profile data visible to the coach"""
+    id: str
+    name: str
+    email: Optional[str] = None
+    photo: Optional[str] = None
+    role_title: Optional[str] = None
+    age_group: Optional[str] = None
+    department: Optional[str] = None
+    bio: Optional[str] = None
+    targets: List[Dict[str, Any]] = []
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class ReflectionCreate(BaseModel):
+    """Coach's self-reflection on a session"""
+    session_id: str
+    content: str
+    self_assessment_rating: Optional[int] = None  # 1-5 scale
+    strengths: Optional[str] = None
+    areas_for_development: Optional[str] = None
+
+class ReflectionResponse(BaseModel):
+    reflection_id: str
+    session_id: str
+    coach_id: str
+    content: str
+    self_assessment_rating: Optional[int] = None
+    strengths: Optional[str] = None
+    areas_for_development: Optional[str] = None
+    created_at: str
+    updated_at: Optional[str] = None
+
+class ScheduledObservationCreate(BaseModel):
+    """Observer scheduling an observation for a coach"""
+    coach_id: str
+    scheduled_date: str
+    session_context: Optional[str] = None  # e.g., "U16 Training Session"
+
+class ScheduledObservationResponse(BaseModel):
+    schedule_id: str
+    coach_id: str
+    coach_name: Optional[str] = None
+    observer_id: str
+    observer_name: Optional[str] = None
+    scheduled_date: str
+    session_context: Optional[str] = None
+    status: str  # "scheduled", "completed", "cancelled"
+    created_at: str
+
+class CoachDashboardResponse(BaseModel):
+    """Aggregated data for coach dashboard"""
+    profile: CoachProfileResponse
+    targets: List[Dict[str, Any]]
+    upcoming_observations: List[ScheduledObservationResponse]
+    recent_session: Optional[Dict[str, Any]] = None
+    has_pending_reflection: bool = False
+    pending_reflection_session_id: Optional[str] = None
+
+class CoachSessionSummary(BaseModel):
+    """Summary of a session for coach's view"""
+    session_id: str
+    title: str
+    date: str
+    observer_name: Optional[str] = None
+    has_observation: bool = False
+    has_reflection: bool = False
+    summary_preview: Optional[str] = None
+
+# ============================================
+# END COACH ROLE MODELS
+# ============================================
+
 # Default session parts
 DEFAULT_SESSION_PARTS = [
     {"part_id": "default_technique", "name": "Develop The Technique", "is_default": True},
