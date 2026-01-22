@@ -99,12 +99,9 @@ export default function UserSettings() {
 
   const handleDeleteInvite = async (inviteId) => {
     try {
-      const response = await fetch(`${API_URL}/api/invites/${inviteId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
+      const result = await safeDelete(`${API_URL}/api/invites/${inviteId}`);
 
-      if (!response.ok) {
+      if (!result.ok) {
         throw new Error('Failed to delete invite');
       }
 
@@ -117,16 +114,10 @@ export default function UserSettings() {
 
   const handleResendInvite = async (inviteId, email) => {
     try {
-      const response = await fetch(`${API_URL}/api/invites/${inviteId}/resend`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
+      const result = await safePost(`${API_URL}/api/invites/${inviteId}/resend`, {});
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to resend invite');
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to resend invite');
       }
 
       toast.success(`Invite email resent to ${email}`);
