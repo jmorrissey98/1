@@ -1175,24 +1175,40 @@ async def create_invite(invite_data: InviteCreate, request: Request):
         await db.invites.insert_one(invite)
         logger.info(f"Invite created for {email_lower} by {user.email}")
         
-        # Send invitation email (non-blocking - don't fail if email fails)
+        # Send invitation email
+        email_sent = False
+        email_error = None
         try:
             await send_invite_email(
                 email=email_lower,
                 inviter_name=user.name,
                 role=invite_data.role
             )
-            logger.info(f"Invite email sent to {email_lower}")
+            email_sent = True
+            logger.info(f"Invite email sent successfully to {email_lower}")
+            
+            # Update invite record with email status
+            await db.invites.update_one(
+                {"invite_id": invite_id},
+                {"$set": {"email_sent": True, "email_sent_at": datetime.now(timezone.utc).isoformat()}}
+            )
         except Exception as email_err:
-            logger.error(f"Failed to send invite email to {email_lower}: {str(email_err)}")
-            # Continue - invite was created successfully even if email failed
+            email_error = str(email_err)
+            logger.error(f"Failed to send invite email to {email_lower}: {email_error}")
+            
+            # Update invite record with failure status
+            await db.invites.update_one(
+                {"invite_id": invite_id},
+                {"$set": {"email_sent": False, "email_error": email_error}}
+            )
         
         return InviteResponse(
             invite_id=invite_id,
             email=email_lower,
             role=invite_data.role,
             coach_id=invite_data.coach_id,
-            created_at=invite["created_at"]
+            created_at=invite["created_at"],
+            email_sent=email_sent
         )
         
     except HTTPException:
