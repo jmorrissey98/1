@@ -121,6 +121,11 @@ export default function UserSettings() {
     try {
       const result = await safePost(`${API_URL}/api/invites/${inviteId}/resend`, {});
       
+      if (result.networkError) {
+        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        return;
+      }
+      
       if (!result.ok) {
         throw new Error(result.data?.detail || 'Failed to resend invite');
       }
