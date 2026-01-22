@@ -411,18 +411,44 @@ export default function UserSettings() {
                           </div>
                           <div className="flex items-center gap-2">
                             {u.user_id !== user?.user_id ? (
-                              <Select 
-                                value={u.role} 
-                                onValueChange={(newRole) => handleRoleChange(u.user_id, newRole)}
-                              >
-                                <SelectTrigger className="w-[160px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="coach">Coach</SelectItem>
-                                  <SelectItem value="coach_developer">Coach Developer</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <>
+                                <Select 
+                                  value={u.role} 
+                                  onValueChange={(newRole) => handleRoleChange(u.user_id, newRole)}
+                                >
+                                  <SelectTrigger className="w-[160px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="coach">Coach</SelectItem>
+                                    <SelectItem value="coach_developer">Coach Developer</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete User?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently remove {u.name} ({u.email}) from the system. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteUser(u.user_id, u.name)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
                             ) : (
                               <Badge className="bg-purple-100 text-purple-800">
                                 Coach Developer
