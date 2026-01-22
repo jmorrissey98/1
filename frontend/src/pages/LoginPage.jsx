@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { AlertCircle, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from 'sonner';
+import { safePost } from '../lib/safeFetch';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
