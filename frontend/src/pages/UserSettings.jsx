@@ -82,6 +82,11 @@ export default function UserSettings() {
         coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
       });
       
+      if (result.networkError) {
+        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        return;
+      }
+      
       if (!result.ok) {
         throw new Error(result.data?.detail || 'Failed to create invite');
       }
