@@ -88,12 +88,13 @@ export default function UserSettings() {
         })
       });
 
-      // Read response body once
+      const text = await response.text();
       let data;
       try {
-        data = await response.json();
+        data = text ? JSON.parse(text) : {};
       } catch (parseErr) {
-        data = { detail: 'Failed to parse response' };
+        console.error('Failed to parse response:', text);
+        throw new Error('Server error - please try again');
       }
       
       if (!response.ok) {
