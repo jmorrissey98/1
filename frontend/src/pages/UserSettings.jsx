@@ -139,7 +139,8 @@ export default function UserSettings() {
         body: JSON.stringify({ user_id: userId, new_role: newRole })
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
       
       if (!response.ok) {
         throw new Error(data.detail || 'Failed to update role');
@@ -149,6 +150,27 @@ export default function UserSettings() {
       loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to update role');
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    try {
+      const response = await fetch(`${API_URL}/api/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to delete user');
+      }
+
+      toast.success(`${userName} has been removed`);
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete user');
     }
   };
 
