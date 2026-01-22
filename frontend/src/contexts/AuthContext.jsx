@@ -54,14 +54,14 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ session_id: sessionId })
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Authentication failed');
+        throw new Error(data.detail || 'Authentication failed');
       }
 
-      const userData = await response.json();
-      setUser(userData);
-      return userData;
+      setUser(data);
+      return data;
     } catch (err) {
       setError(err.message);
       throw err;
