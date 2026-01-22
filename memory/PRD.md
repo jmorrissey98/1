@@ -130,7 +130,6 @@ All core observation and review features implemented
 PWA and offline-first functionality implemented
 
 ### P1 (High Priority) - Future
-- Cloud backup/sync option
 - Multiple observer support
 - Session comparison view
 - Print-friendly review layout
