@@ -31,10 +31,18 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Resend configuration for password reset emails
-resend.api_key = os.environ.get('RESEND_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
-APP_URL = os.environ.get('APP_URL', 'http://localhost:3000')
+# Resend configuration - use verified domain as default
+# This ensures emails work even if .env isn't deployed properly
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', '') or 'noreply@mycoachdeveloper.com'
+APP_URL = os.environ.get('APP_URL', '') or 'https://mycoachdeveloper.com'
+
+# Initialize Resend with API key
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+else:
+    # Fallback - check for common env var patterns
+    resend.api_key = os.environ.get('RESEND_KEY', '') or os.environ.get('resend_api_key', '')
 
 # Create the main app without a prefix
 app = FastAPI()
