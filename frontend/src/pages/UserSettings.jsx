@@ -101,7 +101,7 @@ export default function UserSettings() {
         return;
       }
 
-      toast.success(`Invite sent to ${inviteEmail}`);
+      toast.success(`Invite sent to ${inviteEmail}${result.data?.email_sent === false ? ' (email delivery pending)' : ''}`);
       setInviteEmail('');
       setInviteCoachId('');
       await loadData();
