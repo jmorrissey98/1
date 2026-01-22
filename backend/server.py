@@ -1641,6 +1641,411 @@ async def delete_session_part(part_id: str, request: Request):
     
     return {"status": "deleted"}
 
+# ============================================
+# COACH ROLE API ENDPOINTS
+# ============================================
+
+@api_router.get("/coach/dashboard", response_model=CoachDashboardResponse)
+async def get_coach_dashboard(request: Request):
+    """
+    Get aggregated dashboard data for a coach.
+    Returns profile, targets, upcoming observations, and recent session.
+    """
+    user = await require_coach(request)
+    
+    # Get coach profile from coaches collection
+    coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
+    if not coach:
+        # Create a minimal profile if doesn't exist in DB
+        coach = {
+            "id": user.linked_coach_id,
+            "name": user.name,
+            "email": user.email,
+            "photo": user.picture,
+            "targets": []
+        }
+    
+    profile = CoachProfileResponse(
+        id=coach.get("id", user.linked_coach_id),
+        name=coach.get("name", user.name),
+        email=coach.get("email", user.email),
+        photo=coach.get("photo") or user.picture,
+        role_title=coach.get("role_title"),
+        age_group=coach.get("age_group"),
+        department=coach.get("department"),
+        bio=coach.get("bio"),
+        targets=coach.get("targets", []),
+        created_at=coach.get("createdAt"),
+        updated_at=coach.get("updatedAt")
+    )
+    
+    # Get active targets
+    targets = [t for t in coach.get("targets", []) if t.get("status") != "achieved"]
+    
+    # Get upcoming scheduled observations for this coach
+    upcoming_obs = await db.scheduled_observations.find({
+        "coach_id": user.linked_coach_id,
+        "status": "scheduled"
+    }, {"_id": 0}).sort("scheduled_date", 1).limit(5).to_list(5)
+    
+    upcoming_observations = []
+    for obs in upcoming_obs:
+        # Get observer name
+        observer = await db.users.find_one({"user_id": obs.get("observer_id")}, {"_id": 0, "name": 1})
+        upcoming_observations.append(ScheduledObservationResponse(
+            schedule_id=obs.get("schedule_id"),
+            coach_id=obs.get("coach_id"),
+            observer_id=obs.get("observer_id"),
+            observer_name=observer.get("name") if observer else None,
+            scheduled_date=obs.get("scheduled_date"),
+            session_context=obs.get("session_context"),
+            status=obs.get("status"),
+            created_at=obs.get("created_at", "")
+        ))
+    
+    # Get most recent session for this coach
+    recent_session = await db.sessions.find_one(
+        {"coach_id": user.linked_coach_id},
+        {"_id": 0}
+    )
+    # Sort by date descending - get most recent
+    sessions_cursor = db.sessions.find(
+        {"coach_id": user.linked_coach_id},
+        {"_id": 0}
+    ).sort("date", -1).limit(1)
+    sessions_list = await sessions_cursor.to_list(1)
+    recent_session = sessions_list[0] if sessions_list else None
+    
+    # Check if there's a pending reflection
+    has_pending_reflection = False
+    pending_reflection_session_id = None
+    
+    if recent_session:
+        # Check if a reflection exists for this session
+        reflection = await db.reflections.find_one({
+            "session_id": recent_session.get("session_id"),
+            "coach_id": user.linked_coach_id
+        }, {"_id": 0})
+        
+        if not reflection:
+            has_pending_reflection = True
+            pending_reflection_session_id = recent_session.get("session_id")
+    
+    return CoachDashboardResponse(
+        profile=profile,
+        targets=targets,
+        upcoming_observations=upcoming_observations,
+        recent_session=recent_session,
+        has_pending_reflection=has_pending_reflection,
+        pending_reflection_session_id=pending_reflection_session_id
+    )
+
+@api_router.get("/coach/sessions")
+async def get_coach_sessions(request: Request):
+    """
+    Get all sessions belonging to the authenticated coach.
+    Returns a list of session summaries.
+    """
+    user = await require_coach(request)
+    
+    # Get all sessions for this coach
+    sessions_cursor = db.sessions.find(
+        {"coach_id": user.linked_coach_id},
+        {"_id": 0}
+    ).sort("date", -1)
+    
+    sessions = await sessions_cursor.to_list(100)
+    
+    result = []
+    for session in sessions:
+        session_id = session.get("session_id")
+        
+        # Check if has observation data
+        has_observation = bool(session.get("observations") or session.get("ai_summary"))
+        
+        # Check if has reflection
+        reflection = await db.reflections.find_one({
+            "session_id": session_id,
+            "coach_id": user.linked_coach_id
+        }, {"_id": 0})
+        has_reflection = reflection is not None
+        
+        # Get observer name if available
+        observer_name = None
+        if session.get("observer_id"):
+            observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
+            observer_name = observer.get("name") if observer else None
+        
+        result.append({
+            "session_id": session_id,
+            "title": session.get("title", "Untitled Session"),
+            "date": session.get("date", session.get("createdAt", "")),
+            "observer_name": observer_name,
+            "has_observation": has_observation,
+            "has_reflection": has_reflection,
+            "summary_preview": (session.get("ai_summary", "") or "")[:150] + "..." if session.get("ai_summary") else None
+        })
+    
+    return result
+
+@api_router.get("/coach/session/{session_id}")
+async def get_coach_session_detail(session_id: str, request: Request):
+    """
+    Get detailed session information for a coach.
+    Only returns the session if it belongs to the authenticated coach.
+    """
+    user = await require_coach(request)
+    
+    # Verify coach owns this session
+    session = await verify_coach_owns_session(user, session_id)
+    
+    # Get reflection if exists
+    reflection = await db.reflections.find_one({
+        "session_id": session_id,
+        "coach_id": user.linked_coach_id
+    }, {"_id": 0})
+    
+    # Get observer details if available
+    observer_name = None
+    if session.get("observer_id"):
+        observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
+        observer_name = observer.get("name") if observer else None
+    
+    return {
+        "session": session,
+        "reflection": reflection,
+        "observer_name": observer_name,
+        "can_add_reflection": reflection is None
+    }
+
+@api_router.post("/coach/reflections", response_model=ReflectionResponse)
+async def create_reflection(reflection_data: ReflectionCreate, request: Request):
+    """
+    Create a reflection for a session.
+    Coaches can only create reflections for their own sessions.
+    """
+    user = await require_coach(request)
+    
+    # Verify coach owns this session
+    await verify_coach_owns_session(user, reflection_data.session_id)
+    
+    # Check if reflection already exists
+    existing = await db.reflections.find_one({
+        "session_id": reflection_data.session_id,
+        "coach_id": user.linked_coach_id
+    }, {"_id": 0})
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="A reflection already exists for this session")
+    
+    reflection_id = f"ref_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    reflection = {
+        "reflection_id": reflection_id,
+        "session_id": reflection_data.session_id,
+        "coach_id": user.linked_coach_id,
+        "content": reflection_data.content,
+        "self_assessment_rating": reflection_data.self_assessment_rating,
+        "strengths": reflection_data.strengths,
+        "areas_for_development": reflection_data.areas_for_development,
+        "created_at": now,
+        "updated_at": None
+    }
+    
+    await db.reflections.insert_one(reflection)
+    logger.info(f"Reflection created for session {reflection_data.session_id} by coach {user.linked_coach_id}")
+    
+    return ReflectionResponse(**reflection)
+
+@api_router.put("/coach/reflections/{reflection_id}", response_model=ReflectionResponse)
+async def update_reflection(reflection_id: str, reflection_data: ReflectionCreate, request: Request):
+    """
+    Update an existing reflection.
+    Coaches can only update their own reflections.
+    """
+    user = await require_coach(request)
+    
+    # Find the reflection
+    reflection = await db.reflections.find_one({"reflection_id": reflection_id}, {"_id": 0})
+    if not reflection:
+        raise HTTPException(status_code=404, detail="Reflection not found")
+    
+    # Verify coach owns this reflection
+    if reflection.get("coach_id") != user.linked_coach_id:
+        raise HTTPException(status_code=403, detail="You do not have access to this reflection")
+    
+    # Update the reflection
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {
+        "content": reflection_data.content,
+        "self_assessment_rating": reflection_data.self_assessment_rating,
+        "strengths": reflection_data.strengths,
+        "areas_for_development": reflection_data.areas_for_development,
+        "updated_at": now
+    }
+    
+    await db.reflections.update_one(
+        {"reflection_id": reflection_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated reflection
+    updated = await db.reflections.find_one({"reflection_id": reflection_id}, {"_id": 0})
+    return ReflectionResponse(**updated)
+
+@api_router.get("/coach/profile", response_model=CoachProfileResponse)
+async def get_coach_profile(request: Request):
+    """Get the authenticated coach's profile"""
+    user = await require_coach(request)
+    
+    coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
+    if not coach:
+        # Return minimal profile from user data
+        return CoachProfileResponse(
+            id=user.linked_coach_id,
+            name=user.name,
+            email=user.email,
+            photo=user.picture,
+            targets=[]
+        )
+    
+    return CoachProfileResponse(
+        id=coach.get("id"),
+        name=coach.get("name", user.name),
+        email=coach.get("email", user.email),
+        photo=coach.get("photo") or user.picture,
+        role_title=coach.get("role_title"),
+        age_group=coach.get("age_group"),
+        department=coach.get("department"),
+        bio=coach.get("bio"),
+        targets=coach.get("targets", []),
+        created_at=coach.get("createdAt"),
+        updated_at=coach.get("updatedAt")
+    )
+
+@api_router.put("/coach/profile", response_model=CoachProfileResponse)
+async def update_coach_profile(profile_data: CoachProfileUpdate, request: Request):
+    """
+    Update coach profile with limited editable fields.
+    Coaches cannot edit system-level fields like permissions or role.
+    """
+    user = await require_coach(request)
+    
+    # Build update document with only allowed fields
+    update_fields = {}
+    if profile_data.photo is not None:
+        update_fields["photo"] = profile_data.photo
+    if profile_data.role_title is not None:
+        update_fields["role_title"] = profile_data.role_title
+    if profile_data.age_group is not None:
+        update_fields["age_group"] = profile_data.age_group
+    if profile_data.department is not None:
+        update_fields["department"] = profile_data.department
+    if profile_data.bio is not None:
+        update_fields["bio"] = profile_data.bio
+    
+    update_fields["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert the coach profile
+    await db.coaches.update_one(
+        {"id": user.linked_coach_id},
+        {"$set": update_fields},
+        upsert=True
+    )
+    
+    logger.info(f"Coach profile updated for {user.linked_coach_id}")
+    
+    # Return updated profile
+    return await get_coach_profile(request)
+
+@api_router.get("/coach/targets")
+async def get_coach_targets(request: Request):
+    """Get all targets for the authenticated coach"""
+    user = await require_coach(request)
+    
+    coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0, "targets": 1})
+    targets = coach.get("targets", []) if coach else []
+    
+    return {"targets": targets}
+
+# Scheduled Observations - for Coach Developers to schedule, Coaches to view
+@api_router.post("/scheduled-observations", response_model=ScheduledObservationResponse)
+async def create_scheduled_observation(obs_data: ScheduledObservationCreate, request: Request):
+    """Create a scheduled observation (Coach Developer only)"""
+    user = await require_coach_developer(request)
+    
+    schedule_id = f"sched_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Get coach name
+    coach = await db.coaches.find_one({"id": obs_data.coach_id}, {"_id": 0, "name": 1})
+    coach_name = coach.get("name") if coach else None
+    
+    scheduled_obs = {
+        "schedule_id": schedule_id,
+        "coach_id": obs_data.coach_id,
+        "observer_id": user.user_id,
+        "scheduled_date": obs_data.scheduled_date,
+        "session_context": obs_data.session_context,
+        "status": "scheduled",
+        "created_at": now
+    }
+    
+    await db.scheduled_observations.insert_one(scheduled_obs)
+    logger.info(f"Scheduled observation created for coach {obs_data.coach_id} by {user.user_id}")
+    
+    return ScheduledObservationResponse(
+        schedule_id=schedule_id,
+        coach_id=obs_data.coach_id,
+        coach_name=coach_name,
+        observer_id=user.user_id,
+        observer_name=user.name,
+        scheduled_date=obs_data.scheduled_date,
+        session_context=obs_data.session_context,
+        status="scheduled",
+        created_at=now
+    )
+
+@api_router.get("/scheduled-observations")
+async def list_scheduled_observations(request: Request):
+    """List scheduled observations - filtered by role"""
+    user = await require_auth(request)
+    
+    query = {"status": "scheduled"}
+    
+    # Coaches only see their own scheduled observations
+    if user.role == "coach":
+        if not user.linked_coach_id:
+            return []
+        query["coach_id"] = user.linked_coach_id
+    
+    obs_list = await db.scheduled_observations.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(50)
+    
+    result = []
+    for obs in obs_list:
+        # Get names
+        coach = await db.coaches.find_one({"id": obs.get("coach_id")}, {"_id": 0, "name": 1})
+        observer = await db.users.find_one({"user_id": obs.get("observer_id")}, {"_id": 0, "name": 1})
+        
+        result.append(ScheduledObservationResponse(
+            schedule_id=obs.get("schedule_id"),
+            coach_id=obs.get("coach_id"),
+            coach_name=coach.get("name") if coach else None,
+            observer_id=obs.get("observer_id"),
+            observer_name=observer.get("name") if observer else None,
+            scheduled_date=obs.get("scheduled_date"),
+            session_context=obs.get("session_context"),
+            status=obs.get("status"),
+            created_at=obs.get("created_at", "")
+        ))
+    
+    return result
+
+# ============================================
+# END COACH ROLE API ENDPOINTS
+# ============================================
+
 # Add CORS middleware BEFORE including routes (order matters!)
 # Build comprehensive list of allowed origins for CORS with credentials
 app_url = os.environ.get('APP_URL', 'https://mycoachdeveloper.com')
