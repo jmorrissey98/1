@@ -57,20 +57,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API requests - network only, don't cache
+  // Skip ALL API requests - let them go directly to network
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(request).catch(() => {
-        // Return offline response for API calls
-        return new Response(
-          JSON.stringify({ error: 'offline', message: 'You are offline' }),
-          { 
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-          }
-        );
-      })
-    );
     return;
   }
 
