@@ -102,21 +102,14 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: signUpName,
-          email: signUpEmail,
-          password: signUpPassword
-        })
+      const result = await safePost(`${API_URL}/api/auth/signup`, {
+        name: signUpName,
+        email: signUpEmail,
+        password: signUpPassword
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        toast.error(data.detail || 'Signup failed');
+      if (!result.ok) {
+        toast.error(result.data?.detail || 'Signup failed');
         return;
       }
       
@@ -141,8 +134,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
-        method: 'POST',
+      const result = await safePost(`${API_URL}/api/auth/forgot-password`, { email: forgotEmail });
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail })
       });
