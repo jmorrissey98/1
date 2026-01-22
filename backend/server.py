@@ -185,6 +185,71 @@ DEFAULT_SESSION_PARTS = [
     {"part_id": "default_mentality", "name": "Develop Mentality", "is_default": True},
 ]
 
+# Password hashing helpers
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def validate_password(password: str) -> tuple[bool, str]:
+    """Validate password meets requirements"""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    if not re.search(r'[A-Za-z]', password):
+        return False, "Password must contain at least one letter"
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one number"
+    return True, ""
+
+def validate_email(email: str) -> bool:
+    """Basic email format validation"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+async def send_password_reset_email(email: str, reset_token: str, user_name: str):
+    """Send password reset email via Resend"""
+    reset_link = f"{APP_URL}/reset-password?token={reset_token}"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1e293b;">Reset Your Password</h2>
+        <p>Hi {user_name},</p>
+        <p>We received a request to reset your password for your My Coach Developer account.</p>
+        <p>Click the button below to reset your password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{reset_link}" 
+               style="background-color: #1e293b; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+                Reset Password
+            </a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="color: #64748b; word-break: break-all;">{reset_link}</p>
+        <p style="color: #64748b; font-size: 14px; margin-top: 30px;">
+            This link will expire in 1 hour. If you didn't request a password reset, 
+            you can safely ignore this email.
+        </p>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": "Reset Your Password - My Coach Developer",
+        "html": html_content
+    }
+    
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        return result
+    except Exception as e:
+        logging.error(f"Failed to send password reset email: {str(e)}")
+        raise
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
