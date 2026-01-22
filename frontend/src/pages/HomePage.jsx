@@ -160,7 +160,7 @@ export default function HomePage() {
                           onClick={() => navigate(`/session/${session.id}/setup`)}
                           data-testid={`edit-session-${session.id}`}
                         >
-                          <Settings className="w-4 h-4 mr-1" />
+                          <Cog className="w-4 h-4 mr-1" />
                           Setup
                         </Button>
                       )}
