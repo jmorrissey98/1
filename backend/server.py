@@ -250,6 +250,46 @@ async def send_password_reset_email(email: str, reset_token: str, user_name: str
         logging.error(f"Failed to send password reset email: {str(e)}")
         raise
 
+async def send_invite_email(email: str, inviter_name: str, role: str):
+    """Send invitation email via Resend"""
+    signup_link = f"{APP_URL}/login"
+    role_display = "Coach Developer" if role == "coach_developer" else "Coach"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1e293b;">You're Invited to My Coach Developer</h2>
+        <p>Hi there,</p>
+        <p><strong>{inviter_name}</strong> has invited you to join My Coach Developer as a <strong>{role_display}</strong>.</p>
+        <p>My Coach Developer is a coaching observation app that helps track and analyze coaching sessions.</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{signup_link}" 
+               style="background-color: #1e293b; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+                Create Your Account
+            </a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="color: #64748b; word-break: break-all;">{signup_link}</p>
+        <p style="color: #64748b; font-size: 14px; margin-top: 30px;">
+            Use this email address ({email}) when signing up to activate your invitation.
+        </p>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": f"You're invited to My Coach Developer",
+        "html": html_content
+    }
+    
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        return result
+    except Exception as e:
+        logging.error(f"Failed to send invite email: {str(e)}")
+        raise
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
