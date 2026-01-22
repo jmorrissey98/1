@@ -83,12 +83,15 @@ export default function UserSettings() {
       });
       
       if (result.networkError) {
-        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        toast.error(result.data?.detail || 'Unable to connect to server. Please try again.');
         return;
       }
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to create invite');
+        // Show specific error from server
+        const errorMsg = result.data?.detail || 'Failed to create invite';
+        toast.error(errorMsg);
+        return;
       }
 
       toast.success(`Invite sent to ${inviteEmail}`);
