@@ -7,8 +7,13 @@ import os
 import logging
 import aiofiles
 import httpx
+import asyncio
+import bcrypt
+import resend
+import secrets
+import re
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
