@@ -40,7 +40,8 @@ export default function OfflineIndicator() {
   };
 
   // Don't show anything if online and synced with no pending
-  if (online && pendingCount === 0 && syncStatus === SyncStatus.SYNCED) {
+  // Or if on auth pages
+  if (isAuthPage || (online && pendingCount === 0 && syncStatus === SyncStatus.SYNCED)) {
     return null;
   }
 
