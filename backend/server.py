@@ -167,6 +167,7 @@ class InviteResponse(BaseModel):
     role: str
     coach_id: Optional[str] = None
     created_at: str
+    email_sent: Optional[bool] = None  # Track if invite email was sent successfully
 
 class RoleUpdateRequest(BaseModel):
     user_id: str
