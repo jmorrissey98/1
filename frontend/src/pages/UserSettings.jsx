@@ -82,14 +82,21 @@ export default function UserSettings() {
         coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
       });
       
+      // Debug: log full result
+      console.log('Invite API result:', result);
+      
       if (result.networkError) {
-        toast.error(result.data?.detail || 'Unable to connect to server. Please try again.');
+        toast.error(result.data?.detail || 'Network error. Please check your connection.');
         return;
       }
       
       if (!result.ok) {
-        // Show specific error from server
-        const errorMsg = result.data?.detail || 'Failed to create invite';
+        // Extract error message from various possible formats
+        const errorMsg = result.data?.detail 
+          || result.data?.message 
+          || result.data?.error 
+          || (result.rawText ? `Server error: ${result.rawText.substring(0, 100)}` : null)
+          || `Request failed (status ${result.status})`;
         toast.error(errorMsg);
         return;
       }
@@ -99,7 +106,8 @@ export default function UserSettings() {
       setInviteCoachId('');
       await loadData();
     } catch (err) {
-      toast.error(err.message || 'Failed to send invite');
+      console.error('Invite error:', err);
+      toast.error(err.message || 'An unexpected error occurred');
     } finally {
       setInviting(false);
     }
