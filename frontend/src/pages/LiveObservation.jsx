@@ -525,7 +525,7 @@ export default function LiveObservation() {
       {/* Session Parts Tabs */}
       <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6">
         <div className="flex gap-1 overflow-x-auto py-2 items-center tabs-responsive">
-          {session.sessionParts.map((part) => (
+          {(session.sessionParts || []).map((part) => (
             <button
               key={part.id}
               onClick={() => handlePartChange(part.id)}
@@ -541,36 +541,96 @@ export default function LiveObservation() {
               {part.name}
             </button>
           ))}
-          {showAddPart ? (
-            <div className="flex items-center gap-1 ml-1">
-              <Input
-                value={newPartName}
-                onChange={(e) => setNewPartName(e.target.value)}
-                placeholder="Part name"
-                className="w-24 sm:w-28 h-9 text-sm"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleAddPart()}
-                data-testid="new-part-input"
-              />
-              <Button size="icon" variant="ghost" className="h-9 w-9" onClick={handleAddPart}>
-                <Check className="w-4 h-4 text-green-600" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setShowAddPart(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowAddPart(true)}
-              className="px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all whitespace-nowrap flex items-center gap-1 min-h-[44px]"
-              data-testid="add-part-btn"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Part</span>
-            </button>
-          )}
+          <button
+            onClick={openAddPartDialog}
+            className="px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all whitespace-nowrap flex items-center gap-1 min-h-[44px]"
+            data-testid="add-part-btn"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Part</span>
+          </button>
         </div>
       </div>
+
+      {/* Add Part Dialog */}
+      <Dialog open={showAddPartDialog} onOpenChange={setShowAddPartDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Session Part</DialogTitle>
+            <DialogDescription>
+              Select from default parts or create a custom one.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <Label>Select a Part</Label>
+              <Select value={selectedDefaultPart} onValueChange={setSelectedDefaultPart}>
+                <SelectTrigger className="mt-1" data-testid="select-default-part">
+                  <SelectValue placeholder="Choose a part..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom Part</SelectItem>
+                  {availableParts.filter(p => p.is_default).map(part => {
+                    const isAlreadyAdded = (session.sessionParts || []).some(sp => sp.name === part.name);
+                    return (
+                      <SelectItem 
+                        key={part.part_id} 
+                        value={part.part_id}
+                        disabled={isAlreadyAdded}
+                      >
+                        {part.name} {isAlreadyAdded && "(already added)"}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedDefaultPart === 'custom' && (
+              <>
+                <div>
+                  <Label htmlFor="custom-part-name">Custom Part Name</Label>
+                  <Input
+                    id="custom-part-name"
+                    value={customPartName}
+                    onChange={(e) => setCustomPartName(e.target.value)}
+                    placeholder="e.g., Cool Down"
+                    className="mt-1"
+                    data-testid="custom-part-input"
+                  />
+                </div>
+                
+                {isCoachDeveloper() && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="add-as-default"
+                      checked={addAsDefault}
+                      onChange={(e) => setAddAsDefault(e.target.checked)}
+                      className="rounded"
+                    />
+                    <Label htmlFor="add-as-default" className="text-sm text-slate-600 cursor-pointer">
+                      Add as new default (available globally)
+                    </Label>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddPartDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddPartFromDialog} 
+              disabled={savingPart || (selectedDefaultPart === 'custom' && !customPartName.trim())}
+            >
+              {savingPart ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Add Part
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Ball Rolling Toggle */}
       <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
