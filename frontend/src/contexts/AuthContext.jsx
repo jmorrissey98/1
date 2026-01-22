@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { safeGet, safePost } from '../lib/safeFetch';
 
 const AuthContext = createContext(null);
 
@@ -21,21 +22,10 @@ export function AuthProvider({ children }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/me`, {
-        credentials: 'include'
-      });
+      const result = await safeGet(`${API_URL}/api/auth/me`);
       
-      if (response.ok) {
-        const text = await response.text();
-        let userData;
-        try {
-          userData = text ? JSON.parse(text) : null;
-        } catch (parseErr) {
-          console.error('Failed to parse user data:', parseErr);
-          setUser(null);
-          return;
-        }
-        setUser(userData);
+      if (result.ok && result.data) {
+        setUser(result.data);
       } else {
         setUser(null);
       }
@@ -55,28 +45,14 @@ export function AuthProvider({ children }) {
 
   const processSessionId = async (sessionId) => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ session_id: sessionId })
-      });
-
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (parseErr) {
-        console.error('Failed to parse auth response:', text);
-        throw new Error('Authentication failed - server error');
-      }
+      const result = await safePost(`${API_URL}/api/auth/session`, { session_id: sessionId });
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Authentication failed');
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Authentication failed');
       }
 
-      setUser(data);
-      return data;
+      setUser(result.data);
+      return result.data;
     } catch (err) {
       setError(err.message || 'Authentication failed');
       throw err;
@@ -85,10 +61,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      await safePost(`${API_URL}/api/auth/logout`, {});
     } catch (err) {
       console.error('Logout error:', err);
     }
