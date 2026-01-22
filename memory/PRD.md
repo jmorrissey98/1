@@ -20,6 +20,30 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 - Session history per coach
 - Data export capabilities
 
+## Role-Based Access Control
+
+### Coach Developer (Admin) Permissions
+| Capability | Access |
+|------------|--------|
+| View all sessions | ✅ |
+| Create observations | ✅ |
+| Manage users/invites | ✅ |
+| View all coaches | ✅ |
+| Schedule observations | ✅ |
+| Set coach targets | ✅ |
+
+### Coach Permissions
+| Capability | Access |
+|------------|--------|
+| View own sessions only | ✅ |
+| Add reflections to own sessions | ✅ |
+| View observations on own sessions | ✅ |
+| Edit own profile (limited fields) | ✅ |
+| View own targets | ✅ |
+| Create observations | ❌ |
+| View other coaches | ❌ |
+| Edit observation data | ❌ |
+
 ## Technical Architecture
 
 ### Stack
@@ -33,46 +57,90 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 ```
 /app/
 ├── backend/
-│   └── server.py          # All API endpoints, auth, email
+│   └── server.py              # All API endpoints, auth, email, coach APIs
 ├── frontend/
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── safeFetch.js      # Robust fetch wrapper
-│   │   │   ├── storage.js        # Local storage utilities
-│   │   │   └── offlineSync.js    # Offline queue (partial)
+│   │   │   ├── safeFetch.js   # Robust fetch wrapper
+│   │   │   ├── storage.js     # Local storage utilities
+│   │   │   └── offlineSync.js # Offline queue (partial)
 │   │   ├── contexts/
-│   │   │   ├── AuthContext.jsx   # Auth state management
-│   │   │   └── SyncContext.jsx   # Online/offline state
+│   │   │   ├── AuthContext.jsx
+│   │   │   └── SyncContext.jsx
+│   │   ├── components/
+│   │   │   └── ProtectedRoute.jsx  # Role-based route protection
 │   │   └── pages/
-│   │       ├── LoginPage.jsx
-│   │       ├── UserSettings.jsx  # Invites, user management
+│   │       ├── CoachDashboard.jsx     # Coach home page
+│   │       ├── CoachSessions.jsx      # My Sessions tab
+│   │       ├── CoachSessionDetail.jsx # Session detail + reflection
+│   │       ├── CoachProfileEdit.jsx   # Coach profile editing
 │   │       └── ...
 │   └── public/
-│       ├── manifest.json         # PWA manifest
-│       └── service-worker.js     # Offline caching
-└── .gitignore                    # Fixed - allows .env deployment
+│       ├── manifest.json
+│       └── service-worker.js
+└── .gitignore
 ```
 
-### API Endpoints
-- `POST /api/auth/session` - Google OAuth callback
-- `POST /api/auth/login` - Email/password login
-- `POST /api/auth/signup` - New user registration
-- `POST /api/invites` - Create invite (sends email)
-- `POST /api/invites/{id}/resend` - Resend invite email
-- `GET /api/config-check` - Diagnostic endpoint
+### Coach Role API Endpoints
+- `GET /api/coach/dashboard` - Aggregated dashboard data
+- `GET /api/coach/sessions` - List coach's sessions
+- `GET /api/coach/session/{id}` - Session detail (own only)
+- `POST /api/coach/reflections` - Create reflection
+- `PUT /api/coach/reflections/{id}` - Update reflection
+- `GET /api/coach/profile` - Get coach profile
+- `PUT /api/coach/profile` - Update profile (limited fields)
+- `GET /api/coach/targets` - Get coach's targets
+- `GET /api/scheduled-observations` - List scheduled observations
+- `POST /api/scheduled-observations` - Create scheduled observation (admin)
+
+### Data Models
+
+#### Reflections Collection
+```json
+{
+  "reflection_id": "ref_xxx",
+  "session_id": "session_xxx",
+  "coach_id": "coach_xxx",
+  "content": "My reflection text...",
+  "self_assessment_rating": 4,
+  "strengths": "What went well...",
+  "areas_for_development": "What to improve...",
+  "created_at": "2026-01-22T...",
+  "updated_at": "2026-01-22T..."
+}
+```
+
+#### Scheduled Observations Collection
+```json
+{
+  "schedule_id": "sched_xxx",
+  "coach_id": "coach_xxx",
+  "observer_id": "user_xxx",
+  "scheduled_date": "2026-02-01",
+  "session_context": "U16 Training",
+  "status": "scheduled",
+  "created_at": "2026-01-22T..."
+}
+```
 
 ## Completed Work
 
-### January 22, 2026
-- ✅ Fixed CORS configuration for custom domain (mycoachdeveloper.com)
-- ✅ Fixed cross-domain cookie issue (API_URL now uses relative paths)
-- ✅ Fixed .gitignore blocking .env files from deployment
-- ✅ Added hardcoded fallbacks for Resend configuration
-- ✅ Implemented email retry logic with exponential backoff
-- ✅ Added email status tracking (email_sent field on invites)
-- ✅ Added `/api/config-check` diagnostic endpoint
-- ✅ Added `/api/invites/by-email/{email}` DELETE endpoint
-- ✅ Improved error messages throughout the system
+### January 22, 2026 (Latest)
+- ✅ **Coach Role Implementation**
+  - Coach dashboard with profile, targets, upcoming observations
+  - My Sessions tab with session list and detail view
+  - Reflection system (create, update, view)
+  - Profile editing (limited fields: role, age group, department, bio)
+  - Role-based routing and access control
+  - Backend security: all coach queries filtered by coach_id
+
+### January 22, 2026 (Earlier)
+- ✅ Fixed CORS configuration for custom domain
+- ✅ Fixed cross-domain cookie issue (relative URLs)
+- ✅ Fixed .gitignore blocking .env files
+- ✅ Hardcoded Resend configuration for reliability
+- ✅ Email retry logic with exponential backoff
+- ✅ Email status tracking on invites
 
 ### Previously Completed
 - ✅ Dual authentication (Google OAuth + Email/Password)
@@ -82,36 +150,30 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 - ✅ Session observation and AI summaries
 - ✅ PWA manifest and basic service worker
 
-## Known Issues / Backlog
+## Backlog
 
 ### P1 - In Progress
-- Offline sync not fully integrated into all data mutations
+- Offline sync integration for all data mutations
 
 ### P2 - Future
 - Session comparison view
 - iPad portrait orientation optimizations
 - Full PWA offline-first experience
+- Coach notification system
 
 ## Configuration
 
-### Environment Variables (backend/.env)
+### Environment Variables
 ```
 MONGO_URL=mongodb://localhost:27017
 DB_NAME=test_database
-RESEND_API_KEY=re_xxxxx
-SENDER_EMAIL=noreply@mycoachdeveloper.com
-APP_URL=https://mycoachdeveloper.com
-EMERGENT_LLM_KEY=sk-emergent-xxxxx
+RESEND_API_KEY=re_xxxxx (hardcoded fallback)
+SENDER_EMAIL=noreply@mycoachdeveloper.com (hardcoded fallback)
+APP_URL=https://mycoachdeveloper.com (hardcoded fallback)
 ```
 
-### Resend Domain Setup
-- Domain: mycoachdeveloper.com (verified)
-- Sender: noreply@mycoachdeveloper.com
-- Required DNS records: DKIM, SPF, MX for bounce handling
-
-## Deployment Notes
-
-1. Frontend uses relative API URLs (empty string) for same-domain deployment
-2. CORS is configured for mycoachdeveloper.com
+### Deployment Notes
+1. Frontend uses relative API URLs for same-domain deployment
+2. CORS configured for mycoachdeveloper.com
 3. Hardcoded fallbacks ensure email works even if env vars fail
-4. Check `/api/config-check` after deployment to verify configuration
+4. Check `/api/config-check` after deployment to verify
