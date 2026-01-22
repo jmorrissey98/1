@@ -201,13 +201,39 @@ PWA and offline-first functionality implemented
 - ✅ Reference-only for development tracking
 
 ## Next Tasks
-1. Test Google OAuth flow end-to-end
-2. Coach profile photo upload
-3. File attachments for coach profiles
-4. Optional non-evaluative targets feature
+1. Session comparison view
+2. UI optimizations for portrait orientation on iPad
 
-## Authentication System
+## Authentication System (Jan 2026 Update)
 - ✅ Emergent Google OAuth integration
+- ✅ **Email/Password Authentication**
+  - Sign up with email/password
+  - Sign in with email/password
+  - Password validation (8+ chars, letter + number)
+  - Tabbed UI for Sign In / Sign Up
+  - Google sign-in remains optional
+- ✅ **Password Reset Flow**
+  - Forgot password request
+  - Password reset via email (Resend API)
+  - Reset token verification
+  - Reset password page at /reset-password
+- ✅ **Role Assignment**
+  - First user = Coach Developer (admin)
+  - Subsequent users require invite
+- ✅ **Security**
+  - Passwords hashed with bcrypt
+  - Sessions stored in MongoDB (7-day expiry)
+  - Generic error messages to prevent email enumeration
+
+### Auth API Endpoints
+- POST /api/auth/signup - Create account with email/password
+- POST /api/auth/login - Login with email/password
+- POST /api/auth/logout - Clear session
+- POST /api/auth/forgot-password - Request password reset
+- POST /api/auth/reset-password - Reset password with token
+- POST /api/auth/change-password - Change password (authenticated)
+- GET /api/auth/verify-reset-token/{token} - Verify reset token
+- GET /api/auth/me - Get current user
 - ✅ Invite-only registration (Coach Developers invite coaches)
 - ✅ First user becomes Coach Developer (admin)
 - ✅ Role-based access control (coach_developer vs coach)
