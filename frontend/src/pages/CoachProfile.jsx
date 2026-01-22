@@ -187,6 +187,18 @@ export default function CoachProfile() {
     toast.success('Attachment removed');
   };
 
+  // Save coach info edit
+  const handleSaveEdit = () => {
+    const updatedCoach = {
+      ...coach,
+      name: editName,
+      role: editRole,
+      notes: editNotes
+    };
+    saveCoach(updatedCoach);
+    toast.success('Coach information updated');
+  };
+
   // Get all unique session parts used across this coach's sessions
   const getAllUsedParts = () => {
     const usedParts = new Set();
