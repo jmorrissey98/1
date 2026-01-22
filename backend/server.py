@@ -1400,38 +1400,40 @@ async def delete_session_part(part_id: str, request: Request):
     return {"status": "deleted"}
 
 # Add CORS middleware BEFORE including routes (order matters!)
-# When allow_credentials=True, we cannot use "*" for origins with some browsers
-# We must explicitly list allowed origins or use allow_origin_regex
+# Build comprehensive list of allowed origins for CORS with credentials
+app_url = os.environ.get('APP_URL', 'https://mycoachdeveloper.com')
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
-app_url = os.environ.get('APP_URL', '')
 
-# Build list of allowed origins
-allowed_origins = []
-if cors_origins_env and cors_origins_env != '*':
-    allowed_origins = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
-
-# Always include APP_URL if set
-if app_url and app_url not in allowed_origins:
-    allowed_origins.append(app_url)
-
-# Add common development origins
-dev_origins = [
+# Start with the custom domain
+allowed_origins = [
+    app_url,
+    "https://mycoachdeveloper.com",
+    "https://www.mycoachdeveloper.com",
+    "https://coach-observer.preview.emergentagent.com",
     "http://localhost:3000",
     "http://localhost:8001",
-    "https://coach-observer.preview.emergentagent.com"
 ]
-for origin in dev_origins:
-    if origin not in allowed_origins:
-        allowed_origins.append(origin)
+
+# Add any additional origins from environment
+if cors_origins_env and cors_origins_env != '*':
+    for origin in cors_origins_env.split(','):
+        origin = origin.strip()
+        if origin and origin not in allowed_origins:
+            allowed_origins.append(origin)
+
+# Remove duplicates while preserving order
+allowed_origins = list(dict.fromkeys(allowed_origins))
+
+logger.info(f"CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=allowed_origins if allowed_origins else ["*"],
-    allow_origin_regex=r"https://.*\.emergentagent\.com|https://.*\.preview\.emergentagent\.com|https://mycoachdeveloper\.com|https://.*mycoachdeveloper\.com",
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=86400,  # Cache preflight for 24 hours
 )
 
 # Include the router in the main app AFTER middleware
