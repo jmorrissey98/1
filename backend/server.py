@@ -1143,6 +1143,26 @@ async def delete_invite(invite_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Invite not found")
     return {"status": "deleted"}
 
+@api_router.post("/invites/{invite_id}/resend")
+async def resend_invite(invite_id: str, request: Request):
+    """Resend an invitation email (Coach Developer only)"""
+    user = await require_coach_developer(request)
+    
+    invite = await db.invites.find_one({"invite_id": invite_id, "used": False}, {"_id": 0})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found or already used")
+    
+    try:
+        await send_invite_email(
+            email=invite["email"],
+            inviter_name=user.name,
+            role=invite["role"]
+        )
+        return {"status": "sent", "email": invite["email"]}
+    except Exception as e:
+        logger.error(f"Failed to resend invite email: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to send invitation email")
+
 # User management endpoints
 @api_router.get("/users", response_model=List[UserResponse])
 async def list_users(request: Request):
