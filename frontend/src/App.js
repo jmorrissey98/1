@@ -15,6 +15,7 @@ import SessionCalendar from "./pages/SessionCalendar";
 import UserSettings from "./pages/UserSettings";
 import CoachView from "./pages/CoachView";
 import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuthCallback from "./pages/AuthCallback";
 import "./App.css";
 
