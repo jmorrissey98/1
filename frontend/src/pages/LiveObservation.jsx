@@ -125,52 +125,53 @@ export default function LiveObservation() {
   const handleStop = () => {
     if (isRunning) {
       // Calculate final ball rolling time for current state
+      let finalSession;
+      
       if (lastBallStateChange.current) {
         const duration = (Date.now() - lastBallStateChange.current) / 1000;
         const ballTimeKey = session.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
         
-        setSession(prev => {
-          // Filter out unused parts (parts that were never selected/used)
-          const usedParts = (prev.sessionParts || [])
-            .filter(p => p.used === true)
-            .map(p => 
-              p.id === prev.activePartId 
-                ? { ...p, [ballTimeKey]: (p[ballTimeKey] || 0) + duration, endTime: new Date().toISOString() }
-                : p
-            );
-          
-          return {
-            ...prev,
-            [ballTimeKey]: (prev[ballTimeKey] || 0) + duration,
-            sessionParts: usedParts,
-            activePartId: usedParts.length > 0 ? usedParts[0].id : null,
-            status: 'completed',
-            endTime: new Date().toISOString(),
-            totalDuration: elapsedTime
-          };
-        });
+        // Filter out unused parts (parts that were never selected/used)
+        const usedParts = (session.sessionParts || [])
+          .filter(p => p.used === true)
+          .map(p => 
+            p.id === session.activePartId 
+              ? { ...p, [ballTimeKey]: (p[ballTimeKey] || 0) + duration, endTime: new Date().toISOString() }
+              : p
+          );
+        
+        finalSession = {
+          ...session,
+          [ballTimeKey]: (session[ballTimeKey] || 0) + duration,
+          sessionParts: usedParts,
+          activePartId: usedParts.length > 0 ? usedParts[0].id : null,
+          status: 'completed',
+          endTime: new Date().toISOString(),
+          totalDuration: elapsedTime,
+          updatedAt: new Date().toISOString()
+        };
       } else {
         // No ball state changes - just filter unused parts
-        setSession(prev => {
-          const usedParts = (prev.sessionParts || []).filter(p => p.used === true);
-          return {
-            ...prev,
-            sessionParts: usedParts,
-            activePartId: usedParts.length > 0 ? usedParts[0].id : null,
-            status: 'completed',
-            endTime: new Date().toISOString(),
-            totalDuration: elapsedTime
-          };
-        });
+        const usedParts = (session.sessionParts || []).filter(p => p.used === true);
+        
+        finalSession = {
+          ...session,
+          sessionParts: usedParts,
+          activePartId: usedParts.length > 0 ? usedParts[0].id : null,
+          status: 'completed',
+          endTime: new Date().toISOString(),
+          totalDuration: elapsedTime,
+          updatedAt: new Date().toISOString()
+        };
       }
       
-      setIsRunning(false);
+      // Update state and save directly
+      setSession(finalSession);
+      storage.saveSession(finalSession);
       
-      setTimeout(() => {
-        saveSession();
-        toast.success('Session completed');
-        navigate(`/session/${sessionId}/review`);
-      }, 100);
+      setIsRunning(false);
+      toast.success('Session completed');
+      navigate(`/session/${sessionId}/review`);
     }
   };
 
