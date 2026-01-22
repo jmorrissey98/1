@@ -1,4 +1,7 @@
 // Session Parts API - fetches from backend for shared defaults
+// With offline-first support
+import { addToOfflineQueue, QueueItemType, isOnline } from './offlineSync';
+
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 // Fallback defaults when backend is unavailable
