@@ -126,7 +126,27 @@ export default function UserSettings() {
       toast.success('Invite deleted');
       loadData();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to delete invite');
+    }
+  };
+
+  const handleResendInvite = async (inviteId, email) => {
+    try {
+      const response = await fetch(`${API_URL}/api/invites/${inviteId}/resend`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to resend invite');
+      }
+
+      toast.success(`Invite email resent to ${email}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to resend invite');
     }
   };
 
