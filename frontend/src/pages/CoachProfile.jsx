@@ -878,11 +878,19 @@ export default function CoachProfile() {
 
           {/* Targets Tab */}
           <TabsContent value="targets" className="space-y-6">
+            {/* Info Banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Targets are optional development focus areas for reference only. 
+                They are non-evaluative and not linked to any scoring or assessment.
+              </p>
+            </div>
+
             {/* Add Target */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope']">Development Targets</CardTitle>
-                <CardDescription>Set specific, actionable targets for this coach's development</CardDescription>
+                <CardDescription>Set optional focus areas for this coach's development journey</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2 mb-6">
@@ -903,10 +911,10 @@ export default function CoachProfile() {
                 <div className="space-y-4">
                   <h4 className="font-medium text-slate-700 flex items-center gap-2">
                     <Target className="w-4 h-4 text-orange-500" />
-                    Active Targets ({activeTargets.length})
+                    Active Focus Areas ({activeTargets.length})
                   </h4>
                   {activeTargets.length === 0 ? (
-                    <p className="text-slate-400 italic text-sm">No active targets</p>
+                    <p className="text-slate-400 italic text-sm">No active targets - add one above to track development focus</p>
                   ) : (
                     <div className="space-y-2">
                       {activeTargets.map(target => (
@@ -914,6 +922,7 @@ export default function CoachProfile() {
                           <button
                             onClick={() => handleToggleTarget(target.id)}
                             className="w-5 h-5 rounded border-2 border-orange-400 hover:bg-orange-100 flex items-center justify-center"
+                            title="Mark as achieved"
                           />
                           <span className="flex-1 text-slate-700">{target.text}</span>
                           <Button
