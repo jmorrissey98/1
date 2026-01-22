@@ -109,6 +109,28 @@ class UserResponse(BaseModel):
     picture: Optional[str] = None
     role: str
     linked_coach_id: Optional[str] = None
+    auth_provider: Optional[str] = None  # "email" or "google"
+
+# Email/Password Auth Models
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class Invite(BaseModel):
     model_config = ConfigDict(extra="ignore")
