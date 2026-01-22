@@ -392,7 +392,7 @@ export default function TemplateManager() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Template?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will permanently delete "{template.name}". This action cannot be undone.
+                                This will permanently delete &quot;{template.name}&quot;. This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
