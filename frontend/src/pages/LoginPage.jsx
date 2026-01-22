@@ -135,11 +135,6 @@ export default function LoginPage() {
     
     try {
       const result = await safePost(`${API_URL}/api/auth/forgot-password`, { email: forgotEmail });
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail })
-      });
-      
-      const data = await response.json();
       
       setForgotSent(true);
       toast.success('If an account exists, a reset link has been sent');
