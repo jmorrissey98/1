@@ -54,7 +54,13 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ session_id: sessionId })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.error('Failed to parse auth response:', parseErr);
+        throw new Error('Authentication failed - invalid response');
+      }
       
       if (!response.ok) {
         throw new Error(data.detail || 'Authentication failed');
@@ -63,7 +69,7 @@ export function AuthProvider({ children }) {
       setUser(data);
       return data;
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Authentication failed');
       throw err;
     }
   };
