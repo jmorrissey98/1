@@ -317,21 +317,86 @@ export default function LiveObservation() {
     const newPart = {
       id: generateId('part'),
       name: newPartName.trim(),
-      order: session.sessionParts.length,
+      order: (session.sessionParts || []).length,
       startTime: null,
       endTime: null,
       ballRollingTime: 0,
-      ballNotRollingTime: 0
+      ballNotRollingTime: 0,
+      isCustom: true
     };
     
     setSession(prev => ({
       ...prev,
-      sessionParts: [...prev.sessionParts, newPart]
+      sessionParts: [...(prev.sessionParts || []), newPart]
     }));
     
     setNewPartName('');
     setShowAddPart(false);
     toast.success(`Added "${newPart.name}"`);
+  };
+
+  // Open add part dialog
+  const openAddPartDialog = () => {
+    setSelectedDefaultPart('custom');
+    setCustomPartName('');
+    setAddAsDefault(false);
+    setShowAddPartDialog(true);
+  };
+
+  // Handle adding part from dialog
+  const handleAddPartFromDialog = async () => {
+    let partName = '';
+    
+    if (selectedDefaultPart === 'custom') {
+      if (!customPartName.trim()) {
+        toast.error('Please enter a part name');
+        return;
+      }
+      partName = customPartName.trim();
+    } else {
+      const defaultPart = availableParts.find(p => p.part_id === selectedDefaultPart);
+      if (defaultPart) {
+        partName = defaultPart.name;
+      }
+    }
+
+    if (!partName) {
+      toast.error('Please select or enter a part name');
+      return;
+    }
+
+    setSavingPart(true);
+    try {
+      // If adding custom as new default (Coach Developer only)
+      if (selectedDefaultPart === 'custom' && addAsDefault && isCoachDeveloper()) {
+        await createSessionPart(partName, true);
+        await loadAvailableParts();
+      }
+
+      const newPart = {
+        id: generateId('part'),
+        name: partName,
+        order: (session.sessionParts || []).length,
+        startTime: null,
+        endTime: null,
+        ballRollingTime: 0,
+        ballNotRollingTime: 0,
+        isDefault: selectedDefaultPart !== 'custom',
+        isCustom: selectedDefaultPart === 'custom'
+      };
+      
+      setSession(prev => ({
+        ...prev,
+        sessionParts: [...(prev.sessionParts || []), newPart]
+      }));
+      
+      setShowAddPartDialog(false);
+      toast.success(`Added "${partName}"`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to add part');
+    } finally {
+      setSavingPart(false);
+    }
   };
 
   const handleAddNote = () => {
