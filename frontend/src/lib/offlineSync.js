@@ -6,7 +6,7 @@ const SYNC_STATUS_KEY = 'mcd_sync_status';
 const LAST_SYNC_KEY = 'mcd_last_sync';
 
 // API base URL
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+const API_URL = ''; // Relative URL - frontend and backend on same domain
 
 // Sync status enum
 export const SyncStatus = {
