@@ -289,7 +289,7 @@ async def send_invite_email(email: str, inviter_name: str, role: str):
     params = {
         "from": SENDER_EMAIL,
         "to": [email],
-        "subject": f"You're invited to My Coach Developer",
+        "subject": "You're invited to My Coach Developer",
         "html": html_content
     }
     
@@ -474,7 +474,7 @@ SESSION PARTS USED:
             prompt += f"\nCOACH: {request.coach_name}\n"
         
         if request.coach_targets and len(request.coach_targets) > 0:
-            prompt += f"\nCOACH'S CURRENT DEVELOPMENT TARGETS:\n"
+            prompt += "\nCOACH'S CURRENT DEVELOPMENT TARGETS:\n"
             for i, target in enumerate(request.coach_targets, 1):
                 prompt += f"{i}. {target}\n"
             prompt += "\nPlease reference these targets in your analysis where relevant.\n"
