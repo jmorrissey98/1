@@ -29,17 +29,17 @@ export default function AuthCallback() {
       try {
         const userData = await processSessionId(sessionId);
         
-        // Redirect based on role
+        // Redirect based on role (avoid passing complex state objects on iOS)
         if (userData.role === 'coach' && userData.linked_coach_id) {
-          navigate(`/coach-view/${userData.linked_coach_id}`, { replace: true, state: { user: userData } });
+          navigate(`/coach-view/${userData.linked_coach_id}`, { replace: true });
         } else {
-          navigate('/', { replace: true, state: { user: userData } });
+          navigate('/', { replace: true });
         }
       } catch (err) {
         console.error('Auth callback error:', err);
         navigate('/login', { 
           replace: true, 
-          state: { error: err.message } 
+          state: { error: String(err.message || 'Authentication failed') } 
         });
       }
     };
