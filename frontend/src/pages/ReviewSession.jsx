@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User, Filter } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -11,11 +11,13 @@ import { Progress } from '../components/ui/progress';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { storage, OBSERVATION_CONTEXTS, USER_ROLES } from '../lib/storage';
+import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { formatTime, formatDateTime, calcPercentage, countBy, cn, generateId } from '../lib/utils';
 import { exportToPDF, exportToCSV } from '../lib/export';
+import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -25,9 +27,10 @@ const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#E
 export default function ReviewSession() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
+  const { user, isCoachDeveloper } = useAuth();
   
   const [session, setSession] = useState(null);
-  const [viewMode, setViewMode] = useState('whole');
+  const [viewMode, setViewMode] = useState('whole'); // 'whole' or part id
   const [editingEvent, setEditingEvent] = useState(null);
   const [editNote, setEditNote] = useState('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -36,8 +39,7 @@ export default function ReviewSession() {
   const [newCoachReflection, setNewCoachReflection] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   
-  const currentUser = storage.getCurrentUser();
-  const isCoachView = currentUser?.role === USER_ROLES.COACH;
+  const isCoachView = user?.role === 'coach';
 
   useEffect(() => {
     const loaded = storage.getSession(sessionId);
@@ -56,8 +58,14 @@ export default function ReviewSession() {
 
   const getFilteredEvents = () => {
     if (!session) return [];
-    if (viewMode === 'whole') return session.events;
-    return session.events.filter(e => e.sessionPartId === viewMode);
+    if (viewMode === 'whole') return session.events || [];
+    return (session.events || []).filter(e => e.sessionPartId === viewMode);
+  };
+
+  // Get unique session parts used in this session
+  const getSessionParts = () => {
+    if (!session) return [];
+    return session.sessionParts || [];
   };
 
   const getPreviousSessionsSummary = () => {
