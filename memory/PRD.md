@@ -161,6 +161,26 @@ All core observation and review features implemented
 - POST /api/session-parts - Create new part (is_default flag for Coach Developers)
 - DELETE /api/session-parts/{part_id} - Delete custom part (Coach Developer only)
 
+## Coach Profile Enhancements (Jan 2026)
+
+### Profile Photo Upload
+- ✅ Upload profile photo for coaches
+- ✅ Photo displayed in header and profile tab
+- ✅ Max 5MB, image files only
+- ✅ Remove photo option
+
+### File Attachments
+- ✅ Attach documents to coach profiles (development plans, certificates, etc.)
+- ✅ Max 10MB per file
+- ✅ View/download attachments
+- ✅ Remove attachments
+
+### Optional Non-Evaluative Targets
+- ✅ Targets are now called "Focus Areas"
+- ✅ Clear messaging that targets are optional and non-evaluative
+- ✅ No scoring or assessment linked to targets
+- ✅ Reference-only for development tracking
+
 ## Next Tasks
 1. Test Google OAuth flow end-to-end
 2. Coach profile photo upload
