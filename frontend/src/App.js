@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
@@ -17,7 +17,25 @@ import CoachView from "./pages/CoachView";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuthCallback from "./pages/AuthCallback";
+// Coach Role Pages
+import CoachDashboard from "./pages/CoachDashboard";
+import CoachSessions from "./pages/CoachSessions";
+import CoachSessionDetail from "./pages/CoachSessionDetail";
+import CoachProfileEdit from "./pages/CoachProfileEdit";
 import "./App.css";
+
+// Role-based home redirect component
+function HomeRedirect() {
+  const { user, isCoachDeveloper } = useAuth();
+  
+  // Coach role goes to coach dashboard
+  if (user?.role === 'coach') {
+    return <Navigate to="/coach" replace />;
+  }
+  
+  // Coach Developer goes to main home page
+  return <HomePage />;
+}
 
 // Router component that handles session_id detection
 function AppRouter() {
@@ -35,29 +53,53 @@ function AppRouter() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       
-      {/* Protected routes */}
+      {/* Home - role-based redirect */}
       <Route path="/" element={
         <ProtectedRoute>
-          <HomePage />
+          <HomeRedirect />
         </ProtectedRoute>
       } />
+      
+      {/* Coach Role Routes */}
+      <Route path="/coach" element={
+        <ProtectedRoute requireCoach>
+          <CoachDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/coach/sessions" element={
+        <ProtectedRoute requireCoach>
+          <CoachSessions />
+        </ProtectedRoute>
+      } />
+      <Route path="/coach/session/:sessionId" element={
+        <ProtectedRoute requireCoach>
+          <CoachSessionDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/coach/profile" element={
+        <ProtectedRoute requireCoach>
+          <CoachProfileEdit />
+        </ProtectedRoute>
+      } />
+      
+      {/* Coach Developer / Observer Routes */}
       <Route path="/session/new" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <SessionSetup />
         </ProtectedRoute>
       } />
       <Route path="/session/:sessionId/setup" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <SessionSetup />
         </ProtectedRoute>
       } />
       <Route path="/session/:sessionId/observe" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <LiveObservation />
         </ProtectedRoute>
       } />
       <Route path="/session/:sessionId/review" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <ReviewSession />
         </ProtectedRoute>
       } />
@@ -72,12 +114,12 @@ function AppRouter() {
         </ProtectedRoute>
       } />
       <Route path="/coaches/:coachId" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <CoachProfile />
         </ProtectedRoute>
       } />
       <Route path="/calendar" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <SessionCalendar />
         </ProtectedRoute>
       } />
@@ -87,7 +129,7 @@ function AppRouter() {
         </ProtectedRoute>
       } />
       <Route path="/coach-view/:coachId" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireCoachDeveloper>
           <CoachView />
         </ProtectedRoute>
       } />
