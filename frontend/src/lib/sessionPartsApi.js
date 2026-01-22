@@ -2,7 +2,7 @@
 // With offline-first support
 import { addToOfflineQueue, QueueItemType, isOnline } from './offlineSync';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+const API_URL = ''; // Relative URL - frontend and backend on same domain
 
 // Fallback defaults when backend is unavailable
 const FALLBACK_SESSION_PARTS = [
