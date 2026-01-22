@@ -1,17 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Undo2, Square, Circle, MessageSquare, Check, X, Plus } from 'lucide-react';
+import { ArrowLeft, Undo2, Square, Circle, MessageSquare, Check, X, Plus, Loader2, ChevronDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { Input } from '../components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { storage, createEvent } from '../lib/storage';
+import { fetchSessionParts, createSessionPart } from '../lib/sessionPartsApi';
 import { formatTime, cn, generateId } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LiveObservation() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
+  const { isCoachDeveloper } = useAuth();
   
   const [session, setSession] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -22,6 +28,14 @@ export default function LiveObservation() {
   const [flashEvent, setFlashEvent] = useState(null);
   const [showAddPart, setShowAddPart] = useState(false);
   const [newPartName, setNewPartName] = useState('');
+  
+  // New part dialog state
+  const [showAddPartDialog, setShowAddPartDialog] = useState(false);
+  const [availableParts, setAvailableParts] = useState([]);
+  const [selectedDefaultPart, setSelectedDefaultPart] = useState('custom');
+  const [customPartName, setCustomPartName] = useState('');
+  const [addAsDefault, setAddAsDefault] = useState(false);
+  const [savingPart, setSavingPart] = useState(false);
   
   const timerRef = useRef(null);
   const lastBallStateChange = useRef(null);
@@ -37,6 +51,7 @@ export default function LiveObservation() {
     }
     
     setSession(loaded);
+    loadAvailableParts();
     
     // Resume if session was active
     if (loaded.status === 'active' && loaded.startTime) {
@@ -47,6 +62,15 @@ export default function LiveObservation() {
       setElapsedTime(loaded.totalDuration);
     }
   }, [sessionId, navigate]);
+
+  const loadAvailableParts = async () => {
+    try {
+      const parts = await fetchSessionParts();
+      setAvailableParts(parts);
+    } catch (err) {
+      console.error('Failed to load session parts:', err);
+    }
+  };
 
   // Timer logic
   useEffect(() => {
