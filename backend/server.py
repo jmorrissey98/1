@@ -1096,6 +1096,18 @@ async def create_invite(invite_data: InviteCreate, request: Request):
     }
     await db.invites.insert_one(invite)
     
+    # Send invitation email
+    try:
+        await send_invite_email(
+            email=invite_data.email,
+            inviter_name=user.name,
+            role=invite_data.role
+        )
+        logger.info(f"Invite email sent to {invite_data.email}")
+    except Exception as e:
+        logger.error(f"Failed to send invite email to {invite_data.email}: {str(e)}")
+        # Don't fail the invite creation if email fails
+    
     return InviteResponse(
         invite_id=invite_id,
         email=invite_data.email,
