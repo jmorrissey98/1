@@ -74,15 +74,16 @@ export default function UserSettings() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          email: inviteEmail.trim(),
+          email: inviteEmail.trim().toLowerCase(),
           role: inviteRole,
           coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
         })
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to create invite');
+        throw new Error(data.detail || 'Failed to create invite');
       }
 
       toast.success(`Invite sent to ${inviteEmail}`);
@@ -90,7 +91,7 @@ export default function UserSettings() {
       setInviteCoachId('');
       loadData();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to send invite');
     } finally {
       setInviting(false);
     }
