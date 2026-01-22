@@ -88,7 +88,13 @@ export default function UserSettings() {
         })
       });
 
-      const data = await response.json();
+      // Read response body once
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        data = { detail: 'Failed to parse response' };
+      }
       
       if (!response.ok) {
         throw new Error(data.detail || 'Failed to create invite');
@@ -97,7 +103,7 @@ export default function UserSettings() {
       toast.success(`Invite sent to ${inviteEmail}`);
       setInviteEmail('');
       setInviteCoachId('');
-      loadData();
+      await loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to send invite');
     } finally {
