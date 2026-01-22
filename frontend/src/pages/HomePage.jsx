@@ -73,7 +73,7 @@ export default function HomePage() {
                     className="text-sm sm:text-base"
                     data-testid="manage-templates-btn"
                   >
-                    <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+                    <Cog className="w-4 h-4 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Templates</span>
                     <span className="sm:hidden">Temp.</span>
                   </Button>
