@@ -1,5 +1,6 @@
 // Offline Status Indicator - shows sync status in a non-intrusive way
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Cloud, CloudOff, RefreshCw, Check, AlertCircle } from 'lucide-react';
 import { useSync, SyncStatus } from '../contexts/SyncContext';
 import { cn } from '../lib/utils';
