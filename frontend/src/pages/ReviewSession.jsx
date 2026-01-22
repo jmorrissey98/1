@@ -20,8 +20,8 @@ import { exportToPDF, exportToCSV } from '../lib/export';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
+const API = '/api';
 const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
 
 export default function ReviewSession() {
