@@ -128,18 +128,10 @@ export default function UserSettings() {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const response = await fetch(`${API_URL}/api/users/${userId}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ user_id: userId, new_role: newRole })
-      });
-
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
+      const result = await safePut(`${API_URL}/api/users/${userId}/role`, { user_id: userId, new_role: newRole });
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to update role');
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to update role');
       }
 
       toast.success('Role updated');
@@ -151,16 +143,10 @@ export default function UserSettings() {
 
   const handleDeleteUser = async (userId, userName) => {
     try {
-      const response = await fetch(`${API_URL}/api/users/${userId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
+      const result = await safeDelete(`${API_URL}/api/users/${userId}`);
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to delete user');
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to delete user');
       }
 
       toast.success(`${userName} has been removed`);
