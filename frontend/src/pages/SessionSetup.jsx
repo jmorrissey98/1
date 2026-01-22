@@ -180,33 +180,84 @@ export default function SessionSetup() {
     });
   };
 
-  // Session parts management
-  const addSessionPart = () => {
+  // Session parts management - now uses global defaults from backend
+  const addSessionPartFromDefault = (part) => {
     const newPart = {
       id: generateId('part'),
-      name: 'New Part',
-      order: session.sessionParts.length,
+      name: part.name,
+      partId: part.part_id, // Reference to the global part
+      order: (session.sessionParts || []).length,
+      isDefault: part.is_default,
       startTime: null,
       endTime: null,
       ballRollingTime: 0,
       ballNotRollingTime: 0
     };
-    updateSession({ sessionParts: [...session.sessionParts, newPart] });
+    updateSession({ sessionParts: [...(session.sessionParts || []), newPart] });
+  };
+
+  const handleAddCustomPart = () => {
+    setCustomPartName('');
+    setShowCustomPartDialog(true);
+  };
+
+  const handleSaveCustomPart = async (addAsDefault) => {
+    if (!customPartName.trim()) {
+      toast.error('Please enter a part name');
+      return;
+    }
+
+    setSavingPart(true);
+    try {
+      if (addAsDefault && isCoachDeveloper()) {
+        // Create as new global default
+        const newPart = await createSessionPart(customPartName.trim(), true);
+        await loadSessionParts(); // Refresh the list
+        addSessionPartFromDefault(newPart);
+        toast.success('Session part added as new default');
+      } else {
+        // Add as one-off custom part for this session only
+        const newPart = {
+          id: generateId('part'),
+          name: customPartName.trim(),
+          order: (session.sessionParts || []).length,
+          isDefault: false,
+          isCustom: true,
+          startTime: null,
+          endTime: null,
+          ballRollingTime: 0,
+          ballNotRollingTime: 0
+        };
+        updateSession({ sessionParts: [...(session.sessionParts || []), newPart] });
+        toast.success('Custom session part added');
+      }
+      setShowCustomPartDialog(false);
+      setCustomPartName('');
+    } catch (err) {
+      toast.error(err.message || 'Failed to create session part');
+    } finally {
+      setSavingPart(false);
+    }
+  };
+
+  const addSessionPart = () => {
+    // Legacy function - now opens dialog for custom part
+    handleAddCustomPart();
   };
 
   const updateSessionPart = (id, name) => {
     updateSession({
-      sessionParts: session.sessionParts.map(p => p.id === id ? { ...p, name } : p)
+      sessionParts: (session.sessionParts || []).map(p => p.id === id ? { ...p, name } : p)
     });
   };
 
   const removeSessionPart = (id) => {
-    if (session.sessionParts.length <= 1) {
+    if ((session.sessionParts || []).length <= 1) {
       toast.error('You need at least one session part');
       return;
     }
     updateSession({
-      sessionParts: session.sessionParts.filter(p => p.id !== id),
+      sessionParts: (session.sessionParts || []).filter(p => p.id !== id),
       activePartId: session.activePartId === id ? session.sessionParts[0].id : session.activePartId
     });
   };
