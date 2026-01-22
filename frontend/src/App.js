@@ -32,6 +32,7 @@ function AppRouter() {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       
       {/* Protected routes */}
