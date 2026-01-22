@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
               Back to Sign In
             </Button>
             <p className="text-xs text-center text-slate-500">
-              Need a new reset link? Use the "Forgot password" option on the sign in page.
+              Need a new reset link? Use the &quot;Forgot password&quot; option on the sign in page.
             </p>
           </CardContent>
         </Card>
