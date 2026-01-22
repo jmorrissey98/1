@@ -526,11 +526,39 @@ export default function TemplateManager() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-slate-700">Session Parts</h4>
-                        <Button size="sm" variant="outline" onClick={() => addSessionPart(template.id)}>
+                        <Button size="sm" variant="outline" onClick={() => addSessionPart(template.id)} data-testid={`add-part-btn-${template.id}`}>
                           <Plus className="w-3 h-3 mr-1" />
                           Add
                         </Button>
                       </div>
+                      
+                      {/* Global Default Parts Quick Add */}
+                      {!loadingParts && globalParts.filter(p => p.is_default).length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-slate-500 mb-2">Quick add from global defaults:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {globalParts.filter(p => p.is_default).map(globalPart => {
+                              const isAdded = (template.sessionParts || []).some(sp => sp.name === globalPart.name);
+                              return (
+                                <Button
+                                  key={globalPart.part_id}
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => !isAdded && addGlobalPartToTemplate(template.id, globalPart)}
+                                  disabled={isAdded}
+                                  className={`text-xs h-7 ${isAdded ? 'opacity-50' : ''}`}
+                                  data-testid={`quick-add-${template.id}-${globalPart.part_id}`}
+                                >
+                                  <Globe className="w-3 h-3 mr-1" />
+                                  {globalPart.name}
+                                  {isAdded && ' ✓'}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="space-y-2">
                         {(template.sessionParts || []).map((part, index) => (
                           <div key={part.id} className="flex items-center gap-2">
@@ -541,6 +569,17 @@ export default function TemplateManager() {
                               className="flex-1"
                               data-testid={`part-${template.id}-${part.id}`}
                             />
+                            {part.isDefault && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Globe className="w-3 h-3 mr-1" />
+                                Default
+                              </Badge>
+                            )}
+                            {part.isCustom && (
+                              <Badge variant="outline" className="text-xs">
+                                Custom
+                              </Badge>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"
@@ -559,6 +598,63 @@ export default function TemplateManager() {
             </Collapsible>
           ))}
         </div>
+
+        {/* Add Session Part Dialog */}
+        <Dialog open={showAddPartDialog} onOpenChange={setShowAddPartDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Session Part</DialogTitle>
+              <DialogDescription>
+                Create a new session part for this template.
+                {isCoachDeveloper() && " Coach Developers can also add it as a global default."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div>
+                <Label htmlFor="custom-part-name">Part Name</Label>
+                <Input
+                  id="custom-part-name"
+                  value={customPartName}
+                  onChange={(e) => setCustomPartName(e.target.value)}
+                  placeholder="e.g., Warm Up, Cool Down"
+                  className="mt-1"
+                  data-testid="new-part-name-input"
+                />
+              </div>
+              
+              {isCoachDeveloper() && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="add-as-default"
+                    checked={addAsGlobalDefault}
+                    onCheckedChange={setAddAsGlobalDefault}
+                    data-testid="add-as-default-checkbox"
+                  />
+                  <Label 
+                    htmlFor="add-as-default" 
+                    className="text-sm text-slate-600 cursor-pointer flex items-center gap-2"
+                  >
+                    <Globe className="w-4 h-4" />
+                    Add as global default (available in all sessions for all users)
+                  </Label>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddPartDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveNewPart}
+                disabled={savingPart || !customPartName.trim()}
+                data-testid="save-new-part-btn"
+              >
+                {savingPart && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                {addAsGlobalDefault ? 'Add as Global Default' : 'Add to Template'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
