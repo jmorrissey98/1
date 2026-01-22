@@ -347,6 +347,16 @@ export default function UserSettings() {
                                 {invite.coach_id && (
                                   <span>→ {getCoachName(invite.coach_id)}</span>
                                 )}
+                                {invite.email_sent === false && (
+                                  <Badge variant="outline" className="text-amber-600 border-amber-300">
+                                    Email pending
+                                  </Badge>
+                                )}
+                                {invite.email_sent === true && (
+                                  <Badge variant="outline" className="text-green-600 border-green-300">
+                                    Email sent
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
