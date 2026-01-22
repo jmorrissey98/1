@@ -7,6 +7,7 @@ import { Label } from '../components/ui/label';
 import { AlertCircle, Loader2, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from 'sonner';
+import { safeGet, safePost } from '../lib/safeFetch';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -36,14 +37,18 @@ export default function ResetPasswordPage() {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/auth/verify-reset-token/${token}`);
-        const data = await response.json();
+        const result = await safeGet(`${API_URL}/api/auth/verify-reset-token/${token}`);
         
-        if (data.valid) {
+        if (result.networkError) {
+          setError('Unable to connect. Please check your connection.');
+          return;
+        }
+        
+        if (result.data?.valid) {
           setIsValid(true);
-          setEmail(data.email);
+          setEmail(result.data.email);
         } else {
-          setError(data.message || 'Invalid or expired reset token');
+          setError(result.data?.message || 'Invalid or expired reset token');
         }
       } catch (err) {
         setError('Failed to verify reset token');
@@ -77,19 +82,17 @@ export default function ResetPasswordPage() {
     setError('');
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          new_password: newPassword
-        })
+      const result = await safePost(`${API_URL}/api/auth/reset-password`, {
+        token,
+        new_password: newPassword
       });
       
-      const data = await response.json();
+      if (result.networkError) {
+        throw new Error('Unable to connect. Please check your connection.');
+      }
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to reset password');
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to reset password');
       }
       
       setIsSuccess(true);
