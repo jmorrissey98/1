@@ -147,10 +147,10 @@ class SessionPartResponse(BaseModel):
 
 # Default session parts
 DEFAULT_SESSION_PARTS = [
-    {"part_id": "default_technique", "name": "Develop the technique", "is_default": True},
-    {"part_id": "default_game_model", "name": "Develop the game model", "is_default": True},
-    {"part_id": "default_performance", "name": "Develop performance", "is_default": True},
-    {"part_id": "default_mentality", "name": "Develop mentality", "is_default": True},
+    {"part_id": "default_technique", "name": "Develop The Technique", "is_default": True},
+    {"part_id": "default_game_model", "name": "Develop The Game Model", "is_default": True},
+    {"part_id": "default_performance", "name": "Develop Performance", "is_default": True},
+    {"part_id": "default_mentality", "name": "Develop Mentality", "is_default": True},
 ]
 
 # Add your routes to the router instead of directly to app
