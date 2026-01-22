@@ -111,7 +111,7 @@ export default function LiveObservation() {
         ...prev,
         status: 'active',
         startTime: prev.startTime || now,
-        sessionParts: prev.sessionParts.map((p, i) => 
+        sessionParts: (prev.sessionParts || []).map(p => 
           p.id === prev.activePartId ? { ...p, startTime: now, used: true } : p
         )
       }));
@@ -130,19 +130,20 @@ export default function LiveObservation() {
         const ballTimeKey = session.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
         
         setSession(prev => {
-          // Filter out unused parts and update times
-          const usedParts = prev.sessionParts
-            .filter(p => p.used)
+          // Filter out unused parts (parts that were never selected/used)
+          const usedParts = (prev.sessionParts || [])
+            .filter(p => p.used === true)
             .map(p => 
               p.id === prev.activePartId 
-                ? { ...p, [ballTimeKey]: p[ballTimeKey] + duration, endTime: new Date().toISOString() }
+                ? { ...p, [ballTimeKey]: (p[ballTimeKey] || 0) + duration, endTime: new Date().toISOString() }
                 : p
             );
           
           return {
             ...prev,
-            [ballTimeKey]: prev[ballTimeKey] + duration,
+            [ballTimeKey]: (prev[ballTimeKey] || 0) + duration,
             sessionParts: usedParts,
+            activePartId: usedParts.length > 0 ? usedParts[0].id : null,
             status: 'completed',
             endTime: new Date().toISOString(),
             totalDuration: elapsedTime
@@ -150,13 +151,17 @@ export default function LiveObservation() {
         });
       } else {
         // No ball state changes - just filter unused parts
-        setSession(prev => ({
-          ...prev,
-          sessionParts: prev.sessionParts.filter(p => p.used),
-          status: 'completed',
-          endTime: new Date().toISOString(),
-          totalDuration: elapsedTime
-        }));
+        setSession(prev => {
+          const usedParts = (prev.sessionParts || []).filter(p => p.used === true);
+          return {
+            ...prev,
+            sessionParts: usedParts,
+            activePartId: usedParts.length > 0 ? usedParts[0].id : null,
+            status: 'completed',
+            endTime: new Date().toISOString(),
+            totalDuration: elapsedTime
+          };
+        });
       }
       
       setIsRunning(false);
