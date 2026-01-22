@@ -76,28 +76,14 @@ export default function UserSettings() {
 
     setInviting(true);
     try {
-      const response = await fetch(`${API_URL}/api/invites`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: inviteEmail.trim().toLowerCase(),
-          role: inviteRole,
-          coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
-        })
+      const result = await safePost(`${API_URL}/api/invites`, {
+        email: inviteEmail.trim().toLowerCase(),
+        role: inviteRole,
+        coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
       });
-
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (parseErr) {
-        console.error('Failed to parse response:', text);
-        throw new Error('Server error - please try again');
-      }
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to create invite');
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to create invite');
       }
 
       toast.success(`Invite sent to ${inviteEmail}`);
