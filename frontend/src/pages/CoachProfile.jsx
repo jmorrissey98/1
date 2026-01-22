@@ -67,6 +67,61 @@ export default function CoachProfile() {
     setSessions(coachSessions);
   };
 
+  const loadSessionParts = async () => {
+    try {
+      const parts = await fetchSessionParts();
+      setAvailableParts(parts);
+    } catch (err) {
+      console.error('Failed to load session parts:', err);
+    }
+  };
+
+  // Get all unique session parts used across this coach's sessions
+  const getAllUsedParts = () => {
+    const usedParts = new Set();
+    sessions.forEach(s => {
+      (s.sessionParts || []).forEach(p => {
+        usedParts.add(JSON.stringify({ id: p.id, name: p.name }));
+      });
+    });
+    return Array.from(usedParts).map(p => JSON.parse(p));
+  };
+
+  // Filter sessions by selected part
+  const getFilteredSessions = () => {
+    if (selectedPartFilter === 'all') return sessions;
+    return sessions.filter(s => 
+      (s.sessionParts || []).some(p => p.name === selectedPartFilter || p.id === selectedPartFilter)
+    );
+  };
+
+  // Calculate stats for filtered sessions
+  const getFilteredStats = () => {
+    const filtered = getFilteredSessions();
+    const completedSessions = filtered.filter(s => s.status === 'completed');
+    
+    const totalEvents = completedSessions.reduce((sum, s) => {
+      const events = s.events || [];
+      if (selectedPartFilter === 'all') return sum + events.length;
+      // Filter events by session part
+      return sum + events.filter(e => {
+        const part = (s.sessionParts || []).find(p => p.id === e.sessionPartId);
+        return part && (part.name === selectedPartFilter || part.id === selectedPartFilter);
+      }).length;
+    }, 0);
+
+    const totalDuration = completedSessions.reduce((sum, s) => sum + (s.totalDuration || 0), 0);
+    const totalBallRolling = completedSessions.reduce((sum, s) => sum + (s.ballRollingTime || 0), 0);
+    const totalBallStopped = completedSessions.reduce((sum, s) => sum + (s.ballNotRollingTime || 0), 0);
+    
+    return {
+      sessionCount: completedSessions.length,
+      totalEvents,
+      totalDuration,
+      avgBallRolling: calcPercentage(totalBallRolling, totalBallRolling + totalBallStopped)
+    };
+  };
+
   const saveCoach = (updated) => {
     storage.saveCoach({ ...updated, updatedAt: new Date().toISOString() });
     setCoach(updated);
