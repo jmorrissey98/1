@@ -47,6 +47,11 @@ export function AuthProvider({ children }) {
     try {
       const result = await safePost(`${API_URL}/api/auth/session`, { session_id: sessionId });
       
+      // Handle network errors gracefully
+      if (result.networkError) {
+        throw new Error(result.data?.detail || 'Connection failed. Please try again.');
+      }
+      
       if (!result.ok) {
         throw new Error(result.data?.detail || 'Authentication failed');
       }
