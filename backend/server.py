@@ -306,6 +306,61 @@ def validate_email(email: str) -> bool:
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
+# ============================================
+# COACH ROLE AUTHORIZATION HELPERS
+# ============================================
+
+async def require_coach(request: Request) -> "User":
+    """
+    Require authenticated user with coach role.
+    Returns the user if authenticated and has coach role.
+    """
+    user = await require_auth(request)
+    if user.role != "coach":
+        raise HTTPException(status_code=403, detail="Coach access required")
+    if not user.linked_coach_id:
+        raise HTTPException(status_code=403, detail="No coach profile linked to your account")
+    return user
+
+async def get_coach_profile_for_user(user: "User") -> Optional[Dict[str, Any]]:
+    """Get the coach profile linked to a user"""
+    if not user.linked_coach_id:
+        return None
+    # Coach profiles are stored in local storage on frontend, 
+    # but we need a backend representation for server-side filtering
+    coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
+    return coach
+
+async def verify_coach_owns_session(user: "User", session_id: str) -> Dict[str, Any]:
+    """
+    Verify a coach has access to a specific session.
+    Returns the session if authorized, raises 403 if not.
+    """
+    session = await db.sessions.find_one({"session_id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Check if this session belongs to the coach
+    if session.get("coach_id") != user.linked_coach_id:
+        raise HTTPException(status_code=403, detail="You do not have access to this session")
+    
+    return session
+
+async def filter_coach_data(user: "User", query: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add coach-specific filtering to a database query.
+    Ensures coaches only see their own data.
+    """
+    if user.role == "coach":
+        if not user.linked_coach_id:
+            raise HTTPException(status_code=403, detail="No coach profile linked")
+        query["coach_id"] = user.linked_coach_id
+    return query
+
+# ============================================
+# END COACH AUTHORIZATION HELPERS
+# ============================================
+
 async def send_password_reset_email(email: str, reset_token: str, user_name: str):
     """Send password reset email via Resend"""
     reset_link = f"{APP_URL}/reset-password?token={reset_token}"
