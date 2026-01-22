@@ -98,7 +98,10 @@ function App() {
     <div className="App min-h-screen bg-slate-50">
       <BrowserRouter>
         <AuthProvider>
-          <AppRouter />
+          <SyncProvider>
+            <AppRouter />
+            <OfflineIndicator />
+          </SyncProvider>
         </AuthProvider>
       </BrowserRouter>
       <Toaster position="top-center" richColors closeButton />
