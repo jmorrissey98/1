@@ -9,6 +9,10 @@ export default function OfflineIndicator() {
   const { syncStatus, pendingCount, online, triggerManualSync, lastSync } = useSync();
   const [showDetails, setShowDetails] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const location = useLocation();
+
+  // Don't show on login or auth callback pages
+  const isAuthPage = location.pathname === '/login' || location.pathname.includes('/auth/');
 
   // Auto-hide details after showing
   useEffect(() => {
