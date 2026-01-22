@@ -124,15 +124,16 @@ export default function UserSettings() {
         body: JSON.stringify({ user_id: userId, new_role: newRole })
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to update role');
+        throw new Error(data.detail || 'Failed to update role');
       }
 
       toast.success('Role updated');
       loadData();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to update role');
     }
   };
 
