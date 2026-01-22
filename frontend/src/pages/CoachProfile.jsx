@@ -394,8 +394,19 @@ export default function CoachProfile() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                <User className="w-5 h-5 text-slate-500" />
+              {/* Coach Photo */}
+              <div className="relative group">
+                {coach.photoUrl ? (
+                  <img 
+                    src={coach.photoUrl} 
+                    alt={coach.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                    <User className="w-6 h-6 text-slate-500" />
+                  </div>
+                )}
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{coach.name}</h1>
