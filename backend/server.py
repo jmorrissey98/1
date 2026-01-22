@@ -1086,23 +1086,29 @@ async def create_invite(invite_data: InviteCreate, request: Request):
     """Create an invite (Coach Developer only)"""
     user = await require_coach_developer(request)
     
-    # Check if invite already exists for this email
+    # Normalize email to lowercase
+    email_lower = invite_data.email.lower().strip()
+    
+    # Check if invite already exists for this email (case-insensitive)
     existing_invite = await db.invites.find_one(
-        {"email": invite_data.email, "used": False},
+        {"email": {"$regex": f"^{email_lower}$", "$options": "i"}, "used": False},
         {"_id": 0}
     )
     if existing_invite:
-        raise HTTPException(status_code=400, detail="Invite already exists for this email")
+        raise HTTPException(status_code=400, detail="An invite already exists for this email address")
     
-    # Check if user already exists with this email
-    existing_user = await db.users.find_one({"email": invite_data.email}, {"_id": 0})
+    # Check if user already exists with this email (case-insensitive)
+    existing_user = await db.users.find_one(
+        {"email": {"$regex": f"^{email_lower}$", "$options": "i"}}, 
+        {"_id": 0}
+    )
     if existing_user:
-        raise HTTPException(status_code=400, detail="User with this email already exists")
+        raise HTTPException(status_code=400, detail="A user with this email already exists")
     
     invite_id = f"inv_{uuid.uuid4().hex[:12]}"
     invite = {
         "invite_id": invite_id,
-        "email": invite_data.email,
+        "email": email_lower,  # Store lowercase
         "role": invite_data.role,
         "coach_id": invite_data.coach_id,
         "invited_by": user.user_id,
