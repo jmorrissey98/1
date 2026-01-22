@@ -10,6 +10,8 @@ import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { storage, createCoach } from '../lib/storage';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
 export default function MyCoaches() {
   const navigate = useNavigate();
   const [coaches, setCoaches] = useState([]);
@@ -33,7 +35,7 @@ export default function MyCoaches() {
     setCoaches(coachesWithStats.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
   };
 
-  const handleCreateCoach = () => {
+  const handleCreateCoach = async () => {
     if (!newCoachName.trim()) {
       toast.error('Please enter a coach name');
       return;
@@ -41,15 +43,43 @@ export default function MyCoaches() {
     
     const coach = createCoach(newCoachName.trim());
     coach.role = newCoachRole.trim();
-    coach.email = newCoachEmail.trim();
+    coach.email = newCoachEmail.trim().toLowerCase();
     storage.saveCoach(coach);
+    
+    // If email provided, check if there's a user with that email and link them
+    if (coach.email) {
+      try {
+        const response = await fetch(`${API_URL}/api/users/link-by-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: coach.email, coach_id: coach.id })
+        });
+        
+        if (response.ok) {
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : {};
+          if (data.linked) {
+            toast.success(`Coach profile created and linked to existing user account`);
+          } else {
+            toast.success('Coach profile created');
+          }
+        } else {
+          toast.success('Coach profile created');
+        }
+      } catch (err) {
+        console.error('Failed to link user:', err);
+        toast.success('Coach profile created');
+      }
+    } else {
+      toast.success('Coach profile created');
+    }
     
     setNewCoachName('');
     setNewCoachRole('');
     setNewCoachEmail('');
     setShowNewCoach(false);
     loadCoaches();
-    toast.success('Coach profile created');
     
     // Navigate to the new coach's profile
     navigate(`/coaches/${coach.id}`);
