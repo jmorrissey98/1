@@ -5,12 +5,11 @@
  * Handles network errors gracefully and prevents body stream issues
  * @param {string} url - The URL to fetch
  * @param {RequestInit} options - Fetch options
- * @returns {Promise<{ok: boolean, status: number, data: any, networkError?: boolean}>}
+ * @returns {Promise<{ok: boolean, status: number, data: any, networkError?: boolean, rawText?: string}>}
  */
 export async function safeFetch(url, options = {}) {
-  // Add abort controller for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   
   try {
     const response = await fetch(url, {
@@ -20,34 +19,40 @@ export async function safeFetch(url, options = {}) {
     
     clearTimeout(timeoutId);
     
-    // Read the response text once (avoid body stream issues)
+    // Read response text once
     let data = null;
+    let rawText = '';
+    
     try {
-      const text = await response.text();
-      if (text) {
+      rawText = await response.text();
+      if (rawText) {
         try {
-          data = JSON.parse(text);
+          data = JSON.parse(rawText);
         } catch {
-          // Response is not JSON, store as raw text
-          data = { message: text };
+          // Not JSON - create structured error with detail field
+          data = { detail: rawText, message: rawText };
         }
       }
     } catch (readError) {
       console.warn('Failed to read response body:', readError);
-      data = null;
+      data = { detail: 'Failed to read server response' };
+    }
+    
+    // Ensure data always has a detail field for error responses
+    if (!response.ok && data && !data.detail) {
+      data.detail = data.message || data.error || `Request failed with status ${response.status}`;
     }
     
     return {
       ok: response.ok,
       status: response.status,
-      data
+      data,
+      rawText
     };
   } catch (error) {
     clearTimeout(timeoutId);
     
-    // Handle specific error types
     if (error.name === 'AbortError') {
-      console.error('Request timed out:', url);
       return {
         ok: false,
         status: 408,
@@ -56,12 +61,12 @@ export async function safeFetch(url, options = {}) {
       };
     }
     
-    // Network errors (CORS, offline, etc.)
+    // Network errors (CORS, offline, DNS, etc.)
     console.error('Network error:', error.message, url);
     return {
       ok: false,
       status: 0,
-      data: { detail: 'Unable to connect to server. Please check your connection and try again.' },
+      data: { detail: `Network error: ${error.message}` },
       networkError: true
     };
   }
@@ -69,10 +74,6 @@ export async function safeFetch(url, options = {}) {
 
 /**
  * POST request with JSON body
- * @param {string} url - The URL to fetch
- * @param {object} body - The body to send
- * @param {object} extraOptions - Extra fetch options
- * @returns {Promise<{ok: boolean, status: number, data: any}>}
  */
 export async function safePost(url, body, extraOptions = {}) {
   return safeFetch(url, {
@@ -86,9 +87,6 @@ export async function safePost(url, body, extraOptions = {}) {
 
 /**
  * GET request
- * @param {string} url - The URL to fetch
- * @param {object} extraOptions - Extra fetch options
- * @returns {Promise<{ok: boolean, status: number, data: any}>}
  */
 export async function safeGet(url, extraOptions = {}) {
   return safeFetch(url, {
@@ -100,9 +98,6 @@ export async function safeGet(url, extraOptions = {}) {
 
 /**
  * DELETE request
- * @param {string} url - The URL to fetch
- * @param {object} extraOptions - Extra fetch options
- * @returns {Promise<{ok: boolean, status: number, data: any}>}
  */
 export async function safeDelete(url, extraOptions = {}) {
   return safeFetch(url, {
@@ -114,10 +109,6 @@ export async function safeDelete(url, extraOptions = {}) {
 
 /**
  * PUT request with JSON body
- * @param {string} url - The URL to fetch
- * @param {object} body - The body to send
- * @param {object} extraOptions - Extra fetch options
- * @returns {Promise<{ok: boolean, status: number, data: any}>}
  */
 export async function safePut(url, body, extraOptions = {}) {
   return safeFetch(url, {
