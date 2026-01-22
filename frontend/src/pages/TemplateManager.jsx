@@ -18,12 +18,37 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function TemplateManager() {
   const navigate = useNavigate();
+  const { isCoachDeveloper } = useAuth();
   const [templates, setTemplates] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  
+  // Global session parts state
+  const [globalParts, setGlobalParts] = useState([]);
+  const [loadingParts, setLoadingParts] = useState(true);
+  
+  // Add part dialog state
+  const [showAddPartDialog, setShowAddPartDialog] = useState(false);
+  const [addPartTemplateId, setAddPartTemplateId] = useState(null);
+  const [customPartName, setCustomPartName] = useState('');
+  const [addAsGlobalDefault, setAddAsGlobalDefault] = useState(false);
+  const [savingPart, setSavingPart] = useState(false);
 
   useEffect(() => {
     setTemplates(storage.getTemplates());
+    loadGlobalParts();
   }, []);
+
+  const loadGlobalParts = async () => {
+    setLoadingParts(true);
+    try {
+      const parts = await fetchSessionParts();
+      setGlobalParts(parts);
+    } catch (err) {
+      console.error('Failed to load global session parts:', err);
+    } finally {
+      setLoadingParts(false);
+    }
+  };
 
   const saveAndRefresh = (template) => {
     storage.saveTemplate(template);
