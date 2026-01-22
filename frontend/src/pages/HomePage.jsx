@@ -94,7 +94,7 @@ export default function HomePage() {
                 className="text-sm sm:text-base"
                 data-testid="user-settings-btn"
               >
-                <User className="w-4 h-4 mr-1 sm:mr-2" />
+                <Cog className="w-4 h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Settings</span>
               </Button>
             </div>
