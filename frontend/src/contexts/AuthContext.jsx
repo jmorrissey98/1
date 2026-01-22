@@ -24,10 +24,11 @@ export function AuthProvider({ children }) {
     try {
       const result = await safeGet(`${API_URL}/api/auth/me`);
       
-      if (result.ok && result.data) {
-        setUser(result.data);
-      } else {
+      // On network error or not authenticated, just set user to null (don't show error)
+      if (result.networkError || !result.ok || !result.data) {
         setUser(null);
+      } else {
+        setUser(result.data);
       }
     } catch (err) {
       console.error('Auth check failed:', err);
