@@ -2,7 +2,11 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
-export default function ProtectedRoute({ children, requireCoachDeveloper = false }) {
+export default function ProtectedRoute({ 
+  children, 
+  requireCoachDeveloper = false,
+  requireCoach = false 
+}) {
   const { user, loading, isCoachDeveloper } = useAuth();
   const location = useLocation();
 
@@ -27,10 +31,16 @@ export default function ProtectedRoute({ children, requireCoachDeveloper = false
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check coach role requirement
+  if (requireCoach && user.role !== 'coach') {
+    return <Navigate to="/" replace />;
+  }
+
+  // Check coach developer role requirement
   if (requireCoachDeveloper && !isCoachDeveloper()) {
-    // Redirect coaches to their view
-    if (user.linked_coach_id) {
-      return <Navigate to={`/coach-view/${user.linked_coach_id}`} replace />;
+    // Redirect coaches to their dashboard
+    if (user.role === 'coach') {
+      return <Navigate to="/coach" replace />;
     }
     return <Navigate to="/" replace />;
   }
