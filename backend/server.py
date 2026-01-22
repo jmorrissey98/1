@@ -1259,6 +1259,35 @@ async def delete_user(user_id: str, request: Request):
     
     return {"status": "deleted", "user_id": user_id}
 
+@api_router.post("/users/link-by-email")
+async def link_user_by_email(request: Request):
+    """Link a user to a coach profile by email (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    body = await request.json()
+    email = body.get("email", "").lower().strip()
+    coach_id = body.get("coach_id")
+    
+    if not email or not coach_id:
+        raise HTTPException(status_code=400, detail="Email and coach_id are required")
+    
+    # Find user by email (case-insensitive)
+    user = await db.users.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    if not user:
+        return {"linked": False, "message": "No user found with that email"}
+    
+    # Update the user to link them to the coach profile
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"linked_coach_id": coach_id}}
+    )
+    
+    return {"linked": True, "user_id": user["user_id"], "coach_id": coach_id}
+
 # Session Parts endpoints
 @api_router.get("/session-parts", response_model=List[SessionPartResponse])
 async def get_session_parts(request: Request):
