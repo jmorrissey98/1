@@ -257,12 +257,7 @@ async def send_password_reset_email(email: str, reset_token: str, user_name: str
         "html": html_content
     }
     
-    try:
-        result = await asyncio.to_thread(resend.Emails.send, params)
-        return result
-    except Exception as e:
-        logging.error(f"Failed to send password reset email: {str(e)}")
-        raise
+    return await send_email_with_retry(params, "password reset")
 
 async def send_invite_email(email: str, inviter_name: str, role: str):
     """Send invitation email via Resend"""
@@ -297,12 +292,52 @@ async def send_invite_email(email: str, inviter_name: str, role: str):
         "html": html_content
     }
     
-    try:
-        result = await asyncio.to_thread(resend.Emails.send, params)
-        return result
-    except Exception as e:
-        logging.error(f"Failed to send invite email: {str(e)}")
-        raise
+    return await send_email_with_retry(params, "invite")
+
+async def send_email_with_retry(params: dict, email_type: str, max_retries: int = 3):
+    """
+    Send email with retry logic for resilience.
+    Retries on transient failures, fails fast on permanent errors.
+    """
+    last_error = None
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Sending {email_type} email to {params['to']} (attempt {attempt}/{max_retries})")
+            logger.info(f"Using sender: {params['from']}, API key prefix: {resend.api_key[:10]}...")
+            
+            result = await asyncio.to_thread(resend.Emails.send, params)
+            
+            logger.info(f"Email sent successfully: {result}")
+            return result
+            
+        except Exception as e:
+            last_error = e
+            error_msg = str(e)
+            logger.error(f"Email attempt {attempt} failed: {error_msg}")
+            
+            # Don't retry on permanent errors (invalid API key, unverified domain, etc.)
+            permanent_errors = [
+                "api_key",
+                "unauthorized", 
+                "forbidden",
+                "verify",
+                "domain",
+                "testing emails"
+            ]
+            
+            if any(err in error_msg.lower() for err in permanent_errors):
+                logger.error(f"Permanent email error, not retrying: {error_msg}")
+                raise
+            
+            # Wait before retry (exponential backoff)
+            if attempt < max_retries:
+                wait_time = 2 ** attempt
+                logger.info(f"Waiting {wait_time}s before retry...")
+                await asyncio.sleep(wait_time)
+    
+    # All retries exhausted
+    raise last_error
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
