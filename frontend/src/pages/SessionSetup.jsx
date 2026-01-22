@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, X, GripVertical, Play, User, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, X, GripVertical, Play, User, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from '../lib/storage';
+import { fetchSessionParts, createSessionPart, toFrontendFormat } from '../lib/sessionPartsApi';
 import { generateId, cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SessionSetup() {
   const navigate = useNavigate();
@@ -17,6 +20,7 @@ export default function SessionSetup() {
   const preselectedCoachId = searchParams.get('coachId');
   const plannedDate = searchParams.get('date');
   const isEditing = !!sessionId;
+  const { isCoachDeveloper } = useAuth();
   
   const [templates, setTemplates] = useState([]);
   const [coaches, setCoaches] = useState([]);
@@ -25,8 +29,16 @@ export default function SessionSetup() {
   const [observationContext, setObservationContext] = useState(OBSERVATION_CONTEXTS.TRAINING);
   const [sessionDate, setSessionDate] = useState(plannedDate || '');
   const [session, setSession] = useState(null);
+  
+  // Session parts state
+  const [availableParts, setAvailableParts] = useState([]);
+  const [loadingParts, setLoadingParts] = useState(true);
+  const [showCustomPartDialog, setShowCustomPartDialog] = useState(false);
+  const [customPartName, setCustomPartName] = useState('');
+  const [savingPart, setSavingPart] = useState(false);
 
   useEffect(() => {
+    loadSessionParts();
     setTemplates(storage.getTemplates());
     setCoaches(storage.getCoaches());
     
@@ -56,6 +68,18 @@ export default function SessionSetup() {
       if (plannedDate) setSessionDate(plannedDate);
     }
   }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate]);
+
+  const loadSessionParts = async () => {
+    setLoadingParts(true);
+    try {
+      const parts = await fetchSessionParts();
+      setAvailableParts(parts);
+    } catch (err) {
+      console.error('Failed to load session parts:', err);
+    } finally {
+      setLoadingParts(false);
+    }
+  };
 
   const handleTemplateChange = (templateId) => {
     setSelectedTemplate(templateId);
