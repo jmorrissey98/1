@@ -2,23 +2,38 @@
 
 /**
  * Safely fetch and parse JSON response
+ * Handles network errors gracefully and prevents body stream issues
  * @param {string} url - The URL to fetch
  * @param {RequestInit} options - Fetch options
- * @returns {Promise<{ok: boolean, status: number, data: any}>}
+ * @returns {Promise<{ok: boolean, status: number, data: any, networkError?: boolean}>}
  */
 export async function safeFetch(url, options = {}) {
+  // Add abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
     
-    // Clone the response immediately in case we need to read it multiple times
-    const clonedResponse = response.clone();
+    clearTimeout(timeoutId);
     
+    // Read the response text once (avoid body stream issues)
     let data = null;
     try {
-      const text = await clonedResponse.text();
-      data = text ? JSON.parse(text) : null;
-    } catch (parseError) {
-      console.warn('Failed to parse response as JSON:', parseError);
+      const text = await response.text();
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // Response is not JSON, store as raw text
+          data = { message: text };
+        }
+      }
+    } catch (readError) {
+      console.warn('Failed to read response body:', readError);
       data = null;
     }
     
@@ -28,8 +43,27 @@ export async function safeFetch(url, options = {}) {
       data
     };
   } catch (error) {
-    console.error('Fetch error:', error);
-    throw error;
+    clearTimeout(timeoutId);
+    
+    // Handle specific error types
+    if (error.name === 'AbortError') {
+      console.error('Request timed out:', url);
+      return {
+        ok: false,
+        status: 408,
+        data: { detail: 'Request timed out. Please try again.' },
+        networkError: true
+      };
+    }
+    
+    // Network errors (CORS, offline, etc.)
+    console.error('Network error:', error.message, url);
+    return {
+      ok: false,
+      status: 0,
+      data: { detail: 'Unable to connect to server. Please check your connection and try again.' },
+      networkError: true
+    };
   }
 }
 
