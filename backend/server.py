@@ -676,13 +676,19 @@ async def exchange_session(request: Request, response: Response):
 async def get_current_user_info(request: Request):
     """Get current authenticated user"""
     user = await require_auth(request)
+    
+    # Get auth_provider from database
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    auth_provider = user_doc.get("auth_provider", "google") if user_doc else "google"
+    
     return UserResponse(
         user_id=user.user_id,
         email=user.email,
         name=user.name,
         picture=user.picture,
         role=user.role,
-        linked_coach_id=user.linked_coach_id
+        linked_coach_id=user.linked_coach_id,
+        auth_provider=auth_provider
     )
 
 @api_router.post("/auth/logout")
