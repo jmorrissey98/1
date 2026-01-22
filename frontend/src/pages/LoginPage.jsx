@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from 'sonner';
 import { safePost } from '../lib/safeFetch';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+const API_URL = ''; // Relative URL - frontend and backend on same domain
 
 export default function LoginPage() {
   const navigate = useNavigate();
