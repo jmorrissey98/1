@@ -577,37 +577,133 @@ export default function SessionSetup() {
         {/* Session Parts */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-['Manrope']">Session Parts</CardTitle>
-            <Button size="sm" variant="outline" onClick={addSessionPart} data-testid="add-session-part-btn">
-              <Plus className="w-4 h-4 mr-1" />
-              Add
-            </Button>
+            <div>
+              <CardTitle className="font-['Manrope']">Session Parts</CardTitle>
+              <CardDescription>Select from defaults or create custom parts</CardDescription>
+            </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-500 mb-4">Define the phases of your coaching session.</p>
-            <div className="space-y-2">
-              {session.sessionParts.map((part, index) => (
-                <div key={part.id} className="flex items-center gap-2">
-                  <span className="text-sm text-slate-400 w-6">{index + 1}</span>
-                  <Input
-                    value={part.name}
-                    onChange={(e) => updateSessionPart(part.id, e.target.value)}
-                    className="flex-1"
-                    data-testid={`session-part-input-${part.id}`}
-                  />
+          <CardContent className="space-y-4">
+            {/* Available Default Parts */}
+            <div>
+              <Label className="text-sm text-slate-600 mb-2 block">Add from defaults:</Label>
+              {loadingParts ? (
+                <div className="flex items-center gap-2 text-slate-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading session parts...
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {availableParts.filter(p => p.is_default).map(part => {
+                    const isAdded = (session.sessionParts || []).some(sp => sp.name === part.name);
+                    return (
+                      <Button
+                        key={part.part_id}
+                        size="sm"
+                        variant={isAdded ? "secondary" : "outline"}
+                        onClick={() => !isAdded && addSessionPartFromDefault(part)}
+                        disabled={isAdded}
+                        className={isAdded ? "opacity-50" : ""}
+                        data-testid={`add-default-part-${part.part_id}`}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        {part.name}
+                        {isAdded && " ✓"}
+                      </Button>
+                    );
+                  })}
                   <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-slate-400 hover:text-red-600"
-                    onClick={() => removeSessionPart(part.id)}
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddCustomPart}
+                    className="border-dashed"
+                    data-testid="add-custom-part-btn"
                   >
-                    <X className="w-4 h-4" />
+                    <Plus className="w-3 h-3 mr-1" />
+                    Custom Part
                   </Button>
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* Selected Session Parts */}
+            <div>
+              <Label className="text-sm text-slate-600 mb-2 block">Parts for this session:</Label>
+              {(session.sessionParts || []).length === 0 ? (
+                <p className="text-sm text-slate-400 italic">No parts added yet. Select from defaults above.</p>
+              ) : (
+                <div className="space-y-2">
+                  {(session.sessionParts || []).map((part, index) => (
+                    <div key={part.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="text-sm text-slate-400 w-6 font-medium">{index + 1}</span>
+                      <Input
+                        value={part.name}
+                        onChange={(e) => updateSessionPart(part.id, e.target.value)}
+                        className="flex-1 bg-white"
+                        data-testid={`session-part-input-${part.id}`}
+                      />
+                      {part.isDefault && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Default</span>
+                      )}
+                      {part.isCustom && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Custom</span>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-slate-400 hover:text-red-600 h-8 w-8"
+                        onClick={() => removeSessionPart(part.id)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Custom Part Dialog */}
+        <Dialog open={showCustomPartDialog} onOpenChange={setShowCustomPartDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Custom Session Part</DialogTitle>
+              <DialogDescription>
+                Enter a name for your custom session part.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="custom-part-name">Part Name</Label>
+              <Input
+                id="custom-part-name"
+                value={customPartName}
+                onChange={(e) => setCustomPartName(e.target.value)}
+                placeholder="e.g., Cool Down"
+                className="mt-1"
+                data-testid="custom-part-name-input"
+              />
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleSaveCustomPart(false)}
+                disabled={savingPart || !customPartName.trim()}
+              >
+                {savingPart ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Add as One-Off
+              </Button>
+              {isCoachDeveloper() && (
+                <Button
+                  onClick={() => handleSaveCustomPart(true)}
+                  disabled={savingPart || !customPartName.trim()}
+                >
+                  {savingPart ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Add as New Default
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
