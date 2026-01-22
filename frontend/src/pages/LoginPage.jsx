@@ -146,6 +146,12 @@ export default function LoginPage() {
     try {
       const result = await safePost(`${API_URL}/api/auth/forgot-password`, { email: forgotEmail });
       
+      if (result.networkError) {
+        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+      
       setForgotSent(true);
       toast.success('If an account exists, a reset link has been sent');
       
