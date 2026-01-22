@@ -17,7 +17,7 @@ import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 export default function UserSettings() {
   const navigate = useNavigate();
   const { user, logout, isCoachDeveloper } = useAuth();
-  const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+  const API_URL = ''; // Relative URL - frontend and backend on same domain
   
   const [users, setUsers] = useState([]);
   const [invites, setInvites] = useState([]);
