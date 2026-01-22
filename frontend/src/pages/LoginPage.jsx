@@ -61,20 +61,13 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: signInEmail,
-          password: signInPassword
-        })
+      const result = await safePost(`${API_URL}/api/auth/login`, {
+        email: signInEmail,
+        password: signInPassword
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        toast.error(data.detail || 'Login failed');
+      if (!result.ok) {
+        toast.error(result.data?.detail || 'Login failed');
         return;
       }
       
