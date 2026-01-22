@@ -1084,58 +1084,68 @@ async def verify_reset_token(token: str):
 @api_router.post("/invites", response_model=InviteResponse)
 async def create_invite(invite_data: InviteCreate, request: Request):
     """Create an invite (Coach Developer only)"""
-    user = await require_coach_developer(request)
-    
-    # Normalize email to lowercase
-    email_lower = invite_data.email.lower().strip()
-    
-    # Check if invite already exists for this email (case-insensitive)
-    existing_invite = await db.invites.find_one(
-        {"email": {"$regex": f"^{email_lower}$", "$options": "i"}, "used": False},
-        {"_id": 0}
-    )
-    if existing_invite:
-        raise HTTPException(status_code=400, detail="An invite already exists for this email address")
-    
-    # Check if user already exists with this email (case-insensitive)
-    existing_user = await db.users.find_one(
-        {"email": {"$regex": f"^{email_lower}$", "$options": "i"}}, 
-        {"_id": 0}
-    )
-    if existing_user:
-        raise HTTPException(status_code=400, detail="A user with this email already exists")
-    
-    invite_id = f"inv_{uuid.uuid4().hex[:12]}"
-    invite = {
-        "invite_id": invite_id,
-        "email": email_lower,  # Store lowercase
-        "role": invite_data.role,
-        "coach_id": invite_data.coach_id,
-        "invited_by": user.user_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "used": False
-    }
-    await db.invites.insert_one(invite)
-    
-    # Send invitation email
     try:
-        await send_invite_email(
-            email=email_lower,
-            inviter_name=user.name,
-            role=invite_data.role
+        user = await require_coach_developer(request)
+        
+        # Normalize email to lowercase
+        email_lower = invite_data.email.lower().strip()
+        
+        # Check if invite already exists for this email (case-insensitive)
+        existing_invite = await db.invites.find_one(
+            {"email": {"$regex": f"^{email_lower}$", "$options": "i"}, "used": False},
+            {"_id": 0}
         )
-        logger.info(f"Invite email sent to {email_lower}")
+        if existing_invite:
+            raise HTTPException(status_code=400, detail="An invite already exists for this email address")
+        
+        # Check if user already exists with this email (case-insensitive)
+        existing_user = await db.users.find_one(
+            {"email": {"$regex": f"^{email_lower}$", "$options": "i"}}, 
+            {"_id": 0}
+        )
+        if existing_user:
+            raise HTTPException(status_code=400, detail="A user with this email already exists")
+        
+        invite_id = f"inv_{uuid.uuid4().hex[:12]}"
+        invite = {
+            "invite_id": invite_id,
+            "email": email_lower,  # Store lowercase
+            "role": invite_data.role,
+            "coach_id": invite_data.coach_id,
+            "invited_by": user.user_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "used": False
+        }
+        
+        # Insert invite into database
+        await db.invites.insert_one(invite)
+        logger.info(f"Invite created for {email_lower} by {user.email}")
+        
+        # Send invitation email (non-blocking - don't fail if email fails)
+        try:
+            await send_invite_email(
+                email=email_lower,
+                inviter_name=user.name,
+                role=invite_data.role
+            )
+            logger.info(f"Invite email sent to {email_lower}")
+        except Exception as email_err:
+            logger.error(f"Failed to send invite email to {email_lower}: {str(email_err)}")
+            # Continue - invite was created successfully even if email failed
+        
+        return InviteResponse(
+            invite_id=invite_id,
+            email=email_lower,
+            role=invite_data.role,
+            coach_id=invite_data.coach_id,
+            created_at=invite["created_at"]
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to send invite email to {email_lower}: {str(e)}")
-        # Don't fail the invite creation if email fails
-    
-    return InviteResponse(
-        invite_id=invite_id,
-        email=email_lower,
-        role=invite_data.role,
-        coach_id=invite_data.coach_id,
-        created_at=invite["created_at"]
-    )
+        logger.error(f"Invite creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create invite: {str(e)}")
 
 @api_router.get("/invites", response_model=List[InviteResponse])
 async def list_invites(request: Request):
