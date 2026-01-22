@@ -122,14 +122,15 @@ export default function LoginPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.detail || 'Signup failed');
+        toast.error(data.detail || 'Signup failed');
+        return;
       }
       
       toast.success('Account created successfully!');
       await checkAuth();
       
     } catch (err) {
-      toast.error(err.message || 'Signup failed');
+      toast.error('Signup failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
