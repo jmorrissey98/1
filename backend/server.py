@@ -1231,6 +1231,34 @@ async def link_user_to_coach(user_id: str, request: Request):
     
     return {"status": "linked", "coach_id": coach_id}
 
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, request: Request):
+    """Delete a user (Coach Developer only, cannot delete yourself)"""
+    current_user = await require_coach_developer(request)
+    
+    # Cannot delete yourself
+    if current_user.user_id == user_id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account")
+    
+    # Check if user exists
+    target_user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Delete user's sessions
+    await db.user_sessions.delete_many({"user_id": user_id})
+    
+    # Delete user's password reset tokens
+    await db.password_resets.delete_many({"email": target_user["email"]})
+    
+    # Delete the user
+    result = await db.users.delete_one({"user_id": user_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"status": "deleted", "user_id": user_id}
+
 # Session Parts endpoints
 @api_router.get("/session-parts", response_model=List[SessionPartResponse])
 async def get_session_parts(request: Request):
