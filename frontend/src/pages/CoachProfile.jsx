@@ -451,12 +451,209 @@ export default function CoachProfile() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-xl grid-cols-5">
             <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
             <TabsTrigger value="targets" data-testid="tab-targets">Targets</TabsTrigger>
             <TabsTrigger value="sessions" data-testid="tab-sessions">Sessions</TabsTrigger>
             <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
           </TabsList>
+
+          {/* Profile Tab - Photo & Attachments */}
+          <TabsContent value="profile" className="space-y-6">
+            {/* Photo Upload */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <Camera className="w-5 h-5" />
+                  Profile Photo
+                </CardTitle>
+                <CardDescription>
+                  Upload a photo for this coach's profile
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-6">
+                  {/* Photo Preview */}
+                  <div className="relative">
+                    {coach.photoUrl ? (
+                      <img 
+                        src={coach.photoUrl} 
+                        alt={coach.name}
+                        className="w-24 h-24 rounded-full object-cover border-4 border-slate-100"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center border-4 border-slate-100">
+                        <User className="w-10 h-10 text-slate-400" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Upload Controls */}
+                  <div className="space-y-3">
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                        id="photo-upload"
+                        disabled={isUploadingPhoto}
+                      />
+                      <label htmlFor="photo-upload">
+                        <Button asChild disabled={isUploadingPhoto} className="cursor-pointer">
+                          <span>
+                            {isUploadingPhoto ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="w-4 h-4 mr-2" />
+                            )}
+                            {coach.photoUrl ? 'Change Photo' : 'Upload Photo'}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                    {coach.photoUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleRemovePhoto}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Remove Photo
+                      </Button>
+                    )}
+                    <p className="text-xs text-slate-500">
+                      Recommended: Square image, max 5MB
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* File Attachments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <Paperclip className="w-5 h-5" />
+                  Attachments
+                </CardTitle>
+                <CardDescription>
+                  Attach development plans, certificates, or other documents
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Upload Button */}
+                <div>
+                  <input
+                    type="file"
+                    onChange={handleAttachmentUpload}
+                    className="hidden"
+                    id="attachment-upload"
+                    disabled={isUploadingAttachment}
+                  />
+                  <label htmlFor="attachment-upload">
+                    <Button asChild variant="outline" disabled={isUploadingAttachment} className="cursor-pointer">
+                      <span>
+                        {isUploadingAttachment ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4 mr-2" />
+                        )}
+                        Add Attachment
+                      </span>
+                    </Button>
+                  </label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Max file size: 10MB
+                  </p>
+                </div>
+
+                {/* Attachments List */}
+                {(coach.attachments || []).length > 0 ? (
+                  <div className="space-y-2">
+                    {(coach.attachments || []).map(attachment => (
+                      <div 
+                        key={attachment.id}
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-slate-400" />
+                          <div>
+                            <a 
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-600 hover:underline text-sm"
+                            >
+                              {attachment.name}
+                            </a>
+                            <p className="text-xs text-slate-500">
+                              {(attachment.size / 1024).toFixed(1)} KB • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveAttachment(attachment.id)}
+                          className="text-slate-400 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No attachments yet</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Coach Info Edit */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <Edit2 className="w-5 h-5" />
+                  Coach Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Role</Label>
+                  <Input
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    placeholder="e.g., U14 Head Coach"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Add notes about this coach..."
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+                <Button onClick={handleSaveEdit}>
+                  <Check className="w-4 h-4 mr-2" />
+                  Save Changes
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
