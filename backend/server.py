@@ -1191,8 +1191,9 @@ async def resend_invite(invite_id: str, request: Request):
         )
         return {"status": "sent", "email": invite["email"]}
     except Exception as e:
-        logger.error(f"Failed to resend invite email: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to send invitation email")
+        error_msg = str(e)
+        logger.error(f"Failed to resend invite email to {invite['email']}: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Email failed: {error_msg}")
 
 # User management endpoints
 @api_router.get("/users", response_model=List[UserResponse])
