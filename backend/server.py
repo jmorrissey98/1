@@ -1399,9 +1399,7 @@ async def delete_session_part(part_id: str, request: Request):
     
     return {"status": "deleted"}
 
-# Include the router in the main app
-app.include_router(api_router)
-
+# Add CORS middleware BEFORE including routes (order matters!)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -1409,6 +1407,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include the router in the main app AFTER middleware
+app.include_router(api_router)
 
 # Configure logging
 logging.basicConfig(
