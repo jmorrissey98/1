@@ -25,17 +25,22 @@ export async function safeFetch(url, options = {}) {
     
     try {
       rawText = await response.text();
-      if (rawText) {
-        try {
-          data = JSON.parse(rawText);
-        } catch {
-          // Not JSON - create structured error with detail field
-          data = { detail: rawText, message: rawText };
-        }
-      }
     } catch (readError) {
       console.warn('Failed to read response body:', readError);
-      data = { detail: 'Failed to read server response' };
+      rawText = '';
+    }
+    
+    // Parse JSON if we have content
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        // Not JSON - create structured error with detail field
+        data = { detail: rawText, message: rawText };
+      }
+    } else {
+      // Empty response
+      data = response.ok ? {} : { detail: `Request failed with status ${response.status}` };
     }
     
     // Ensure data always has a detail field for error responses
