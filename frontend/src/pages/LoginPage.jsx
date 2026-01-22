@@ -66,6 +66,11 @@ export default function LoginPage() {
         password: signInPassword
       });
       
+      if (result.networkError) {
+        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        return;
+      }
+      
       if (!result.ok) {
         toast.error(result.data?.detail || 'Login failed');
         return;
