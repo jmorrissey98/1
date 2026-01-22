@@ -61,12 +61,13 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ session_id: sessionId })
       });
 
+      const text = await response.text();
       let data;
       try {
-        data = await response.json();
+        data = text ? JSON.parse(text) : {};
       } catch (parseErr) {
-        console.error('Failed to parse auth response:', parseErr);
-        throw new Error('Authentication failed - invalid response');
+        console.error('Failed to parse auth response:', text);
+        throw new Error('Authentication failed - server error');
       }
       
       if (!response.ok) {
