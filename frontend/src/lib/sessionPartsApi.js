@@ -3,10 +3,10 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 // Fallback defaults when backend is unavailable
 const FALLBACK_SESSION_PARTS = [
-  { part_id: 'default_technique', name: 'Develop the technique', is_default: true },
-  { part_id: 'default_game_model', name: 'Develop the game model', is_default: true },
-  { part_id: 'default_performance', name: 'Develop performance', is_default: true },
-  { part_id: 'default_mentality', name: 'Develop mentality', is_default: true }
+  { part_id: 'default_technique', name: 'Develop The Technique', is_default: true },
+  { part_id: 'default_game_model', name: 'Develop The Game Model', is_default: true },
+  { part_id: 'default_performance', name: 'Develop Performance', is_default: true },
+  { part_id: 'default_mentality', name: 'Develop Mentality', is_default: true }
 ];
 
 // Cache key for local storage
