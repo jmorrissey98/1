@@ -43,20 +43,18 @@ export default function UserSettings() {
       if (isCoachDeveloper()) {
         // Load users and invites from backend
         try {
-          const usersRes = await fetch(`${API_URL}/api/users`, { credentials: 'include' });
-          if (usersRes.ok) {
-            const usersData = await usersRes.json();
-            setUsers(usersData);
+          const usersResult = await safeGet(`${API_URL}/api/users`);
+          if (usersResult.ok && usersResult.data) {
+            setUsers(usersResult.data);
           }
         } catch (e) {
           console.error('Failed to load users:', e);
         }
         
         try {
-          const invitesRes = await fetch(`${API_URL}/api/invites`, { credentials: 'include' });
-          if (invitesRes.ok) {
-            const invitesData = await invitesRes.json();
-            setInvites(invitesData);
+          const invitesResult = await safeGet(`${API_URL}/api/invites`);
+          if (invitesResult.ok && invitesResult.data) {
+            setInvites(invitesResult.data);
           }
         } catch (e) {
           console.error('Failed to load invites:', e);
