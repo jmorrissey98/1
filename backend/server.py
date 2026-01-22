@@ -1174,6 +1174,18 @@ async def delete_invite(invite_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Invite not found")
     return {"status": "deleted"}
 
+@api_router.delete("/invites/by-email/{email}")
+async def delete_invite_by_email(email: str, request: Request):
+    """Delete an invite by email address (Coach Developer only)"""
+    await require_coach_developer(request)
+    
+    email_lower = email.lower().strip()
+    result = await db.invites.delete_many({"email": {"$regex": f"^{email_lower}$", "$options": "i"}})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No invite found for this email")
+    return {"status": "deleted", "count": result.deleted_count}
+
 @api_router.post("/invites/{invite_id}/resend")
 async def resend_invite(invite_id: str, request: Request):
     """Resend an invitation email (Coach Developer only)"""
