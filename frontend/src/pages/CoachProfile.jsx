@@ -43,6 +43,10 @@ export default function CoachProfile() {
   // Session part filtering
   const [availableParts, setAvailableParts] = useState([]);
   const [selectedPartFilter, setSelectedPartFilter] = useState('all');
+  
+  // Photo upload state
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
   useEffect(() => {
     loadCoach();
@@ -74,6 +78,113 @@ export default function CoachProfile() {
     } catch (err) {
       console.error('Failed to load session parts:', err);
     }
+  };
+
+  // Photo upload handler
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${API}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      const updatedCoach = { ...coach, photoUrl: data.url };
+      saveCoach(updatedCoach);
+      toast.success('Photo uploaded successfully');
+    } catch (err) {
+      console.error('Photo upload error:', err);
+      toast.error('Failed to upload photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  // Remove photo
+  const handleRemovePhoto = () => {
+    const updatedCoach = { ...coach, photoUrl: null };
+    saveCoach(updatedCoach);
+    toast.success('Photo removed');
+  };
+
+  // File attachment upload handler
+  const handleAttachmentUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be less than 10MB');
+      return;
+    }
+    
+    setIsUploadingAttachment(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${API}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      const newAttachment = {
+        id: data.id,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: data.url,
+        uploadedAt: new Date().toISOString()
+      };
+      
+      const updatedCoach = { 
+        ...coach, 
+        attachments: [...(coach.attachments || []), newAttachment] 
+      };
+      saveCoach(updatedCoach);
+      toast.success('File attached successfully');
+    } catch (err) {
+      console.error('Attachment upload error:', err);
+      toast.error('Failed to upload file');
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  // Remove attachment
+  const handleRemoveAttachment = (attachmentId) => {
+    const updatedCoach = {
+      ...coach,
+      attachments: (coach.attachments || []).filter(a => a.id !== attachmentId)
+    };
+    saveCoach(updatedCoach);
+    toast.success('Attachment removed');
   };
 
   // Get all unique session parts used across this coach's sessions
