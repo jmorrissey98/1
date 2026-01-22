@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { storage } from '../lib/storage';
+import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 
 export default function UserSettings() {
   const navigate = useNavigate();
