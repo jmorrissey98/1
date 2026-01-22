@@ -309,6 +309,16 @@ async def send_invite_email(email: str, inviter_name: str, role: str):
 async def root():
     return {"message": "Hello World"}
 
+@api_router.get("/config-check")
+async def config_check():
+    """Diagnostic endpoint to verify email configuration"""
+    return {
+        "sender_email": SENDER_EMAIL,
+        "app_url": APP_URL,
+        "resend_key_set": bool(resend.api_key),
+        "resend_key_prefix": resend.api_key[:10] + "..." if resend.api_key else "NOT SET"
+    }
+
 @api_router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     """Upload a file and return its metadata"""
