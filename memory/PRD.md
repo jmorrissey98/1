@@ -148,6 +148,7 @@ All core observation and review features implemented
 - ✅ Custom parts can be added as "new default" (globally available) or "one-off" (session-only)
 - ✅ Same part can be used multiple times in a session (multiple time ranges)
 - ✅ Track total session duration and duration per part
+- ✅ **Templates page has "Add as global default" option** (Jan 2026 fix)
 - ✅ Coaches can only select from existing parts (cannot create defaults)
 
 ### Session Parts Analysis
