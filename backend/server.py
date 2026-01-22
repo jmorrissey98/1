@@ -695,6 +695,330 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="session_token", path="/")
     return {"status": "logged out"}
 
+# Email/Password Auth Endpoints
+@api_router.post("/auth/signup")
+async def signup(signup_data: SignupRequest, response: Response):
+    """Create a new account with email and password"""
+    try:
+        # Validate email format
+        if not validate_email(signup_data.email):
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        # Validate password
+        is_valid, error_msg = validate_password(signup_data.password)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Check if user already exists
+        existing_user = await db.users.find_one({"email": signup_data.email}, {"_id": 0})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="An account with this email already exists")
+        
+        # Check if this is the first user (becomes Coach Developer)
+        user_count = await db.users.count_documents({})
+        
+        if user_count == 0:
+            # First user becomes Coach Developer
+            user_role = "coach_developer"
+            linked_coach_id = None
+        else:
+            # Check if there's an invite for this email
+            invite = await db.invites.find_one({"email": signup_data.email, "used": False}, {"_id": 0})
+            
+            if invite:
+                # Use invite role and coach_id
+                user_role = invite.get("role", "coach")
+                linked_coach_id = invite.get("coach_id")
+                # Mark invite as used
+                await db.invites.update_one(
+                    {"invite_id": invite["invite_id"]},
+                    {"$set": {"used": True}}
+                )
+            else:
+                # No invite - reject registration
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Registration requires an invite. Please contact a Coach Developer."
+                )
+        
+        # Hash password
+        password_hash = hash_password(signup_data.password)
+        
+        # Create new user
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        session_token = secrets.token_urlsafe(32)
+        
+        new_user = {
+            "user_id": user_id,
+            "email": signup_data.email,
+            "name": signup_data.name,
+            "password_hash": password_hash,
+            "picture": None,
+            "role": user_role,
+            "linked_coach_id": linked_coach_id,
+            "auth_provider": "email",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(new_user)
+        
+        # Create session
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": session_token,
+            "expires_at": expires_at.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Set cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=7 * 24 * 60 * 60,
+            path="/"
+        )
+        
+        return {
+            "user_id": user_id,
+            "email": signup_data.email,
+            "name": signup_data.name,
+            "role": user_role,
+            "linked_coach_id": linked_coach_id,
+            "auth_provider": "email"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Signup error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
+
+@api_router.post("/auth/login")
+async def login(login_data: LoginRequest, response: Response):
+    """Login with email and password"""
+    try:
+        # Find user by email
+        user_doc = await db.users.find_one({"email": login_data.email}, {"_id": 0})
+        
+        if not user_doc:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Check if user has password (might be Google-only user)
+        password_hash = user_doc.get("password_hash")
+        if not password_hash:
+            raise HTTPException(
+                status_code=401, 
+                detail="This account uses Google sign-in. Please use 'Sign in with Google'."
+            )
+        
+        # Verify password
+        if not verify_password(login_data.password, password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Create session
+        user_id = user_doc["user_id"]
+        session_token = secrets.token_urlsafe(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": session_token,
+            "expires_at": expires_at.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Set cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=7 * 24 * 60 * 60,
+            path="/"
+        )
+        
+        return {
+            "user_id": user_id,
+            "email": user_doc["email"],
+            "name": user_doc["name"],
+            "picture": user_doc.get("picture"),
+            "role": user_doc.get("role", "coach"),
+            "linked_coach_id": user_doc.get("linked_coach_id"),
+            "auth_provider": user_doc.get("auth_provider", "email")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(forgot_data: ForgotPasswordRequest):
+    """Request password reset email"""
+    try:
+        # Find user by email
+        user_doc = await db.users.find_one({"email": forgot_data.email}, {"_id": 0})
+        
+        # Always return success to prevent email enumeration
+        if not user_doc:
+            return {"message": "If an account with this email exists, a password reset link has been sent."}
+        
+        # Check if user has email auth (not Google-only)
+        if user_doc.get("auth_provider") == "google" and not user_doc.get("password_hash"):
+            return {"message": "If an account with this email exists, a password reset link has been sent."}
+        
+        # Generate reset token
+        reset_token = secrets.token_urlsafe(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        
+        # Store reset token
+        await db.password_resets.delete_many({"email": forgot_data.email})  # Remove old tokens
+        await db.password_resets.insert_one({
+            "email": forgot_data.email,
+            "token": reset_token,
+            "expires_at": expires_at.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Send email
+        try:
+            await send_password_reset_email(
+                email=forgot_data.email,
+                reset_token=reset_token,
+                user_name=user_doc.get("name", "User")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {str(e)}")
+            # Don't expose email sending errors to user
+        
+        return {"message": "If an account with this email exists, a password reset link has been sent."}
+        
+    except Exception as e:
+        logger.error(f"Forgot password error: {str(e)}")
+        return {"message": "If an account with this email exists, a password reset link has been sent."}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(reset_data: ResetPasswordRequest):
+    """Reset password using token"""
+    try:
+        # Find reset token
+        reset_doc = await db.password_resets.find_one({"token": reset_data.token}, {"_id": 0})
+        
+        if not reset_doc:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        
+        # Check expiry
+        expires_at = datetime.fromisoformat(reset_doc["expires_at"])
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            await db.password_resets.delete_one({"token": reset_data.token})
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+        
+        # Validate new password
+        is_valid, error_msg = validate_password(reset_data.new_password)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Hash new password
+        password_hash = hash_password(reset_data.new_password)
+        
+        # Update user password
+        result = await db.users.update_one(
+            {"email": reset_doc["email"]},
+            {"$set": {"password_hash": password_hash, "auth_provider": "email"}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=400, detail="User not found")
+        
+        # Delete reset token
+        await db.password_resets.delete_one({"token": reset_data.token})
+        
+        # Invalidate all existing sessions for this user
+        user_doc = await db.users.find_one({"email": reset_doc["email"]}, {"_id": 0})
+        if user_doc:
+            await db.user_sessions.delete_many({"user_id": user_doc["user_id"]})
+        
+        return {"message": "Password has been reset successfully. Please log in with your new password."}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Reset password error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")
+
+@api_router.post("/auth/change-password")
+async def change_password(change_data: ChangePasswordRequest, request: Request):
+    """Change password for authenticated user"""
+    user = await require_auth(request)
+    
+    try:
+        # Get user with password hash
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+        
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if user has password
+        password_hash = user_doc.get("password_hash")
+        if not password_hash:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot change password for Google-only accounts"
+            )
+        
+        # Verify current password
+        if not verify_password(change_data.current_password, password_hash):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+        
+        # Validate new password
+        is_valid, error_msg = validate_password(change_data.new_password)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Hash and update new password
+        new_password_hash = hash_password(change_data.new_password)
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {"$set": {"password_hash": new_password_hash}}
+        )
+        
+        return {"message": "Password changed successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Change password error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to change password")
+
+@api_router.get("/auth/verify-reset-token/{token}")
+async def verify_reset_token(token: str):
+    """Verify if a password reset token is valid"""
+    try:
+        reset_doc = await db.password_resets.find_one({"token": token}, {"_id": 0})
+        
+        if not reset_doc:
+            return {"valid": False, "message": "Invalid reset token"}
+        
+        expires_at = datetime.fromisoformat(reset_doc["expires_at"])
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        
+        if expires_at < datetime.now(timezone.utc):
+            return {"valid": False, "message": "Reset token has expired"}
+        
+        return {"valid": True, "email": reset_doc["email"]}
+        
+    except Exception as e:
+        logger.error(f"Verify reset token error: {str(e)}")
+        return {"valid": False, "message": "Failed to verify token"}
+
 # Invite endpoints
 @api_router.post("/invites", response_model=InviteResponse)
 async def create_invite(invite_data: InviteCreate, request: Request):
