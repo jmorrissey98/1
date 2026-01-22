@@ -26,7 +26,14 @@ export function AuthProvider({ children }) {
       });
       
       if (response.ok) {
-        const userData = await response.json();
+        let userData;
+        try {
+          userData = await response.json();
+        } catch (parseErr) {
+          console.error('Failed to parse user data:', parseErr);
+          setUser(null);
+          return;
+        }
         setUser(userData);
       } else {
         setUser(null);
