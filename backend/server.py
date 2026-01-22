@@ -1229,7 +1229,8 @@ async def list_invites(request: Request):
             email=inv["email"],
             role=inv["role"],
             coach_id=inv.get("coach_id"),
-            created_at=inv["created_at"]
+            created_at=inv["created_at"],
+            email_sent=inv.get("email_sent")
         )
         for inv in invites
     ]
