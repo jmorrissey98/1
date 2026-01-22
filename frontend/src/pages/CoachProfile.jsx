@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, Loader2, Eye, Play, Download, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, Loader2, Eye, Play, Download, FileText, Filter } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -9,10 +9,13 @@ import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { storage } from '../lib/storage';
 import { formatDate, formatTime, generateId, calcPercentage, countBy } from '../lib/utils';
 import { exportCoachReportPDF, exportCoachReportCSV } from '../lib/export';
+import { fetchSessionParts } from '../lib/sessionPartsApi';
+import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -21,6 +24,7 @@ const API = `${BACKEND_URL}/api`;
 export default function CoachProfile() {
   const navigate = useNavigate();
   const { coachId } = useParams();
+  const { isCoachDeveloper } = useAuth();
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -35,9 +39,14 @@ export default function CoachProfile() {
   const [reportStartDate, setReportStartDate] = useState('');
   const [reportEndDate, setReportEndDate] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  
+  // Session part filtering
+  const [availableParts, setAvailableParts] = useState([]);
+  const [selectedPartFilter, setSelectedPartFilter] = useState('all');
 
   useEffect(() => {
     loadCoach();
+    loadSessionParts();
   }, [coachId]);
 
   const loadCoach = () => {
