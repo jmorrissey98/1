@@ -202,13 +202,86 @@ export default function TemplateManager() {
   };
 
   // Session parts functions
-  const addSessionPart = (templateId) => {
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      const parts = template.sessionParts || [];
-      const newPart = { id: generateId('part'), name: `Part ${parts.length + 1}`, order: parts.length };
-      saveAndRefresh({ ...template, sessionParts: [...parts, newPart] });
+  const openAddPartDialog = (templateId) => {
+    setAddPartTemplateId(templateId);
+    setCustomPartName('');
+    setAddAsGlobalDefault(false);
+    setShowAddPartDialog(true);
+  };
+
+  const handleSaveNewPart = async () => {
+    if (!customPartName.trim()) {
+      toast.error('Please enter a part name');
+      return;
     }
+
+    const template = templates.find(t => t.id === addPartTemplateId);
+    if (!template) return;
+
+    setSavingPart(true);
+    try {
+      // If adding as global default (Coach Developer only)
+      if (addAsGlobalDefault && isCoachDeveloper()) {
+        const newGlobalPart = await createSessionPart(customPartName.trim(), true);
+        await loadGlobalParts();
+        
+        // Add to template
+        const parts = template.sessionParts || [];
+        const newPart = { 
+          id: generateId('part'), 
+          name: customPartName.trim(), 
+          order: parts.length,
+          partId: newGlobalPart.part_id,
+          isDefault: true
+        };
+        saveAndRefresh({ ...template, sessionParts: [...parts, newPart] });
+        toast.success('Session part added as new global default');
+      } else {
+        // Add as one-off custom part for this template only
+        const parts = template.sessionParts || [];
+        const newPart = { 
+          id: generateId('part'), 
+          name: customPartName.trim(), 
+          order: parts.length,
+          isCustom: true
+        };
+        saveAndRefresh({ ...template, sessionParts: [...parts, newPart] });
+        toast.success('Custom session part added');
+      }
+      
+      setShowAddPartDialog(false);
+      setCustomPartName('');
+    } catch (err) {
+      toast.error(err.message || 'Failed to create session part');
+    } finally {
+      setSavingPart(false);
+    }
+  };
+
+  const addGlobalPartToTemplate = (templateId, globalPart) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    const parts = template.sessionParts || [];
+    // Check if already added
+    if (parts.some(p => p.name === globalPart.name)) {
+      toast.error('This part is already in the template');
+      return;
+    }
+
+    const newPart = { 
+      id: generateId('part'), 
+      name: globalPart.name, 
+      order: parts.length,
+      partId: globalPart.part_id,
+      isDefault: true
+    };
+    saveAndRefresh({ ...template, sessionParts: [...parts, newPart] });
+    toast.success(`Added "${globalPart.name}" to template`);
+  };
+
+  const addSessionPart = (templateId) => {
+    openAddPartDialog(templateId);
   };
 
   const updateSessionPart = (templateId, partId, name) => {
