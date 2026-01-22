@@ -105,10 +105,29 @@ Build a lightweight iPad-first coach observation app for coach education. Design
   - Flexible header layouts
   - Proper text scaling across devices
 
+### PWA & Offline-First (Jan 2026)
+- ✅ **Progressive Web App (PWA)** - Installable on iPad, phone, and desktop
+  - manifest.json with app icons and metadata
+  - Service worker for offline caching
+  - Apple touch icon for iOS home screen
+- ✅ **Offline Indicator** - Non-intrusive sync status in corner
+  - Shows online/offline status
+  - Displays pending sync count
+  - Manual sync trigger when online
+- ✅ **Offline Data Queue** - Changes saved locally when offline
+  - Session parts creation queued when offline
+  - "Most recent edit wins" conflict resolution
+  - Automatic sync when coming back online
+- ✅ **Service Worker** - Caches app shell for offline use
+  - Static assets cached on install
+  - Network-first for HTML, cache-first for assets
+  - Graceful fallbacks when offline
+
 ## Prioritized Backlog
 
 ### P0 (Critical) - COMPLETE
 All core observation and review features implemented
+PWA and offline-first functionality implemented
 
 ### P1 (High Priority) - Future
 - Cloud backup/sync option
