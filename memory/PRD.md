@@ -135,6 +135,32 @@ All core observation and review features implemented
 - AI-powered analysis
 - Judgement/grading of coaching quality
 
+## Session Parts System (Updated Jan 2026)
+
+### Global Default Session Parts (stored in MongoDB)
+- ✅ Develop the technique
+- ✅ Develop the game model
+- ✅ Develop performance
+- ✅ Develop mentality
+
+### Session Parts Features
+- ✅ Coach Developers can select from defaults or create custom parts
+- ✅ Custom parts can be added as "new default" (globally available) or "one-off" (session-only)
+- ✅ Same part can be used multiple times in a session (multiple time ranges)
+- ✅ Track total session duration and duration per part
+- ✅ Coaches can only select from existing parts (cannot create defaults)
+
+### Session Parts Analysis
+- ✅ Session-level: View all data or filter by any session part
+- ✅ Coach Profile: Filter data by session parts (defaults + custom)
+- ✅ Data is descriptive only (counts, frequencies, percentages - no scoring)
+
+### API Endpoints
+- GET /api/session-parts - Get all session parts
+- GET /api/session-parts/defaults - Get only default parts
+- POST /api/session-parts - Create new part (is_default flag for Coach Developers)
+- DELETE /api/session-parts/{part_id} - Delete custom part (Coach Developer only)
+
 ## Next Tasks
 1. Test Google OAuth flow end-to-end
 2. Coach profile photo upload
