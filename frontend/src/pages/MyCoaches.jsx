@@ -11,7 +11,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { safeGet, safePost, safeDelete } from '../lib/safeFetch';
-import { storage } from '../lib/storage';
 
 const API_URL = '';
 
