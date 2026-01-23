@@ -899,19 +899,11 @@ export default function CoachProfile() {
 
           {/* Targets Tab */}
           <TabsContent value="targets" className="space-y-6">
-            {/* Info Banner */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Targets are optional development focus areas for reference only. 
-                They are non-evaluative and not linked to any scoring or assessment.
-              </p>
-            </div>
-
             {/* Add Target */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope']">Development Targets</CardTitle>
-                <CardDescription>Set optional focus areas for this coach's development journey</CardDescription>
+                <CardDescription>Set focus areas used in AI summaries and development trends</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2 mb-6">
