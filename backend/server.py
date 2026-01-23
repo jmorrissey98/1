@@ -31,11 +31,10 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Resend configuration - HARDCODED for production reliability
-# Do NOT rely on environment variables as deployment may override with wrong values
-RESEND_API_KEY = 're_aU3vsuXp_7X7s65NdgNgKeYfaxaNMVFrD'
-SENDER_EMAIL = 'noreply@mycoachdeveloper.com'
-APP_URL = 'https://mycoachdeveloper.com'
+# Resend configuration - Read from environment with fallbacks
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', 're_aU3vsuXp_7X7s65NdgNgKeYfaxaNMVFrD')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@mycoachdeveloper.com')
+APP_URL = os.environ.get('APP_URL', 'https://mycoachdeveloper.com')
 
 # Initialize Resend
 resend.api_key = RESEND_API_KEY
