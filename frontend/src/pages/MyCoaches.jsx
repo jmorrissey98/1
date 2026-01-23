@@ -33,6 +33,12 @@ export default function MyCoaches() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    // Clear any stale localStorage coaches data - we now use API only
+    try {
+      localStorage.removeItem('mcd_coaches');
+    } catch (e) {
+      console.error('Failed to clear stale coaches cache:', e);
+    }
     loadCoaches();
   }, []);
 
@@ -47,17 +53,16 @@ export default function MyCoaches() {
         throw new Error(result.data?.detail || 'Failed to load coaches');
       }
       
-      // Enrich with session count from local storage
-      const coachesWithStats = (result.data || []).map(coach => ({
+      // Use only API data - no localStorage enrichment that might cause issues
+      const coachesFromApi = result.data || [];
+      setCoaches(coachesFromApi.map(coach => ({
         ...coach,
-        sessionCount: storage.getCoachSessions(coach.id).length,
         activeTargets: (coach.targets || []).filter(t => t.status === 'active').length
-      }));
-      
-      setCoaches(coachesWithStats);
+      })));
     } catch (err) {
       console.error('Failed to load coaches:', err);
       setError(err.message || 'Failed to load coaches');
+      setCoaches([]); // Clear any stale data on error
     } finally {
       setLoading(false);
     }
