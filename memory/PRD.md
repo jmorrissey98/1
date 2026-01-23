@@ -182,13 +182,19 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 ```
 MONGO_URL=mongodb://localhost:27017
 DB_NAME=test_database
-RESEND_API_KEY=re_xxxxx (hardcoded fallback)
-SENDER_EMAIL=noreply@mycoachdeveloper.com (hardcoded fallback)
-APP_URL=https://mycoachdeveloper.com (hardcoded fallback)
+RESEND_API_KEY=re_xxxxx (reads from env, has fallback)
+SENDER_EMAIL=noreply@mycoachdeveloper.com (reads from env, has fallback)
+APP_URL=https://mycoachdeveloper.com (reads from env, has fallback)
+CORS_ORIGINS=* (or comma-separated list of allowed origins)
 ```
 
 ### Deployment Notes
 1. Frontend uses relative API URLs for same-domain deployment
-2. CORS configured for mycoachdeveloper.com
-3. Hardcoded fallbacks ensure email works even if env vars fail
+2. CORS configured to support wildcard (*) or specific origins list
+3. Environment variables are read with fallbacks for reliability
 4. Check `/api/config-check` after deployment to verify
+5. Delete coach also cleans up associated pending invites
+
+### Test Credentials
+- **Coach Developer**: joemorrisseyg@gmail.com / MCD26 (or Google Auth)
+- **Coach**: Invite via Settings or "My Coaches" page, then sign up
