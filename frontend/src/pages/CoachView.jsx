@@ -7,9 +7,11 @@ import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Progress } from '../components/ui/progress';
 import { toast } from 'sonner';
-import { storage } from '../lib/storage';
 import { formatDate, formatTime, calcPercentage } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { safeGet } from '../lib/safeFetch';
+
+const API_URL = '';
 
 export default function CoachView() {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export default function CoachView() {
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Verify access - only allow if user is a coach linked to this profile or a coach developer
@@ -27,19 +30,39 @@ export default function CoachView() {
       return;
     }
 
-    const loadedCoach = storage.getCoach(coachId);
-    if (!loadedCoach) {
-      toast.error('Coach not found');
-      navigate('/');
-      return;
-    }
-    setCoach(loadedCoach);
-    
-    const coachSessions = storage.getCoachSessions(coachId)
-      .filter(s => s.status === 'completed')
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setSessions(coachSessions);
+    loadCoachData();
   }, [coachId, navigate, user]);
+
+  const loadCoachData = async () => {
+    setLoading(true);
+    try {
+      const result = await safeGet(`${API_URL}/api/coaches/${coachId}`);
+      
+      if (!result.ok) {
+        toast.error(result.data?.detail || 'Coach not found');
+        navigate('/coaches');
+        return;
+      }
+      
+      setCoach(result.data);
+      // Sessions would come from the coach data or a separate endpoint
+      setSessions(result.data?.sessions || []);
+    } catch (err) {
+      console.error('Failed to load coach:', err);
+      toast.error('Failed to load coach');
+      navigate('/coaches');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   if (!coach) return null;
 
