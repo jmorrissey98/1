@@ -2192,25 +2192,33 @@ async def get_coach_sessions(request: Request):
     
     sessions = await sessions_cursor.to_list(100)
     
+    if not sessions:
+        return []
+    
+    # Batch fetch reflections to avoid N+1 queries
+    session_ids = [s.get("session_id") for s in sessions]
+    reflections = await db.reflections.find(
+        {"session_id": {"$in": session_ids}, "coach_id": user.linked_coach_id},
+        {"_id": 0, "session_id": 1}
+    ).to_list(100)
+    reflection_session_ids = {r["session_id"] for r in reflections}
+    
+    # Batch fetch observers to avoid N+1 queries
+    observer_ids = list(set(s.get("observer_id") for s in sessions if s.get("observer_id")))
+    observers_map = {}
+    if observer_ids:
+        observers = await db.users.find(
+            {"user_id": {"$in": observer_ids}},
+            {"_id": 0, "user_id": 1, "name": 1}
+        ).to_list(100)
+        observers_map = {o["user_id"]: o.get("name") for o in observers}
+    
     result = []
     for session in sessions:
         session_id = session.get("session_id")
-        
-        # Check if has observation data
         has_observation = bool(session.get("observations") or session.get("ai_summary"))
-        
-        # Check if has reflection
-        reflection = await db.reflections.find_one({
-            "session_id": session_id,
-            "coach_id": user.linked_coach_id
-        }, {"_id": 0})
-        has_reflection = reflection is not None
-        
-        # Get observer name if available
-        observer_name = None
-        if session.get("observer_id"):
-            observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
-            observer_name = observer.get("name") if observer else None
+        has_reflection = session_id in reflection_session_ids
+        observer_name = observers_map.get(session.get("observer_id"))
         
         result.append({
             "session_id": session_id,
