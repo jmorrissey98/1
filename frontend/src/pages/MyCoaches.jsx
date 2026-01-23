@@ -32,9 +32,20 @@ export default function MyCoaches() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    // Clear any stale localStorage coaches data - we now use API only
+    // Clear ALL stale localStorage coach data - we now use API only
     try {
-      localStorage.removeItem('mcd_coaches');
+      // Remove all possible coach-related localStorage keys
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('coach') || key.includes('mcd_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => {
+        console.log('[MyCoaches] Clearing stale cache:', key);
+        localStorage.removeItem(key);
+      });
     } catch (e) {
       console.error('Failed to clear stale coaches cache:', e);
     }
