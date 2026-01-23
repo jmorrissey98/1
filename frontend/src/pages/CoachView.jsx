@@ -38,26 +38,31 @@ export default function CoachView() {
 
   const loadCoachData = async () => {
     setLoading(true);
+    console.log('[CoachView] Loading coach data for:', coachId);
     try {
       const result = await safeGet(`${API_URL}/api/coaches/${coachId}`);
+      console.log('[CoachView] API response:', result);
       
       if (!result.ok) {
         // If 401, user might not be authenticated
         if (result.status === 401) {
+          console.log('[CoachView] Auth error - redirecting to home');
           toast.error('Please log in to view coach details');
           navigate('/');
           return;
         }
+        console.log('[CoachView] Coach not found:', result.data?.detail);
         toast.error(result.data?.detail || 'Coach not found');
         navigate('/coaches');
         return;
       }
       
+      console.log('[CoachView] Coach loaded successfully:', result.data?.name);
       setCoach(result.data);
       // Sessions would come from the coach data or a separate endpoint
       setSessions(result.data?.sessions || []);
     } catch (err) {
-      console.error('Failed to load coach:', err);
+      console.error('[CoachView] Failed to load coach:', err);
       toast.error('Failed to load coach');
       navigate('/coaches');
     } finally {
