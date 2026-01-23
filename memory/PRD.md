@@ -125,7 +125,22 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 
 ## Completed Work
 
-### January 22, 2026 (Latest)
+### January 23, 2026 (Latest)
+- ✅ **Deployment & Environment Fixes**
+  - Fixed hardcoded credentials to use environment variables with fallbacks
+  - Improved CORS configuration to handle wildcard origins properly
+  - Cleaned up orphaned invites when coaches are deleted
+- ✅ **Add Coach Flow (UI Verified)**
+  - Coach Developer can add coaches from "My Coaches" page
+  - Requires email field (mandatory)
+  - Automatically creates an invite for the email
+  - Shows "Pending" status until coach signs up
+- ✅ **Delete Coach Flow (UI Verified)**
+  - Confirmation dialog before deletion
+  - Deletes coach profile and associated pending invites
+  - User account remains intact if linked
+
+### January 22, 2026 
 - ✅ **Coach Role Implementation**
   - Coach dashboard with profile, targets, upcoming observations
   - My Sessions tab with session list and detail view
@@ -133,8 +148,6 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
   - Profile editing (limited fields: role, age group, department, bio)
   - Role-based routing and access control
   - Backend security: all coach queries filtered by coach_id
-
-### January 22, 2026 (Earlier)
 - ✅ Fixed CORS configuration for custom domain
 - ✅ Fixed cross-domain cookie issue (relative URLs)
 - ✅ Fixed .gitignore blocking .env files
