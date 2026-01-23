@@ -19,13 +19,29 @@ export const SyncStatus = {
 
 // Queue item types
 export const QueueItemType = {
+  // Session operations
   CREATE_SESSION: 'create_session',
   UPDATE_SESSION: 'update_session',
   DELETE_SESSION: 'delete_session',
+  SAVE_SESSION_TO_DB: 'save_session_to_db',
+  
+  // Coach operations
   CREATE_COACH: 'create_coach',
   UPDATE_COACH: 'update_coach',
   DELETE_COACH: 'delete_coach',
+  UPDATE_COACH_PROFILE: 'update_coach_profile',
+  
+  // Session parts
   CREATE_SESSION_PART: 'create_session_part',
+  
+  // Reflections (for Coach role)
+  CREATE_REFLECTION: 'create_reflection',
+  UPDATE_REFLECTION: 'update_reflection',
+  
+  // Targets
+  UPDATE_COACH_TARGETS: 'update_coach_targets',
+  
+  // File uploads
   UPLOAD_FILE: 'upload_file'
 };
 
