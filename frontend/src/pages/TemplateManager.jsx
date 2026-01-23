@@ -341,22 +341,18 @@ export default function TemplateManager() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        {template.id === 'default' ? (
-                          <CardTitle className="font-['Manrope']">{template.name}</CardTitle>
-                        ) : (
-                          <Input
-                            value={template.name}
-                            onChange={(e) => updateTemplateName(template.id, e.target.value)}
-                            className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0 max-w-xs"
-                            data-testid={`template-name-${template.id}`}
-                          />
-                        )}
+                        <Input
+                          value={template.name}
+                          onChange={(e) => updateTemplateName(template.id, e.target.value)}
+                          className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0 max-w-xs"
+                          data-testid={`template-name-${template.id}`}
+                        />
                         {template.id === 'default' && (
                           <Badge variant="secondary">Default</Badge>
                         )}
                       </div>
                       <CardDescription className="mt-1">
-                        {(template.eventTypes || []).length} events • {((template.descriptorGroup1?.descriptors || []).length + (template.descriptorGroup2?.descriptors || []).length)} descriptors • {(template.sessionParts || []).length} parts
+                        {(template.eventTypes || template.interventionTypes || []).length} interventions • {((template.descriptorGroup1?.descriptors || []).length + (template.descriptorGroup2?.descriptors || []).length)} descriptors • {(template.sessionParts || []).length} parts
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-1">
