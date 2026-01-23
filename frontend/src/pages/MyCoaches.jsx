@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { safeGet } from '../lib/safeFetch';
+import { safeGet, safePost } from '../lib/safeFetch';
 import { storage } from '../lib/storage';
 
 const API_URL = '';
@@ -16,6 +19,13 @@ export default function MyCoaches() {
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Add Coach dialog state
+  const [showAddCoach, setShowAddCoach] = useState(false);
+  const [newCoachName, setNewCoachName] = useState('');
+  const [newCoachEmail, setNewCoachEmail] = useState('');
+  const [newCoachRole, setNewCoachRole] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     loadCoaches();
@@ -49,6 +59,38 @@ export default function MyCoaches() {
     }
   };
 
+  const handleCreateCoach = async () => {
+    if (!newCoachName.trim()) {
+      toast.error('Please enter a coach name');
+      return;
+    }
+    
+    setIsCreating(true);
+    
+    try {
+      const result = await safePost(`${API_URL}/api/coaches`, {
+        name: newCoachName.trim(),
+        email: newCoachEmail.trim() || null,
+        role_title: newCoachRole.trim() || null
+      });
+      
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to create coach');
+      }
+      
+      toast.success(`Coach "${newCoachName}" added successfully`);
+      setShowAddCoach(false);
+      setNewCoachName('');
+      setNewCoachEmail('');
+      setNewCoachRole('');
+      await loadCoaches();
+    } catch (err) {
+      toast.error(err.message || 'Failed to create coach');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -79,13 +121,82 @@ export default function MyCoaches() {
             <div>
               <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Coaches</h1>
               <p className="text-sm text-slate-500">
-                Coaches who have signed up appear automatically
+                Manage coach profiles and development
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate('/settings')} data-testid="invite-coach-btn">
-            Invite Coach
-          </Button>
+          
+          {/* Add Coach Dialog */}
+          <Dialog open={showAddCoach} onOpenChange={setShowAddCoach}>
+            <DialogTrigger asChild>
+              <Button data-testid="add-coach-btn">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Coach
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Coach</DialogTitle>
+                <DialogDescription>
+                  Create a coach profile. If you include their email, they'll be linked automatically when they sign up.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="coach-name">Name *</Label>
+                  <Input
+                    id="coach-name"
+                    value={newCoachName}
+                    onChange={(e) => setNewCoachName(e.target.value)}
+                    placeholder="Enter coach name"
+                    className="mt-1"
+                    data-testid="coach-name-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="coach-email">Email</Label>
+                  <Input
+                    id="coach-email"
+                    type="email"
+                    value={newCoachEmail}
+                    onChange={(e) => setNewCoachEmail(e.target.value)}
+                    placeholder="coach@example.com"
+                    className="mt-1"
+                    data-testid="coach-email-input"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Optional - Links profile when they create an account
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="coach-role">Role / Title</Label>
+                  <Input
+                    id="coach-role"
+                    value={newCoachRole}
+                    onChange={(e) => setNewCoachRole(e.target.value)}
+                    placeholder="e.g., Head Coach U16s"
+                    className="mt-1"
+                    data-testid="coach-role-input"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddCoach(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreateCoach} 
+                  disabled={isCreating || !newCoachName.trim()}
+                  data-testid="create-coach-btn"
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
+                  Add Coach
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
@@ -103,12 +214,18 @@ export default function MyCoaches() {
             <CardContent className="py-12 text-center">
               <User className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">No coaches yet</h3>
-              <p className="text-slate-500 mb-4 max-w-md mx-auto">
-                When you invite someone as a Coach and they sign up, they'll automatically appear here.
+              <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                Add coaches manually or invite them via Settings. When invited coaches sign up, they appear here automatically.
               </p>
-              <Button onClick={() => navigate('/settings')}>
-                Go to Settings to Invite
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => setShowAddCoach(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Coach
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/settings')}>
+                  Send Invite
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -116,8 +233,8 @@ export default function MyCoaches() {
             {/* Info Banner */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
               <p>
-                <strong>Coaches appear automatically</strong> when they accept your invite and create an account.
-                Use Settings → Invite to add new coaches.
+                <strong>Tip:</strong> Coaches appear automatically when they sign up via invite.
+                You can also add them manually using the "Add Coach" button.
               </p>
             </div>
             
@@ -159,10 +276,8 @@ export default function MyCoaches() {
                           {coach.role_title && (
                             <p className="text-sm text-slate-500">{coach.role_title}</p>
                           )}
-                          {(coach.age_group || coach.department) && (
-                            <p className="text-xs text-slate-400">
-                              {[coach.age_group, coach.department].filter(Boolean).join(' • ')}
-                            </p>
+                          {coach.email && (
+                            <p className="text-xs text-slate-400">{coach.email}</p>
                           )}
                         </div>
                       </div>
@@ -182,7 +297,7 @@ export default function MyCoaches() {
                           </div>
                           {coach.created_at && (
                             <p className="text-xs text-slate-400 mt-1">
-                              Joined {formatDate(coach.created_at)}
+                              Added {formatDate(coach.created_at)}
                             </p>
                           )}
                         </div>
