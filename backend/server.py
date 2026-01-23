@@ -883,11 +883,35 @@ async def exchange_session(request: Request, response: Response):
                 # Use invite role and coach_id
                 user_role = invite.get("role", "coach")
                 linked_coach_id = invite.get("coach_id")
+                invited_by = invite.get("invited_by")
+                
                 # Mark invite as used
                 await db.invites.update_one(
                     {"invite_id": invite["invite_id"]},
-                    {"$set": {"used": True}}
+                    {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}}
                 )
+                
+                # Auto-create coach profile if role is coach
+                if user_role == "coach":
+                    coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+                    new_coach = {
+                        "id": coach_id,
+                        "user_id": None,  # Will be set after user creation
+                        "name": name,
+                        "email": email,
+                        "photo": picture,
+                        "role_title": None,
+                        "age_group": None,
+                        "department": None,
+                        "bio": None,
+                        "targets": [],
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "created_by": invited_by
+                    }
+                    await db.coaches.insert_one(new_coach)
+                    linked_coach_id = coach_id
+                    logger.info(f"Auto-created coach profile {coach_id} for invited user {email}")
             else:
                 # No invite - reject registration
                 raise HTTPException(
@@ -904,9 +928,16 @@ async def exchange_session(request: Request, response: Response):
                 "picture": picture,
                 "role": user_role,
                 "linked_coach_id": linked_coach_id,
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "auth_provider": "google"
             }
             await db.users.insert_one(new_user)
+            
+            # Update coach profile with user_id if coach was created
+            if user_role == "coach" and linked_coach_id:
+                await db.coaches.update_one(
+                    {"id": linked_coach_id},
+                    {"$set": {"user_id": user_id}}
         
         # Store session
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
