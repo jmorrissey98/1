@@ -1442,6 +1442,98 @@ async def list_all_coaches(request: Request):
     
     return result
 
+@api_router.post("/coaches")
+async def create_coach_manually(request: Request):
+    """
+    Manually create a coach profile (Coach Developer only).
+    Used when adding a coach before they have an account.
+    """
+    user = await require_coach_developer(request)
+    body = await request.json()
+    
+    name = body.get("name", "").strip()
+    email = body.get("email", "").strip().lower() if body.get("email") else None
+    role_title = body.get("role_title", "").strip() if body.get("role_title") else None
+    
+    if not name:
+        raise HTTPException(status_code=400, detail="Coach name is required")
+    
+    # Check if a coach profile already exists with this email
+    if email:
+        existing_coach = await db.coaches.find_one(
+            {"email": {"$regex": f"^{email}$", "$options": "i"}},
+            {"_id": 0}
+        )
+        if existing_coach:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"A coach profile already exists for {email}"
+            )
+        
+        # Check if a user with this email exists and has role=coach
+        existing_user = await db.users.find_one(
+            {"email": {"$regex": f"^{email}$", "$options": "i"}},
+            {"_id": 0}
+        )
+        if existing_user and existing_user.get("role") == "coach":
+            # User exists as coach - create profile and link
+            coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+            new_coach = {
+                "id": coach_id,
+                "user_id": existing_user.get("user_id"),
+                "name": name,
+                "email": email,
+                "photo": existing_user.get("picture"),
+                "role_title": role_title,
+                "age_group": None,
+                "department": None,
+                "bio": None,
+                "targets": [],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": user.user_id
+            }
+            await db.coaches.insert_one(new_coach)
+            
+            # Link user to coach profile
+            await db.users.update_one(
+                {"user_id": existing_user.get("user_id")},
+                {"$set": {"linked_coach_id": coach_id}}
+            )
+            
+            logger.info(f"Coach profile {coach_id} created and linked to existing user {email}")
+            
+            return {
+                **new_coach,
+                "has_account": True
+            }
+    
+    # Create unlinked coach profile (no user account yet)
+    coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+    new_coach = {
+        "id": coach_id,
+        "user_id": None,
+        "name": name,
+        "email": email,
+        "photo": None,
+        "role_title": role_title,
+        "age_group": None,
+        "department": None,
+        "bio": None,
+        "targets": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user.user_id
+    }
+    await db.coaches.insert_one(new_coach)
+    
+    logger.info(f"Coach profile {coach_id} created manually by {user.user_id}")
+    
+    return {
+        **new_coach,
+        "has_account": False
+    }
+
 @api_router.get("/coaches/{coach_id}")
 async def get_coach_detail(coach_id: str, request: Request):
     """
