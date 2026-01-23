@@ -938,6 +938,7 @@ async def exchange_session(request: Request, response: Response):
                 await db.coaches.update_one(
                     {"id": linked_coach_id},
                     {"$set": {"user_id": user_id}}
+                )
         
         # Store session
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
