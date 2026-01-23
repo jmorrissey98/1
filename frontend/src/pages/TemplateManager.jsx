@@ -435,7 +435,7 @@ export default function TemplateManager() {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        {(template.eventTypes || []).map(event => (
+                        {(template.eventTypes || template.interventionTypes || []).map(event => (
                           <div key={event.id} className="flex items-center gap-2">
                             <Input
                               value={event.name}
@@ -453,6 +453,9 @@ export default function TemplateManager() {
                             </Button>
                           </div>
                         ))}
+                        {(template.eventTypes || template.interventionTypes || []).length === 0 && (
+                          <p className="text-sm text-slate-400 italic">No interventions added yet. Click "Add" to create one.</p>
+                        )}
                       </div>
                     </div>
 
