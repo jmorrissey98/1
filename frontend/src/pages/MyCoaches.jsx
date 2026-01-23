@@ -280,8 +280,13 @@ export default function MyCoaches() {
         {error ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button variant="outline" onClick={loadCoaches}>Try Again</Button>
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <h3 className="font-medium text-slate-900 mb-2">Something went wrong</h3>
+              <p className="text-slate-600 mb-6 max-w-md mx-auto">{error}</p>
+              <Button onClick={loadCoaches}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
             </CardContent>
           </Card>
         ) : coaches.length === 0 ? (
