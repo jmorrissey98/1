@@ -1463,7 +1463,8 @@ async def list_all_coaches(request: Request):
 async def create_coach_manually(request: Request):
     """
     Manually create a coach profile (Coach Developer only).
-    Used when adding a coach before they have an account.
+    Also creates an invite if the user doesn't exist.
+    Email is required to ensure proper linking.
     """
     user = await require_coach_developer(request)
     body = await request.json()
@@ -1475,58 +1476,66 @@ async def create_coach_manually(request: Request):
     if not name:
         raise HTTPException(status_code=400, detail="Coach name is required")
     
-    # Check if a coach profile already exists with this email
-    if email:
-        existing_coach = await db.coaches.find_one(
-            {"email": {"$regex": f"^{email}$", "$options": "i"}},
-            {"_id": 0}
-        )
-        if existing_coach:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"A coach profile already exists for {email}"
-            )
-        
-        # Check if a user with this email exists and has role=coach
-        existing_user = await db.users.find_one(
-            {"email": {"$regex": f"^{email}$", "$options": "i"}},
-            {"_id": 0}
-        )
-        if existing_user and existing_user.get("role") == "coach":
-            # User exists as coach - create profile and link
-            coach_id = f"coach_{uuid.uuid4().hex[:12]}"
-            new_coach = {
-                "id": coach_id,
-                "user_id": existing_user.get("user_id"),
-                "name": name,
-                "email": email,
-                "photo": existing_user.get("picture"),
-                "role_title": role_title,
-                "age_group": None,
-                "department": None,
-                "bio": None,
-                "targets": [],
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-                "created_by": user.user_id
-            }
-            await db.coaches.insert_one(new_coach)
-            
-            # Link user to coach profile
-            await db.users.update_one(
-                {"user_id": existing_user.get("user_id")},
-                {"$set": {"linked_coach_id": coach_id}}
-            )
-            
-            logger.info(f"Coach profile {coach_id} created and linked to existing user {email}")
-            
-            return {
-                **new_coach,
-                "has_account": True
-            }
+    if not email:
+        raise HTTPException(status_code=400, detail="Coach email is required")
     
-    # Create unlinked coach profile (no user account yet)
+    if not validate_email(email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    # Check if a coach profile already exists with this email
+    existing_coach = await db.coaches.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    if existing_coach:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"A coach profile already exists for {email}"
+        )
+    
+    # Check if a user with this email exists
+    existing_user = await db.users.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    
     coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+    
+    if existing_user:
+        # User exists - create profile and link
+        new_coach = {
+            "id": coach_id,
+            "user_id": existing_user.get("user_id"),
+            "name": name,
+            "email": email,
+            "photo": existing_user.get("picture"),
+            "role_title": role_title,
+            "age_group": None,
+            "department": None,
+            "bio": None,
+            "targets": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": user.user_id
+        }
+        await db.coaches.insert_one(new_coach)
+        
+        # Link user to coach profile and set role to coach
+        await db.users.update_one(
+            {"user_id": existing_user.get("user_id")},
+            {"$set": {"linked_coach_id": coach_id, "role": "coach"}}
+        )
+        
+        logger.info(f"Coach profile {coach_id} created and linked to existing user {email}")
+        
+        return {
+            **new_coach,
+            "_id": None,
+            "has_account": True,
+            "invite_sent": False
+        }
+    
+    # User doesn't exist - create coach profile AND an invite
     new_coach = {
         "id": coach_id,
         "user_id": None,
@@ -1544,11 +1553,45 @@ async def create_coach_manually(request: Request):
     }
     await db.coaches.insert_one(new_coach)
     
+    # Check if invite already exists for this email
+    existing_invite = await db.invites.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}, "used": False},
+        {"_id": 0}
+    )
+    
+    invite_sent = False
+    if not existing_invite:
+        # Create invite with coach role, linked to this coach profile
+        invite_id = f"inv_{uuid.uuid4().hex[:12]}"
+        invite = {
+            "invite_id": invite_id,
+            "email": email,
+            "role": "coach",
+            "coach_id": coach_id,  # Link invite to coach profile
+            "invited_by": user.user_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "used": False
+        }
+        await db.invites.insert_one(invite)
+        
+        # Send invite email
+        try:
+            await send_invite_email(
+                email=email,
+                inviter_name=user.name,
+                role="coach"
+            )
+            invite_sent = True
+            logger.info(f"Invite sent to {email} for coach profile {coach_id}")
+        except Exception as e:
+            logger.error(f"Failed to send invite email to {email}: {str(e)}")
+    
     logger.info(f"Coach profile {coach_id} created manually by {user.user_id}")
     
     return {
-        **new_coach,
-        "has_account": False
+        **{k: v for k, v in new_coach.items() if k != "_id"},
+        "has_account": False,
+        "invite_sent": invite_sent
     }
 
 @api_router.get("/coaches/{coach_id}")
