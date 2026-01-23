@@ -139,6 +139,15 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
   - Confirmation dialog before deletion
   - Deletes coach profile and associated pending invites
   - User account remains intact if linked
+- ✅ **Coach Signup Flow (E2E Verified)**
+  - Fixed: Coach profile now auto-links to user on signup
+  - Coach status updates from "Pending" to "Active" on signup
+  - User gets correct role and linked_coach_id
+  - Coach can access their dashboard immediately after signup
+- ✅ **Coach Role Experience (UI Verified)**
+  - Coach Dashboard showing profile, targets, observations, sessions
+  - My Sessions page with search functionality
+  - Profile Edit page with editable fields
 
 ### January 22, 2026 
 - ✅ **Coach Role Implementation**
