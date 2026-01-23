@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Camera, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, User, Camera, Loader2, Save, CloudOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -8,12 +8,12 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { toast } from 'sonner';
-import { safeGet, safePut } from '../lib/safeFetch';
-
-const API_URL = '';
+import { fetchCoachProfile, updateCoachProfile } from '../lib/offlineApi';
+import { useSync } from '../contexts/SyncContext';
 
 export default function CoachProfileEdit() {
   const navigate = useNavigate();
+  const { online } = useSync();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -34,10 +34,10 @@ export default function CoachProfileEdit() {
     setError(null);
     
     try {
-      const result = await safeGet(`${API_URL}/api/coach/profile`);
+      const result = await fetchCoachProfile();
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to load profile');
+        throw new Error(result.error || 'Failed to load profile');
       }
       
       setProfile(result.data);
@@ -57,7 +57,7 @@ export default function CoachProfileEdit() {
     setSaving(true);
     
     try {
-      const result = await safePut(`${API_URL}/api/coach/profile`, {
+      const result = await updateCoachProfile({
         role_title: roleTitle || null,
         age_group: ageGroup || null,
         department: department || null,
@@ -65,10 +65,14 @@ export default function CoachProfileEdit() {
       });
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to save profile');
+        throw new Error(result.error || 'Failed to save profile');
       }
       
-      toast.success('Profile updated');
+      if (result.queued) {
+        toast.success('Profile saved locally - will sync when online');
+      } else {
+        toast.success('Profile updated');
+      }
       setProfile(result.data);
     } catch (err) {
       toast.error(err.message || 'Failed to save profile');
