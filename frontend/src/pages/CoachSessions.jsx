@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, CheckCircle, Clock, ChevronRight, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle, Clock, ChevronRight, Loader2, Search, CloudOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
-import { safeGet } from '../lib/safeFetch';
-
-const API_URL = '';
+import { fetchCoachSessions } from '../lib/offlineApi';
+import { useSync } from '../contexts/SyncContext';
 
 export default function CoachSessions() {
   const navigate = useNavigate();
+  const { online } = useSync();
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
 
   useEffect(() => {
     loadSessions();
@@ -25,13 +26,14 @@ export default function CoachSessions() {
     setError(null);
     
     try {
-      const result = await safeGet(`${API_URL}/api/coach/sessions`);
+      const result = await fetchCoachSessions();
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to load sessions');
+        throw new Error(result.error || 'Failed to load sessions');
       }
       
       setSessions(result.data || []);
+      setFromCache(result.fromCache || false);
     } catch (err) {
       console.error('Sessions error:', err);
       setError(err.message || 'Failed to load sessions');
