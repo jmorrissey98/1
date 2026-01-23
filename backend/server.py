@@ -1095,6 +1095,18 @@ async def signup(signup_data: SignupRequest, response: Response):
         }
         await db.users.insert_one(new_user)
         
+        # Update coach profile if this is a coach user with a linked coach profile
+        if user_role == "coach" and linked_coach_id:
+            await db.coaches.update_one(
+                {"id": linked_coach_id},
+                {"$set": {
+                    "user_id": user_id,
+                    "has_account": True,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            logger.info(f"Linked user {user_id} to coach profile {linked_coach_id}")
+        
         # Create session
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
         await db.user_sessions.insert_one({
