@@ -37,11 +37,18 @@ export default function UserSettings() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load coaches from local storage
-      setCoaches(storage.getCoaches());
-      
       if (isCoachDeveloper()) {
-        // Load users and invites from backend
+        // Load coaches from API (not localStorage)
+        try {
+          const coachesResult = await safeGet(`${API_URL}/api/coaches`);
+          if (coachesResult.ok && coachesResult.data) {
+            setCoaches(coachesResult.data);
+          }
+        } catch (e) {
+          console.error('Failed to load coaches:', e);
+        }
+        
+        // Load users from backend
         try {
           const usersResult = await safeGet(`${API_URL}/api/users`);
           if (usersResult.ok && usersResult.data) {
@@ -51,6 +58,7 @@ export default function UserSettings() {
           console.error('Failed to load users:', e);
         }
         
+        // Load invites from backend
         try {
           const invitesResult = await safeGet(`${API_URL}/api/invites`);
           if (invitesResult.ok && invitesResult.data) {
