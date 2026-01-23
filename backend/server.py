@@ -1649,6 +1649,7 @@ async def delete_coach(coach_id: str, request: Request):
     """
     Delete a coach profile (Coach Developer only).
     Does not delete the user account - only the coach profile.
+    Also deletes any associated pending invites.
     """
     user = await require_coach_developer(request)
     
@@ -1662,6 +1663,18 @@ async def delete_coach(coach_id: str, request: Request):
             {"user_id": coach["user_id"]},
             {"$set": {"linked_coach_id": None}}
         )
+    
+    # Delete any associated pending invites (by coach_id or by email)
+    coach_email = coach.get("email", "").lower()
+    if coach_email:
+        delete_result = await db.invites.delete_many({
+            "$or": [
+                {"coach_id": coach_id},
+                {"email": {"$regex": f"^{coach_email}$", "$options": "i"}, "used": False}
+            ]
+        })
+        if delete_result.deleted_count > 0:
+            logger.info(f"Deleted {delete_result.deleted_count} associated invite(s) for coach {coach_id}")
     
     # Delete the coach profile
     await db.coaches.delete_one({"id": coach_id})
