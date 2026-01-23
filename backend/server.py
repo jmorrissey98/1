@@ -1670,37 +1670,46 @@ async def delete_coach(coach_id: str, request: Request):
     Does not delete the user account - only the coach profile.
     Also deletes any associated pending invites.
     """
-    user = await require_coach_developer(request)
-    
-    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
-    if not coach:
-        raise HTTPException(status_code=404, detail="Coach not found")
-    
-    # Unlink from user account if linked
-    if coach.get("user_id"):
-        await db.users.update_one(
-            {"user_id": coach["user_id"]},
-            {"$set": {"linked_coach_id": None}}
-        )
-    
-    # Delete any associated pending invites (by coach_id or by email)
-    coach_email = coach.get("email", "").lower()
-    if coach_email:
-        delete_result = await db.invites.delete_many({
-            "$or": [
-                {"coach_id": coach_id},
-                {"email": {"$regex": f"^{coach_email}$", "$options": "i"}, "used": False}
-            ]
-        })
+    try:
+        user = await require_coach_developer(request)
+        
+        coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+        if not coach:
+            raise HTTPException(status_code=404, detail="Coach not found")
+        
+        # Unlink from user account if linked
+        if coach.get("user_id"):
+            await db.users.update_one(
+                {"user_id": coach["user_id"]},
+                {"$set": {"linked_coach_id": None}}
+            )
+        
+        # Delete any associated pending invites (by coach_id or by email)
+        coach_email = (coach.get("email") or "").strip().lower()
+        
+        # Build delete query for invites
+        invite_query_conditions = [{"coach_id": coach_id}]
+        if coach_email:
+            invite_query_conditions.append({
+                "email": {"$regex": f"^{coach_email}$", "$options": "i"}, 
+                "used": {"$ne": True}
+            })
+        
+        delete_result = await db.invites.delete_many({"$or": invite_query_conditions})
         if delete_result.deleted_count > 0:
             logger.info(f"Deleted {delete_result.deleted_count} associated invite(s) for coach {coach_id}")
-    
-    # Delete the coach profile
-    await db.coaches.delete_one({"id": coach_id})
-    
-    logger.info(f"Coach {coach_id} deleted by {user.user_id}")
-    
-    return {"status": "deleted"}
+        
+        # Delete the coach profile
+        await db.coaches.delete_one({"id": coach_id})
+        
+        logger.info(f"Coach {coach_id} deleted by {user.user_id}")
+        
+        return {"status": "deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting coach {coach_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete coach: {str(e)}")
 
 # ============================================
 # END COACHES API
