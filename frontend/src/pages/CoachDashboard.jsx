@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Target, Calendar, FileText, ChevronRight, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { User, Target, Calendar, FileText, ChevronRight, AlertCircle, CheckCircle2, Clock, Loader2, CloudOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { safeGet } from '../lib/safeFetch';
-
-const API_URL = '';
+import { fetchCoachDashboard } from '../lib/offlineApi';
+import { useSync } from '../contexts/SyncContext';
 
 export default function CoachDashboard() {
   const navigate = useNavigate();
+  const { online } = useSync();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -25,13 +26,14 @@ export default function CoachDashboard() {
     setError(null);
     
     try {
-      const result = await safeGet(`${API_URL}/api/coach/dashboard`);
+      const result = await fetchCoachDashboard();
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to load dashboard');
+        throw new Error(result.error || 'Failed to load dashboard');
       }
       
       setDashboard(result.data);
+      setFromCache(result.fromCache || false);
     } catch (err) {
       console.error('Dashboard error:', err);
       setError(err.message || 'Failed to load dashboard');
