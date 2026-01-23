@@ -53,22 +53,37 @@ export default function CoachProfile() {
     loadSessionParts();
   }, [coachId]);
 
-  const loadCoach = () => {
-    const loaded = storage.getCoach(coachId);
-    if (!loaded) {
+  const loadCoach = async () => {
+    try {
+      // Load from API instead of localStorage
+      const response = await axios.get(`${API}/coaches/${coachId}`, { withCredentials: true });
+      const loaded = response.data;
+      
+      if (!loaded) {
+        toast.error('Coach not found');
+        navigate('/coaches');
+        return;
+      }
+      setCoach(loaded);
+      setEditName(loaded.name);
+      setEditRole(loaded.role_title || loaded.role || '');
+      setEditNotes(loaded.notes || '');
+      
+      // Load sessions for this coach from API
+      try {
+        const sessionsResponse = await axios.get(`${API}/coach/sessions/${coachId}`, { withCredentials: true });
+        setSessions(sessionsResponse.data || []);
+      } catch (sessErr) {
+        // Fall back to localStorage for sessions if API fails
+        const coachSessions = storage.getCoachSessions(coachId)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setSessions(coachSessions);
+      }
+    } catch (err) {
+      console.error('Failed to load coach:', err);
       toast.error('Coach not found');
       navigate('/coaches');
-      return;
     }
-    setCoach(loaded);
-    setEditName(loaded.name);
-    setEditRole(loaded.role || '');
-    setEditNotes(loaded.notes || '');
-    
-    // Load sessions for this coach
-    const coachSessions = storage.getCoachSessions(coachId)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setSessions(coachSessions);
   };
 
   const loadSessionParts = async () => {
