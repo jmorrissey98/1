@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus } from 'lucide-react';
+import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { safeGet, safePost } from '../lib/safeFetch';
+import { safeGet, safePost, safeDelete } from '../lib/safeFetch';
 import { storage } from '../lib/storage';
 
 const API_URL = '';
@@ -26,6 +27,10 @@ export default function MyCoaches() {
   const [newCoachEmail, setNewCoachEmail] = useState('');
   const [newCoachRole, setNewCoachRole] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  
+  // Delete confirmation state
+  const [coachToDelete, setCoachToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadCoaches();
@@ -42,7 +47,7 @@ export default function MyCoaches() {
         throw new Error(result.data?.detail || 'Failed to load coaches');
       }
       
-      // Enrich with session count from local storage (sessions are stored locally)
+      // Enrich with session count from local storage
       const coachesWithStats = (result.data || []).map(coach => ({
         ...coach,
         sessionCount: storage.getCoachSessions(coach.id).length,
@@ -53,7 +58,6 @@ export default function MyCoaches() {
     } catch (err) {
       console.error('Failed to load coaches:', err);
       setError(err.message || 'Failed to load coaches');
-      toast.error('Failed to load coaches');
     } finally {
       setLoading(false);
     }
@@ -65,12 +69,24 @@ export default function MyCoaches() {
       return;
     }
     
+    if (!newCoachEmail.trim()) {
+      toast.error('Please enter a coach email');
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newCoachEmail.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
     setIsCreating(true);
     
     try {
       const result = await safePost(`${API_URL}/api/coaches`, {
         name: newCoachName.trim(),
-        email: newCoachEmail.trim() || null,
+        email: newCoachEmail.trim(),
         role_title: newCoachRole.trim() || null
       });
       
@@ -78,7 +94,11 @@ export default function MyCoaches() {
         throw new Error(result.data?.detail || 'Failed to create coach');
       }
       
-      toast.success(`Coach "${newCoachName}" added successfully`);
+      const successMsg = result.data?.invite_sent 
+        ? `Coach "${newCoachName}" added and invite sent!`
+        : `Coach "${newCoachName}" added successfully`;
+      toast.success(successMsg);
+      
       setShowAddCoach(false);
       setNewCoachName('');
       setNewCoachEmail('');
@@ -88,6 +108,28 @@ export default function MyCoaches() {
       toast.error(err.message || 'Failed to create coach');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleDeleteCoach = async () => {
+    if (!coachToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      const result = await safeDelete(`${API_URL}/api/coaches/${coachToDelete.id}`);
+      
+      if (!result.ok) {
+        throw new Error(result.data?.detail || 'Failed to delete coach');
+      }
+      
+      toast.success(`Coach "${coachToDelete.name}" removed`);
+      setCoachToDelete(null);
+      await loadCoaches();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete coach');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -138,7 +180,7 @@ export default function MyCoaches() {
               <DialogHeader>
                 <DialogTitle>Add New Coach</DialogTitle>
                 <DialogDescription>
-                  Create a coach profile. If you include their email, they'll be linked automatically when they sign up.
+                  Create a coach profile. An invite will be sent automatically if they don't have an account.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -154,7 +196,7 @@ export default function MyCoaches() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="coach-email">Email</Label>
+                  <Label htmlFor="coach-email">Email *</Label>
                   <Input
                     id="coach-email"
                     type="email"
@@ -165,7 +207,7 @@ export default function MyCoaches() {
                     data-testid="coach-email-input"
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    Optional - Links profile when they create an account
+                    An invite will be sent to this email if they don't have an account
                   </p>
                 </div>
                 <div>
@@ -186,7 +228,7 @@ export default function MyCoaches() {
                 </Button>
                 <Button 
                   onClick={handleCreateCoach} 
-                  disabled={isCreating || !newCoachName.trim()}
+                  disabled={isCreating || !newCoachName.trim() || !newCoachEmail.trim()}
                   data-testid="create-coach-btn"
                 >
                   {isCreating ? (
@@ -199,6 +241,30 @@ export default function MyCoaches() {
           </Dialog>
         </div>
       </header>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!coachToDelete} onOpenChange={(open) => !open && setCoachToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Coach</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>{coachToDelete?.name}</strong>? 
+              This will delete their coach profile. Their user account (if they have one) will remain.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteCoach}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
@@ -215,17 +281,12 @@ export default function MyCoaches() {
               <User className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">No coaches yet</h3>
               <p className="text-slate-500 mb-6 max-w-md mx-auto">
-                Add coaches manually or invite them via Settings. When invited coaches sign up, they appear here automatically.
+                Add coaches to start tracking their development. They'll receive an invite email to create an account.
               </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => setShowAddCoach(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Coach
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/settings')}>
-                  Send Invite
-                </Button>
-              </div>
+              <Button onClick={() => setShowAddCoach(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Coach
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -233,8 +294,8 @@ export default function MyCoaches() {
             {/* Info Banner */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
               <p>
-                <strong>Tip:</strong> Coaches appear automatically when they sign up via invite.
-                You can also add them manually using the "Add Coach" button.
+                <strong>Tip:</strong> When you add a coach, they automatically receive an invite email.
+                Once they sign up, their status changes from "Pending" to "Active".
               </p>
             </div>
             
@@ -243,13 +304,15 @@ export default function MyCoaches() {
               {coaches.map((coach) => (
                 <Card 
                   key={coach.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/coaches/${coach.id}`)}
+                  className="hover:shadow-md transition-shadow"
                   data-testid={`coach-card-${coach.id}`}
                 >
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                      <div 
+                        className="flex items-center gap-4 flex-1 cursor-pointer"
+                        onClick={() => navigate(`/coaches/${coach.id}`)}
+                      >
                         <Avatar className="w-12 h-12">
                           <AvatarImage src={coach.photo} alt={coach.name} />
                           <AvatarFallback className="bg-slate-200 text-slate-600">
@@ -281,27 +344,37 @@ export default function MyCoaches() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         <div className="text-right">
                           <div className="flex items-center gap-4 text-sm">
                             <div className="flex items-center gap-1 text-slate-600">
                               <Calendar className="w-4 h-4" />
-                              <span>{coach.sessionCount || 0} sessions</span>
+                              <span>{coach.sessionCount || 0}</span>
                             </div>
                             {coach.activeTargets > 0 && (
                               <Badge variant="outline" className="text-orange-600 border-orange-300">
                                 <Target className="w-3 h-3 mr-1" />
-                                {coach.activeTargets} targets
+                                {coach.activeTargets}
                               </Badge>
                             )}
                           </div>
-                          {coach.created_at && (
-                            <p className="text-xs text-slate-400 mt-1">
-                              Added {formatDate(coach.created_at)}
-                            </p>
-                          )}
                         </div>
-                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-slate-400 hover:text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCoachToDelete(coach);
+                          }}
+                          data-testid={`delete-coach-${coach.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <ChevronRight 
+                          className="w-5 h-5 text-slate-400 cursor-pointer" 
+                          onClick={() => navigate(`/coaches/${coach.id}`)}
+                        />
                       </div>
                     </div>
                   </CardContent>
