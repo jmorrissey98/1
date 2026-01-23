@@ -171,9 +171,60 @@ const processQueueItem = async (item) => {
           body: JSON.stringify(item.data)
         });
         break;
-        
-      // Add more cases as needed for other sync types
-      // For now, most data is stored locally, so we primarily sync session parts
+      
+      case QueueItemType.CREATE_REFLECTION:
+        response = await fetch(`${API_URL}/api/coach/reflections`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
+      
+      case QueueItemType.UPDATE_REFLECTION:
+        response = await fetch(`${API_URL}/api/coach/reflections/${item.entityId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
+      
+      case QueueItemType.UPDATE_COACH_PROFILE:
+        response = await fetch(`${API_URL}/api/coach/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
+      
+      case QueueItemType.UPDATE_COACH_TARGETS:
+        response = await fetch(`${API_URL}/api/coaches/${item.entityId}/targets`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
+      
+      case QueueItemType.UPDATE_COACH:
+        response = await fetch(`${API_URL}/api/coaches/${item.entityId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
+      
+      case QueueItemType.SAVE_SESSION_TO_DB:
+        response = await fetch(`${API_URL}/api/sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
       
       default:
         console.log('[Sync] Unknown item type:', item.type);
@@ -183,8 +234,18 @@ const processQueueItem = async (item) => {
     if (response && response.ok) {
       return { success: true, data: await response.json() };
     } else if (response) {
-      const error = await response.text();
-      return { success: false, error };
+      const errorText = await response.text();
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { detail: errorText };
+      }
+      // If it's a 4xx error (client error), don't retry
+      if (response.status >= 400 && response.status < 500) {
+        return { success: false, error: error.detail || errorText, permanent: true };
+      }
+      return { success: false, error: error.detail || errorText };
     }
     
     return { success: true };
