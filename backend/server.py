@@ -2452,28 +2452,35 @@ async def list_scheduled_observations(request: Request):
 
 # Add CORS middleware BEFORE including routes (order matters!)
 # Build comprehensive list of allowed origins for CORS with credentials
-app_url = os.environ.get('APP_URL', 'https://mycoachdeveloper.com')
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 
-# Start with the custom domain
-allowed_origins = [
-    app_url,
-    "https://mycoachdeveloper.com",
-    "https://www.mycoachdeveloper.com",
-    "https://coach-observer-1.preview.emergentagent.com",
-    "http://localhost:3000",
-    "http://localhost:8001",
-]
-
-# Add any additional origins from environment
-if cors_origins_env and cors_origins_env != '*':
-    for origin in cors_origins_env.split(','):
-        origin = origin.strip()
-        if origin and origin not in allowed_origins:
-            allowed_origins.append(origin)
-
-# Remove duplicates while preserving order
-allowed_origins = list(dict.fromkeys(allowed_origins))
+# Check if CORS is set to allow all origins
+if cors_origins_env == '*':
+    allowed_origins = ["*"]
+else:
+    # Start with known origins - production and development
+    allowed_origins = [
+        APP_URL,
+        "https://mycoachdeveloper.com",
+        "https://www.mycoachdeveloper.com",
+        "http://localhost:3000",
+        "http://localhost:8001",
+    ]
+    
+    # Add preview URLs dynamically from environment
+    preview_url = os.environ.get('REACT_APP_BACKEND_URL', '')
+    if preview_url and preview_url not in allowed_origins:
+        allowed_origins.append(preview_url)
+    
+    # Add any additional origins from CORS_ORIGINS environment
+    if cors_origins_env:
+        for origin in cors_origins_env.split(','):
+            origin = origin.strip()
+            if origin and origin not in allowed_origins:
+                allowed_origins.append(origin)
+    
+    # Remove duplicates while preserving order
+    allowed_origins = list(dict.fromkeys(allowed_origins))
 
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
