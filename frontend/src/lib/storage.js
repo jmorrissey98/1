@@ -28,7 +28,8 @@ export const USER_ROLES = {
 const DEFAULT_INTERVENTION_TYPES = [
   { id: 'command', name: 'Command', color: 'yellow' },
   { id: 'qa', name: 'Q&A', color: 'yellow' },
-  { id: 'guided_discovery', name: 'Guided Discovery', color: 'yellow' }
+  { id: 'guided_discovery', name: 'Guided Discovery', color: 'yellow' },
+  { id: 'transmission', name: 'Transmission', color: 'yellow' }
 ];
 
 // Default descriptor groups
