@@ -1346,9 +1346,68 @@ async def list_all_coaches(request: Request):
     """
     List all coaches in the system.
     Coach Developer only - returns all coach profiles.
+    Also syncs users with role='coach' who don't have profiles yet.
     """
     await require_coach_developer(request)
     
+    # First, find any users with role='coach' who don't have a coach profile
+    # and create profiles for them (migration/sync)
+    coach_users = await db.users.find({"role": "coach"}, {"_id": 0}).to_list(200)
+    
+    for coach_user in coach_users:
+        user_id = coach_user.get("user_id")
+        linked_coach_id = coach_user.get("linked_coach_id")
+        
+        # If user has no linked coach profile, create one
+        if not linked_coach_id:
+            coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+            new_coach = {
+                "id": coach_id,
+                "user_id": user_id,
+                "name": coach_user.get("name", "Unknown"),
+                "email": coach_user.get("email"),
+                "photo": coach_user.get("picture"),
+                "role_title": None,
+                "age_group": None,
+                "department": None,
+                "bio": None,
+                "targets": [],
+                "created_at": coach_user.get("created_at", datetime.now(timezone.utc).isoformat()),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": None  # Unknown - created via migration
+            }
+            await db.coaches.insert_one(new_coach)
+            
+            # Link the user to this coach profile
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"linked_coach_id": coach_id}}
+            )
+            logger.info(f"Auto-created coach profile {coach_id} for existing user {coach_user.get('email')}")
+        else:
+            # Ensure the coach profile exists
+            existing_profile = await db.coaches.find_one({"id": linked_coach_id}, {"_id": 0})
+            if not existing_profile:
+                # Coach profile missing - create it
+                new_coach = {
+                    "id": linked_coach_id,
+                    "user_id": user_id,
+                    "name": coach_user.get("name", "Unknown"),
+                    "email": coach_user.get("email"),
+                    "photo": coach_user.get("picture"),
+                    "role_title": None,
+                    "age_group": None,
+                    "department": None,
+                    "bio": None,
+                    "targets": [],
+                    "created_at": coach_user.get("created_at", datetime.now(timezone.utc).isoformat()),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "created_by": None
+                }
+                await db.coaches.insert_one(new_coach)
+                logger.info(f"Recreated missing coach profile {linked_coach_id} for user {coach_user.get('email')}")
+    
+    # Now fetch all coach profiles
     coaches = await db.coaches.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
     
     # Enrich with user account status
