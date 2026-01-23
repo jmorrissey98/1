@@ -2461,7 +2461,7 @@ allowed_origins = [
     app_url,
     "https://mycoachdeveloper.com",
     "https://www.mycoachdeveloper.com",
-    "https://coach-observer.preview.emergentagent.com",
+    "https://coach-observer-1.preview.emergentagent.com",
     "http://localhost:3000",
     "http://localhost:8001",
 ]
