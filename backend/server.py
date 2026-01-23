@@ -2466,18 +2466,37 @@ async def list_scheduled_observations(request: Request):
     
     obs_list = await db.scheduled_observations.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(50)
     
+    if not obs_list:
+        return []
+    
+    # Batch fetch coaches and observers to avoid N+1 queries
+    coach_ids = list(set(o.get("coach_id") for o in obs_list if o.get("coach_id")))
+    observer_ids = list(set(o.get("observer_id") for o in obs_list if o.get("observer_id")))
+    
+    coaches_map = {}
+    if coach_ids:
+        coaches = await db.coaches.find(
+            {"id": {"$in": coach_ids}},
+            {"_id": 0, "id": 1, "name": 1}
+        ).to_list(50)
+        coaches_map = {c["id"]: c.get("name") for c in coaches}
+    
+    observers_map = {}
+    if observer_ids:
+        observers = await db.users.find(
+            {"user_id": {"$in": observer_ids}},
+            {"_id": 0, "user_id": 1, "name": 1}
+        ).to_list(50)
+        observers_map = {o["user_id"]: o.get("name") for o in observers}
+    
     result = []
     for obs in obs_list:
-        # Get names
-        coach = await db.coaches.find_one({"id": obs.get("coach_id")}, {"_id": 0, "name": 1})
-        observer = await db.users.find_one({"user_id": obs.get("observer_id")}, {"_id": 0, "name": 1})
-        
         result.append(ScheduledObservationResponse(
             schedule_id=obs.get("schedule_id"),
             coach_id=obs.get("coach_id"),
-            coach_name=coach.get("name") if coach else None,
+            coach_name=coaches_map.get(obs.get("coach_id")),
             observer_id=obs.get("observer_id"),
-            observer_name=observer.get("name") if observer else None,
+            observer_name=observers_map.get(obs.get("observer_id")),
             scheduled_date=obs.get("scheduled_date"),
             session_context=obs.get("session_context"),
             status=obs.get("status"),
