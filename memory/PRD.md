@@ -126,6 +126,12 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 ## Completed Work
 
 ### January 23, 2026 (Latest)
+- ✅ **Offline Sync Integration**
+  - Created `offlineApi.js` with offline-capable API wrappers
+  - Coach Dashboard, Sessions, and Profile Edit now use offline-first data access
+  - Data is cached locally and syncs when connection is restored
+  - Extended sync queue to handle reflections, profile updates, and coach targets
+  - Visual indicators show offline/cached status in headers
 - ✅ **Deployment & Environment Fixes**
   - Fixed hardcoded credentials to use environment variables with fallbacks
   - Improved CORS configuration to handle wildcard origins properly
