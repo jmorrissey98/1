@@ -1438,19 +1438,26 @@ async def list_all_coaches(request: Request):
     # Now fetch all coach profiles
     coaches = await db.coaches.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
     
+    # Batch fetch user accounts to avoid N+1 queries
+    user_ids = [c.get("user_id") for c in coaches if c.get("user_id")]
+    users_map = {}
+    if user_ids:
+        users = await db.users.find(
+            {"user_id": {"$in": user_ids}}, 
+            {"_id": 0, "user_id": 1, "email": 1}
+        ).to_list(200)
+        users_map = {u["user_id"]: u for u in users}
+    
     # Enrich with user account status
     result = []
     for coach in coaches:
-        # Check if coach has a linked user account
         user_id = coach.get("user_id")
         has_account = False
         user_email = coach.get("email")
         
-        if user_id:
-            user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "email": 1})
-            has_account = user is not None
-            if user:
-                user_email = user.get("email", user_email)
+        if user_id and user_id in users_map:
+            has_account = True
+            user_email = users_map[user_id].get("email", user_email)
         
         result.append({
             "id": coach.get("id"),
