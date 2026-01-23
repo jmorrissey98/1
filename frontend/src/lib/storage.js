@@ -76,7 +76,9 @@ const DEFAULT_SESSION_PARTS = [
 export const getDefaultTemplate = () => ({
   id: 'default',
   name: 'Default Template',
+  // Use both property names for compatibility
   interventionTypes: DEFAULT_INTERVENTION_TYPES,
+  eventTypes: DEFAULT_INTERVENTION_TYPES,
   descriptorGroup1: DEFAULT_DESCRIPTOR_GROUP_1,
   descriptorGroup2: DEFAULT_DESCRIPTOR_GROUP_2,
   sessionParts: DEFAULT_SESSION_PARTS
