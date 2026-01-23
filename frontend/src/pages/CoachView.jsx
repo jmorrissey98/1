@@ -16,13 +16,16 @@ const API_URL = '';
 export default function CoachView() {
   const navigate = useNavigate();
   const { coachId } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth to complete
+    if (authLoading) return;
+    
     // Verify access - only allow if user is a coach linked to this profile or a coach developer
     if (user?.role === 'coach' && user?.linked_coach_id !== coachId) {
       toast.error('Access denied');
@@ -31,7 +34,7 @@ export default function CoachView() {
     }
 
     loadCoachData();
-  }, [coachId, navigate, user]);
+  }, [coachId, navigate, user, authLoading]);
 
   const loadCoachData = async () => {
     setLoading(true);
@@ -39,6 +42,12 @@ export default function CoachView() {
       const result = await safeGet(`${API_URL}/api/coaches/${coachId}`);
       
       if (!result.ok) {
+        // If 401, user might not be authenticated
+        if (result.status === 401) {
+          toast.error('Please log in to view coach details');
+          navigate('/');
+          return;
+        }
         toast.error(result.data?.detail || 'Coach not found');
         navigate('/coaches');
         return;
@@ -56,7 +65,7 @@ export default function CoachView() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
