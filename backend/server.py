@@ -893,25 +893,38 @@ async def exchange_session(request: Request, response: Response):
                 
                 # Auto-create coach profile if role is coach
                 if user_role == "coach":
-                    coach_id = f"coach_{uuid.uuid4().hex[:12]}"
-                    new_coach = {
-                        "id": coach_id,
-                        "user_id": None,  # Will be set after user creation
-                        "name": name,
-                        "email": email,
-                        "photo": picture,
-                        "role_title": None,
-                        "age_group": None,
-                        "department": None,
-                        "bio": None,
-                        "targets": [],
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                        "updated_at": datetime.now(timezone.utc).isoformat(),
-                        "created_by": invited_by
-                    }
-                    await db.coaches.insert_one(new_coach)
-                    linked_coach_id = coach_id
-                    logger.info(f"Auto-created coach profile {coach_id} for invited user {email}")
+                    # First, check if a coach profile already exists for this email
+                    # (created manually by Coach Developer)
+                    existing_coach = await db.coaches.find_one(
+                        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+                        {"_id": 0}
+                    )
+                    
+                    if existing_coach:
+                        # Link to existing profile
+                        linked_coach_id = existing_coach.get("id")
+                        logger.info(f"Linking user {email} to existing coach profile {linked_coach_id}")
+                    else:
+                        # Create new coach profile
+                        coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+                        new_coach = {
+                            "id": coach_id,
+                            "user_id": None,  # Will be set after user creation
+                            "name": name,
+                            "email": email,
+                            "photo": picture,
+                            "role_title": None,
+                            "age_group": None,
+                            "department": None,
+                            "bio": None,
+                            "targets": [],
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                            "created_by": invited_by
+                        }
+                        await db.coaches.insert_one(new_coach)
+                        linked_coach_id = coach_id
+                        logger.info(f"Auto-created coach profile {coach_id} for invited user {email}")
             else:
                 # No invite - reject registration
                 raise HTTPException(
@@ -933,11 +946,15 @@ async def exchange_session(request: Request, response: Response):
             }
             await db.users.insert_one(new_user)
             
-            # Update coach profile with user_id if coach was created
+            # Update coach profile with user_id if coach role
             if user_role == "coach" and linked_coach_id:
                 await db.coaches.update_one(
                     {"id": linked_coach_id},
-                    {"$set": {"user_id": user_id}}
+                    {"$set": {
+                        "user_id": user_id,
+                        "photo": picture,  # Update photo from Google account
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
                 )
         
         # Store session
