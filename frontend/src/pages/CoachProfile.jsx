@@ -260,24 +260,30 @@ export default function CoachProfile() {
     };
   };
 
-  const saveCoach = (updated) => {
-    storage.saveCoach({ ...updated, updatedAt: new Date().toISOString() });
-    setCoach(updated);
+  const saveCoach = async (updated) => {
+    try {
+      // Save to API
+      await axios.put(`${API}/coaches/${coachId}`, updated, { withCredentials: true });
+      setCoach(updated);
+    } catch (err) {
+      console.error('Failed to save coach:', err);
+      toast.error('Failed to save changes');
+    }
   };
 
-  const handleSaveDetails = () => {
+  const handleSaveDetails = async () => {
     const updated = {
       ...coach,
       name: editName,
-      role: editRole,
+      role_title: editRole,
       notes: editNotes
     };
-    saveCoach(updated);
+    await saveCoach(updated);
     setIsEditing(false);
     toast.success('Profile updated');
   };
 
-  const handleAddTarget = () => {
+  const handleAddTarget = async () => {
     if (!newTarget.trim()) return;
     
     const target = {
@@ -291,12 +297,12 @@ export default function CoachProfile() {
       ...coach,
       targets: [...(coach.targets || []), target]
     };
-    saveCoach(updated);
+    await saveCoach(updated);
     setNewTarget('');
     toast.success('Target added');
   };
 
-  const handleToggleTarget = (targetId) => {
+  const handleToggleTarget = async (targetId) => {
     const updated = {
       ...coach,
       targets: coach.targets.map(t => 
@@ -305,15 +311,15 @@ export default function CoachProfile() {
           : t
       )
     };
-    saveCoach(updated);
+    await saveCoach(updated);
   };
 
-  const handleDeleteTarget = (targetId) => {
+  const handleDeleteTarget = async (targetId) => {
     const updated = {
       ...coach,
       targets: coach.targets.filter(t => t.id !== targetId)
     };
-    saveCoach(updated);
+    await saveCoach(updated);
     toast.success('Target removed');
   };
 
