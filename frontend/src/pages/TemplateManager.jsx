@@ -111,36 +111,48 @@ export default function TemplateManager() {
   // Update template name
   const updateTemplateName = (templateId, name) => {
     const template = templates.find(t => t.id === templateId);
-    if (template && template.id !== 'default') {
+    if (template) {
+      // Allow editing all templates including default
       saveAndRefresh({ ...template, name });
     }
   };
 
-  // Event type functions
+  // Event type functions (keeping eventTypes for compatibility, also updating interventionTypes)
   const addEventType = (templateId) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      const newEvent = { id: generateId('event'), name: 'New Event', color: 'yellow' };
-      saveAndRefresh({ ...template, eventTypes: [...(template.eventTypes || []), newEvent] });
+      const newEvent = { id: generateId('event'), name: 'New Intervention', color: 'yellow' };
+      const updatedEvents = [...(template.eventTypes || template.interventionTypes || []), newEvent];
+      saveAndRefresh({ 
+        ...template, 
+        eventTypes: updatedEvents,
+        interventionTypes: updatedEvents 
+      });
     }
   };
 
   const updateEventType = (templateId, eventId, name) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
+      const events = template.eventTypes || template.interventionTypes || [];
+      const updatedEvents = events.map(e => e.id === eventId ? { ...e, name } : e);
       saveAndRefresh({
         ...template,
-        eventTypes: (template.eventTypes || []).map(e => e.id === eventId ? { ...e, name } : e)
+        eventTypes: updatedEvents,
+        interventionTypes: updatedEvents
       });
     }
   };
 
   const removeEventType = (templateId, eventId) => {
     const template = templates.find(t => t.id === templateId);
-    if (template && (template.eventTypes || []).length > 1) {
+    const events = template?.eventTypes || template?.interventionTypes || [];
+    if (template && events.length > 1) {
+      const updatedEvents = events.filter(e => e.id !== eventId);
       saveAndRefresh({
         ...template,
-        eventTypes: (template.eventTypes || []).filter(e => e.id !== eventId)
+        eventTypes: updatedEvents,
+        interventionTypes: updatedEvents
       });
     } else {
       toast.error('Need at least one event type');
