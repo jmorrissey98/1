@@ -49,7 +49,12 @@ export default function MyCoaches() {
       const result = await safeGet(`${API_URL}/api/coaches`);
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to load coaches');
+        // Check for specific error types
+        const errorMsg = result.data?.detail || result.error || 'Failed to load coaches';
+        if (errorMsg.includes('502') || errorMsg.includes('503') || errorMsg.includes('504')) {
+          throw new Error('Server is temporarily unavailable. Please try again in a moment.');
+        }
+        throw new Error(errorMsg);
       }
       
       // Use only API data - no localStorage enrichment that might cause issues
@@ -60,7 +65,7 @@ export default function MyCoaches() {
       })));
     } catch (err) {
       console.error('Failed to load coaches:', err);
-      setError(err.message || 'Failed to load coaches');
+      setError(err.message || 'Failed to load coaches. Please try again.');
       setCoaches([]); // Clear any stale data on error
     } finally {
       setLoading(false);
