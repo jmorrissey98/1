@@ -95,8 +95,18 @@ export default function CoachDashboard() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
-          <p className="text-sm text-slate-500">Your coaching journey</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
+              <p className="text-sm text-slate-500">Your coaching journey</p>
+            </div>
+            {(!online || fromCache) && (
+              <div className="flex items-center gap-2 text-amber-600 text-sm">
+                <CloudOff className="w-4 h-4" />
+                <span>{!online ? 'Offline' : 'Cached'}</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
