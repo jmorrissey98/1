@@ -165,7 +165,8 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 
 ## Backlog
 
-### P1 - In Progress
+### P1 - Upcoming
+- Full verification of Coach Role experience (login, dashboard, sessions, profile as Coach user)
 - Offline sync integration for all data mutations
 
 ### P2 - Future
@@ -173,6 +174,7 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 - iPad portrait orientation optimizations
 - Full PWA offline-first experience
 - Coach notification system
+- Move session storage from localStorage to database
 
 ## Configuration
 
