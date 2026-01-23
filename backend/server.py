@@ -1337,6 +1337,133 @@ async def verify_reset_token(token: str):
         logger.error(f"Verify reset token error: {str(e)}")
         return {"valid": False, "message": "Failed to verify token"}
 
+# ============================================
+# COACHES API (Coach Developer access)
+# ============================================
+
+@api_router.get("/coaches")
+async def list_all_coaches(request: Request):
+    """
+    List all coaches in the system.
+    Coach Developer only - returns all coach profiles.
+    """
+    await require_coach_developer(request)
+    
+    coaches = await db.coaches.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    
+    # Enrich with user account status
+    result = []
+    for coach in coaches:
+        # Check if coach has a linked user account
+        user_id = coach.get("user_id")
+        has_account = False
+        user_email = coach.get("email")
+        
+        if user_id:
+            user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "email": 1})
+            has_account = user is not None
+            if user:
+                user_email = user.get("email", user_email)
+        
+        result.append({
+            "id": coach.get("id"),
+            "name": coach.get("name"),
+            "email": user_email,
+            "photo": coach.get("photo"),
+            "role_title": coach.get("role_title"),
+            "age_group": coach.get("age_group"),
+            "department": coach.get("department"),
+            "bio": coach.get("bio"),
+            "targets": coach.get("targets", []),
+            "created_at": coach.get("created_at"),
+            "updated_at": coach.get("updated_at"),
+            "has_account": has_account,
+            "user_id": user_id
+        })
+    
+    return result
+
+@api_router.get("/coaches/{coach_id}")
+async def get_coach_detail(coach_id: str, request: Request):
+    """
+    Get detailed coach profile.
+    Coach Developer only.
+    """
+    await require_coach_developer(request)
+    
+    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    # Get linked user info
+    user_id = coach.get("user_id")
+    has_account = False
+    if user_id:
+        user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        has_account = user is not None
+    
+    return {
+        **coach,
+        "has_account": has_account
+    }
+
+@api_router.put("/coaches/{coach_id}")
+async def update_coach(coach_id: str, request: Request):
+    """
+    Update coach profile (Coach Developer only).
+    """
+    user = await require_coach_developer(request)
+    
+    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    body = await request.json()
+    
+    # Allowed fields for update
+    allowed_fields = ["name", "role_title", "age_group", "department", "bio", "targets"]
+    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.coaches.update_one(
+        {"id": coach_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Coach {coach_id} updated by {user.user_id}")
+    
+    return await get_coach_detail(coach_id, request)
+
+@api_router.delete("/coaches/{coach_id}")
+async def delete_coach(coach_id: str, request: Request):
+    """
+    Delete a coach profile (Coach Developer only).
+    Does not delete the user account - only the coach profile.
+    """
+    user = await require_coach_developer(request)
+    
+    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    # Unlink from user account if linked
+    if coach.get("user_id"):
+        await db.users.update_one(
+            {"user_id": coach["user_id"]},
+            {"$set": {"linked_coach_id": None}}
+        )
+    
+    # Delete the coach profile
+    await db.coaches.delete_one({"id": coach_id})
+    
+    logger.info(f"Coach {coach_id} deleted by {user.user_id}")
+    
+    return {"status": "deleted"}
+
+# ============================================
+# END COACHES API
+# ============================================
+
 # Invite endpoints
 @api_router.post("/invites", response_model=InviteResponse)
 async def create_invite(invite_data: InviteCreate, request: Request):
