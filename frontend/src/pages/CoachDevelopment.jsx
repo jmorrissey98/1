@@ -1,62 +1,69 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, TrendingUp, Calendar, ChevronDown, Loader2 } from 'lucide-react';
+import { TrendingUp, Clock, Target, BarChart3, Loader2, CloudOff, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { fetchCoachSessions, fetchCoachDashboard } from '../lib/offlineApi';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { useSync } from '../contexts/SyncContext';
 import { useAuth } from '../contexts/AuthContext';
-import { safeGet, safePut } from '../lib/safeFetch';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line
+} from 'recharts';
 
-const API_URL = '';
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Color palette for charts
-const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-
-// Timeframe options
-const TIMEFRAMES = [
-  { value: 'all', label: 'All Time' },
-  { value: '30', label: 'Last 30 Days' },
-  { value: '90', label: 'Last 3 Months' },
-  { value: '180', label: 'Last 6 Months' },
-  { value: '365', label: 'Last Year' }
-];
+// Chart color palettes
+const INTERVENTION_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const CONTENT_FOCUS_COLORS = ['#0ea5e9', '#06b6d4', '#14b8a6', '#22c55e', '#84cc16'];
+const DELIVERY_METHOD_COLORS = ['#f97316', '#fb923c', '#fdba74'];
 
 export default function CoachDevelopment() {
   const navigate = useNavigate();
+  const { online } = useSync();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [sessions, setSessions] = useState([]);
-  const [timeframe, setTimeframe] = useState('all');
-  const [interventionData, setInterventionData] = useState([]);
-  const [monthlyData, setMonthlyData] = useState([]);
-  const [stats, setStats] = useState({ totalSessions: 0, totalInterventions: 0, avgPerSession: 0 });
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [timeframe, setTimeframe] = useState(() => {
+    // Persist timeframe selection per user
+    const saved = localStorage.getItem(`coach_dev_timeframe_${user?.user_id}`);
+    return saved || 'all';
+  });
 
   useEffect(() => {
-    // Load saved timeframe preference
-    const savedTimeframe = localStorage.getItem(`mcd_dev_timeframe_${user?.user_id}`);
-    if (savedTimeframe) {
-      setTimeframe(savedTimeframe);
-    }
-    loadData();
-  }, [user]);
+    loadDevelopmentData();
+  }, [timeframe]);
 
-  useEffect(() => {
-    if (sessions.length > 0) {
-      processData();
-    }
-  }, [sessions, timeframe]);
-
-  const loadData = async () => {
+  const loadDevelopmentData = async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      const result = await fetchCoachSessions();
-      if (result.ok) {
-        setSessions(result.data || []);
+      const response = await fetch(`${API_URL}/api/coach/development-data?timeframe=${timeframe}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load development data');
       }
+
+      const result = await response.json();
+      setData(result);
     } catch (err) {
-      console.error('Failed to load sessions:', err);
+      console.error('Development data error:', err);
+      setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -64,71 +71,17 @@ export default function CoachDevelopment() {
 
   const handleTimeframeChange = (value) => {
     setTimeframe(value);
-    // Persist timeframe preference
     if (user?.user_id) {
-      localStorage.setItem(`mcd_dev_timeframe_${user.user_id}`, value);
+      localStorage.setItem(`coach_dev_timeframe_${user.user_id}`, value);
     }
   };
 
-  const processData = () => {
-    // Filter sessions by timeframe
-    let filteredSessions = sessions;
-    if (timeframe !== 'all') {
-      const days = parseInt(timeframe);
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-      filteredSessions = sessions.filter(s => new Date(s.date) >= cutoffDate);
-    }
-
-    // Calculate intervention distribution (mock data for now - would come from actual session data)
-    const interventionCounts = {};
-    filteredSessions.forEach(session => {
-      // In a real implementation, this would aggregate actual intervention events from sessions
-      // For now, we'll create sample data based on session count
-      if (session.has_observation) {
-        interventionCounts['Command'] = (interventionCounts['Command'] || 0) + Math.floor(Math.random() * 5) + 1;
-        interventionCounts['Q&A'] = (interventionCounts['Q&A'] || 0) + Math.floor(Math.random() * 8) + 2;
-        interventionCounts['Guided Discovery'] = (interventionCounts['Guided Discovery'] || 0) + Math.floor(Math.random() * 6) + 1;
-        interventionCounts['Transmission'] = (interventionCounts['Transmission'] || 0) + Math.floor(Math.random() * 4) + 1;
-      }
-    });
-
-    const interventionArray = Object.entries(interventionCounts).map(([name, value]) => ({
-      name,
-      value
-    }));
-    setInterventionData(interventionArray);
-
-    // Calculate monthly session counts
-    const monthCounts = {};
-    filteredSessions.forEach(session => {
-      const date = new Date(session.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
-    });
-
-    const monthlyArray = Object.entries(monthCounts)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6) // Last 6 months
-      .map(([month, count]) => ({
-        month: new Date(month + '-01').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
-        sessions: count
-      }));
-    setMonthlyData(monthlyArray);
-
-    // Calculate stats
-    const totalInterventions = interventionArray.reduce((sum, i) => sum + i.value, 0);
-    setStats({
-      totalSessions: filteredSessions.length,
-      totalInterventions,
-      avgPerSession: filteredSessions.length > 0 ? Math.round(totalInterventions / filteredSessions.length) : 0
-    });
-  };
+  const formatPercent = (value) => `${value}%`;
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
       </div>
     );
   }
@@ -137,50 +90,46 @@ export default function CoachDevelopment() {
     <div className="min-h-screen bg-slate-50">
       {/* Header with Navigation */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
-              <p className="text-sm text-slate-500">Your coaching journey</p>
+              <p className="text-sm text-slate-500">Track your coaching progress</p>
             </div>
-            <Select value={timeframe} onValueChange={handleTimeframeChange}>
-              <SelectTrigger className="w-40" data-testid="timeframe-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIMEFRAMES.map(tf => (
-                  <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!online && (
+              <div className="flex items-center gap-2 text-amber-600 text-sm">
+                <CloudOff className="w-4 h-4" />
+                <span>Offline</span>
+              </div>
+            )}
           </div>
           {/* Navigation Tabs */}
           <nav className="flex gap-1 mt-4 -mb-4 border-b-0">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
               onClick={() => navigate('/coach')}
               data-testid="nav-dashboard"
             >
               Dashboard
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="rounded-b-none border-b-2 border-emerald-600 text-emerald-700 font-medium"
               data-testid="nav-development"
             >
               My Development
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
               onClick={() => navigate('/coach/sessions')}
               data-testid="nav-sessions"
             >
               My Sessions
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
               onClick={() => navigate('/coach/profile')}
               data-testid="nav-profile"
@@ -191,104 +140,310 @@ export default function CoachDevelopment() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-emerald-600">{stats.totalSessions}</p>
-              <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-blue-600">{stats.totalInterventions}</p>
-              <p className="text-sm text-slate-500 mt-1">Total Interventions</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-amber-600">{stats.avgPerSession}</p>
-              <p className="text-sm text-slate-500 mt-1">Avg per Session</p>
-            </CardContent>
-          </Card>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Controls Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Select value={timeframe} onValueChange={handleTimeframeChange}>
+              <SelectTrigger className="w-40" data-testid="timeframe-select">
+                <SelectValue placeholder="Select timeframe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30days">Last 30 Days</SelectItem>
+                <SelectItem value="90days">Last 90 Days</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-slate-500">
+              {data?.total_sessions || 0} session{data?.total_sessions !== 1 ? 's' : ''} analyzed
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadDevelopmentData}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
         </div>
 
-        {/* Intervention Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-['Manrope'] flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-emerald-600" />
-              Intervention Distribution
-            </CardTitle>
-            <CardDescription>Breakdown of coaching intervention types used</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {interventionData.length > 0 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={interventionData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {interventionData.map((entry, index) => (
-                        <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-slate-400">
-                No intervention data available yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-        {/* Sessions Over Time */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-['Manrope'] flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Sessions Over Time
-            </CardTitle>
-            <CardDescription>Number of observed sessions by month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {monthlyData.length > 0 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px'
-                      }} 
-                    />
-                    <Bar dataKey="sessions" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-slate-400">
-                No session data available yet
-              </div>
+        {/* No Data State */}
+        {data?.total_sessions === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No Session Data Yet</h3>
+              <p className="text-slate-500 max-w-md mx-auto">
+                Once you have completed observation sessions, your development data and charts will appear here.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Key Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Average Ball Rolling */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Avg. Ball Rolling</p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {data?.average_ball_rolling || 0}%
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Total Sessions */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <Target className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Sessions Observed</p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {data?.total_sessions || 0}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Total Interventions */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Total Interventions</p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {data?.intervention_breakdown?.reduce((sum, i) => sum + i.count, 0) || 0}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Ball Rolling Over Time Chart */}
+            {data?.sessions_over_time?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-slate-600" />
+                    Ball Rolling Over Time
+                  </CardTitle>
+                  <CardDescription>Track how your ball-in-play time changes across sessions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={data.sessions_over_time}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 12, fill: '#64748b' }}
+                          tickFormatter={(value) => {
+                            if (!value) return '';
+                            const date = new Date(value);
+                            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                          }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 12, fill: '#64748b' }}
+                          tickFormatter={formatPercent}
+                          domain={[0, 100]}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                          formatter={(value) => [`${value}%`, 'Ball Rolling']}
+                          labelFormatter={(value) => {
+                            if (!value) return '';
+                            const date = new Date(value);
+                            return date.toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            });
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="ball_rolling_pct"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          dot={{ fill: '#10b981', strokeWidth: 2 }}
+                          activeDot={{ r: 6, fill: '#10b981' }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+
+            {/* Intervention Types Chart */}
+            {data?.intervention_breakdown?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-slate-600" />
+                    Intervention Types
+                  </CardTitle>
+                  <CardDescription>Distribution of your coaching interventions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Bar Chart */}
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data.intervention_breakdown} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            tick={{ fontSize: 12, fill: '#64748b' }}
+                            width={120}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1e293b',
+                              border: 'none',
+                              borderRadius: '8px',
+                              color: '#fff'
+                            }}
+                          />
+                          <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                            {data.intervention_breakdown.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={INTERVENTION_COLORS[index % INTERVENTION_COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Pie Chart */}
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={data.intervention_breakdown}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            paddingAngle={2}
+                            dataKey="count"
+                            nameKey="name"
+                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            labelLine={false}
+                          >
+                            {data.intervention_breakdown.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={INTERVENTION_COLORS[index % INTERVENTION_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1e293b',
+                              border: 'none',
+                              borderRadius: '8px',
+                              color: '#fff'
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Behavior Breakdowns - Content Focus */}
+            {data?.behavior_breakdowns?.content_focus?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope']">Content Focus</CardTitle>
+                  <CardDescription>What areas your interventions focus on</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.behavior_breakdowns.content_focus}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
+                        <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          {data.behavior_breakdowns.content_focus.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CONTENT_FOCUS_COLORS[index % CONTENT_FOCUS_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Behavior Breakdowns - Delivery Method */}
+            {data?.behavior_breakdowns?.delivery_method?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope']">Delivery Method</CardTitle>
+                  <CardDescription>How you deliver your coaching interventions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.behavior_breakdowns.delivery_method}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
+                        <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          {data.behavior_breakdowns.delivery_method.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={DELIVERY_METHOD_COLORS[index % DELIVERY_METHOD_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
       </main>
     </div>
   );
