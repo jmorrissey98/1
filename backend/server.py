@@ -1987,6 +1987,89 @@ async def link_user_by_email(request: Request):
     
     return {"linked": True, "user_id": user["user_id"], "coach_id": coach_id}
 
+# ============================================
+# ORGANIZATION / CLUB ENDPOINTS
+# ============================================
+
+@api_router.get("/organization")
+async def get_organization(request: Request):
+    """Get the organization/club info for the current user"""
+    user = await require_auth(request)
+    
+    # Find org by owner (Coach Developer) or by user's linked org
+    org = None
+    
+    if user.role == "coach_developer":
+        # Coach Developer owns the org
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        
+        # Create org if doesn't exist
+        if not org:
+            org = {
+                "org_id": f"org_{uuid.uuid4().hex[:12]}",
+                "owner_id": user.user_id,
+                "club_name": None,
+                "club_logo": None,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.organizations.insert_one(org)
+    else:
+        # Coach - find org through their linked coach profile
+        if user.linked_coach_id:
+            coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
+            if coach and coach.get("created_by"):
+                org = await db.organizations.find_one({"owner_id": coach["created_by"]}, {"_id": 0})
+    
+    if not org:
+        return {"org_id": None, "club_name": None, "club_logo": None, "owner_id": None}
+    
+    return OrganizationResponse(
+        org_id=org.get("org_id"),
+        club_name=org.get("club_name"),
+        club_logo=org.get("club_logo"),
+        owner_id=org.get("owner_id"),
+        created_at=org.get("created_at")
+    )
+
+@api_router.put("/organization")
+async def update_organization(data: OrganizationUpdate, request: Request):
+    """Update organization/club info (Coach Developer only)"""
+    user = await require_coach_developer(request)
+    
+    # Find or create org
+    org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+    
+    if not org:
+        org = {
+            "org_id": f"org_{uuid.uuid4().hex[:12]}",
+            "owner_id": user.user_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.organizations.insert_one(org)
+    
+    # Update fields
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.club_name is not None:
+        update_data["club_name"] = data.club_name
+    if data.club_logo is not None:
+        update_data["club_logo"] = data.club_logo
+    
+    await db.organizations.update_one(
+        {"owner_id": user.user_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated org
+    updated_org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+    
+    return OrganizationResponse(
+        org_id=updated_org.get("org_id"),
+        club_name=updated_org.get("club_name"),
+        club_logo=updated_org.get("club_logo"),
+        owner_id=updated_org.get("owner_id"),
+        created_at=updated_org.get("created_at")
+    )
+
 # Session Parts endpoints
 @api_router.get("/session-parts", response_model=List[SessionPartResponse])
 async def get_session_parts(request: Request):
