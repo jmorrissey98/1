@@ -149,6 +149,81 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
+        {/* Upcoming Observations - Coach Developer only */}
+        {isCoachDeveloper() && (
+          <Card className="mb-6 sm:mb-8">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base sm:text-lg font-['Manrope'] flex items-center gap-2">
+                <CalendarClock className="w-5 h-5 text-emerald-600" />
+                Upcoming Observations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingUpcoming ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                </div>
+              ) : upcomingObservations.length === 0 ? (
+                <div className="text-center py-6">
+                  <CalendarClock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">No upcoming observations scheduled</p>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    onClick={() => navigate('/calendar')}
+                    className="mt-2"
+                  >
+                    Schedule an observation
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingObservations.map((obs) => (
+                    <div 
+                      key={obs.schedule_id} 
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                      onClick={() => navigate('/calendar')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <User className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{obs.coach_name || 'Unknown Coach'}</p>
+                          <p className="text-sm text-slate-500">
+                            {new Date(obs.scheduled_date).toLocaleDateString('en-GB', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {obs.session_context && (
+                        <Badge variant="secondary" className="hidden sm:inline-flex">
+                          {obs.session_context}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                  {upcomingObservations.length > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-2"
+                      onClick={() => navigate('/calendar')}
+                    >
+                      View all in calendar
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Sessions List */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-slate-900 font-['Manrope']">
