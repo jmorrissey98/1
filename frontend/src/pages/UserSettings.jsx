@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Mail, Shield, UserPlus, Trash2, LogOut, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Users, Mail, Shield, UserPlus, Trash2, LogOut, Loader2, Send, Building2, Upload, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -11,12 +11,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { storage } from '../lib/storage';
 import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 
 export default function UserSettings() {
   const navigate = useNavigate();
   const { user, logout, isCoachDeveloper } = useAuth();
+  const { organization, updateOrganization, refreshOrganization } = useOrganization();
   const API_URL = ''; // Relative URL - frontend and backend on same domain
   
   const [users, setUsers] = useState([]);
@@ -29,10 +31,22 @@ export default function UserSettings() {
   const [inviteRole, setInviteRole] = useState('coach');
   const [inviteCoachId, setInviteCoachId] = useState('');
   const [inviting, setInviting] = useState(false);
+  
+  // Club settings state
+  const [clubName, setClubName] = useState('');
+  const [clubLogo, setClubLogo] = useState('');
+  const [savingClub, setSavingClub] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
+  
+  useEffect(() => {
+    if (organization) {
+      setClubName(organization.club_name || '');
+      setClubLogo(organization.club_logo || '');
+    }
+  }, [organization]);
 
   const loadData = async () => {
     setLoading(true);
