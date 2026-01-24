@@ -73,6 +73,21 @@ export default function CoachDevelopment() {
     }
   };
 
+  const loadTargetsProgress = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/coach/targets-progress`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setTargetsData(result);
+      }
+    } catch (err) {
+      console.error('Targets progress error:', err);
+    }
+  };
+
   const handleTimeframeChange = (value) => {
     setTimeframe(value);
     if (user?.user_id) {
@@ -81,6 +96,28 @@ export default function CoachDevelopment() {
   };
 
   const formatPercent = (value) => `${value}%`;
+  
+  const getActivityBadge = (level) => {
+    switch (level) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>;
+      case 'moderate':
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Moderate</Badge>;
+      default:
+        return <Badge className="bg-slate-100 text-slate-600 border-slate-200">Low</Badge>;
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'achieved':
+        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+      case 'in_progress':
+        return <Zap className="w-4 h-4 text-amber-600" />;
+      default:
+        return <Circle className="w-4 h-4 text-blue-600" />;
+    }
+  };
 
   if (loading) {
     return (
