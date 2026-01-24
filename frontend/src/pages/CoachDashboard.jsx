@@ -92,7 +92,7 @@ export default function CoachDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
+      {/* Header with Navigation */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
@@ -107,12 +107,38 @@ export default function CoachDashboard() {
               </div>
             )}
           </div>
+          {/* Navigation Tabs */}
+          <nav className="flex gap-1 mt-4 -mb-4 border-b-0">
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-emerald-600 text-emerald-700 font-medium"
+              data-testid="nav-dashboard"
+            >
+              Dashboard
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
+              onClick={() => navigate('/coach/sessions')}
+              data-testid="nav-sessions"
+            >
+              My Sessions
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
+              onClick={() => navigate('/coach/profile')}
+              data-testid="nav-profile"
+            >
+              My Profile
+            </Button>
+          </nav>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         
-        {/* Profile Summary */}
+        {/* Profile Summary - Simplified without Edit button */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
@@ -133,13 +159,6 @@ export default function CoachDashboard() {
                   </p>
                 )}
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/coach/profile')}
-              >
-                Edit Profile
-              </Button>
             </div>
           </CardContent>
         </Card>
