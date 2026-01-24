@@ -60,14 +60,17 @@ export default function CoachDevelopment() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load development data');
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(errorText || 'Failed to load development data');
       }
 
       const result = await response.json();
       setData(result);
     } catch (err) {
       console.error('Development data error:', err);
-      setError(err.message || 'Failed to load data');
+      // Ensure we only store a string, not an object
+      const errorMessage = typeof err === 'string' ? err : (err?.message || 'Failed to load data');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
