@@ -69,6 +69,11 @@ function AppRouter() {
           <CoachDashboard />
         </ProtectedRoute>
       } />
+      <Route path="/coach/development" element={
+        <ProtectedRoute requireCoach>
+          <CoachDevelopment />
+        </ProtectedRoute>
+      } />
       <Route path="/coach/sessions" element={
         <ProtectedRoute requireCoach>
           <CoachSessions />
