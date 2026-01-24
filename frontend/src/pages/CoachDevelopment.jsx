@@ -214,8 +214,8 @@ export default function CoachDevelopment() {
           </Alert>
         )}
 
-        {/* No Data State */}
-        {data?.total_sessions === 0 ? (
+        {/* No Data State - show when no sessions or data not loaded */}
+        {(!data || data.total_sessions === 0) && !loading ? (
           <Card>
             <CardContent className="py-16 text-center">
               <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -225,8 +225,7 @@ export default function CoachDevelopment() {
               </p>
             </CardContent>
           </Card>
-        ) : (
-          <>
+        ) : data && (
             {/* Key Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Average Ball Rolling */}
