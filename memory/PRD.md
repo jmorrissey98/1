@@ -136,7 +136,25 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 
 ## Completed Work
 
-### January 23, 2026 (Latest)
+### January 24, 2026 (Latest)
+- ✅ **My Development Page with Charts (Feature #5)**
+  - New `/api/coach/development-data` backend endpoint that aggregates:
+    - Average ball rolling percentage across sessions
+    - Intervention type distribution (Command, Q&A, etc.)
+    - Content Focus breakdown (Technical, Tactical, etc.)
+    - Delivery Method breakdown (Visual Demo, Triggers, etc.)
+    - Session data over time for trend charts
+  - New `CoachDevelopment.jsx` page with:
+    - Key metrics cards (Avg Ball Rolling, Sessions Observed, Total Interventions)
+    - Ball Rolling Over Time line chart
+    - Intervention Types bar + pie charts
+    - Content Focus bar chart
+    - Delivery Method bar chart
+  - Timeframe filter (Last 30 Days, Last 90 Days, All Time) with persistence per user
+  - Navigation tabs added to all coach pages (Dashboard, My Development, My Sessions, My Profile)
+  - Route registered at `/coach/development`
+
+### January 23, 2026
 - ✅ **Offline Sync Integration**
   - Created `offlineApi.js` with offline-capable API wrappers
   - Coach Dashboard, Sessions, and Profile Edit now use offline-first data access
