@@ -2017,8 +2017,22 @@ async def get_organization(request: Request):
         # Coach - find org through their linked coach profile
         if user.linked_coach_id:
             coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
-            if coach and coach.get("created_by"):
-                org = await db.organizations.find_one({"owner_id": coach["created_by"]}, {"_id": 0})
+            if coach:
+                # Try to find org through created_by
+                if coach.get("created_by"):
+                    org = await db.organizations.find_one({"owner_id": coach["created_by"]}, {"_id": 0})
+                
+                # If no org found via created_by, try via invite
+                if not org and coach.get("email"):
+                    invite = await db.invites.find_one({"email": coach["email"]}, {"_id": 0})
+                    if invite and invite.get("invited_by"):
+                        org = await db.organizations.find_one({"owner_id": invite["invited_by"]}, {"_id": 0})
+                        # Update coach's created_by for future lookups
+                        if org:
+                            await db.coaches.update_one(
+                                {"id": user.linked_coach_id},
+                                {"$set": {"created_by": invite["invited_by"]}}
+                            )
     
     if not org:
         return {"org_id": None, "club_name": None, "club_logo": None, "owner_id": None}
