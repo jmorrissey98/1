@@ -239,6 +239,7 @@ export default function CoachDevelopment() {
             </CardContent>
           </Card>
         ) : data && (
+          <>
             {/* Key Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Average Ball Rolling */}
