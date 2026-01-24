@@ -2,8 +2,10 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
+import { OrganizationProvider } from "./contexts/OrganizationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
+import AppHeader from "./components/AppHeader";
 import HomePage from "./pages/HomePage";
 import SessionSetup from "./pages/SessionSetup";
 import LiveObservation from "./pages/LiveObservation";
