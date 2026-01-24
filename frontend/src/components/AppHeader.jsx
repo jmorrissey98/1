@@ -10,7 +10,6 @@ const EXCLUDED_PATHS = [
   '/session/',
   '/live/',
   '/review/',
-  '/coach',  // Coach pages have their own navigation
 ];
 
 export default function AppHeader() {
