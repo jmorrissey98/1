@@ -12,6 +12,9 @@ import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from
 import { fetchSessionParts, createSessionPart, toFrontendFormat } from '../lib/sessionPartsApi';
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { safeGet } from '../lib/safeFetch';
+
+const API_URL = '';
 
 export default function SessionSetup() {
   const navigate = useNavigate();
