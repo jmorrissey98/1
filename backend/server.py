@@ -2517,6 +2517,126 @@ async def get_coach_targets(request: Request):
     
     return {"targets": targets}
 
+@api_router.get("/coach/development-data")
+async def get_coach_development_data(request: Request, timeframe: str = "all"):
+    """
+    Get aggregated development data for the coach's sessions.
+    Used for charts in the "My Development" page.
+    
+    timeframe options: "30days", "90days", "all"
+    
+    Returns:
+    - average_ball_rolling: Average ball rolling percentage across sessions
+    - intervention_breakdown: Count of each intervention type
+    - behavior_breakdowns: Data for descriptor groups (Content Focus, Delivery Method)
+    - sessions_over_time: Session data points for time series charts
+    """
+    user = await require_coach(request)
+    
+    # Build date filter
+    date_filter = {"coach_id": user.linked_coach_id}
+    if timeframe == "30days":
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        date_filter["date"] = {"$gte": cutoff}
+    elif timeframe == "90days":
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+        date_filter["date"] = {"$gte": cutoff}
+    
+    # Get all sessions for this coach within timeframe
+    sessions = await db.sessions.find(
+        date_filter,
+        {"_id": 0}
+    ).sort("date", 1).to_list(500)
+    
+    if not sessions:
+        return {
+            "total_sessions": 0,
+            "average_ball_rolling": 0,
+            "intervention_breakdown": [],
+            "behavior_breakdowns": {
+                "content_focus": [],
+                "delivery_method": []
+            },
+            "sessions_over_time": [],
+            "timeframe": timeframe
+        }
+    
+    # Calculate aggregations
+    total_ball_rolling = 0
+    total_ball_time = 0
+    intervention_counts = {}
+    content_focus_counts = {}
+    delivery_method_counts = {}
+    sessions_data = []
+    
+    for session in sessions:
+        # Ball rolling calculations
+        ball_rolling = session.get("ballRollingTime", 0) or session.get("ball_rolling_time", 0)
+        ball_not_rolling = session.get("ballNotRollingTime", 0) or session.get("ball_not_rolling_time", 0)
+        total_time = ball_rolling + ball_not_rolling
+        
+        if total_time > 0:
+            total_ball_rolling += ball_rolling
+            total_ball_time += total_time
+            ball_rolling_pct = round((ball_rolling / total_time) * 100)
+        else:
+            ball_rolling_pct = 0
+        
+        # Intervention counts from events array
+        events = session.get("events", [])
+        for event in events:
+            event_type = event.get("type") or event.get("eventType") or event.get("interventionType", "Unknown")
+            intervention_counts[event_type] = intervention_counts.get(event_type, 0) + 1
+            
+            # Extract descriptors from event
+            desc1 = event.get("descriptor1") or event.get("contentFocus")
+            desc2 = event.get("descriptor2") or event.get("deliveryMethod")
+            
+            if desc1:
+                content_focus_counts[desc1] = content_focus_counts.get(desc1, 0) + 1
+            if desc2:
+                delivery_method_counts[desc2] = delivery_method_counts.get(desc2, 0) + 1
+        
+        # Session data point for time series
+        sessions_data.append({
+            "date": session.get("date", session.get("createdAt", "")),
+            "title": session.get("title", session.get("name", "Session")),
+            "ball_rolling_pct": ball_rolling_pct,
+            "total_events": len(events),
+            "session_id": session.get("session_id")
+        })
+    
+    # Calculate averages
+    avg_ball_rolling = round((total_ball_rolling / total_ball_time * 100) if total_ball_time > 0 else 0)
+    
+    # Convert counts to chart-friendly format
+    intervention_breakdown = [
+        {"name": k, "count": v} 
+        for k, v in sorted(intervention_counts.items(), key=lambda x: -x[1])
+    ]
+    
+    content_focus_breakdown = [
+        {"name": k, "count": v}
+        for k, v in sorted(content_focus_counts.items(), key=lambda x: -x[1])
+    ]
+    
+    delivery_method_breakdown = [
+        {"name": k, "count": v}
+        for k, v in sorted(delivery_method_counts.items(), key=lambda x: -x[1])
+    ]
+    
+    return {
+        "total_sessions": len(sessions),
+        "average_ball_rolling": avg_ball_rolling,
+        "intervention_breakdown": intervention_breakdown,
+        "behavior_breakdowns": {
+            "content_focus": content_focus_breakdown,
+            "delivery_method": delivery_method_breakdown
+        },
+        "sessions_over_time": sessions_data,
+        "timeframe": timeframe
+    }
+
 # Scheduled Observations - for Coach Developers to schedule, Coaches to view
 @api_router.post("/scheduled-observations", response_model=ScheduledObservationResponse)
 async def create_scheduled_observation(obs_data: ScheduledObservationCreate, request: Request):
