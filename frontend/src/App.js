@@ -78,7 +78,7 @@ function AppRouter() {
       } />
       <Route path="/coach/profile" element={
         <ProtectedRoute requireCoach>
-          <CoachProfileEdit />
+          <CoachMyProfile />
         </ProtectedRoute>
       } />
       
