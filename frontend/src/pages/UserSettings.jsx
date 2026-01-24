@@ -270,7 +270,7 @@ export default function UserSettings() {
         {/* Coach Developer Only: Team Management */}
         {isCoachDeveloper() && (
           <Tabs defaultValue="invites" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="invites" data-testid="tab-invites">
                 <Mail className="w-4 h-4 mr-2" />
                 Invites
@@ -278,6 +278,10 @@ export default function UserSettings() {
               <TabsTrigger value="users" data-testid="tab-users">
                 <Users className="w-4 h-4 mr-2" />
                 Users
+              </TabsTrigger>
+              <TabsTrigger value="club" data-testid="tab-club">
+                <Building2 className="w-4 h-4 mr-2" />
+                Club
               </TabsTrigger>
             </TabsList>
 
