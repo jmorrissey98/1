@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Clock, Target, BarChart3, Loader2, CloudOff, RefreshCw } from 'lucide-react';
+import { TrendingUp, Clock, Target, BarChart3, Loader2, CloudOff, RefreshCw, CheckCircle2, Circle, Zap } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
+import { Progress } from '../components/ui/progress';
 import { useSync } from '../contexts/SyncContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -35,6 +37,7 @@ export default function CoachDevelopment() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [targetsData, setTargetsData] = useState(null);
   const [error, setError] = useState(null);
   const [timeframe, setTimeframe] = useState(() => {
     // Persist timeframe selection per user
@@ -44,6 +47,7 @@ export default function CoachDevelopment() {
 
   useEffect(() => {
     loadDevelopmentData();
+    loadTargetsProgress();
   }, [timeframe]);
 
   const loadDevelopmentData = async () => {
