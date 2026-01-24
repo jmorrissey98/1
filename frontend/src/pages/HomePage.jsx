@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Trash2, Cog, FileText, Users, Calendar, User, LogOut, ClipboardList } from 'lucide-react';
+import { Plus, Play, Eye, Trash2, Cog, FileText, Users, Calendar, User, LogOut, ClipboardList, CalendarClock, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
@@ -8,11 +8,16 @@ import { Badge } from '../components/ui/badge';
 import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { formatDate, formatTime } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { safeGet } from '../lib/safeFetch';
+
+const API_URL = '';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, isCoachDeveloper } = useAuth();
   const [sessions, setSessions] = useState([]);
+  const [upcomingObservations, setUpcomingObservations] = useState([]);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false);
 
   // Redirect coach users to their view
   useEffect(() => {
@@ -23,7 +28,30 @@ export default function HomePage() {
 
   useEffect(() => {
     setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+    if (isCoachDeveloper()) {
+      loadUpcomingObservations();
+    }
   }, []);
+
+  const loadUpcomingObservations = async () => {
+    setLoadingUpcoming(true);
+    try {
+      const result = await safeGet(`${API_URL}/api/scheduled-observations`);
+      if (result.ok && result.data) {
+        // Filter to only future observations and sort by date
+        const now = new Date();
+        const upcoming = result.data
+          .filter(obs => new Date(obs.scheduled_date) >= now)
+          .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
+          .slice(0, 5); // Show max 5 upcoming
+        setUpcomingObservations(upcoming);
+      }
+    } catch (err) {
+      console.error('Failed to load upcoming observations:', err);
+    } finally {
+      setLoadingUpcoming(false);
+    }
+  };
 
   const handleDelete = (sessionId) => {
     storage.deleteSession(sessionId);
