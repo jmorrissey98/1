@@ -2637,6 +2637,91 @@ async def get_coach_development_data(request: Request, timeframe: str = "all"):
         "timeframe": timeframe
     }
 
+@api_router.get("/coach/targets-progress")
+async def get_coach_targets_progress(request: Request):
+    """
+    Get coach's development targets with progress indicators.
+    Analyzes session data to determine which targets are being addressed.
+    """
+    user = await require_coach(request)
+    
+    # Get coach profile with targets
+    coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
+    targets = coach.get("targets", []) if coach else []
+    
+    # Get recent sessions (last 30 days) to analyze progress
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    sessions = await db.sessions.find(
+        {"coach_id": user.linked_coach_id, "date": {"$gte": cutoff}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Count total sessions and interventions
+    total_sessions = len(sessions)
+    total_interventions = sum(len(s.get("events", [])) for s in sessions)
+    
+    # Analyze intervention patterns
+    intervention_types = {}
+    for session in sessions:
+        for event in session.get("events", []):
+            event_type = event.get("type") or event.get("eventType") or event.get("interventionType", "Unknown")
+            intervention_types[event_type] = intervention_types.get(event_type, 0) + 1
+    
+    # Calculate dominant intervention style
+    dominant_style = None
+    if intervention_types:
+        dominant_style = max(intervention_types, key=intervention_types.get)
+    
+    # Enrich targets with progress hints
+    enriched_targets = []
+    for target in targets:
+        target_text = target.get("text", "").lower()
+        progress_hint = None
+        activity_level = "low"
+        
+        # Check if target keywords appear in session patterns
+        keywords_found = []
+        
+        # Check intervention-related targets
+        if any(word in target_text for word in ["question", "q&a", "questioning"]):
+            if intervention_types.get("Q&A", 0) > 0:
+                keywords_found.append(f"Q&A used {intervention_types.get('Q&A', 0)} times")
+                activity_level = "active"
+        
+        if any(word in target_text for word in ["guided", "discovery"]):
+            if intervention_types.get("Guided Discovery", 0) > 0:
+                keywords_found.append(f"Guided Discovery used {intervention_types.get('Guided Discovery', 0)} times")
+                activity_level = "active"
+        
+        if any(word in target_text for word in ["command", "direct"]):
+            if intervention_types.get("Command", 0) > 0:
+                keywords_found.append(f"Command used {intervention_types.get('Command', 0)} times")
+                activity_level = "active"
+        
+        if keywords_found:
+            progress_hint = "Recent activity: " + ", ".join(keywords_found)
+        elif total_sessions > 0:
+            progress_hint = f"{total_sessions} session(s) in last 30 days"
+            activity_level = "moderate"
+        
+        enriched_targets.append({
+            **target,
+            "progress_hint": progress_hint,
+            "activity_level": activity_level
+        })
+    
+    return {
+        "targets": enriched_targets,
+        "summary": {
+            "total_targets": len(targets),
+            "active_targets": len([t for t in targets if t.get("status") in ["active", "in_progress"]]),
+            "achieved_targets": len([t for t in targets if t.get("status") == "achieved"]),
+            "recent_sessions": total_sessions,
+            "recent_interventions": total_interventions,
+            "dominant_style": dominant_style
+        }
+    }
+
 # Scheduled Observations - for Coach Developers to schedule, Coaches to view
 @api_router.post("/scheduled-observations", response_model=ScheduledObservationResponse)
 async def create_scheduled_observation(obs_data: ScheduledObservationCreate, request: Request):
