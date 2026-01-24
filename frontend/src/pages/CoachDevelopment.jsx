@@ -60,16 +60,27 @@ export default function CoachDevelopment() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(errorText || 'Failed to load development data');
+        let errorText = 'Failed to load development data';
+        try {
+          errorText = await response.text();
+        } catch {
+          // ignore text read error
+        }
+        throw new Error(errorText);
       }
 
       const result = await response.json();
       setData(result);
+      setError(null);
     } catch (err) {
       console.error('Development data error:', err);
-      // Ensure we only store a string, not an object
-      const errorMessage = typeof err === 'string' ? err : (err?.message || 'Failed to load data');
+      // Extract error message safely - avoid any non-string values
+      let errorMessage = 'Failed to load data';
+      if (err && typeof err.message === 'string') {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -88,6 +99,7 @@ export default function CoachDevelopment() {
       }
     } catch (err) {
       console.error('Targets progress error:', err);
+      // Don't set error for targets - it's optional
     }
   };
 
