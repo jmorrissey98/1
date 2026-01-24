@@ -278,6 +278,76 @@ export default function CoachDevelopment() {
               </Card>
             </div>
 
+            {/* Targets Progress Card */}
+            {targetsData && targetsData.targets?.length > 0 && (
+              <Card data-testid="targets-progress-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                        <Target className="w-5 h-5 text-slate-600" />
+                        Development Targets Progress
+                      </CardTitle>
+                      <CardDescription>
+                        Track how your sessions align with your development goals
+                      </CardDescription>
+                    </div>
+                    {targetsData.summary && (
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-emerald-600">{targetsData.summary.achieved_targets}</p>
+                          <p className="text-slate-500">Achieved</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-blue-600">{targetsData.summary.active_targets}</p>
+                          <p className="text-slate-500">Active</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {targetsData.targets.map((target, index) => (
+                      <div 
+                        key={target.id || index}
+                        className="p-4 bg-slate-50 rounded-lg border border-slate-100"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1">
+                            {getStatusIcon(target.status)}
+                            <div className="flex-1">
+                              <p className="text-slate-900 font-medium">{target.text}</p>
+                              {target.progress_hint && (
+                                <p className="text-sm text-slate-500 mt-1">
+                                  {target.progress_hint}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {getActivityBadge(target.activity_level)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {targetsData.summary?.dominant_style && (
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <p className="text-sm text-slate-600">
+                        <span className="font-medium">Coaching Style Insight:</span> Your most used intervention type is{' '}
+                        <span className="font-semibold text-emerald-600">{targetsData.summary.dominant_style}</span>
+                        {targetsData.summary.recent_sessions > 0 && (
+                          <span> across {targetsData.summary.recent_sessions} recent session{targetsData.summary.recent_sessions !== 1 ? 's' : ''}</span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Ball Rolling Over Time Chart */}
             {data?.sessions_over_time?.length > 0 && (
               <Card>
