@@ -511,6 +511,119 @@ export default function UserSettings() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Club Tab */}
+            <TabsContent value="club">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Club / Organization
+                  </CardTitle>
+                  <CardDescription>
+                    Set your club name and logo. This will appear in the app header for all users.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="club-name">Club Name</Label>
+                    <Input
+                      id="club-name"
+                      value={clubName}
+                      onChange={(e) => setClubName(e.target.value)}
+                      placeholder="e.g., Manchester United FC"
+                      className="mt-1"
+                      data-testid="club-name-input"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Club Logo</Label>
+                    <div className="mt-2 space-y-3">
+                      {clubLogo && (
+                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                          <img 
+                            src={clubLogo} 
+                            alt="Club logo preview" 
+                            className="h-12 w-auto object-contain"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setClubLogo('')}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                      <div>
+                        <Label 
+                          htmlFor="logo-upload" 
+                          className="flex items-center gap-2 px-4 py-2 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors w-fit"
+                        >
+                          <Upload className="w-4 h-4 text-slate-500" />
+                          <span className="text-sm text-slate-600">Upload logo image</span>
+                        </Label>
+                        <input
+                          id="logo-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                toast.error('Logo must be less than 2MB');
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                setClubLogo(ev.target?.result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          data-testid="logo-upload-input"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">PNG, JPG or SVG. Max 2MB.</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={async () => {
+                      setSavingClub(true);
+                      try {
+                        const result = await updateOrganization({
+                          club_name: clubName || null,
+                          club_logo: clubLogo || null
+                        });
+                        if (result.ok) {
+                          toast.success('Club settings saved');
+                          refreshOrganization();
+                        } else {
+                          toast.error(result.error || 'Failed to save');
+                        }
+                      } catch (err) {
+                        toast.error('Failed to save club settings');
+                      } finally {
+                        setSavingClub(false);
+                      }
+                    }}
+                    disabled={savingClub}
+                    data-testid="save-club-btn"
+                  >
+                    {savingClub ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Save Club Settings
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         )}
 
