@@ -72,16 +72,39 @@ export default function CoachSessions() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
+      {/* Header with Navigation */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/coach')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 font-['Manrope']">My Sessions</h1>
-            <p className="text-xs sm:text-sm text-slate-500">Review your observed sessions</p>
+            <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
+            <p className="text-sm text-slate-500">Your coaching journey</p>
           </div>
+          {/* Navigation Tabs */}
+          <nav className="flex gap-1 mt-4 -mb-4 border-b-0">
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
+              onClick={() => navigate('/coach')}
+              data-testid="nav-dashboard"
+            >
+              Dashboard
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-emerald-600 text-emerald-700 font-medium"
+              data-testid="nav-sessions"
+            >
+              My Sessions
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
+              onClick={() => navigate('/coach/profile')}
+              data-testid="nav-profile"
+            >
+              My Profile
+            </Button>
+          </nav>
         </div>
       </header>
 
