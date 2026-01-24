@@ -141,6 +141,18 @@ class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
 
+# Organization/Club Model
+class OrganizationUpdate(BaseModel):
+    club_name: Optional[str] = None
+    club_logo: Optional[str] = None  # Base64 or URL
+
+class OrganizationResponse(BaseModel):
+    org_id: str
+    club_name: Optional[str] = None
+    club_logo: Optional[str] = None
+    owner_id: str
+    created_at: Optional[str] = None
+
 class Invite(BaseModel):
     model_config = ConfigDict(extra="ignore")
     invite_id: str
