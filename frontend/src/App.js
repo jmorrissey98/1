@@ -21,7 +21,7 @@ import AuthCallback from "./pages/AuthCallback";
 import CoachDashboard from "./pages/CoachDashboard";
 import CoachSessions from "./pages/CoachSessions";
 import CoachSessionDetail from "./pages/CoachSessionDetail";
-import CoachProfileEdit from "./pages/CoachProfileEdit";
+import CoachMyProfile from "./pages/CoachMyProfile";
 import "./App.css";
 
 // Role-based home redirect component
