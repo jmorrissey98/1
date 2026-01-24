@@ -145,8 +145,11 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <SyncProvider>
-            <AppRouter />
-            <OfflineIndicator />
+            <OrganizationProvider>
+              <AppHeader />
+              <AppRouter />
+              <OfflineIndicator />
+            </OrganizationProvider>
           </SyncProvider>
         </AuthProvider>
       </BrowserRouter>
