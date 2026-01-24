@@ -42,8 +42,8 @@ export default function SessionSetup() {
 
   useEffect(() => {
     loadSessionParts();
+    loadCoaches();
     setTemplates(storage.getTemplates());
-    setCoaches(storage.getCoaches());
     
     if (isEditing) {
       const existing = storage.getSession(sessionId);
@@ -60,17 +60,35 @@ export default function SessionSetup() {
         plannedDate: plannedDate || null,
         planned: !!plannedDate
       });
-      // If coach is preselected, set a default name
-      if (preselectedCoachId) {
-        const coach = storage.getCoach(preselectedCoachId);
-        if (coach) {
-          newSession.name = `${coach.name} - ${new Date().toLocaleDateString()}`;
-        }
-      }
       setSession(newSession);
       if (plannedDate) setSessionDate(plannedDate);
     }
   }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate]);
+
+  // Load coaches from API instead of localStorage
+  const loadCoaches = async () => {
+    try {
+      const result = await safeGet(`${API_URL}/api/coaches`);
+      if (result.ok && result.data) {
+        setCoaches(result.data);
+        
+        // If coach is preselected, set a default session name
+        if (preselectedCoachId) {
+          const coach = result.data.find(c => c.id === preselectedCoachId);
+          if (coach) {
+            setSession(prev => prev ? {
+              ...prev,
+              name: `${coach.name} - ${new Date().toLocaleDateString()}`
+            } : prev);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load coaches:', err);
+      // Fallback to localStorage if API fails
+      setCoaches(storage.getCoaches());
+    }
+  };
 
   const loadSessionParts = async () => {
     setLoadingParts(true);
