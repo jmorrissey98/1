@@ -97,7 +97,7 @@ export default function CoachDashboard() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
+              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">Dashboard</h1>
               <p className="text-sm text-slate-500">Your coaching journey</p>
             </div>
             {(!online || fromCache) && (
