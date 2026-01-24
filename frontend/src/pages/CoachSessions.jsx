@@ -91,6 +91,14 @@ export default function CoachSessions() {
             </Button>
             <Button 
               variant="ghost" 
+              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
+              onClick={() => navigate('/coach/development')}
+              data-testid="nav-development"
+            >
+              My Development
+            </Button>
+            <Button 
+              variant="ghost" 
               className="rounded-b-none border-b-2 border-emerald-600 text-emerald-700 font-medium"
               data-testid="nav-sessions"
             >
