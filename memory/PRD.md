@@ -20,6 +20,16 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 - Session history per coach
 - Data export capabilities
 
+### Coach Development Analytics (NEW - Jan 24, 2026)
+- **My Development** page with charts showing:
+  - Average ball rolling percentage across sessions
+  - Intervention type distribution (Command, Q&A, Guided Discovery, Transmission)
+  - Content Focus breakdown (Technical, Tactical, Physical, Psych, Social)
+  - Delivery Method breakdown (Visual Demo, Triggers, Kinesthetic)
+  - Ball rolling percentage over time (line chart)
+- Timeframe filter (Last 30 Days, Last 90 Days, All Time)
+- Persistent timeframe preference per user
+
 ## Role-Based Access Control
 
 ### Coach Developer (Admin) Permissions
@@ -40,6 +50,7 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 | View observations on own sessions | ✅ |
 | Edit own profile (limited fields) | ✅ |
 | View own targets | ✅ |
+| View development analytics | ✅ |
 | Create observations | ❌ |
 | View other coaches | ❌ |
 | Edit observation data | ❌ |
@@ -47,7 +58,7 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
 ## Technical Architecture
 
 ### Stack
-- **Frontend**: React, TailwindCSS, Shadcn UI
+- **Frontend**: React, TailwindCSS, Shadcn UI, Recharts
 - **Backend**: FastAPI, Python
 - **Database**: MongoDB
 - **Email**: Resend API (verified domain: mycoachdeveloper.com)
