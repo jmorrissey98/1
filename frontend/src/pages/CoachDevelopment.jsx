@@ -24,7 +24,8 @@ import {
   Line
 } from 'recharts';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+// Use relative URL for same-origin requests
+const API_URL = '';
 
 // Chart color palettes
 const INTERVENTION_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
