@@ -76,7 +76,7 @@ export default function CoachSessions() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
+            <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Sessions</h1>
             <p className="text-sm text-slate-500">Your coaching journey</p>
           </div>
           {/* Navigation Tabs */}
