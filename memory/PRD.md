@@ -27,6 +27,11 @@ An iPad-first coach observation app for tracking and analyzing coaching sessions
   - Content Focus breakdown (Technical, Tactical, Physical, Psych, Social)
   - Delivery Method breakdown (Visual Demo, Triggers, Kinesthetic)
   - Ball rolling percentage over time (line chart)
+  - **Targets Progress Card** showing:
+    - Development targets with activity levels (Active/Moderate/Low)
+    - Progress hints based on session patterns
+    - Achieved vs Active targets count
+    - Dominant coaching style insight
 - Timeframe filter (Last 30 Days, Last 90 Days, All Time)
 - Persistent timeframe preference per user
 
