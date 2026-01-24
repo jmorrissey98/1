@@ -21,6 +21,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuthCallback from "./pages/AuthCallback";
 // Coach Role Pages
 import CoachDashboard from "./pages/CoachDashboard";
+import CoachDevelopment from "./pages/CoachDevelopment";
 import CoachSessions from "./pages/CoachSessions";
 import CoachSessionDetail from "./pages/CoachSessionDetail";
 import CoachMyProfile from "./pages/CoachMyProfile";
