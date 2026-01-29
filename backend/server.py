@@ -24,7 +24,8 @@ ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / 'uploads'
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-load_dotenv(ROOT_DIR / '.env')
+# Load .env with override=True to ensure our values take precedence over system defaults
+load_dotenv(ROOT_DIR / '.env', override=True)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
