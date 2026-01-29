@@ -80,3 +80,4 @@ android-sdk/
 # Node cache pack files
 frontend/node_modules/.cache/
 frontend/node_modules/.cache/default-development/5.pack
+frontend/node_modules/.cache/default-development/6.pack

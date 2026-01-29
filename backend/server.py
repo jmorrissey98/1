@@ -24,8 +24,22 @@ ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / 'uploads'
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# Load .env with override=True to ensure our values take precedence over system defaults
-load_dotenv(ROOT_DIR / '.env', override=True)
+# Load .env file (don't override system variables like MONGO_URL which are set by deployment)
+load_dotenv(ROOT_DIR / '.env')
+
+# For email config, we need to explicitly read from .env file to override Emergent defaults
+# Read .env file directly for email-related settings
+env_file_path = ROOT_DIR / '.env'
+env_values = {}
+if env_file_path.exists():
+    with open(env_file_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                # Remove quotes if present
+                value = value.strip().strip('"').strip("'")
+                env_values[key.strip()] = value
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
