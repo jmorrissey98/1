@@ -534,8 +534,34 @@ async def config_check():
         "sender_email": SENDER_EMAIL,
         "app_url": APP_URL,
         "resend_key_set": bool(resend.api_key),
-        "resend_key_prefix": resend.api_key[:10] + "..." if resend.api_key else "NOT SET"
+        "resend_key_prefix": resend.api_key[:10] + "..." if resend.api_key else "NOT SET",
+        "resend_key_from_env": os.environ.get('RESEND_API_KEY', 'NOT IN ENV')[:10] + "..." if os.environ.get('RESEND_API_KEY') else "NOT IN ENV"
     }
+
+@api_router.post("/test-email")
+async def test_email(request: Request):
+    """Send a test email to verify email configuration (Coach Developer only)"""
+    user = await require_coach_developer(request)
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [user.email],
+            "subject": "Test Email from My Coach Developer",
+            "html": f"<p>This is a test email sent at {datetime.now(timezone.utc).isoformat()}</p><p>If you received this, email sending is working correctly!</p>"
+        }
+        
+        logger.info(f"Sending test email to {user.email}")
+        logger.info(f"Using sender: {SENDER_EMAIL}, API key prefix: {resend.api_key[:10] if resend.api_key else 'NOT SET'}...")
+        
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        
+        logger.info(f"Test email sent successfully: {result}")
+        return {"status": "sent", "email": user.email, "result": str(result)}
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Test email failed: {error_msg}")
+        return {"status": "failed", "error": error_msg, "sender": SENDER_EMAIL, "api_key_prefix": resend.api_key[:10] if resend.api_key else "NOT SET"}
 
 @api_router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(file: UploadFile = File(...)):
