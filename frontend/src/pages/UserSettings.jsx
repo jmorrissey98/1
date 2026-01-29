@@ -347,7 +347,25 @@ export default function UserSettings() {
                       </Select>
                     </div>
 
-                    {inviteRole === 'coach' && coaches.length > 0 && (
+                    {inviteRole === 'coach' && (
+                      <div>
+                        <Label htmlFor="invite-name">Coach Name</Label>
+                        <Input
+                          id="invite-name"
+                          type="text"
+                          value={inviteName}
+                          onChange={(e) => setInviteName(e.target.value)}
+                          placeholder="Enter coach's name"
+                          className="mt-1"
+                          data-testid="invite-name-input"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Creates a coach profile with this name when the invite is sent
+                        </p>
+                      </div>
+                    )}
+
+                    {inviteRole === 'coach' && coaches.length > 0 && !inviteName.trim() && (
                       <div>
                         <Label htmlFor="invite-coach">Link to Coach Profile (Optional)</Label>
                         <Select value={inviteCoachId} onValueChange={setInviteCoachId}>
