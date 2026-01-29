@@ -99,11 +99,31 @@ export default function UserSettings() {
 
     setInviting(true);
     try {
-      const result = await safePost(`${API_URL}/api/invites`, {
-        email: inviteEmail.trim().toLowerCase(),
-        role: inviteRole,
-        coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
-      });
+      let result;
+      
+      // If inviting a coach with a name, use the coaches endpoint (which creates profile + invite)
+      if (inviteRole === 'coach' && inviteName.trim()) {
+        result = await safePost(`${API_URL}/api/coaches`, {
+          name: inviteName.trim(),
+          email: inviteEmail.trim().toLowerCase(),
+        });
+        
+        if (result.ok) {
+          toast.success(`Coach profile created and invite sent to ${inviteEmail}${result.data?.invite_sent === false ? ' (email delivery pending)' : ''}`);
+          setInviteEmail('');
+          setInviteName('');
+          setInviteCoachId('');
+          await loadData();
+          return;
+        }
+      } else {
+        // Use the standard invites endpoint
+        result = await safePost(`${API_URL}/api/invites`, {
+          email: inviteEmail.trim().toLowerCase(),
+          role: inviteRole,
+          coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
+        });
+      }
       
       // Debug: log full result
       console.log('Invite API result:', result);
@@ -126,6 +146,7 @@ export default function UserSettings() {
 
       toast.success(`Invite sent to ${inviteEmail}${result.data?.email_sent === false ? ' (email delivery pending)' : ''}`);
       setInviteEmail('');
+      setInviteName('');
       setInviteCoachId('');
       await loadData();
     } catch (err) {
