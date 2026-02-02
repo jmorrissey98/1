@@ -1007,7 +1007,9 @@ async def exchange_session(request: Request, response: Response):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Auth error: {str(e)}")
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Auth error: {str(e)}\nTraceback: {error_trace}")
         raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
 
 @api_router.get("/auth/me", response_model=UserResponse)
