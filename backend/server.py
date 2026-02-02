@@ -876,9 +876,11 @@ async def exchange_session(request: Request, response: Response):
         
         # Check if user exists
         existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        logger.info(f"Existing user lookup result: {bool(existing_user)}")
         
         if existing_user:
             # Update existing user
+            logger.info(f"Updating existing user: {existing_user.get('user_id')}")
             user_id = existing_user["user_id"]
             await db.users.update_one(
                 {"user_id": user_id},
