@@ -850,14 +850,19 @@ async def exchange_session(request: Request, response: Response):
         if not session_id:
             raise HTTPException(status_code=400, detail="session_id required")
         
+        logger.info(f"Auth session exchange started for session_id: {session_id[:20]}...")
+        
         # Exchange session_id with Emergent Auth
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             auth_response = await client.get(
                 "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
                 headers={"X-Session-ID": session_id}
             )
             
+            logger.info(f"Emergent auth response status: {auth_response.status_code}")
+            
             if auth_response.status_code != 200:
+                logger.error(f"Emergent auth failed: {auth_response.text}")
                 raise HTTPException(status_code=401, detail="Invalid session")
             
             auth_data = auth_response.json()
@@ -866,6 +871,8 @@ async def exchange_session(request: Request, response: Response):
         name = auth_data.get("name")
         picture = auth_data.get("picture")
         session_token = auth_data.get("session_token")
+        
+        logger.info(f"Auth data received for email: {email}")
         
         # Check if user exists
         existing_user = await db.users.find_one({"email": email}, {"_id": 0})
