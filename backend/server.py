@@ -1202,6 +1202,20 @@ async def signup(signup_data: SignupRequest, response: Response):
         }
         await db.users.insert_one(new_user)
         
+        # If this is the first user (Coach Developer) and club info provided, create organization
+        if user_role == "coach_developer" and (signup_data.club_name or signup_data.club_logo):
+            org_id = f"org_{uuid.uuid4().hex[:12]}"
+            org_doc = {
+                "org_id": org_id,
+                "owner_id": user_id,
+                "club_name": signup_data.club_name,
+                "club_logo": signup_data.club_logo,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.organizations.insert_one(org_doc)
+            logger.info(f"Created organization {org_id} for user {user_id}")
+        
         # Update coach profile if this is a coach user with a linked coach profile
         if user_role == "coach" and linked_coach_id:
             await db.coaches.update_one(
