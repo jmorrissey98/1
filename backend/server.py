@@ -125,6 +125,9 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
+    # Optional club branding for first user (Coach Developer)
+    club_name: Optional[str] = None
+    club_logo: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
