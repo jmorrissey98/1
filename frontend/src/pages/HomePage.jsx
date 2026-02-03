@@ -89,9 +89,19 @@ export default function HomePage() {
     }
   };
 
-  const handleDelete = (sessionId) => {
+  const handleDelete = async (sessionId) => {
+    // Delete from localStorage
     storage.deleteSession(sessionId);
-    setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+    
+    // Delete from cloud
+    try {
+      await deleteCloudSession(sessionId);
+    } catch (err) {
+      console.error('Failed to delete from cloud:', err);
+    }
+    
+    // Refresh list
+    loadSessions();
   };
 
   const getStatusBadge = (status) => {
