@@ -628,6 +628,41 @@ export default function UserSettings() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Admin Tab */}
+            <TabsContent value="admin">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Admin Tools
+                  </CardTitle>
+                  <CardDescription>
+                    Advanced tools for data management and recovery
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {user?.email === 'joemorrisseyg@gmail.com' ? (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <h4 className="font-semibold text-amber-800 mb-2">Data Recovery Tool</h4>
+                        <p className="text-sm text-amber-700 mb-3">
+                          Export all locally stored data before migrating to the cloud database.
+                        </p>
+                        <Button onClick={() => navigate('/data-recovery')} data-testid="data-recovery-btn">
+                          <Database className="w-4 h-4 mr-2" />
+                          Open Data Recovery
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-center py-4">
+                      No admin tools available for your account.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         )}
 
