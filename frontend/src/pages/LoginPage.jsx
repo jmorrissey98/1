@@ -32,12 +32,31 @@ export default function LoginPage() {
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [clubName, setClubName] = useState('');
+  const [clubLogo, setClubLogo] = useState('');
+  const [isFirstUser, setIsFirstUser] = useState(false);
+  const [checkingFirstUser, setCheckingFirstUser] = useState(true);
   
   // Forgot password state
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
 
   const error = location.state?.error;
+
+  // Check if this will be the first user
+  useEffect(() => {
+    const checkFirstUser = async () => {
+      try {
+        const result = await safeGet(`${API_URL}/api/users/check-first`);
+        setIsFirstUser(result.ok && result.data?.is_first === true);
+      } catch (e) {
+        setIsFirstUser(false);
+      } finally {
+        setCheckingFirstUser(false);
+      }
+    };
+    checkFirstUser();
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
