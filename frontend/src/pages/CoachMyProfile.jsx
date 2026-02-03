@@ -121,8 +121,8 @@ export default function CoachMyProfile() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
-              <p className="text-sm text-slate-500">Your coaching journey</p>
+              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Profile</h1>
+              <p className="text-sm text-slate-500">Manage your profile</p>
             </div>
             <Button onClick={handleSave} disabled={saving} data-testid="save-profile-btn">
               {saving ? (
@@ -142,6 +142,14 @@ export default function CoachMyProfile() {
               data-testid="nav-dashboard"
             >
               Dashboard
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
+              onClick={() => navigate('/coach/development')}
+              data-testid="nav-development"
+            >
+              My Development
             </Button>
             <Button 
               variant="ghost" 
