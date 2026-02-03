@@ -140,13 +140,8 @@
 
 ## Remaining Work / Backlog
 
-### P0 - Critical
-- [ ] Test full end-to-end cloud sync flow on deployed environment
-- [ ] Migrate existing production user data to cloud (if any)
-
 ### P1 - High Priority  
-- [ ] Complete "My Development" page for Coaches (charts with recharts)
-- [ ] Add club branding to Coach Developer signup flow
+- [ ] Test full end-to-end cloud sync flow on deployed environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
 
 ### P2 - Medium Priority
