@@ -126,11 +126,19 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      const result = await safePost(`${API_URL}/api/auth/signup`, {
+      const signupPayload = {
         name: signUpName,
         email: signUpEmail,
         password: signUpPassword
-      });
+      };
+      
+      // Add club info if this is the first user
+      if (isFirstUser && clubName) {
+        signupPayload.club_name = clubName;
+        signupPayload.club_logo = clubLogo || null;
+      }
+      
+      const result = await safePost(`${API_URL}/api/auth/signup`, signupPayload);
       
       if (result.networkError) {
         toast.error(result.data?.detail || 'Unable to connect. Please try again.');
