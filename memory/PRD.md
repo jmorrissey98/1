@@ -1,214 +1,155 @@
 # My Coach Developer - Product Requirements Document
 
 ## Overview
-An iPad-first coach observation app for tracking and analyzing coaching sessions. Functions fully offline with data syncing when connection is available. Installable as a Progressive Web App (PWA).
+"My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
 ## Core Features
 
 ### Authentication
-- **Dual Auth**: Emergent Google OAuth + Email/Password authentication
-- **Invite System**: Coach Developers invite Coaches via email
-- **Roles**: Coach Developer (admin) and Coach (restricted view)
+- **Email/Password Authentication** - Primary login method
+- **Role-based access control** - Coach Developer and Coach roles
+- **Invite system** - Coach Developers can invite new users
+- **Password reset via email**
+- ~~Google OAuth~~ - **REMOVED** (caused deployment issues)
 
-### Session Management
-- Live observation with coaching intervention grid
-- Session parts with global defaults
-- AI-powered session summaries (using coach targets for context)
+### Coach Developer (Admin) Features
+- Create and manage observation sessions
+- View and manage coaches ("My Coaches")
+- Customize observation templates
+- Schedule future observations
+- View upcoming observations on dashboard
+- Set club/organization branding (name + logo)
+- Invite and manage users
+- Access data recovery tools
 
-### Coach Management
-- Coach profiles with development targets
-- Session history per coach
-- Data export capabilities
+### Coach Features
+- View personal dashboard with assigned sessions
+- Access "My Sessions" list
+- View session details and observations
+- Add reflections to sessions
+- Edit profile information
+- Permanent navigation bar (Dashboard, My Sessions, My Profile)
 
-## Role-Based Access Control
+### Cloud Sync (NEW - Phase 2 & 3)
+- **MongoDB Cloud Database** - All sessions stored in cloud
+- **Real-time sync status indicator** - Shows "Synced", "Syncing...", "Offline", or "Error"
+- **Multi-device access** - Sessions accessible from any device
+- **Offline support** - Falls back to localStorage when offline
+- **Auto-sync** - Sessions automatically sync every 5 seconds during observation
 
-### Coach Developer (Admin) Permissions
-| Capability | Access |
-|------------|--------|
-| View all sessions | ✅ |
-| Create observations | ✅ |
-| Manage users/invites | ✅ |
-| View all coaches | ✅ |
-| Schedule observations | ✅ |
-| Set coach targets | ✅ |
+### Data Model
 
-### Coach Permissions
-| Capability | Access |
-|------------|--------|
-| View own sessions only | ✅ |
-| Add reflections to own sessions | ✅ |
-| View observations on own sessions | ✅ |
-| Edit own profile (limited fields) | ✅ |
-| View own targets | ✅ |
-| Create observations | ❌ |
-| View other coaches | ❌ |
-| Edit observation data | ❌ |
-
-## Technical Architecture
-
-### Stack
-- **Frontend**: React, TailwindCSS, Shadcn UI
-- **Backend**: FastAPI, Python
-- **Database**: MongoDB
-- **Email**: Resend API (verified domain: mycoachdeveloper.com)
-- **Auth**: Emergent Google OAuth + JWT-based email/password
-
-### Key Files
+#### observation_sessions Collection
 ```
-/app/
-├── backend/
-│   └── server.py              # All API endpoints, auth, email, coach APIs
-├── frontend/
-│   ├── src/
-│   │   ├── lib/
-│   │   │   ├── safeFetch.js   # Robust fetch wrapper
-│   │   │   ├── storage.js     # Local storage utilities
-│   │   │   └── offlineSync.js # Offline queue (partial)
-│   │   ├── contexts/
-│   │   │   ├── AuthContext.jsx
-│   │   │   └── SyncContext.jsx
-│   │   ├── components/
-│   │   │   └── ProtectedRoute.jsx  # Role-based route protection
-│   │   └── pages/
-│   │       ├── CoachDashboard.jsx     # Coach home page
-│   │       ├── CoachSessions.jsx      # My Sessions tab
-│   │       ├── CoachSessionDetail.jsx # Session detail + reflection
-│   │       ├── CoachProfileEdit.jsx   # Coach profile editing
-│   │       └── ...
-│   └── public/
-│       ├── manifest.json
-│       └── service-worker.js
-└── .gitignore
-```
-
-### Coach Role API Endpoints
-- `GET /api/coach/dashboard` - Aggregated dashboard data
-- `GET /api/coach/sessions` - List coach's sessions
-- `GET /api/coach/session/{id}` - Session detail (own only)
-- `POST /api/coach/reflections` - Create reflection
-- `PUT /api/coach/reflections/{id}` - Update reflection
-- `GET /api/coach/profile` - Get coach profile
-- `PUT /api/coach/profile` - Update profile (limited fields)
-- `GET /api/coach/targets` - Get coach's targets
-- `GET /api/scheduled-observations` - List scheduled observations
-- `POST /api/scheduled-observations` - Create scheduled observation (admin)
-
-### Data Models
-
-#### Reflections Collection
-```json
 {
-  "reflection_id": "ref_xxx",
-  "session_id": "session_xxx",
-  "coach_id": "coach_xxx",
-  "content": "My reflection text...",
-  "self_assessment_rating": 4,
-  "strengths": "What went well...",
-  "areas_for_development": "What to improve...",
-  "created_at": "2026-01-22T...",
-  "updated_at": "2026-01-22T..."
+  session_id: string,
+  name: string,
+  coach_id: string (optional),
+  observer_id: string,
+  observation_context: "training" | "game",
+  status: "planned" | "draft" | "active" | "completed",
+  planned_date: string (optional),
+  created_at: string,
+  updated_at: string,
+  intervention_types: Array,
+  descriptor_group1: Object,
+  descriptor_group2: Object,
+  session_parts: Array,
+  start_time: string,
+  end_time: string,
+  total_duration: number,
+  ball_rolling_time: number,
+  ball_not_rolling_time: number,
+  events: Array,
+  ball_rolling_log: Array,
+  observer_reflections: Array,
+  coach_reflections: Array,
+  session_notes: string,
+  ai_summary: string,
+  attachments: Array
 }
 ```
 
-#### Scheduled Observations Collection
-```json
-{
-  "schedule_id": "sched_xxx",
-  "coach_id": "coach_xxx",
-  "observer_id": "user_xxx",
-  "scheduled_date": "2026-02-01",
-  "session_context": "U16 Training",
-  "status": "scheduled",
-  "created_at": "2026-01-22T..."
-}
-```
+## API Endpoints
 
-## Completed Work
+### Authentication
+- `POST /api/auth/login` - Email/password login
+- `POST /api/auth/signup` - Create new account
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
 
-### January 23, 2026 (Latest)
-- ✅ **Offline Sync Integration**
-  - Created `offlineApi.js` with offline-capable API wrappers
-  - Coach Dashboard, Sessions, and Profile Edit now use offline-first data access
-  - Data is cached locally and syncs when connection is restored
-  - Extended sync queue to handle reflections, profile updates, and coach targets
-  - Visual indicators show offline/cached status in headers
-- ✅ **Deployment & Environment Fixes**
-  - Fixed hardcoded credentials to use environment variables with fallbacks
-  - Improved CORS configuration to handle wildcard origins properly
-  - Cleaned up orphaned invites when coaches are deleted
-- ✅ **Add Coach Flow (UI Verified)**
-  - Coach Developer can add coaches from "My Coaches" page
-  - Requires email field (mandatory)
-  - Automatically creates an invite for the email
-  - Shows "Pending" status until coach signs up
-- ✅ **Delete Coach Flow (UI Verified)**
-  - Confirmation dialog before deletion
-  - Deletes coach profile and associated pending invites
-  - User account remains intact if linked
-- ✅ **Coach Signup Flow (E2E Verified)**
-  - Fixed: Coach profile now auto-links to user on signup
-  - Coach status updates from "Pending" to "Active" on signup
-  - User gets correct role and linked_coach_id
-  - Coach can access their dashboard immediately after signup
-- ✅ **Coach Role Experience (UI Verified)**
-  - Coach Dashboard showing profile, targets, observations, sessions
-  - My Sessions page with search functionality
-  - Profile Edit page with editable fields
+### Observation Sessions (Cloud Sync)
+- `GET /api/observations` - List all sessions for user
+- `GET /api/observations/{session_id}` - Get session details
+- `POST /api/observations` - Create/upsert session
+- `PUT /api/observations/{session_id}` - Update session
+- `DELETE /api/observations/{session_id}` - Delete session
 
-### January 22, 2026 
-- ✅ **Coach Role Implementation**
-  - Coach dashboard with profile, targets, upcoming observations
-  - My Sessions tab with session list and detail view
-  - Reflection system (create, update, view)
-  - Profile editing (limited fields: role, age group, department, bio)
-  - Role-based routing and access control
-  - Backend security: all coach queries filtered by coach_id
-- ✅ Fixed CORS configuration for custom domain
-- ✅ Fixed cross-domain cookie issue (relative URLs)
-- ✅ Fixed .gitignore blocking .env files
-- ✅ Hardcoded Resend configuration for reliability
-- ✅ Email retry logic with exponential backoff
-- ✅ Email status tracking on invites
+### Other
+- `GET /api/coaches` - List coaches
+- `GET /api/coaches/{coach_id}` - Get coach details
+- `GET /api/organization` - Get club branding
+- `PUT /api/organization` - Update club branding
+- `GET /api/session-parts` - Get session part templates
 
-### Previously Completed
-- ✅ Dual authentication (Google OAuth + Email/Password)
-- ✅ Password reset flow with Resend emails
-- ✅ User invite system with role assignment
-- ✅ Coach profile management with targets
-- ✅ Session observation and AI summaries
-- ✅ PWA manifest and basic service worker
+## Tech Stack
+- **Frontend:** React, TailwindCSS, Shadcn UI
+- **Backend:** FastAPI, Pydantic
+- **Database:** MongoDB
+- **State Management:** React Context (Auth, Organization, CloudSync)
+- **Offline Support:** localStorage fallback + service worker
 
-## Backlog
+## Completed Work (February 2026)
 
-### P1 - Upcoming
-- Extend offline sync to Admin (Coach Developer) pages
-- Add sessions storage to database with coach_id linking
+### Phase 1: Data Recovery
+- [x] Created `/data-recovery` page for exporting localStorage data
+- [x] Added "Admin" tab in Settings with data recovery link
+- [x] Export to clipboard and download as JSON file
 
-### P2 - Future
-- Session comparison view
-- iPad portrait orientation optimizations
-- Full PWA offline-first experience with service worker caching
-- Coach notification system
+### Phase 2: Database Integration  
+- [x] Created `observation_sessions` MongoDB collection
+- [x] Added CRUD endpoints: GET, POST, PUT, DELETE for `/api/observations`
+- [x] Sessions tagged with `observer_id` for user-specific data
+- [x] Auto-sync to `sessions` collection for coach access
 
-## Configuration
+### Phase 3: Sync & Multi-Device Access
+- [x] Created `cloudSessionService.js` for cloud operations
+- [x] Created `CloudSyncContext` for app-wide sync state
+- [x] Created `SyncStatusIndicator` component
+- [x] Updated `LiveObservation` to save to cloud
+- [x] Updated `HomePage` to load sessions from cloud
+- [x] Added sync status to header and observation view
 
-### Environment Variables
-```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
-RESEND_API_KEY=re_xxxxx (reads from env, has fallback)
-SENDER_EMAIL=noreply@mycoachdeveloper.com (reads from env, has fallback)
-APP_URL=https://mycoachdeveloper.com (reads from env, has fallback)
-CORS_ORIGINS=* (or comma-separated list of allowed origins)
-```
+### Google Auth Removal
+- [x] Removed Google login buttons from LoginPage
+- [x] Disabled Google auth flow in AuthContext
+- [x] Email/password is now the only auth method
 
-### Deployment Notes
-1. Frontend uses relative API URLs for same-domain deployment
-2. CORS configured to support wildcard (*) or specific origins list
-3. Environment variables are read with fallbacks for reliability
-4. Check `/api/config-check` after deployment to verify
-5. Delete coach also cleans up associated pending invites
+## Remaining Work / Backlog
 
-### Test Credentials
-- **Coach Developer**: joemorrisseyg@gmail.com / MCD26 (or Google Auth)
-- **Coach**: Invite via Settings or "My Coaches" page, then sign up
+### P0 - Critical
+- [ ] Test full end-to-end cloud sync flow on deployed environment
+- [ ] Migrate existing production user data to cloud (if any)
+
+### P1 - High Priority  
+- [ ] Complete "My Development" page for Coaches (charts with recharts)
+- [ ] Add club branding to Coach Developer signup flow
+- [ ] Ensure offline-to-online sync handles conflicts properly
+
+### P2 - Medium Priority
+- [ ] Extend offline sync to admin pages
+- [ ] Session comparison view for coaches
+- [ ] iPad portrait orientation optimizations
+- [ ] Full audit for remaining localStorage usage
+
+### P3 - Future
+- [ ] Export sessions as PDF reports
+- [ ] Email session summaries to coaches
+- [ ] Video attachment support
+- [ ] Team-level analytics dashboard
+
+## Credentials (Preview Environment)
+- **Coach Developer:** joemorrisseyg@gmail.com / 12345
+- **Coach:** joe_morrissey@hotmail.co.uk / CoachTest123
