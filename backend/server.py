@@ -1127,6 +1127,12 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="session_token", path="/")
     return {"status": "logged out"}
 
+@api_router.get("/users/check-first")
+async def check_first_user():
+    """Check if there are any users in the system (for showing club fields on signup)"""
+    user_count = await db.users.count_documents({})
+    return {"is_first": user_count == 0}
+
 # Email/Password Auth Endpoints
 @api_router.post("/auth/signup")
 async def signup(signup_data: SignupRequest, response: Response):
