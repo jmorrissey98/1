@@ -488,7 +488,7 @@ export default function LiveObservation() {
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-mono timer-display text-slate-900" data-testid="session-timer">
               {formatTime(elapsedTime)}
             </div>
-            <div className="text-xs text-slate-500 hidden sm:block">Session Time</div>
+            <SyncStatusIndicator className="justify-center" />
           </div>
           
           {/* Controls */}
