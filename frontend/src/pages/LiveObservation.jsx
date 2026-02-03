@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { storage, createEvent } from '../lib/storage';
+import { saveCloudSession } from '../lib/cloudSessionService';
 import { fetchSessionParts, createSessionPart } from '../lib/sessionPartsApi';
 import { formatTime, cn, generateId } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import SyncStatusIndicator from '../components/SyncStatusIndicator';
 
 export default function LiveObservation() {
   const navigate = useNavigate();
