@@ -241,11 +241,24 @@ class TestObservationsWithToken:
         create_response = requests.post(f"{BASE_URL}/api/observations", json=payload, headers=self.headers)
         assert create_response.status_code == 200
         
-        # Update it
+        # Update it - must include session_id and all required fields
         update_payload = {
+            "session_id": test_session_id,
             "name": "Updated Name",
+            "observation_context": "training",
             "status": "completed",
-            "total_duration": 600
+            "total_duration": 600,
+            "ball_rolling_time": 400,
+            "ball_not_rolling_time": 200,
+            "intervention_types": [],
+            "session_parts": [],
+            "events": [],
+            "ball_rolling_log": [],
+            "observer_reflections": [],
+            "coach_reflections": [],
+            "session_notes": "",
+            "ai_summary": "",
+            "attachments": []
         }
         
         response = requests.put(f"{BASE_URL}/api/observations/{test_session_id}", json=update_payload, headers=self.headers)
