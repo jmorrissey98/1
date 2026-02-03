@@ -448,6 +448,50 @@ export default function LoginPage() {
                   </div>
                 </div>
                 
+                {/* Club branding fields - only for first user */}
+                {isFirstUser && (
+                  <div className="space-y-4 pt-4 border-t border-slate-200">
+                    <div className="text-sm text-slate-600 bg-emerald-50 p-3 rounded-lg">
+                      <strong>You're the first user!</strong> Set up your club branding below.
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="club-name">Club Name</Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="club-name"
+                          type="text"
+                          placeholder="Your Club Name"
+                          value={clubName}
+                          onChange={(e) => setClubName(e.target.value)}
+                          className="pl-10"
+                          data-testid="signup-club-name-input"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="club-logo">Club Logo URL (optional)</Label>
+                      <div className="relative">
+                        <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="club-logo"
+                          type="url"
+                          placeholder="https://example.com/logo.png"
+                          value={clubLogo}
+                          onChange={(e) => setClubLogo(e.target.value)}
+                          className="pl-10"
+                          data-testid="signup-club-logo-input"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        You can add or change this later in Settings.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 <Button 
                   type="submit" 
                   className="w-full"
