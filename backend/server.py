@@ -2080,6 +2080,253 @@ async def link_user_by_email(request: Request):
     return {"linked": True, "user_id": user["user_id"], "coach_id": coach_id}
 
 # ============================================
+# OBSERVATION SESSIONS CRUD (Cloud Sync)
+# ============================================
+
+@api_router.get("/observations")
+async def list_observation_sessions(request: Request):
+    """List all observation sessions for the authenticated Coach Developer"""
+    user = await require_coach_developer(request)
+    
+    sessions_cursor = db.observation_sessions.find(
+        {"observer_id": user.user_id},
+        {"_id": 0}
+    ).sort("updated_at", -1)
+    
+    sessions = await sessions_cursor.to_list(200)
+    
+    # Get coach names in batch
+    coach_ids = list(set(s.get("coach_id") for s in sessions if s.get("coach_id")))
+    coaches_map = {}
+    if coach_ids:
+        coaches = await db.coaches.find({"id": {"$in": coach_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(100)
+        coaches_map = {c["id"]: c.get("name") for c in coaches}
+    
+    result = []
+    for s in sessions:
+        result.append(SessionListItem(
+            session_id=s.get("session_id"),
+            name=s.get("name", "Untitled"),
+            coach_id=s.get("coach_id"),
+            coach_name=coaches_map.get(s.get("coach_id")),
+            status=s.get("status", "draft"),
+            observation_context=s.get("observation_context", "training"),
+            created_at=s.get("created_at", ""),
+            updated_at=s.get("updated_at", ""),
+            total_duration=s.get("total_duration", 0),
+            event_count=len(s.get("events", []))
+        ))
+    
+    return result
+
+@api_router.get("/observations/{session_id}")
+async def get_observation_session(session_id: str, request: Request):
+    """Get a specific observation session"""
+    user = await require_coach_developer(request)
+    
+    session = await db.observation_sessions.find_one(
+        {"session_id": session_id, "observer_id": user.user_id},
+        {"_id": 0}
+    )
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Get coach name if applicable
+    coach_name = None
+    if session.get("coach_id"):
+        coach = await db.coaches.find_one({"id": session.get("coach_id")}, {"_id": 0, "name": 1})
+        coach_name = coach.get("name") if coach else None
+    
+    # Get observer name
+    observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
+    observer_name = observer.get("name") if observer else None
+    
+    return ObservationSessionResponse(
+        session_id=session.get("session_id"),
+        name=session.get("name", "Untitled"),
+        coach_id=session.get("coach_id"),
+        coach_name=coach_name,
+        observer_id=session.get("observer_id"),
+        observer_name=observer_name,
+        observation_context=session.get("observation_context", "training"),
+        status=session.get("status", "draft"),
+        planned_date=session.get("planned_date"),
+        created_at=session.get("created_at", ""),
+        updated_at=session.get("updated_at", ""),
+        intervention_types=session.get("intervention_types", []),
+        descriptor_group1=session.get("descriptor_group1"),
+        descriptor_group2=session.get("descriptor_group2"),
+        session_parts=session.get("session_parts", []),
+        start_time=session.get("start_time"),
+        end_time=session.get("end_time"),
+        total_duration=session.get("total_duration", 0),
+        ball_rolling_time=session.get("ball_rolling_time", 0),
+        ball_not_rolling_time=session.get("ball_not_rolling_time", 0),
+        events=session.get("events", []),
+        ball_rolling_log=session.get("ball_rolling_log", []),
+        observer_reflections=session.get("observer_reflections", []),
+        coach_reflections=session.get("coach_reflections", []),
+        session_notes=session.get("session_notes", ""),
+        ai_summary=session.get("ai_summary", ""),
+        attachments=session.get("attachments", [])
+    )
+
+@api_router.post("/observations")
+async def create_observation_session(data: ObservationSessionCreate, request: Request):
+    """Create a new observation session"""
+    user = await require_coach_developer(request)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    session_doc = {
+        "session_id": data.session_id,
+        "name": data.name,
+        "coach_id": data.coach_id,
+        "observer_id": user.user_id,
+        "observation_context": data.observation_context,
+        "status": data.status,
+        "planned_date": data.planned_date,
+        "created_at": now,
+        "updated_at": now,
+        "intervention_types": data.intervention_types,
+        "descriptor_group1": data.descriptor_group1,
+        "descriptor_group2": data.descriptor_group2,
+        "session_parts": data.session_parts,
+        "start_time": data.start_time,
+        "end_time": data.end_time,
+        "total_duration": data.total_duration,
+        "ball_rolling_time": data.ball_rolling_time,
+        "ball_not_rolling_time": data.ball_not_rolling_time,
+        "ball_rolling": data.ball_rolling,
+        "active_part_id": data.active_part_id,
+        "events": data.events,
+        "ball_rolling_log": data.ball_rolling_log,
+        "observer_reflections": data.observer_reflections,
+        "coach_reflections": data.coach_reflections,
+        "session_notes": data.session_notes,
+        "ai_summary": data.ai_summary,
+        "attachments": data.attachments
+    }
+    
+    # Check if session already exists (upsert)
+    existing = await db.observation_sessions.find_one({"session_id": data.session_id})
+    if existing:
+        # Update existing session
+        await db.observation_sessions.update_one(
+            {"session_id": data.session_id},
+            {"$set": {**session_doc, "created_at": existing.get("created_at", now)}}
+        )
+    else:
+        await db.observation_sessions.insert_one(session_doc)
+    
+    # Also save to the sessions collection for coach access
+    if data.coach_id and data.status == "completed":
+        coach_session = {
+            "session_id": data.session_id,
+            "coach_id": data.coach_id,
+            "observer_id": user.user_id,
+            "title": data.name,
+            "date": data.start_time or now,
+            "observations": data.events,
+            "ai_summary": data.ai_summary,
+            "total_duration": data.total_duration,
+            "status": data.status
+        }
+        await db.sessions.update_one(
+            {"session_id": data.session_id},
+            {"$set": coach_session},
+            upsert=True
+        )
+    
+    return {"success": True, "session_id": data.session_id, "synced_at": now}
+
+@api_router.put("/observations/{session_id}")
+async def update_observation_session(session_id: str, data: ObservationSessionCreate, request: Request):
+    """Update an existing observation session"""
+    user = await require_coach_developer(request)
+    
+    # Verify ownership
+    existing = await db.observation_sessions.find_one(
+        {"session_id": session_id, "observer_id": user.user_id}
+    )
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    update_data = {
+        "name": data.name,
+        "coach_id": data.coach_id,
+        "observation_context": data.observation_context,
+        "status": data.status,
+        "planned_date": data.planned_date,
+        "updated_at": now,
+        "intervention_types": data.intervention_types,
+        "descriptor_group1": data.descriptor_group1,
+        "descriptor_group2": data.descriptor_group2,
+        "session_parts": data.session_parts,
+        "start_time": data.start_time,
+        "end_time": data.end_time,
+        "total_duration": data.total_duration,
+        "ball_rolling_time": data.ball_rolling_time,
+        "ball_not_rolling_time": data.ball_not_rolling_time,
+        "ball_rolling": data.ball_rolling,
+        "active_part_id": data.active_part_id,
+        "events": data.events,
+        "ball_rolling_log": data.ball_rolling_log,
+        "observer_reflections": data.observer_reflections,
+        "coach_reflections": data.coach_reflections,
+        "session_notes": data.session_notes,
+        "ai_summary": data.ai_summary,
+        "attachments": data.attachments
+    }
+    
+    await db.observation_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": update_data}
+    )
+    
+    # Also update sessions collection for coach access
+    if data.coach_id and data.status == "completed":
+        coach_session = {
+            "session_id": session_id,
+            "coach_id": data.coach_id,
+            "observer_id": user.user_id,
+            "title": data.name,
+            "date": data.start_time or now,
+            "observations": data.events,
+            "ai_summary": data.ai_summary,
+            "total_duration": data.total_duration,
+            "status": data.status
+        }
+        await db.sessions.update_one(
+            {"session_id": session_id},
+            {"$set": coach_session},
+            upsert=True
+        )
+    
+    return {"success": True, "session_id": session_id, "synced_at": now}
+
+@api_router.delete("/observations/{session_id}")
+async def delete_observation_session(session_id: str, request: Request):
+    """Delete an observation session"""
+    user = await require_coach_developer(request)
+    
+    result = await db.observation_sessions.delete_one(
+        {"session_id": session_id, "observer_id": user.user_id}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Also delete from sessions collection
+    await db.sessions.delete_one({"session_id": session_id})
+    
+    return {"success": True, "deleted": True}
+
+# ============================================
 # ORGANIZATION / CLUB ENDPOINTS
 # ============================================
 
