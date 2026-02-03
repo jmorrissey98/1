@@ -127,7 +127,10 @@ export default function HomePage() {
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Manrope']" data-testid="app-title">
                 My Coach Developer
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500">Coach Observation Tool</p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs sm:text-sm text-slate-500">Coach Observation Tool</p>
+                <SyncStatusIndicator />
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               {isCoachDeveloper() && (
