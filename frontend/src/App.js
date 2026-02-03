@@ -3,6 +3,7 @@ import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
+import { CloudSyncProvider } from "./contexts/CloudSyncContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
 import AppHeader from "./components/AppHeader";
