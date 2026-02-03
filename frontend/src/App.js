@@ -24,6 +24,8 @@ import CoachDashboard from "./pages/CoachDashboard";
 import CoachSessions from "./pages/CoachSessions";
 import CoachSessionDetail from "./pages/CoachSessionDetail";
 import CoachMyProfile from "./pages/CoachMyProfile";
+// Admin Tools
+import DataRecovery from "./pages/DataRecovery";
 import "./App.css";
 
 // Role-based home redirect component
