@@ -20,6 +20,7 @@ export default function HomePage() {
   const [sessions, setSessions] = useState([]);
   const [upcomingObservations, setUpcomingObservations] = useState([]);
   const [loadingUpcoming, setLoadingUpcoming] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   // Redirect coach users to their view
   useEffect(() => {
@@ -29,11 +30,44 @@ export default function HomePage() {
   }, [user, navigate]);
 
   useEffect(() => {
-    setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+    loadSessions();
     if (isCoachDeveloper()) {
       loadUpcomingObservations();
     }
   }, []);
+
+  const loadSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      // Try to load from cloud first
+      const result = await fetchCloudSessions();
+      if (result.success && result.data.length > 0) {
+        // Convert cloud format to local format for display
+        const cloudSessions = result.data.map(s => ({
+          id: s.session_id,
+          name: s.name,
+          coachId: s.coach_id,
+          coachName: s.coach_name,
+          status: s.status,
+          observationContext: s.observation_context,
+          createdAt: s.created_at,
+          updatedAt: s.updated_at,
+          totalDuration: s.total_duration,
+          events: { length: s.event_count }
+        }));
+        setSessions(cloudSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      } else {
+        // Fall back to localStorage
+        setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      }
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+      // Fall back to localStorage
+      setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
   const loadUpcomingObservations = async () => {
     setLoadingUpcoming(true);
