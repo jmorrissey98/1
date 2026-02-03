@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { AlertCircle, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Loader2, Mail, Lock, User, Eye, EyeOff, Building2, ImageIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from 'sonner';
-import { safePost } from '../lib/safeFetch';
+import { safePost, safeGet } from '../lib/safeFetch';
 
 const API_URL = ''; // Relative URL - frontend and backend on same domain
 
