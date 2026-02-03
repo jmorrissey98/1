@@ -137,6 +137,13 @@ function AppRouter() {
           <CoachView />
         </ProtectedRoute>
       } />
+      
+      {/* Data Recovery - Admin Only */}
+      <Route path="/data-recovery" element={
+        <ProtectedRoute>
+          <DataRecovery />
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 }
