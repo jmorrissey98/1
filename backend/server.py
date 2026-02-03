@@ -284,6 +284,87 @@ class CoachSessionSummary(BaseModel):
 # END COACH ROLE MODELS
 # ============================================
 
+# ============================================
+# OBSERVATION SESSION MODELS (Cloud Sync)
+# ============================================
+
+class ObservationSessionCreate(BaseModel):
+    """Create a new observation session"""
+    session_id: str
+    name: str
+    coach_id: Optional[str] = None
+    observation_context: str = "training"  # "training" or "game"
+    status: str = "draft"  # "planned", "draft", "active", "completed"
+    planned_date: Optional[str] = None
+    # Template configuration
+    intervention_types: List[Dict[str, Any]] = []
+    descriptor_group1: Optional[Dict[str, Any]] = None
+    descriptor_group2: Optional[Dict[str, Any]] = None
+    session_parts: List[Dict[str, Any]] = []
+    # Runtime data
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    total_duration: int = 0
+    ball_rolling_time: int = 0
+    ball_not_rolling_time: int = 0
+    ball_rolling: bool = False
+    active_part_id: Optional[str] = None
+    # Events/interventions log
+    events: List[Dict[str, Any]] = []
+    ball_rolling_log: List[Dict[str, Any]] = []
+    # Reflections
+    observer_reflections: List[Dict[str, Any]] = []
+    coach_reflections: List[Dict[str, Any]] = []
+    session_notes: str = ""
+    ai_summary: str = ""
+    attachments: List[Dict[str, Any]] = []
+
+class ObservationSessionResponse(BaseModel):
+    session_id: str
+    name: str
+    coach_id: Optional[str] = None
+    coach_name: Optional[str] = None
+    observer_id: str
+    observer_name: Optional[str] = None
+    observation_context: str
+    status: str
+    planned_date: Optional[str] = None
+    created_at: str
+    updated_at: str
+    # Include all session data
+    intervention_types: List[Dict[str, Any]] = []
+    descriptor_group1: Optional[Dict[str, Any]] = None
+    descriptor_group2: Optional[Dict[str, Any]] = None
+    session_parts: List[Dict[str, Any]] = []
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    total_duration: int = 0
+    ball_rolling_time: int = 0
+    ball_not_rolling_time: int = 0
+    events: List[Dict[str, Any]] = []
+    ball_rolling_log: List[Dict[str, Any]] = []
+    observer_reflections: List[Dict[str, Any]] = []
+    coach_reflections: List[Dict[str, Any]] = []
+    session_notes: str = ""
+    ai_summary: str = ""
+    attachments: List[Dict[str, Any]] = []
+
+class SessionListItem(BaseModel):
+    session_id: str
+    name: str
+    coach_id: Optional[str] = None
+    coach_name: Optional[str] = None
+    status: str
+    observation_context: str
+    created_at: str
+    updated_at: str
+    total_duration: int = 0
+    event_count: int = 0
+
+# ============================================
+# END OBSERVATION SESSION MODELS
+# ============================================
+
 # Default session parts
 DEFAULT_SESSION_PARTS = [
     {"part_id": "default_technique", "name": "Develop The Technique", "is_default": True},
