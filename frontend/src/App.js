@@ -156,9 +156,11 @@ function App() {
         <AuthProvider>
           <SyncProvider>
             <OrganizationProvider>
-              <AppHeader />
-              <AppRouter />
-              <OfflineIndicator />
+              <CloudSyncProvider>
+                <AppHeader />
+                <AppRouter />
+                <OfflineIndicator />
+              </CloudSyncProvider>
             </OrganizationProvider>
           </SyncProvider>
         </AuthProvider>
