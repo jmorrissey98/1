@@ -12,6 +12,7 @@ import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from
 import { fetchSessionParts, createSessionPart, toFrontendFormat } from '../lib/sessionPartsApi';
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { useCloudSync } from '../contexts/CloudSyncContext';
 import { safeGet } from '../lib/safeFetch';
 
 const API_URL = '';
@@ -24,6 +25,7 @@ export default function SessionSetup() {
   const plannedDate = searchParams.get('date');
   const isEditing = !!sessionId;
   const { isCoachDeveloper } = useAuth();
+  const { getSession, saveSession: cloudSaveSession, setCurrentSession } = useCloudSync();
   
   const [templates, setTemplates] = useState([]);
   const [coaches, setCoaches] = useState([]);
@@ -32,6 +34,7 @@ export default function SessionSetup() {
   const [observationContext, setObservationContext] = useState(OBSERVATION_CONTEXTS.TRAINING);
   const [sessionDate, setSessionDate] = useState(plannedDate || '');
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   // Session parts state
   const [availableParts, setAvailableParts] = useState([]);
@@ -41,29 +44,42 @@ export default function SessionSetup() {
   const [savingPart, setSavingPart] = useState(false);
 
   useEffect(() => {
-    loadSessionParts();
-    loadCoaches();
-    setTemplates(storage.getTemplates());
-    
-    if (isEditing) {
-      const existing = storage.getSession(sessionId);
-      if (existing) {
-        setSession(existing);
-        setSelectedCoachId(existing.coachId || 'none');
+    const initSession = async () => {
+      setLoading(true);
+      loadSessionParts();
+      loadCoaches();
+      setTemplates(storage.getTemplates());
+      
+      if (isEditing) {
+        // Load existing session from cloud
+        try {
+          const existing = await getSession(sessionId);
+          if (existing) {
+            setSession(existing);
+            setSelectedCoachId(existing.coachId || 'none');
+          } else {
+            toast.error('Session not found');
+            navigate('/');
+          }
+        } catch (err) {
+          console.error('Failed to load session:', err);
+          toast.error('Failed to load session');
+          navigate('/');
+        }
       } else {
-        toast.error('Session not found');
-        navigate('/');
+        const newSession = createSession('', null, preselectedCoachId || null, {
+          observationContext: OBSERVATION_CONTEXTS.TRAINING,
+          plannedDate: plannedDate || null,
+          planned: !!plannedDate
+        });
+        setSession(newSession);
+        if (plannedDate) setSessionDate(plannedDate);
       }
-    } else {
-      const newSession = createSession('', null, preselectedCoachId || null, {
-        observationContext: OBSERVATION_CONTEXTS.TRAINING,
-        plannedDate: plannedDate || null,
-        planned: !!plannedDate
-      });
-      setSession(newSession);
-      if (plannedDate) setSessionDate(plannedDate);
-    }
-  }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate]);
+      setLoading(false);
+    };
+    
+    initSession();
+  }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate, getSession]);
 
   // Load coaches from API instead of localStorage
   const loadCoaches = async () => {
