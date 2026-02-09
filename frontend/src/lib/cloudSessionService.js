@@ -429,15 +429,6 @@ export const deleteCloudSession = async (sessionId) => {
     return { success: false, error: error.message, queued: true };
   }
 };
-    }
-    
-    setSyncStatus(SyncStatus.SYNCED);
-    return { success: true };
-  } catch (error) {
-    setSyncStatus(SyncStatus.ERROR);
-    return { success: false, error: error.message };
-  }
-};
 
 /**
  * Convert cloud session format to frontend format
