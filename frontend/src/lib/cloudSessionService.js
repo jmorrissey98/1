@@ -481,18 +481,50 @@ export const cloudToLocalSession = (cloudSession) => {
  * Initialize sync listeners for online/offline events
  */
 export const initCloudSync = () => {
-  window.addEventListener('online', () => {
-    console.log('[CloudSync] Back online');
-    setSyncStatus(SyncStatus.IDLE);
+  // Load any pending offline changes
+  loadOfflineQueue();
+  
+  window.addEventListener('online', async () => {
+    console.log('[CloudSync] Back online - processing offline queue...');
+    setSyncStatus(SyncStatus.SYNCING);
+    
+    // Process offline queue when back online
+    const results = await processOfflineQueue();
+    
+    if (results.conflicts.length > 0) {
+      console.log('[CloudSync] Conflicts detected:', results.conflicts);
+      // Conflicts are handled by the resolveConflict function
+    }
+    
+    if (results.processed > 0) {
+      console.log(`[CloudSync] Synced ${results.processed} offline changes`);
+    }
   });
   
   window.addEventListener('offline', () => {
-    console.log('[CloudSync] Gone offline');
+    console.log('[CloudSync] Gone offline - changes will be queued');
     setSyncStatus(SyncStatus.OFFLINE);
   });
   
-  // Initial status
+  // Initial status and sync
   if (!navigator.onLine) {
     setSyncStatus(SyncStatus.OFFLINE);
+  } else if (pendingChanges.length > 0) {
+    // Process any pending changes from previous session
+    console.log(`[CloudSync] Found ${pendingChanges.length} pending changes, syncing...`);
+    processOfflineQueue();
   }
+};
+
+/**
+ * Get count of pending offline changes
+ */
+export const getPendingChangeCount = () => pendingChanges.length;
+
+/**
+ * Clear all pending changes (use with caution)
+ */
+export const clearPendingChanges = () => {
+  pendingChanges = [];
+  saveOfflineQueue();
 };
