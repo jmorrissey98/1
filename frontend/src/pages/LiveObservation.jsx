@@ -212,9 +212,10 @@ export default function LiveObservation() {
         };
       }
       
-      // Update state and save directly
+      // Update state, cache, and save to cloud
       setSession(finalSession);
-      storage.saveSession(finalSession);
+      setCurrentSession(finalSession);
+      cloudSaveSession(finalSession);
       
       setIsRunning(false);
       toast.success('Session completed');
