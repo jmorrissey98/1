@@ -338,49 +338,36 @@ export const fetchCloudSession = async (sessionId) => {
 
 /**
  * Save a session to the cloud (create or update)
+ * If offline, queues the change for later sync
  */
 export const saveCloudSession = async (session) => {
+  // Always save to localStorage for offline backup
+  try {
+    const sessions = JSON.parse(localStorage.getItem(OFFLINE_SESSIONS_KEY) || '{}');
+    sessions[session.id] = { ...session, localUpdatedAt: new Date().toISOString() };
+    localStorage.setItem(OFFLINE_SESSIONS_KEY, JSON.stringify(sessions));
+  } catch (e) {
+    console.error('[CloudSync] Failed to save to localStorage:', e);
+  }
+
   if (!navigator.onLine) {
+    // Queue for later sync
+    queueOfflineChange('update', session.id, session);
     setSyncStatus(SyncStatus.OFFLINE);
-    return { success: false, error: 'offline' };
+    return { success: false, error: 'offline', queued: true };
   }
 
   setSyncStatus(SyncStatus.SYNCING);
   
   try {
-    // Map frontend session format to API format
-    const payload = {
-      session_id: session.id,
-      name: session.name,
-      coach_id: session.coachId || null,
-      observation_context: session.observationContext || 'training',
-      status: session.status || 'draft',
-      planned_date: session.plannedDate || null,
-      intervention_types: session.interventionTypes || session.eventTypes || [],
-      descriptor_group1: session.descriptorGroup1 || null,
-      descriptor_group2: session.descriptorGroup2 || null,
-      session_parts: session.sessionParts || [],
-      start_time: session.startTime || null,
-      end_time: session.endTime || null,
-      total_duration: session.totalDuration || 0,
-      ball_rolling_time: session.ballRollingTime || 0,
-      ball_not_rolling_time: session.ballNotRollingTime || 0,
-      ball_rolling: session.ballRolling || false,
-      active_part_id: session.activePartId || null,
-      events: session.events || [],
-      ball_rolling_log: session.ballRollingLog || [],
-      observer_reflections: session.observerReflections || [],
-      coach_reflections: session.coachReflections || [],
-      session_notes: session.sessionNotes || '',
-      ai_summary: session.aiSummary || '',
-      attachments: session.attachments || []
-    };
-    
+    const payload = mapToApiFormat(session);
     const result = await safePost(`${API_URL}/api/observations`, payload);
     
     if (result.networkError) {
+      // Queue for later sync
+      queueOfflineChange('update', session.id, session);
       setSyncStatus(SyncStatus.OFFLINE);
-      return { success: false, error: 'network' };
+      return { success: false, error: 'network', queued: true };
     }
     
     if (!result.ok) {
@@ -391,18 +378,31 @@ export const saveCloudSession = async (session) => {
     setSyncStatus(SyncStatus.SYNCED);
     return { success: true, synced_at: result.data?.synced_at };
   } catch (error) {
+    // Queue for later sync on any error
+    queueOfflineChange('update', session.id, session);
     setSyncStatus(SyncStatus.ERROR);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, queued: true };
   }
 };
 
 /**
  * Delete a session from the cloud
+ * If offline, queues the deletion for later sync
  */
 export const deleteCloudSession = async (sessionId) => {
+  // Remove from localStorage
+  try {
+    const sessions = JSON.parse(localStorage.getItem(OFFLINE_SESSIONS_KEY) || '{}');
+    delete sessions[sessionId];
+    localStorage.setItem(OFFLINE_SESSIONS_KEY, JSON.stringify(sessions));
+  } catch (e) {
+    console.error('[CloudSync] Failed to remove from localStorage:', e);
+  }
+
   if (!navigator.onLine) {
+    queueOfflineChange('delete', sessionId, null);
     setSyncStatus(SyncStatus.OFFLINE);
-    return { success: false, error: 'offline' };
+    return { success: false, error: 'offline', queued: true };
   }
 
   setSyncStatus(SyncStatus.SYNCING);
@@ -411,13 +411,24 @@ export const deleteCloudSession = async (sessionId) => {
     const result = await safeDelete(`${API_URL}/api/observations/${sessionId}`);
     
     if (result.networkError) {
+      queueOfflineChange('delete', sessionId, null);
       setSyncStatus(SyncStatus.OFFLINE);
-      return { success: false, error: 'network' };
+      return { success: false, error: 'network', queued: true };
     }
     
-    if (!result.ok) {
+    if (!result.ok && result.status !== 404) {
       setSyncStatus(SyncStatus.ERROR);
       return { success: false, error: result.data?.detail || 'Failed to delete' };
+    }
+    
+    setSyncStatus(SyncStatus.SYNCED);
+    return { success: true };
+  } catch (error) {
+    queueOfflineChange('delete', sessionId, null);
+    setSyncStatus(SyncStatus.ERROR);
+    return { success: false, error: error.message, queued: true };
+  }
+};
     }
     
     setSyncStatus(SyncStatus.SYNCED);
