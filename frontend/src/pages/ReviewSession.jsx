@@ -14,10 +14,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
+import { OBSERVATION_CONTEXTS } from '../lib/storage';
 import { formatTime, formatDateTime, calcPercentage, countBy, cn, generateId } from '../lib/utils';
 import { exportToPDF, exportToCSV } from '../lib/export';
 import { useAuth } from '../contexts/AuthContext';
+import { useCloudSync } from '../contexts/CloudSyncContext';
 import axios from 'axios';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
@@ -28,8 +29,10 @@ export default function ReviewSession() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const { user, isCoachDeveloper } = useAuth();
+  const { getSession, saveSession: cloudSaveSession, setCurrentSession } = useCloudSync();
   
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('whole'); // 'whole' or part id
   const [editingEvent, setEditingEvent] = useState(null);
   const [editNote, setEditNote] = useState('');
@@ -42,18 +45,32 @@ export default function ReviewSession() {
   const isCoachView = user?.role === 'coach';
 
   useEffect(() => {
-    const loaded = storage.getSession(sessionId);
-    if (!loaded) {
-      toast.error('Session not found');
-      navigate('/');
-      return;
-    }
-    setSession(loaded);
-  }, [sessionId, navigate]);
+    const loadSession = async () => {
+      setLoading(true);
+      try {
+        const loaded = await getSession(sessionId);
+        if (!loaded) {
+          toast.error('Session not found');
+          navigate('/');
+          return;
+        }
+        setSession(loaded);
+        setCurrentSession(loaded);
+      } catch (err) {
+        console.error('Failed to load session:', err);
+        toast.error('Failed to load session');
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSession();
+  }, [sessionId, navigate, getSession, setCurrentSession]);
 
-  const saveSession = (updated) => {
-    storage.saveSession(updated);
+  const saveSession = async (updated) => {
     setSession(updated);
+    setCurrentSession(updated);
+    await cloudSaveSession(updated);
   };
 
   const getFilteredEvents = () => {
