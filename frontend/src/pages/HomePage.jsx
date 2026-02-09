@@ -41,7 +41,7 @@ export default function HomePage() {
     try {
       // Try to load from cloud first
       const result = await fetchCloudSessions();
-      if (result.success && result.data.length > 0) {
+      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
         // Convert cloud format to local format for display
         const cloudSessions = result.data.map(s => ({
           id: s.session_id,
@@ -53,17 +53,19 @@ export default function HomePage() {
           createdAt: s.created_at,
           updatedAt: s.updated_at,
           totalDuration: s.total_duration,
-          events: { length: s.event_count }
+          events: { length: s.event_count || 0 }
         }));
         setSessions(cloudSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
       } else {
         // Fall back to localStorage
-        setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+        const localSessions = storage.getSessions() || [];
+        setSessions(localSessions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)));
       }
     } catch (err) {
       console.error('Failed to load sessions:', err);
       // Fall back to localStorage
-      setSessions(storage.getSessions().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      const localSessions = storage.getSessions() || [];
+      setSessions(localSessions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)));
     } finally {
       setLoadingSessions(false);
     }
