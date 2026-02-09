@@ -198,7 +198,8 @@ export function CloudSyncProvider({ children }) {
     isSyncing: syncStatus === SyncStatus.SYNCING,
     isSynced: syncStatus === SyncStatus.SYNCED,
     isOffline: syncStatus === SyncStatus.OFFLINE,
-    hasError: syncStatus === SyncStatus.ERROR
+    hasError: syncStatus === SyncStatus.ERROR,
+    hasConflict: syncStatus === SyncStatus.CONFLICT
   };
 
   return (
