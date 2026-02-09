@@ -483,7 +483,7 @@ export default function LiveObservation() {
               variant="ghost" 
               size="icon" 
               onClick={() => {
-                saveSession();
+                handleSaveSession();
                 navigate('/');
               }}
               className="shrink-0"
