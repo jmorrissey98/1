@@ -124,13 +124,13 @@ export default function LiveObservation() {
     if (!session || !isRunning) return;
     
     const saveInterval = setInterval(() => {
-      saveSession();
+      handleSaveSession();
     }, 5000);
     
     return () => clearInterval(saveInterval);
   }, [session, isRunning, elapsedTime]);
 
-  const saveSession = useCallback(async () => {
+  const handleSaveSession = useCallback(async () => {
     if (!session) return;
     
     const updated = {
@@ -139,16 +139,17 @@ export default function LiveObservation() {
       updatedAt: new Date().toISOString()
     };
     
-    // Save to localStorage first (offline backup)
-    storage.saveSession(updated);
+    // Update local state and cache
+    setSession(updated);
+    setCurrentSession(updated);
     
-    // Then sync to cloud
+    // Save to cloud (which also saves to localStorage)
     try {
-      await saveCloudSession(updated);
+      await cloudSaveSession(updated);
     } catch (err) {
       console.error('Cloud sync failed:', err);
     }
-  }, [session, elapsedTime]);
+  }, [session, elapsedTime, cloudSaveSession, setCurrentSession]);
 
   const handleStart = () => {
     if (!isRunning) {
