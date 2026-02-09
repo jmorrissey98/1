@@ -48,7 +48,7 @@ export function CloudSyncProvider({ children }) {
     
     const result = await fetchCloudSessions();
     
-    if (result.success) {
+    if (result.success && Array.isArray(result.data)) {
       setSessions(result.data);
       // Update cache with session list data
       result.data.forEach(s => {
