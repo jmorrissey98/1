@@ -299,7 +299,7 @@ export default function SessionSetup() {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!session.name.trim()) {
       toast.error('Please enter a session name');
       return;
@@ -311,12 +311,14 @@ export default function SessionSetup() {
       activePartId: session.activePartId || session.sessionParts[0]?.id
     };
     
-    storage.saveSession(updated);
+    // Save to cloud and cache
+    setCurrentSession(updated);
+    await cloudSaveSession(updated);
     toast.success('Session saved');
     navigate('/');
   };
 
-  const handleStartObservation = () => {
+  const handleStartObservation = async () => {
     if (!session.name.trim()) {
       toast.error('Please enter a session name');
       return;
@@ -328,11 +330,19 @@ export default function SessionSetup() {
       activePartId: session.activePartId || session.sessionParts[0]?.id
     };
     
-    storage.saveSession(updated);
+    // Save to cloud and cache before navigating
+    setCurrentSession(updated);
+    await cloudSaveSession(updated);
     navigate(`/session/${session.id}/observe`);
   };
 
-  if (!session) return null;
+  if (!session || loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
