@@ -9,19 +9,21 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { storage, createEvent } from '../lib/storage';
-import { saveCloudSession } from '../lib/cloudSessionService';
+import { createEvent } from '../lib/storage';
 import { fetchSessionParts, createSessionPart } from '../lib/sessionPartsApi';
 import { formatTime, cn, generateId } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { useCloudSync } from '../contexts/CloudSyncContext';
 import SyncStatusIndicator from '../components/SyncStatusIndicator';
 
 export default function LiveObservation() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const { isCoachDeveloper } = useAuth();
+  const { getSession, saveSession: cloudSaveSession, setCurrentSession, getCachedSession } = useCloudSync();
   
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [lastEvent, setLastEvent] = useState(null);
@@ -43,27 +45,60 @@ export default function LiveObservation() {
   const lastBallStateChange = useRef(null);
   const partStartTime = useRef(null);
 
-  // Load session
+  // Load session from cloud (with cache support)
   useEffect(() => {
-    const loaded = storage.getSession(sessionId);
-    if (!loaded) {
-      toast.error('Session not found');
-      navigate('/');
-      return;
-    }
+    const loadSession = async () => {
+      setLoading(true);
+      
+      // First check cache for immediate display
+      const cached = getCachedSession(sessionId);
+      if (cached) {
+        setSession(cached);
+        setCurrentSession(cached);
+        // Resume if session was active
+        if (cached.status === 'active' && cached.startTime) {
+          const elapsed = Math.floor((Date.now() - new Date(cached.startTime).getTime()) / 1000);
+          setElapsedTime(elapsed);
+          setIsRunning(true);
+        } else if (cached.totalDuration > 0) {
+          setElapsedTime(cached.totalDuration);
+        }
+      }
+      
+      // Then fetch fresh data from cloud
+      try {
+        const loaded = await getSession(sessionId, !cached); // Force refresh if no cache
+        if (!loaded) {
+          toast.error('Session not found');
+          navigate('/');
+          return;
+        }
+        
+        setSession(loaded);
+        setCurrentSession(loaded);
+        loadAvailableParts();
+        
+        // Resume if session was active
+        if (loaded.status === 'active' && loaded.startTime) {
+          const elapsed = Math.floor((Date.now() - new Date(loaded.startTime).getTime()) / 1000);
+          setElapsedTime(elapsed);
+          setIsRunning(true);
+        } else if (loaded.totalDuration > 0) {
+          setElapsedTime(loaded.totalDuration);
+        }
+      } catch (err) {
+        console.error('Failed to load session:', err);
+        if (!cached) {
+          toast.error('Failed to load session');
+          navigate('/');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    setSession(loaded);
-    loadAvailableParts();
-    
-    // Resume if session was active
-    if (loaded.status === 'active' && loaded.startTime) {
-      const elapsed = Math.floor((Date.now() - new Date(loaded.startTime).getTime()) / 1000);
-      setElapsedTime(elapsed);
-      setIsRunning(true);
-    } else if (loaded.totalDuration > 0) {
-      setElapsedTime(loaded.totalDuration);
-    }
-  }, [sessionId, navigate]);
+    loadSession();
+  }, [sessionId, navigate, getSession, setCurrentSession, getCachedSession]);
 
   const loadAvailableParts = async () => {
     try {
