@@ -308,9 +308,9 @@ class ObservationSessionCreate(BaseModel):
     # Runtime data
     start_time: Optional[str] = None
     end_time: Optional[str] = None
-    total_duration: int = 0
-    ball_rolling_time: int = 0
-    ball_not_rolling_time: int = 0
+    total_duration: Optional[float] = 0  # Accept float or int
+    ball_rolling_time: Optional[float] = 0
+    ball_not_rolling_time: Optional[float] = 0
     ball_rolling: bool = False
     active_part_id: Optional[str] = None
     # Events/interventions log
