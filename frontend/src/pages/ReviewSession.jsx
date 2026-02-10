@@ -554,6 +554,7 @@ export default function ReviewSession() {
 
             {/* Descriptor Breakdown */}
             <div className="grid md:grid-cols-2 gap-4">
+              {session.descriptorGroup1 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
@@ -563,7 +564,7 @@ export default function ReviewSession() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {session.descriptorGroup1.descriptors.map((desc) => {
+                    {(session.descriptorGroup1.descriptors || []).map((desc) => {
                       const count = stats.desc1Counts[desc.id] || 0;
                       return (
                         <div key={desc.id} className="flex items-center justify-between">
@@ -575,7 +576,9 @@ export default function ReviewSession() {
                   </div>
                 </CardContent>
               </Card>
+              )}
 
+              {session.descriptorGroup2 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
@@ -585,7 +588,7 @@ export default function ReviewSession() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {session.descriptorGroup2.descriptors.map((desc) => {
+                    {(session.descriptorGroup2.descriptors || []).map((desc) => {
                       const count = stats.desc2Counts[desc.id] || 0;
                       return (
                         <div key={desc.id} className="flex items-center justify-between">
@@ -597,6 +600,7 @@ export default function ReviewSession() {
                   </div>
                 </CardContent>
               </Card>
+              )}
             </div>
           </TabsContent>
 
