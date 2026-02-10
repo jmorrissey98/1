@@ -105,26 +105,30 @@ export default function ReviewSession() {
     const events = getFilteredEvents();
     const eventCounts = countBy(events, 'eventTypeId');
     
-    // Calculate descriptor counts
+    // Calculate descriptor counts (with defensive checks)
     const desc1Counts = {};
     const desc2Counts = {};
     events.forEach(e => {
-      e.descriptors1.forEach(d => {
-        desc1Counts[d] = (desc1Counts[d] || 0) + 1;
-      });
-      e.descriptors2.forEach(d => {
-        desc2Counts[d] = (desc2Counts[d] || 0) + 1;
-      });
+      if (Array.isArray(e.descriptors1)) {
+        e.descriptors1.forEach(d => {
+          desc1Counts[d] = (desc1Counts[d] || 0) + 1;
+        });
+      }
+      if (Array.isArray(e.descriptors2)) {
+        e.descriptors2.forEach(d => {
+          desc2Counts[d] = (desc2Counts[d] || 0) + 1;
+        });
+      }
     });
     
     // Ball rolling stats
     let ballRollingTime, ballNotRollingTime, totalTime;
     if (viewMode === 'whole') {
-      ballRollingTime = session.ballRollingTime;
-      ballNotRollingTime = session.ballNotRollingTime;
-      totalTime = session.totalDuration;
+      ballRollingTime = session.ballRollingTime || 0;
+      ballNotRollingTime = session.ballNotRollingTime || 0;
+      totalTime = session.totalDuration || 0;
     } else {
-      const part = session.sessionParts.find(p => p.id === viewMode);
+      const part = (session.sessionParts || []).find(p => p.id === viewMode);
       ballRollingTime = part?.ballRollingTime || 0;
       ballNotRollingTime = part?.ballNotRollingTime || 0;
       totalTime = ballRollingTime + ballNotRollingTime;
