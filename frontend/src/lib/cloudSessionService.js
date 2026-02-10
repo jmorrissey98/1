@@ -361,7 +361,16 @@ export const saveCloudSession = async (session) => {
   
   try {
     const payload = mapToApiFormat(session);
+    console.log('[CloudSync] Saving session to cloud:', session.id, 'Status:', session.status);
+    
     const result = await safePost(`${API_URL}/api/observations`, payload);
+    
+    console.log('[CloudSync] API response:', {
+      ok: result.ok,
+      status: result.status,
+      networkError: result.networkError,
+      detail: result.data?.detail
+    });
     
     if (result.networkError) {
       // Queue for later sync
@@ -371,13 +380,15 @@ export const saveCloudSession = async (session) => {
     }
     
     if (!result.ok) {
+      console.error('[CloudSync] Save failed:', result.data);
       setSyncStatus(SyncStatus.ERROR);
-      return { success: false, error: result.data?.detail || 'Failed to save' };
+      return { success: false, error: result.data?.detail || `Save failed (${result.status})` };
     }
     
     setSyncStatus(SyncStatus.SYNCED);
     return { success: true, synced_at: result.data?.synced_at };
   } catch (error) {
+    console.error('[CloudSync] Exception during save:', error);
     // Queue for later sync on any error
     queueOfflineChange('update', session.id, session);
     setSyncStatus(SyncStatus.ERROR);
