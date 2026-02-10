@@ -141,12 +141,15 @@ export default function LoginPage() {
       const result = await safePost(`${API_URL}/api/auth/signup`, signupPayload);
       
       if (result.networkError) {
-        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        toast.error('Unable to connect. Please check your internet connection.');
         return;
       }
       
       if (!result.ok) {
-        toast.error(result.data?.detail || 'Signup failed');
+        // Show the specific error from the server
+        const errorMessage = result.data?.detail || 'Signup failed. Please try again.';
+        toast.error(errorMessage);
+        console.error('Signup failed:', result.data);
         return;
       }
       
