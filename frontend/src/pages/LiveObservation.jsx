@@ -262,9 +262,6 @@ export default function LiveObservation() {
       return;
     }
   };
-      setIsSaving(false);
-    }
-  };
 
   const handleEventTap = (eventType) => {
     if (!isRunning) {
