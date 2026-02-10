@@ -2199,9 +2199,17 @@ async def get_observation_session(session_id: str, request: Request):
 @api_router.post("/observations")
 async def create_observation_session(data: ObservationSessionCreate, request: Request):
     """Create a new observation session"""
-    user = await require_coach_developer(request)
+    try:
+        user = await require_coach_developer(request)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Auth error in create_observation_session: {e}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
     
     now = datetime.now(timezone.utc).isoformat()
+    
+    logger.info(f"Creating/updating observation session: {data.session_id}, status: {data.status}")
     
     session_doc = {
         "session_id": data.session_id,
