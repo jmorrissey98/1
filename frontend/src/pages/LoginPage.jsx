@@ -459,6 +459,9 @@ export default function LoginPage() {
                       data-testid="signup-confirm-password-input"
                     />
                   </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Password must be at least 8 characters with at least one letter and one number.
+                  </p>
                 </div>
                 
                 {/* Club branding fields - only for first user */}
