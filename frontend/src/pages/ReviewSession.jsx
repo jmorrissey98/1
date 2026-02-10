@@ -273,19 +273,23 @@ export default function ReviewSession() {
       
       // Prepare descriptor breakdowns
       const desc1Breakdown = {};
-      session.descriptorGroup1.descriptors.forEach(d => {
-        desc1Breakdown[d.name] = stats.desc1Counts[d.id] || 0;
-      });
+      if (session.descriptorGroup1?.descriptors) {
+        session.descriptorGroup1.descriptors.forEach(d => {
+          desc1Breakdown[d.name] = stats.desc1Counts[d.id] || 0;
+        });
+      }
       
       const desc2Breakdown = {};
-      session.descriptorGroup2.descriptors.forEach(d => {
-        desc2Breakdown[d.name] = stats.desc2Counts[d.id] || 0;
-      });
+      if (session.descriptorGroup2?.descriptors) {
+        session.descriptorGroup2.descriptors.forEach(d => {
+          desc2Breakdown[d.name] = stats.desc2Counts[d.id] || 0;
+        });
+      }
       
       // Prepare session parts
-      const sessionPartsData = session.sessionParts.map(part => {
-        const partEvents = session.events.filter(e => e.sessionPartId === part.id);
-        const partTotal = part.ballRollingTime + part.ballNotRollingTime;
+      const sessionPartsData = (session.sessionParts || []).map(part => {
+        const partEvents = (session.events || []).filter(e => e.sessionPartId === part.id);
+        const partTotal = (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
         return {
           name: part.name,
           events: partEvents.length,
