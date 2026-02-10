@@ -104,21 +104,14 @@ export default function UserSettings() {
         coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
       });
       
-      // Debug: log full result
-      console.log('Invite API result:', result);
-      
       if (result.networkError) {
-        toast.error(result.data?.detail || 'Network error. Please check your connection.');
+        toast.error('Network error. Please check your connection.');
         return;
       }
       
       if (!result.ok) {
-        // Extract error message from various possible formats
-        const errorMsg = result.data?.detail 
-          || result.data?.message 
-          || result.data?.error 
-          || (result.rawText ? `Server error: ${result.rawText.substring(0, 100)}` : null)
-          || `Request failed (status ${result.status})`;
+        // Show the specific error from the server
+        const errorMsg = result.data?.detail || `Failed to send invite (${result.status})`;
         toast.error(errorMsg);
         return;
       }
@@ -129,7 +122,7 @@ export default function UserSettings() {
       await loadData();
     } catch (err) {
       console.error('Invite error:', err);
-      toast.error(err.message || 'An unexpected error occurred');
+      toast.error('An unexpected error occurred');
     } finally {
       setInviting(false);
     }
