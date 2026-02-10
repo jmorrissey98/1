@@ -916,6 +916,38 @@ export default function LiveObservation() {
           {session.events.length} interventions
         </Badge>
       </div>
+
+      {/* End Session Confirmation Dialog */}
+      <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Observation Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to end this observation? 
+              You have recorded <strong>{session.events.length} interventions</strong> over <strong>{formatTime(elapsedTime)}</strong>.
+              <br /><br />
+              The session will be marked as completed and saved to the cloud.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Continue Observing</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmEnd} 
+              disabled={isSaving}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                'End & Save Session'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
