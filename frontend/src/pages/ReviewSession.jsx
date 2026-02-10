@@ -1049,6 +1049,7 @@ export default function ReviewSession() {
 
             {/* Descriptor Charts */}
             <div className="grid md:grid-cols-2 gap-4">
+              {session.descriptorGroup1 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup1.name}</CardTitle>
@@ -1057,7 +1058,7 @@ export default function ReviewSession() {
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
-                        data={session.descriptorGroup1.descriptors.map(d => ({
+                        data={(session.descriptorGroup1.descriptors || []).map(d => ({
                           name: d.name,
                           count: stats.desc1Counts[d.id] || 0
                         }))}
@@ -1072,7 +1073,9 @@ export default function ReviewSession() {
                   </div>
                 </CardContent>
               </Card>
+              )}
 
+              {session.descriptorGroup2 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup2.name}</CardTitle>
@@ -1081,7 +1084,7 @@ export default function ReviewSession() {
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
-                        data={session.descriptorGroup2.descriptors.map(d => ({
+                        data={(session.descriptorGroup2.descriptors || []).map(d => ({
                           name: d.name,
                           count: stats.desc2Counts[d.id] || 0
                         }))}
@@ -1096,6 +1099,7 @@ export default function ReviewSession() {
                   </div>
                 </CardContent>
               </Card>
+              )}
             </div>
           </TabsContent>
         </Tabs>
