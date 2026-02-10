@@ -123,6 +123,16 @@ export default function LoginPage() {
       return;
     }
     
+    // Check password has at least one letter and one number
+    if (!/[A-Za-z]/.test(signUpPassword)) {
+      toast.error('Password must contain at least one letter');
+      return;
+    }
+    if (!/\d/.test(signUpPassword)) {
+      toast.error('Password must contain at least one number');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
