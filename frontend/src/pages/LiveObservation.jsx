@@ -592,11 +592,15 @@ export default function LiveObservation() {
               </Button>
             ) : (
               <Button 
-                onClick={handleStop}
+                onClick={handleStopClick}
                 variant="destructive"
                 className="text-sm sm:text-base px-2 sm:px-4"
                 data-testid="stop-btn"
+                disabled={isSaving}
               >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                ) : null}
                 <span className="hidden sm:inline">End Session</span>
                 <span className="sm:hidden">End</span>
               </Button>
