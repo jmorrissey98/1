@@ -375,7 +375,7 @@ class SessionListItem(BaseModel):
     observation_context: str
     created_at: str
     updated_at: str
-    total_duration: int = 0
+    total_duration: Optional[float] = 0  # Accept float
     event_count: int = 0
 
 # ============================================
