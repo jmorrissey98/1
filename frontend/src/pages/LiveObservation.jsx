@@ -172,8 +172,19 @@ export default function LiveObservation() {
     }
   };
 
-  const handleStop = () => {
+  // Show confirmation dialog before ending
+  const handleStopClick = () => {
     if (isRunning) {
+      setShowEndConfirm(true);
+    }
+  };
+
+  // Actually end the session after confirmation
+  const handleConfirmEnd = async () => {
+    setShowEndConfirm(false);
+    setIsSaving(true);
+    
+    try {
       // Calculate final ball rolling time for current state
       let finalSession;
       
@@ -215,14 +226,29 @@ export default function LiveObservation() {
         };
       }
       
-      // Update state, cache, and save to cloud
+      // Update state and cache
       setSession(finalSession);
       setCurrentSession(finalSession);
-      cloudSaveSession(finalSession);
+      
+      // Wait for cloud save to complete
+      const saveResult = await cloudSaveSession(finalSession);
       
       setIsRunning(false);
-      toast.success('Session completed');
+      
+      if (saveResult.success) {
+        toast.success('Session completed and saved!');
+      } else if (saveResult.queued) {
+        toast.success('Session completed! Will sync when online.');
+      } else {
+        toast.warning('Session completed but sync failed. Data saved locally.');
+      }
+      
       navigate(`/session/${sessionId}/review`);
+    } catch (err) {
+      console.error('Failed to save session:', err);
+      toast.error('Failed to save session');
+    } finally {
+      setIsSaving(false);
     }
   };
 
