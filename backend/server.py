@@ -355,9 +355,9 @@ class ObservationSessionResponse(BaseModel):
     session_parts: List[Dict[str, Any]] = []
     start_time: Optional[str] = None
     end_time: Optional[str] = None
-    total_duration: int = 0
-    ball_rolling_time: int = 0
-    ball_not_rolling_time: int = 0
+    total_duration: Optional[float] = 0  # Accept float
+    ball_rolling_time: Optional[float] = 0
+    ball_not_rolling_time: Optional[float] = 0
     events: List[Dict[str, Any]] = []
     ball_rolling_log: List[Dict[str, Any]] = []
     observer_reflections: List[Dict[str, Any]] = []
