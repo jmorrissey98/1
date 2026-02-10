@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
@@ -28,6 +29,8 @@ export default function LiveObservation() {
   const [isRunning, setIsRunning] = useState(false);
   const [lastEvent, setLastEvent] = useState(null);
   const [showNoteInput, setShowNoteInput] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [flashEvent, setFlashEvent] = useState(null);
   const [showAddPart, setShowAddPart] = useState(false);
