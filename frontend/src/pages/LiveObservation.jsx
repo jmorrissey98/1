@@ -181,50 +181,54 @@ export default function LiveObservation() {
 
   // Actually end the session after confirmation
   const handleConfirmEnd = async () => {
-    setShowEndConfirm(false);
     setIsSaving(true);
     
     try {
       // Calculate final ball rolling time for current state
       let finalSession;
       
+      // Keep all session parts (don't filter by 'used' - this was causing data loss)
+      const allParts = (session.sessionParts || []).map(p => {
+        if (p.id === session.activePartId && lastBallStateChange.current) {
+          const duration = (Date.now() - lastBallStateChange.current) / 1000;
+          const ballTimeKey = session.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
+          return { ...p, [ballTimeKey]: (p[ballTimeKey] || 0) + duration, endTime: new Date().toISOString() };
+        }
+        return p;
+      });
+      
+      const endTime = new Date().toISOString();
+      
       if (lastBallStateChange.current) {
         const duration = (Date.now() - lastBallStateChange.current) / 1000;
         const ballTimeKey = session.ballRolling ? 'ballRollingTime' : 'ballNotRollingTime';
         
-        // Filter out unused parts (parts that were never selected/used)
-        const usedParts = (session.sessionParts || [])
-          .filter(p => p.used === true)
-          .map(p => 
-            p.id === session.activePartId 
-              ? { ...p, [ballTimeKey]: (p[ballTimeKey] || 0) + duration, endTime: new Date().toISOString() }
-              : p
-          );
-        
         finalSession = {
           ...session,
           [ballTimeKey]: (session[ballTimeKey] || 0) + duration,
-          sessionParts: usedParts,
-          activePartId: usedParts.length > 0 ? usedParts[0].id : null,
+          sessionParts: allParts,
           status: 'completed',
-          endTime: new Date().toISOString(),
+          endTime: endTime,
           totalDuration: elapsedTime,
-          updatedAt: new Date().toISOString()
+          updatedAt: endTime
         };
       } else {
-        // No ball state changes - just filter unused parts
-        const usedParts = (session.sessionParts || []).filter(p => p.used === true);
-        
         finalSession = {
           ...session,
-          sessionParts: usedParts,
-          activePartId: usedParts.length > 0 ? usedParts[0].id : null,
+          sessionParts: allParts,
           status: 'completed',
-          endTime: new Date().toISOString(),
+          endTime: endTime,
           totalDuration: elapsedTime,
-          updatedAt: new Date().toISOString()
+          updatedAt: endTime
         };
       }
+      
+      console.log('[LiveObservation] Saving completed session:', {
+        id: finalSession.id,
+        status: finalSession.status,
+        events: finalSession.events?.length,
+        duration: finalSession.totalDuration
+      });
       
       // Update state and cache
       setSession(finalSession);
@@ -233,21 +237,31 @@ export default function LiveObservation() {
       // Wait for cloud save to complete
       const saveResult = await cloudSaveSession(finalSession);
       
+      console.log('[LiveObservation] Save result:', saveResult);
+      
       setIsRunning(false);
+      setShowEndConfirm(false);
       
       if (saveResult.success) {
         toast.success('Session completed and saved!');
+        navigate(`/session/${sessionId}/review`);
       } else if (saveResult.queued) {
         toast.success('Session completed! Will sync when online.');
+        navigate(`/session/${sessionId}/review`);
       } else {
-        toast.warning('Session completed but sync failed. Data saved locally.');
+        // Save failed - ask user what to do
+        toast.error('Failed to save to cloud. Please try again or check your connection.');
+        setIsSaving(false);
+        return; // Don't navigate away
       }
-      
-      navigate(`/session/${sessionId}/review`);
     } catch (err) {
-      console.error('Failed to save session:', err);
-      toast.error('Failed to save session');
-    } finally {
+      console.error('[LiveObservation] Failed to save session:', err);
+      toast.error('Failed to save session. Please try again.');
+      setIsSaving(false);
+      // Don't close dialog or navigate - let user retry
+      return;
+    }
+  };
       setIsSaving(false);
     }
   };
