@@ -207,12 +207,37 @@ export default function CoachMyProfile() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={profile?.photo} />
-                <AvatarFallback className="bg-emerald-100 text-emerald-700 text-2xl">
-                  {profile?.name?.charAt(0) || user?.name?.charAt(0) || 'C'}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={photoUrl || profile?.photo} />
+                  <AvatarFallback className="bg-emerald-100 text-emerald-700 text-2xl">
+                    {profile?.name?.charAt(0) || user?.name?.charAt(0) || 'C'}
+                  </AvatarFallback>
+                </Avatar>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  data-testid="photo-upload-input"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="absolute -bottom-1 -right-1 rounded-full w-8 h-8 p-0 bg-white shadow-md"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  title="Upload photo"
+                  data-testid="upload-photo-btn"
+                >
+                  {uploadingPhoto ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">
                   {profile?.name || user?.name || 'Coach'}
