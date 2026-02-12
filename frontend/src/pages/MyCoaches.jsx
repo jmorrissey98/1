@@ -299,13 +299,36 @@ export default function MyCoaches() {
       </header>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!coachToDelete} onOpenChange={(open) => !open && setCoachToDelete(null)}>
+      <AlertDialog open={!!coachToDelete} onOpenChange={(open) => { if (!open) { setCoachToDelete(null); setDeleteUserToo(false); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Coach</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove <strong>{coachToDelete?.name}</strong>? 
-              This will delete their coach profile. Their user account (if they have one) will remain.
+            <AlertDialogDescription className="space-y-3">
+              <p>Are you sure you want to remove <strong>{coachToDelete?.name}</strong>?</p>
+              
+              {coachToDelete?.has_account && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={deleteUserToo}
+                      onChange={(e) => setDeleteUserToo(e.target.checked)}
+                      className="mt-1 rounded border-amber-300"
+                    />
+                    <div>
+                      <p className="font-medium text-amber-900">Also delete their user account</p>
+                      <p className="text-sm text-amber-700">
+                        This coach has an active account. Check this box to fully remove them from the system. 
+                        They won't be able to log in anymore.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
+              
+              {!coachToDelete?.has_account && (
+                <p className="text-slate-500">This will delete their coach profile.</p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -316,7 +339,7 @@ export default function MyCoaches() {
               className="bg-red-600 hover:bg-red-700"
             >
               {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Remove
+              {deleteUserToo ? 'Remove Coach & Account' : 'Remove Coach'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
