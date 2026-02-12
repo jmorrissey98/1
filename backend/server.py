@@ -1169,7 +1169,7 @@ async def check_admin_exists():
             "exists": True,
             "user_id": admin_user.get("user_id"),
             "role": admin_user.get("role"),
-            "has_password": bool(admin_user.get("password_hash")) if "password_hash" in admin_user else "excluded"
+            "email": admin_user.get("email")
         }
     return {"exists": False}
 
