@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Camera, Loader2, Save, Mail, Shield } from 'lucide-react';
+import { User, LogOut, Camera, Loader2, Save, Mail, Shield, Upload } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -12,6 +12,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { fetchCoachProfile, updateCoachProfile } from '../lib/offlineApi';
 import { useAuth } from '../contexts/AuthContext';
+import { safePost } from '../lib/safeFetch';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function CoachMyProfile() {
   const navigate = useNavigate();
