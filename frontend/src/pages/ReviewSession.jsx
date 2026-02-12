@@ -255,7 +255,7 @@ export default function ReviewSession() {
   };
 
   const handleGenerateSummary = async () => {
-    if (session.events.length === 0) {
+    if ((session.events || []).length === 0) {
       toast.error('No interventions to summarize');
       return;
     }
