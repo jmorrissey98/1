@@ -246,6 +246,43 @@
   - Added CREATE_COACH queue item handler
   - Added DELETE_COACH queue item handler
 
+### Coach UI Unification - February 12, 2026
+- [x] **Unified Header for Coaches**: Removed double toolbar, now uses single AppHeader
+  - Navigation: Home, My Development, Calendar, My Profile
+  - Settings moved inside "My Profile" page
+  - "My Sessions" content is now part of "My Development"
+- [x] **Fixed "Sync Failed" Error for Coaches**
+  - SyncStatusIndicator now detects user role
+  - Coaches see simple "Synced/Offline" status instead of full CloudSyncContext errors
+  - No more 403 errors from `/api/observations` endpoint
+- [x] **Softer Session Reflection Warning**
+  - Changed from amber alert box to soft blue styling
+  - Less alarming, more like a gentle reminder
+
+### Coach Profile Photo Upload - February 12, 2026
+- [x] **Coaches can now upload their own profile photos**
+  - Camera button overlay on profile avatar
+  - Uses existing `/api/upload` endpoint
+  - Max 5MB image size validation
+  - Photo immediately updated after upload
+
+### Dismissible Tips - February 12, 2026
+- [x] **Created DismissibleTip component**
+  - Tips can be permanently dismissed by clicking X
+  - Dismissed state persisted in localStorage
+  - Light bulb icon for visual hint
+- [x] **Applied to MyCoaches page tip**
+
+### Coach Dashboard Data Visibility - February 12, 2026
+- [x] **Session/Parts Toggle**: Users can switch between viewing data:
+  - "By Sessions" - Shows intervention distribution pie chart
+  - "By Parts" - Shows horizontal bar chart of sessions per coaching part (only parts coached)
+- [x] **Enhanced Time Filtering**:
+  - All Time, This Month, 6 Months, This Year, Custom Range
+  - Custom range shows date picker inputs
+  - Preferences persisted per user in localStorage
+- [x] **Parts Data Aggregation**: Shows only session parts the coach has actually coached
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
