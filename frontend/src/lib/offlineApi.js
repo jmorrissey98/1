@@ -2,7 +2,7 @@
 // Provides offline-first data access with automatic sync
 
 import { addToOfflineQueue, QueueItemType, isOnline, triggerSync } from './offlineSync';
-import { safeGet, safePost, safePut } from './safeFetch';
+import { safeGet, safePost, safePut, safeDelete } from './safeFetch';
 
 const API_URL = '';
 
