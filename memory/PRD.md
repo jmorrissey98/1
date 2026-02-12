@@ -156,6 +156,24 @@
 - [x] **Session parts filtering**: ReviewSession.jsx now only shows session parts that have data (events or ball rolling time) in the toggle
 - [x] **Skeleton loading UI**: Added skeleton loading state for Coach Profile sessions tab while data loads from API
 
+### Session Display Logic Fixes - February 12, 2026
+- [x] **HomePage Upcoming Observations**: Planned sessions now correctly appear in "Upcoming Observations" card (not "Your Sessions")
+  - Shows session name, coach name, planned date
+  - Includes "Start" button to begin observation immediately
+  - Filters out sessions with expired planned dates
+- [x] **HomePage Your Sessions**: Now only shows draft, active, and completed sessions (excludes planned)
+- [x] **SessionCalendar**: Now loads sessions from cloud API instead of localStorage
+  - Shows planned sessions on their scheduled date (blue dot)
+  - Shows completed sessions on their creation date (green dot)
+  - Shows in-progress sessions (orange dot)
+- [x] **CoachProfile Sessions Tab**: Completely redesigned to separate session types:
+  - "Upcoming" section (blue background) - planned sessions with "Start" button
+  - "Observation History" section - completed sessions
+  - "In Progress" section (orange background) - draft/active sessions
+- [x] **MyCoaches Page**: Backend now returns `sessionCount` and `upcomingCount` per coach
+  - Calendar icon shows completed session count
+  - Clock icon badge shows upcoming planned sessions
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
