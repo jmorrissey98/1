@@ -60,6 +60,27 @@ export default function SessionCalendar() {
     }
   };
 
+  const handleDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await deleteCloudSession(sessionToDelete.id);
+      if (result.success) {
+        toast.success(`Session "${sessionToDelete.name}" deleted`);
+        setSessions(prev => prev.filter(s => s.id !== sessionToDelete.id));
+      } else {
+        throw new Error(result.error || 'Failed to delete session');
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      toast.error(err.message || 'Failed to delete session');
+    } finally {
+      setIsDeleting(false);
+      setSessionToDelete(null);
+    }
+  };
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
