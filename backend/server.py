@@ -121,8 +121,9 @@ class User(BaseModel):
     email: str
     name: str
     picture: Optional[str] = None
-    role: str = "coach"  # "coach_developer" or "coach"
+    role: str = "coach"  # "admin", "coach_developer" or "coach"
     linked_coach_id: Optional[str] = None  # Links to coach profile
+    organization_id: Optional[str] = None  # For non-admin users, links to their organization
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserResponse(BaseModel):
@@ -132,6 +133,7 @@ class UserResponse(BaseModel):
     picture: Optional[str] = None
     role: str
     linked_coach_id: Optional[str] = None
+    organization_id: Optional[str] = None
     auth_provider: Optional[str] = None  # "email" or "google"
 
 # Email/Password Auth Models
