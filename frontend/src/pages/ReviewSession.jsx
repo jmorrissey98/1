@@ -326,10 +326,10 @@ export default function ReviewSession() {
         session_parts: sessionPartsData,
         user_notes: (session.observerReflections || []).map(r => r.text).join('\n'),
         observation_context: session.observationContext || 'training',
-        // Coach context if linked
-        coach_name: session.coachId ? storage.getCoach(session.coachId)?.name : null,
-        coach_targets: session.coachId ? (storage.getCoach(session.coachId)?.targets || []).filter(t => t.status === 'active').map(t => t.text) : null,
-        previous_sessions_summary: session.coachId ? getPreviousSessionsSummary() : null
+        // Coach context - use session data directly (populated by backend)
+        coach_name: session.coachName || null,
+        coach_targets: null, // TODO: Fetch from API if needed
+        previous_sessions_summary: null // TODO: Implement with cloud API
       });
       
       const updated = {
