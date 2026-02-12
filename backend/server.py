@@ -3190,6 +3190,38 @@ app.add_middleware(
 # Include the router in the main app AFTER middleware
 app.include_router(api_router)
 
+# ============================================
+# ADMIN BOOTSTRAP - Create default admin user on startup
+# ============================================
+@app.on_event("startup")
+async def bootstrap_admin():
+    """Create default admin user if it doesn't exist"""
+    admin_email = "hello@mycoachdeveloper.com"
+    
+    # Check if admin user already exists
+    existing_admin = await db.users.find_one({"email": admin_email})
+    if existing_admin:
+        logger.info(f"Admin user already exists: {admin_email}")
+        return
+    
+    # Create default admin user
+    admin_user_id = f"admin_{uuid.uuid4().hex[:12]}"
+    admin_password = "_mcDeveloper26!"
+    hashed_pw = hash_password(admin_password)
+    
+    admin_doc = {
+        "user_id": admin_user_id,
+        "email": admin_email,
+        "name": "Coach Developer",
+        "password": hashed_pw,
+        "role": "admin",
+        "organization_id": None,  # Admin is not tied to any organization
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(admin_doc)
+    logger.info(f"Created default admin user: {admin_email}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
