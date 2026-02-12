@@ -39,7 +39,7 @@ export default function AppHeader() {
   }, []);
   
   // Exit impersonation mode - forces full page reload to properly restore admin session
-  const handleExitImpersonation = () => {
+  const handleExitImpersonation = async () => {
     try {
       // Restore the admin token from backup
       const adminToken = localStorage.getItem('admin_token_backup');
@@ -57,15 +57,30 @@ export default function AppHeader() {
       // Restore admin token
       setAuthToken(adminToken);
       
+      // Verify the token works before navigating
+      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Admin session expired');
+      }
+      
+      const userData = await response.json();
+      console.log('Exit impersonation - verified admin user:', userData.role);
+      
+      if (userData.role !== 'admin') {
+        throw new Error('Token is not an admin token');
+      }
+      
       toast.success('Returned to admin view');
       
-      // Force a hard reload by changing the URL with a cache-busting parameter
-      // and then navigating to /admin
-      const cacheBuster = Date.now();
-      window.location.href = `/admin?_cb=${cacheBuster}`;
+      // Navigate to admin
+      window.location.href = '/admin';
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
-      toast.error('Failed to exit impersonation. Please login again.');
+      toast.error(err.message || 'Failed to exit impersonation. Please login again.');
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
