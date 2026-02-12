@@ -1000,7 +1000,9 @@ export default function CoachProfile() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="font-['Manrope']">Observation History</CardTitle>
-                  <CardDescription>{sessions.length} sessions recorded</CardDescription>
+                  <CardDescription>
+                    {isLoadingSessions ? 'Loading sessions...' : `${sessions.length} sessions recorded`}
+                  </CardDescription>
                 </div>
                 <Button onClick={() => navigate(`/session/new?coachId=${coachId}`)}>
                   <Plus className="w-4 h-4 mr-2" />
@@ -1008,24 +1010,41 @@ export default function CoachProfile() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {sessions.length === 0 ? (
+                {isLoadingSessions ? (
+                  // Skeleton loading state
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-5 w-48" />
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-20" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                ) : sessions.length === 0 ? (
                   <p className="text-slate-400 italic text-center py-8">No observations recorded yet</p>
                 ) : (
                   <div className="space-y-3">
                     {sessions.map(session => (
                       <div 
-                        key={session.id}
+                        key={session.id || session.session_id}
                         className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer"
-                        onClick={() => navigate(`/session/${session.id}/review`)}
+                        onClick={() => navigate(`/session/${session.id || session.session_id}/review`)}
                       >
                         <div>
-                          <h4 className="font-medium text-slate-900">{session.name}</h4>
+                          <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
                           <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                            <span>{formatDate(session.createdAt)}</span>
+                            <span>{formatDate(session.createdAt || session.created_at)}</span>
                             <span>•</span>
-                            <span>{formatTime(session.totalDuration)}</span>
+                            <span>{formatTime(session.totalDuration || session.total_duration || 0)}</span>
                             <span>•</span>
-                            <span>{session.events?.length || 0} events</span>
+                            <span>{session.events?.length || session.event_count || 0} events</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
