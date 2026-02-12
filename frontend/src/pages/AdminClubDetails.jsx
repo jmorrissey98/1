@@ -118,9 +118,6 @@ export default function AdminClubDetails() {
         throw new Error(result.data?.detail || result.error || 'Failed to impersonate user');
       }
       
-      // Set the session token as a cookie (same settings as login)
-      document.cookie = `session_token=${result.data.token}; path=/; secure; samesite=none; max-age=${2 * 60 * 60}`;
-      
       // Store impersonation metadata in localStorage for UI purposes
       localStorage.setItem('impersonating', 'true');
       localStorage.setItem('impersonated_user', JSON.stringify(result.data.user));
@@ -130,13 +127,10 @@ export default function AdminClubDetails() {
       
       // Navigate based on user role
       if (result.data.user.role === 'coach') {
-        navigate(`/coach-view/${result.data.user.linked_coach_id}`);
+        window.location.href = `/coach-view/${result.data.user.linked_coach_id}`;
       } else {
-        navigate('/');
+        window.location.href = '/';
       }
-      
-      // Force page reload to update auth context
-      window.location.reload();
     } catch (err) {
       toast.error(err.message || 'Failed to impersonate user');
     }
