@@ -755,7 +755,7 @@ AREAS TO DEVELOP (1-2 sentences)
         chat = LlmChat(
             api_key=api_key,
             session_id=f"session-summary-{uuid.uuid4()}",
-            system_message="You are a supportive coach educator assistant that helps coaches reflect on their practice. Your feedback is always constructive, specific, and focused on development rather than judgment. Never use asterisks or markdown formatting in your responses."
+            system_message="You are a coach educator. Provide brief, constructive feedback. No markdown or asterisks."
         ).with_model("openai", "gpt-5.2")
         
         user_message = UserMessage(text=prompt)
