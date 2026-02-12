@@ -260,11 +260,13 @@ export default function HomePage() {
                   {upcomingObservations.slice(0, 5).map((obs) => (
                     <div 
                       key={obs.id} 
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/session/${obs.id}/setup`)}
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                       data-testid={`upcoming-session-${obs.id}`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div 
+                        className="flex items-center gap-3 flex-1 cursor-pointer"
+                        onClick={() => navigate(`/session/${obs.id}/setup`)}
+                      >
                         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
                           <User className="w-5 h-5 text-emerald-600" />
                         </div>
@@ -282,6 +284,48 @@ export default function HomePage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-blue-500 hover:bg-blue-500">Planned</Badge>
+                        <Button 
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/session/${obs.id}/setup`);
+                          }}
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4 text-slate-500" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Planned Session?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete "{obs.name}". This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteSession(obs.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                         <Button 
                           size="sm"
                           className="bg-orange-500 hover:bg-orange-600"
