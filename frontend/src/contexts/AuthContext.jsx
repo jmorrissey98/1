@@ -83,6 +83,10 @@ export function AuthProvider({ children }) {
     return user?.role === USER_ROLES.COACH;
   };
 
+  const isAdmin = () => {
+    return user?.role === 'admin';
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -94,6 +98,7 @@ export function AuthProvider({ children }) {
       checkAuth,
       isCoachDeveloper,
       isCoach,
+      isAdmin,
       isAuthenticated: !!user
     }}>
       {children}
