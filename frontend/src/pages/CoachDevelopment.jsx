@@ -73,10 +73,34 @@ export default function CoachDevelopment() {
   };
 
   const handleTimeframeChange = (value) => {
-    setTimeframe(value);
-    // Persist timeframe preference
+    if (value === 'custom') {
+      setShowCustomDatePicker(true);
+    } else {
+      setShowCustomDatePicker(false);
+      setTimeframe(value);
+      // Persist timeframe preference
+      if (user?.user_id) {
+        localStorage.setItem(`mcd_dev_timeframe_${user.user_id}`, value);
+      }
+    }
+  };
+
+  const handleViewModeChange = (value) => {
+    setViewMode(value);
     if (user?.user_id) {
-      localStorage.setItem(`mcd_dev_timeframe_${user.user_id}`, value);
+      localStorage.setItem(`mcd_dev_viewmode_${user.user_id}`, value);
+    }
+  };
+
+  const applyCustomDateRange = () => {
+    if (customDateRange.start && customDateRange.end) {
+      setTimeframe('custom');
+      setShowCustomDatePicker(false);
+      if (user?.user_id) {
+        localStorage.setItem(`mcd_dev_timeframe_${user.user_id}`, 'custom');
+        localStorage.setItem(`mcd_dev_custom_start_${user.user_id}`, customDateRange.start);
+        localStorage.setItem(`mcd_dev_custom_end_${user.user_id}`, customDateRange.end);
+      }
     }
   };
 
