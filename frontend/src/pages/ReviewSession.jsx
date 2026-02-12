@@ -156,7 +156,7 @@ export default function ReviewSession() {
   const handleSaveEdit = (eventId) => {
     const updated = {
       ...session,
-      events: session.events.map(e => 
+      events: (session.events || []).map(e => 
         e.id === eventId ? { ...e, note: editNote } : e
       )
     };
@@ -169,7 +169,7 @@ export default function ReviewSession() {
   const handleDeleteEvent = (eventId) => {
     const updated = {
       ...session,
-      events: session.events.filter(e => e.id !== eventId)
+      events: (session.events || []).filter(e => e.id !== eventId)
     };
     saveSession(updated);
     toast.success('Intervention deleted');
