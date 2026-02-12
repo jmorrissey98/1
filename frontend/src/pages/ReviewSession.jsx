@@ -475,13 +475,13 @@ export default function ReviewSession() {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6">
-            {/* AI Summary Display */}
+            {/* Session Summary Display */}
             {session.aiSummary && (
-              <Card className="border-purple-200 bg-purple-50/50">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
-                    <Sparkles className="w-5 h-5" />
-                    AI Session Summary
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Session Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
