@@ -116,61 +116,23 @@ export default function CoachMyProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header with Navigation */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Profile</h1>
-              <p className="text-sm text-slate-500">Manage your profile</p>
-            </div>
-            <Button onClick={handleSave} disabled={saving} data-testid="save-profile-btn">
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Save Changes
-            </Button>
-          </div>
-          {/* Navigation Tabs */}
-          <nav className="flex gap-1 mt-4 -mb-4 border-b-0">
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
-              onClick={() => navigate('/coach')}
-              data-testid="nav-dashboard"
-            >
-              Dashboard
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
-              onClick={() => navigate('/coach/development')}
-              data-testid="nav-development"
-            >
-              My Development
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
-              onClick={() => navigate('/coach/sessions')}
-              data-testid="nav-sessions"
-            >
-              My Sessions
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-emerald-600 text-emerald-700 font-medium"
-              data-testid="nav-profile"
-            >
-              My Profile
-            </Button>
-          </nav>
-        </div>
-      </header>
-
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 font-['Manrope']">My Profile</h1>
+            <p className="text-sm text-slate-500">Manage your profile and settings</p>
+          </div>
+          <Button onClick={handleSave} disabled={saving} data-testid="save-profile-btn">
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            Save Changes
+          </Button>
+        </div>
+
         {/* Profile Photo & Name */}
         <Card>
           <CardHeader>
