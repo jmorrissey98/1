@@ -4,7 +4,6 @@ import { User, Target, Calendar, FileText, ChevronRight, AlertCircle, CheckCircl
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription } from '../components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { fetchCoachDashboard } from '../lib/offlineApi';
 import { useSync } from '../contexts/SyncContext';
