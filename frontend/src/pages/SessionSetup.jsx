@@ -344,6 +344,12 @@ export default function SessionSetup() {
     );
   }
 
+  // Ensure session has all required properties with defaults
+  const eventTypes = session.eventTypes || session.interventionTypes || [];
+  const descriptorGroup1 = session.descriptorGroup1 || { name: 'Descriptor Group 1', descriptors: [] };
+  const descriptorGroup2 = session.descriptorGroup2 || { name: 'Descriptor Group 2', descriptors: [] };
+  const sessionParts = session.sessionParts || [];
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
