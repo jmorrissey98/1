@@ -2232,6 +2232,31 @@ async def get_observation_session(session_id: str, request: Request):
     observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
     observer_name = observer.get("name") if observer else None
     
+    # Get coach reflections from the reflections collection (coach-submitted)
+    # and merge with any reflections stored directly on the session
+    coach_reflections = session.get("coach_reflections", [])
+    
+    coach_reflection = await db.reflections.find_one(
+        {"session_id": session_id},
+        {"_id": 0}
+    )
+    if coach_reflection:
+        # Convert the coach's reflection to the expected format
+        coach_reflections_from_db = [{
+            "id": coach_reflection.get("reflection_id"),
+            "text": coach_reflection.get("reflection", ""),
+            "rating": coach_reflection.get("self_rating"),
+            "what_went_well": coach_reflection.get("what_went_well", ""),
+            "areas_for_development": coach_reflection.get("areas_for_development", ""),
+            "timestamp": coach_reflection.get("updated_at") or coach_reflection.get("created_at"),
+            "source": "coach"  # Mark this as from the coach
+        }]
+        # Merge - don't duplicate if same reflection ID
+        existing_ids = {r.get("id") for r in coach_reflections}
+        for ref in coach_reflections_from_db:
+            if ref.get("id") not in existing_ids:
+                coach_reflections.append(ref)
+    
     return ObservationSessionResponse(
         session_id=session.get("session_id"),
         name=session.get("name", "Untitled"),
@@ -2256,7 +2281,7 @@ async def get_observation_session(session_id: str, request: Request):
         events=session.get("events", []),
         ball_rolling_log=session.get("ball_rolling_log", []),
         observer_reflections=session.get("observer_reflections", []),
-        coach_reflections=session.get("coach_reflections", []),
+        coach_reflections=coach_reflections,
         session_notes=session.get("session_notes", ""),
         ai_summary=session.get("ai_summary", ""),
         attachments=session.get("attachments", [])
