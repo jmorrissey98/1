@@ -156,6 +156,14 @@
 - [x] **Session parts filtering**: ReviewSession.jsx now only shows session parts that have data (events or ball rolling time) in the toggle
 - [x] **Skeleton loading UI**: Added skeleton loading state for Coach Profile sessions tab while data loads from API
 
+### AI Summary Bug Fix - February 12, 2026
+- [x] **Fixed AI Summary generation failure**: ReferenceError "storage is not defined" in handleGenerateSummary
+  - **Root cause**: Leftover code from localStorage migration - `storage.getCoach()` was undefined
+  - **Fix**: Replaced `storage.getCoach(session.coachId)?.name` with `session.coachName` (already populated by backend)
+  - **Fix location**: ReviewSession.jsx line 314-316
+  - Removed dead code: `getPreviousSessionsSummary()` function that also used undefined `storage`
+  - Verified: AI summary now generates successfully without errors
+
 ### Session Display Logic Fixes - February 12, 2026
 - [x] **HomePage Upcoming Observations**: Planned sessions now correctly appear in "Upcoming Observations" card (not "Your Sessions")
   - Shows session name, coach name, planned date
