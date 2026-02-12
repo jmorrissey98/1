@@ -431,7 +431,7 @@ export default function ReviewSession() {
             >
               Whole Session
             </button>
-            {session.sessionParts.map((part) => (
+            {(session.sessionParts || []).map((part) => (
               <button
                 key={part.id}
                 onClick={() => setViewMode(part.id)}
