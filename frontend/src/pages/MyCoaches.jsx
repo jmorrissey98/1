@@ -12,6 +12,7 @@ import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { fetchCoaches, createCoach, deleteCoach } from '../lib/offlineApi';
 import { isOnline, getPendingSyncCount } from '../lib/offlineSync';
+import DismissibleTip from '../components/DismissibleTip';
 
 export default function MyCoaches() {
   const navigate = useNavigate();
