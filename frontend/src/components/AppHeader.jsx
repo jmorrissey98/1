@@ -10,16 +10,19 @@ const EXCLUDED_PATHS = [
   '/login',
   '/reset-password',
   '/auth/callback',
+  '/admin',  // Admin pages have their own header
 ];
 
 export default function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isCoachDeveloper, isCoach } = useAuth();
+  const { user, isCoachDeveloper, isCoach, isAdmin } = useAuth();
   const { organization } = useOrganization();
   
-  // Don't show header on excluded pages or when not logged in
-  const shouldHide = !user || EXCLUDED_PATHS.some(path => location.pathname.startsWith(path));
+  // Don't show header on excluded pages, admin pages, or when not logged in
+  const shouldHide = !user || 
+    EXCLUDED_PATHS.some(path => location.pathname.startsWith(path)) ||
+    (isAdmin && isAdmin());
   
   if (shouldHide) return null;
   
