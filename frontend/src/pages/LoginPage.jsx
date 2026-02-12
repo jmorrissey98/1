@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { AlertCircle, Loader2, Mail, Lock, User, Eye, EyeOff, Building2, ImageIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from 'sonner';
-import { safePost, safeGet } from '../lib/safeFetch';
+import { safePost, safeGet, setAuthToken } from '../lib/safeFetch';
 
 const API_URL = ''; // Relative URL - frontend and backend on same domain
 
