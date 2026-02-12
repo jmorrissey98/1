@@ -82,10 +82,13 @@ export default function CoachProfile() {
         const coachSessions = storage.getCoachSessions(coachId)
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setSessions(coachSessions);
+      } finally {
+        setIsLoadingSessions(false);
       }
     } catch (err) {
       console.error('Failed to load coach:', err);
       toast.error('Coach not found');
+      setIsLoadingSessions(false);
       navigate('/coaches');
     }
   };
