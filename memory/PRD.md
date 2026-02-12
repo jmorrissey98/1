@@ -30,7 +30,7 @@
 - Edit profile information
 - Permanent navigation bar (Dashboard, My Sessions, My Profile)
 
-### Cloud Sync (NEW - Phase 2 & 3)
+### Cloud Sync
 - **MongoDB Cloud Database** - All sessions stored in cloud
 - **Real-time sync status indicator** - Shows "Synced", "Syncing...", "Offline", or "Error"
 - **Multi-device access** - Sessions accessible from any device
@@ -82,14 +82,19 @@
 
 ### Observation Sessions (Cloud Sync)
 - `GET /api/observations` - List all sessions for user
-- `GET /api/observations/{session_id}` - Get session details
+- `GET /api/observations/{session_id}` - Get session details with coach_name
 - `POST /api/observations` - Create/upsert session
 - `PUT /api/observations/{session_id}` - Update session
 - `DELETE /api/observations/{session_id}` - Delete session
 
-### Other
+### Coaches
 - `GET /api/coaches` - List coaches
 - `GET /api/coaches/{coach_id}` - Get coach details
+- `GET /api/coaches/{coach_id}/sessions` - **NEW** Get all sessions for a specific coach
+- `PUT /api/coaches/{coach_id}` - Update coach profile
+- `DELETE /api/coaches/{coach_id}` - Delete coach profile
+
+### Other
 - `GET /api/organization` - Get club branding
 - `PUT /api/organization` - Update club branding
 - `GET /api/session-parts` - Get session part templates
@@ -103,18 +108,18 @@
 
 ## Completed Work (February 2026)
 
-### Phase 1: Data Recovery ✅
+### Phase 1: Data Recovery
 - [x] Created `/data-recovery` page for exporting localStorage data
 - [x] Added "Admin" tab in Settings with data recovery link
 - [x] Export to clipboard and download as JSON file
 
-### Phase 2: Database Integration ✅
+### Phase 2: Database Integration
 - [x] Created `observation_sessions` MongoDB collection
 - [x] Added CRUD endpoints: GET, POST, PUT, DELETE for `/api/observations`
 - [x] Sessions tagged with `observer_id` for user-specific data
 - [x] Auto-sync to `sessions` collection for coach access
 
-### Phase 3: Sync & Multi-Device Access ✅
+### Phase 3: Sync & Multi-Device Access
 - [x] Created `cloudSessionService.js` for cloud operations
 - [x] Created `CloudSyncContext` for app-wide sync state
 - [x] Created `SyncStatusIndicator` component
@@ -122,27 +127,39 @@
 - [x] Updated `HomePage` to load sessions from cloud
 - [x] Added sync status to header and observation view
 
-### Google Auth Removal ✅
+### Google Auth Removal
 - [x] Removed Google login buttons from LoginPage
 - [x] Disabled Google auth flow in AuthContext
 - [x] Email/password is now the only auth method
 
-### My Development Page ✅
+### My Development Page
 - [x] Added `/coach/development` route in App.js
 - [x] Added "My Development" tab to all coach navigation (4 tabs total)
 - [x] Page includes charts for intervention analysis, ball rolling time, session trends
 
-### Club Branding Signup ✅
+### Club Branding Signup
 - [x] Added `/api/users/check-first` endpoint to check if first user
 - [x] Added club_name and club_logo fields to SignupRequest model
 - [x] Signup creates organization with club branding for first user
 - [x] Club fields shown conditionally in signup form
 
+### Bug Fixes - February 12, 2026
+- [x] **Fixed session-coach linking**: Added new endpoint `/api/coaches/{coach_id}/sessions` to fetch all sessions for a specific coach (was returning 404)
+- [x] **Fixed coach name display**: ReviewSession.jsx now displays coach name in header when `session.coachName` is available
+- [x] **Fixed runtime crashes**: Added extensive null checks in ReviewSession.jsx for:
+  - `session.events` -> `(session.events || [])`
+  - `session.sessionParts` -> `(session.sessionParts || [])`
+  - `session.eventTypes` -> `(session.interventionTypes || session.eventTypes || [])`
+  - `event.descriptors1/2` -> `(event.descriptors1 || [])`
+  - `session.descriptorGroup1?.descriptors` -> optional chaining
+- [x] **Fixed CoachProfile.jsx**: Updated API endpoint from `/api/coach/sessions/${coachId}` to `/api/coaches/${coachId}/sessions`
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
-- [ ] Test full end-to-end cloud sync flow on deployed environment
+- [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
+- [ ] Investigate "body stream already read" error in safeFetch.js
 
 ### P2 - Medium Priority
 - [ ] Extend offline sync to admin pages
@@ -159,3 +176,7 @@
 ## Credentials (Preview Environment)
 - **Coach Developer:** joemorrisseyg@gmail.com / 12345
 - **Coach:** joe_morrissey@hotmail.co.uk / CoachTest123
+
+## 3rd Party Integrations
+- **Resend (Email API)** - Requires User API Key
+- **recharts** - Charting library for React
