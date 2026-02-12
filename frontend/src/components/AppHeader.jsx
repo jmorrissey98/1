@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { Home, Users, ClipboardList, Calendar, Cog } from 'lucide-react';
+import { Home, Users, ClipboardList, Calendar, Cog, TrendingUp, User } from 'lucide-react';
 import { Button } from './ui/button';
 import SyncStatusIndicator from './SyncStatusIndicator';
 
@@ -15,13 +15,24 @@ const EXCLUDED_PATHS = [
 export default function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isCoachDeveloper } = useAuth();
+  const { user, isCoachDeveloper, isCoach } = useAuth();
   const { organization } = useOrganization();
   
   // Don't show header on excluded pages or when not logged in
   const shouldHide = !user || EXCLUDED_PATHS.some(path => location.pathname.startsWith(path));
   
   if (shouldHide) return null;
+  
+  const isCoachDev = isCoachDeveloper && isCoachDeveloper();
+  const isCoachUser = isCoach && isCoach();
+  
+  // Get home path based on user role
+  const getHomePath = () => {
+    if (isCoachUser && user?.linked_coach_id) {
+      return `/coach-view/${user.linked_coach_id}`;
+    }
+    return '/';
+  };
   
   return (
     <div className="bg-white border-b border-slate-200 px-4 py-2 sticky top-0 z-20">
@@ -49,13 +60,15 @@ export default function AppHeader() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(getHomePath())}
             data-testid="nav-home-btn"
             title="Home"
           >
             <Home className="w-4 h-4" />
           </Button>
-          {isCoachDeveloper && isCoachDeveloper() && (
+          
+          {/* Coach Developer Navigation */}
+          {isCoachDev && (
             <>
               <Button 
                 variant="outline" 
@@ -77,6 +90,23 @@ export default function AppHeader() {
               </Button>
             </>
           )}
+          
+          {/* Coach Navigation */}
+          {isCoachUser && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/coach/development')}
+                data-testid="nav-my-development-btn"
+              >
+                <TrendingUp className="w-4 h-4 mr-1.5" />
+                My Development
+              </Button>
+            </>
+          )}
+          
+          {/* Common navigation for all users */}
           <Button 
             variant="outline" 
             size="sm"
@@ -86,15 +116,32 @@ export default function AppHeader() {
             <Calendar className="w-4 h-4 mr-1.5" />
             Calendar
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/settings')}
-            data-testid="nav-settings-btn"
-          >
-            <Cog className="w-4 h-4 mr-1.5" />
-            Settings
-          </Button>
+          
+          {/* Coach Developer Settings button */}
+          {isCoachDev && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/settings')}
+              data-testid="nav-settings-btn"
+            >
+              <Cog className="w-4 h-4 mr-1.5" />
+              Settings
+            </Button>
+          )}
+          
+          {/* Coach Profile button (includes settings) */}
+          {isCoachUser && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/coach/profile')}
+              data-testid="nav-my-profile-btn"
+            >
+              <User className="w-4 h-4 mr-1.5" />
+              My Profile
+            </Button>
+          )}
         </div>
         
         {/* Right side - MCD Logo */}
@@ -102,7 +149,7 @@ export default function AppHeader() {
           src="/mcd-logo.png" 
           alt="My Coach Developer" 
           className="h-10 w-auto object-contain cursor-pointer"
-          onClick={() => navigate('/')}
+          onClick={() => navigate(getHomePath())}
           data-testid="mcd-app-logo"
         />
       </div>
