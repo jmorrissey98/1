@@ -373,6 +373,7 @@ class SessionListItem(BaseModel):
     coach_name: Optional[str] = None
     status: str
     observation_context: str
+    planned_date: Optional[str] = None
     created_at: str
     updated_at: str
     total_duration: Optional[float] = 0  # Accept float
