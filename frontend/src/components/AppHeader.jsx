@@ -38,19 +38,32 @@ export default function AppHeader() {
   }, []);
   
   // Exit impersonation mode
-  const handleExitImpersonation = () => {
-    // Clear localStorage
-    localStorage.removeItem('impersonating');
-    localStorage.removeItem('impersonated_user');
-    localStorage.removeItem('impersonated_by');
-    
-    // Clear the session cookie by setting it to expire
-    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=none';
-    
-    toast.success('Exited impersonation mode. Please login again.');
-    
-    // Redirect to login
-    window.location.href = '/login';
+  const handleExitImpersonation = async () => {
+    try {
+      // Call logout endpoint to properly clear the httponly session cookie
+      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      // Clear localStorage
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
+      
+      toast.success('Exited impersonation mode. Please login again.');
+      
+      // Redirect to login
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Failed to exit impersonation:', err);
+      // Still try to redirect even if logout fails
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
+      window.location.href = '/login';
+    }
   };
   
   // Don't show header on excluded pages, admin pages, or when not logged in
