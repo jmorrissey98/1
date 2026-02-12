@@ -8,7 +8,7 @@ import os
 import time
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://dev-observer-tool.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://coaching-sync-hub.preview.emergentagent.com').rstrip('/')
 
 # Test data prefix for cleanup
 TEST_PREFIX = "TEST_AUTH_"
