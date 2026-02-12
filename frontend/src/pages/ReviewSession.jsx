@@ -430,7 +430,7 @@ export default function ReviewSession() {
         </div>
       </header>
 
-      {/* View Toggle */}
+      {/* View Toggle - Only show parts that have data */}
       <div className="bg-white border-b border-slate-200 px-4 py-3">
         <div className="max-w-6xl mx-auto">
           <div className="flex gap-2 overflow-x-auto">
@@ -446,7 +446,7 @@ export default function ReviewSession() {
             >
               Whole Session
             </button>
-            {(session.sessionParts || []).map((part) => (
+            {getActiveSessionParts().map((part) => (
               <button
                 key={part.id}
                 onClick={() => setViewMode(part.id)}
