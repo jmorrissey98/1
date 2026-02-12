@@ -70,7 +70,8 @@ export default function CoachMyProfile() {
         role_title: roleTitle || null,
         age_group: ageGroup || null,
         department: department || null,
-        bio: bio || null
+        bio: bio || null,
+        photo: photoUrl || null
       });
       
       if (!result.ok) {
@@ -87,6 +88,65 @@ export default function CoachMyProfile() {
       toast.error(err.message || 'Failed to save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setUploadingPhoto(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload photo');
+      }
+
+      const data = await response.json();
+      const newPhotoUrl = `${API_URL}/api/files/${data.file_id}`;
+      setPhotoUrl(newPhotoUrl);
+      
+      // Update the profile with the new photo
+      const updateResult = await updateCoachProfile({
+        photo: newPhotoUrl
+      });
+      
+      if (updateResult.ok) {
+        setProfile(prev => ({ ...prev, photo: newPhotoUrl }));
+        toast.success('Profile photo updated');
+      }
+    } catch (err) {
+      console.error('Photo upload error:', err);
+      toast.error('Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
