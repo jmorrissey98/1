@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { safeGet, safePost } from '../lib/safeFetch';
+import { safeGet, safePost, setAuthToken, clearAuthToken, getAuthToken } from '../lib/safeFetch';
 
 const AuthContext = createContext(null);
 
@@ -24,11 +24,23 @@ export function AuthProvider({ children }) {
 
   const checkAuth = async () => {
     try {
+      // Only try to check auth if we have a token stored
+      const token = getAuthToken();
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       const result = await safeGet(`${API_URL}/api/auth/me`);
       
       // On network error or not authenticated, just set user to null (don't show error)
       if (result.networkError || !result.ok || !result.data) {
         setUser(null);
+        // Clear invalid token
+        if (result.status === 401) {
+          clearAuthToken();
+        }
       } else {
         setUser(result.data);
       }
@@ -58,6 +70,11 @@ export function AuthProvider({ children }) {
         throw new Error(result.data?.detail || 'Authentication failed');
       }
 
+      // Store token if provided
+      if (result.data?.token) {
+        setAuthToken(result.data.token);
+      }
+
       setUser(result.data);
       return result.data;
     } catch (err) {
@@ -72,6 +89,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Logout error:', err);
     }
+    clearAuthToken();
     setUser(null);
   };
 
