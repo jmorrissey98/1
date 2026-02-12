@@ -60,15 +60,12 @@ export default function AppHeader() {
       // Show toast before navigation
       toast.success('Returned to admin view');
       
-      // Use setTimeout to ensure all localStorage changes are committed
+      // Navigate to admin and force a complete page reload
+      // This ensures AuthContext re-initializes with the correct token
       setTimeout(() => {
-        // Verify token was set
-        const verifyToken = localStorage.getItem('auth_token');
-        console.log('Exit impersonation - token restored:', !!verifyToken);
-        
-        // Force full page reload to /admin
-        window.location.href = '/admin';
-      }, 200);
+        // Use assign instead of href to force a complete reload
+        window.location.assign('/admin');
+      }, 100);
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
       toast.error('Failed to exit impersonation. Please login again.');
@@ -78,9 +75,7 @@ export default function AppHeader() {
       localStorage.removeItem('impersonated_by');
       localStorage.removeItem('admin_token_backup');
       localStorage.removeItem('auth_token');
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 100);
+      window.location.assign('/login');
     }
   };
   
