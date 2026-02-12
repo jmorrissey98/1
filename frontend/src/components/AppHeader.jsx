@@ -57,8 +57,9 @@ export default function AppHeader() {
       
       toast.success('Returned to admin view');
       
-      // Redirect to admin dashboard
-      window.location.href = '/admin';
+      // Force full page reload to /admin to refresh auth context
+      // Using replace to avoid the impersonated page in history
+      window.location.replace('/admin');
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
       toast.error('Failed to exit impersonation. Please login again.');
@@ -68,7 +69,7 @@ export default function AppHeader() {
       localStorage.removeItem('impersonated_by');
       localStorage.removeItem('admin_token_backup');
       localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+      window.location.replace('/login');
     }
   };
   
