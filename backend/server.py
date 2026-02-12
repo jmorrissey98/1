@@ -2660,14 +2660,24 @@ async def get_coach_dashboard(request: Request):
     targets = [t for t in coach.get("targets", []) if t.get("status") != "achieved"]
     
     # Get upcoming scheduled observations for this coach
+    # Check both scheduled_observations collection AND observation_sessions with status='planned'
+    
+    # First, check scheduled_observations
     upcoming_obs = await db.scheduled_observations.find({
         "coach_id": user.linked_coach_id,
         "status": "scheduled"
     }, {"_id": 0}).sort("scheduled_date", 1).limit(5).to_list(5)
     
+    # Also check observation_sessions with status='planned' for this coach
+    planned_sessions = await db.observation_sessions.find({
+        "coach_id": user.linked_coach_id,
+        "status": "planned"
+    }, {"_id": 0}).sort("planned_date", 1).limit(5).to_list(5)
+    
     upcoming_observations = []
+    
+    # Add scheduled observations
     for obs in upcoming_obs:
-        # Get observer name
         observer = await db.users.find_one({"user_id": obs.get("observer_id")}, {"_id": 0, "name": 1})
         upcoming_observations.append(ScheduledObservationResponse(
             schedule_id=obs.get("schedule_id"),
@@ -2678,6 +2688,20 @@ async def get_coach_dashboard(request: Request):
             session_context=obs.get("session_context"),
             status=obs.get("status"),
             created_at=obs.get("created_at", "")
+        ))
+    
+    # Add planned observation sessions (convert to same format)
+    for session in planned_sessions:
+        observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
+        upcoming_observations.append(ScheduledObservationResponse(
+            schedule_id=session.get("session_id"),  # Use session_id as schedule_id
+            coach_id=session.get("coach_id"),
+            observer_id=session.get("observer_id"),
+            observer_name=observer.get("name") if observer else None,
+            scheduled_date=session.get("planned_date"),  # Use planned_date
+            session_context=session.get("observation_context"),
+            status="planned",
+            created_at=session.get("created_at", "")
         ))
     
     # Get most recent session for this coach
