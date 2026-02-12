@@ -67,11 +67,16 @@ export default function SessionCalendar() {
   const getSessionsForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return sessions.filter(s => {
-      // Check plannedDate first, then fall back to createdAt
-      let sessionDate = s.plannedDate;
-      if (!sessionDate) {
+      // For planned sessions, use plannedDate
+      // For completed/active sessions, use createdAt or updatedAt
+      let sessionDate;
+      if (s.status === 'planned' && s.plannedDate) {
+        sessionDate = s.plannedDate;
+      } else {
+        // For completed sessions, use createdAt (when session was started)
         sessionDate = s.createdAt;
       }
+      
       // Handle both full ISO strings and date-only strings
       if (sessionDate) {
         const datePart = sessionDate.split('T')[0];
@@ -91,6 +96,14 @@ export default function SessionCalendar() {
       default: return 'bg-slate-400';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
