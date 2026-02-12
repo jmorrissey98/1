@@ -363,8 +363,11 @@ export default function ReviewSession() {
   const stats = getStats();
   const events = getFilteredEvents();
 
+  // Get intervention/event types (handle both naming conventions)
+  const interventionTypesList = session.interventionTypes || session.eventTypes || [];
+
   // Prepare chart data
-  const eventChartData = session.eventTypes.map(et => ({
+  const eventChartData = interventionTypesList.map(et => ({
     name: et.name,
     count: stats.eventCounts[et.id] || 0
   }));
