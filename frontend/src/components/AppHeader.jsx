@@ -7,10 +7,6 @@ const EXCLUDED_PATHS = [
   '/login',
   '/reset-password',
   '/auth/callback',
-  '/session/',
-  '/live/',
-  '/review/',
-  '/coach',  // Coach pages have their own navigation
 ];
 
 export default function AppHeader() {
@@ -23,24 +19,32 @@ export default function AppHeader() {
   
   if (shouldHide) return null;
   
-  // Only show if there's club branding
-  if (!organization?.club_name && !organization?.club_logo) return null;
-  
   return (
     <div className="bg-white border-b border-slate-200 px-4 py-2">
-      <div className="max-w-7xl mx-auto flex items-center gap-3">
-        {organization?.club_logo && (
-          <img 
-            src={organization.club_logo} 
-            alt={organization.club_name || 'Club logo'} 
-            className="h-8 w-auto object-contain"
-          />
-        )}
-        {organization?.club_name && (
-          <span className="font-semibold text-slate-900 font-['Manrope']">
-            {organization.club_name}
-          </span>
-        )}
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {/* Left side - Club branding */}
+        <div className="flex items-center gap-3">
+          {organization?.club_logo && (
+            <img 
+              src={organization.club_logo} 
+              alt={organization.club_name || 'Club logo'} 
+              className="h-8 w-auto object-contain"
+            />
+          )}
+          {organization?.club_name && (
+            <span className="font-semibold text-slate-900 font-['Manrope']">
+              {organization.club_name}
+            </span>
+          )}
+        </div>
+        
+        {/* Right side - MCD Logo (always visible) */}
+        <img 
+          src="/mcd-logo.png" 
+          alt="My Coach Developer" 
+          className="h-8 w-auto object-contain"
+          data-testid="mcd-app-logo"
+        />
       </div>
     </div>
   );
