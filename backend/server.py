@@ -172,6 +172,39 @@ class OrganizationResponse(BaseModel):
     owner_id: str
     created_at: Optional[str] = None
 
+# Admin Models
+class AdminCreateOrganizationRequest(BaseModel):
+    club_name: str
+    club_logo: Optional[str] = None  # Base64 or URL
+
+class AdminCreateUserRequest(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    role: str  # "coach_developer" or "coach"
+    organization_id: str
+
+class AdminResetPasswordRequest(BaseModel):
+    new_password: str
+
+class AdminUserListItem(BaseModel):
+    user_id: str
+    email: str
+    name: str
+    role: str
+    organization_id: Optional[str] = None
+    linked_coach_id: Optional[str] = None
+    created_at: Optional[str] = None
+
+class AdminOrganizationListItem(BaseModel):
+    org_id: str
+    club_name: Optional[str] = None
+    club_logo: Optional[str] = None
+    owner_id: str
+    user_count: int = 0
+    coach_count: int = 0
+    created_at: Optional[str] = None
+
 class Invite(BaseModel):
     model_config = ConfigDict(extra="ignore")
     invite_id: str
