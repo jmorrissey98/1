@@ -210,6 +210,22 @@ export default function CoachProfile() {
     toast.success('Attachment removed');
   };
 
+  // Delete a session
+  const handleDeleteSession = async (sessionId) => {
+    try {
+      // Delete from cloud
+      await deleteCloudSession(sessionId);
+      // Delete from localStorage as backup
+      storage.deleteSession(sessionId);
+      // Refresh sessions list
+      setSessions(prev => prev.filter(s => (s.id || s.session_id) !== sessionId));
+      toast.success('Session deleted');
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      toast.error('Failed to delete session');
+    }
+  };
+
   // Save coach info edit
   const handleSaveEdit = () => {
     const updatedCoach = {
