@@ -3143,6 +3143,322 @@ async def list_scheduled_observations(request: Request):
 # END COACH ROLE API ENDPOINTS
 # ============================================
 
+# ============================================
+# ADMIN API ENDPOINTS
+# ============================================
+
+@api_router.get("/admin/organizations")
+async def admin_list_organizations(request: Request):
+    """List all organizations (Admin only)"""
+    await require_admin(request)
+    
+    orgs = await db.organizations.find({}, {"_id": 0}).to_list(1000)
+    
+    # Get user and coach counts for each organization
+    result = []
+    for org in orgs:
+        org_id = org.get("org_id")
+        owner_id = org.get("owner_id")
+        
+        # Count users in this organization
+        user_count = await db.users.count_documents({
+            "$or": [
+                {"organization_id": org_id},
+                {"user_id": owner_id}
+            ]
+        })
+        
+        # Count coaches in this organization
+        coach_count = await db.coaches.count_documents({"created_by": owner_id})
+        
+        result.append(AdminOrganizationListItem(
+            org_id=org_id,
+            club_name=org.get("club_name"),
+            club_logo=org.get("club_logo"),
+            owner_id=owner_id,
+            user_count=user_count,
+            coach_count=coach_count,
+            created_at=org.get("created_at")
+        ))
+    
+    return result
+
+@api_router.get("/admin/organizations/{org_id}/users")
+async def admin_get_organization_users(org_id: str, request: Request):
+    """Get all users in an organization (Admin only)"""
+    await require_admin(request)
+    
+    # Get the organization
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    owner_id = org.get("owner_id")
+    
+    # Get all users in this organization (including owner and linked users)
+    users = await db.users.find({
+        "$or": [
+            {"organization_id": org_id},
+            {"user_id": owner_id}
+        ]
+    }, {"_id": 0, "password": 0}).to_list(1000)
+    
+    result = []
+    for user in users:
+        result.append(AdminUserListItem(
+            user_id=user.get("user_id"),
+            email=user.get("email"),
+            name=user.get("name"),
+            role=user.get("role"),
+            organization_id=user.get("organization_id"),
+            linked_coach_id=user.get("linked_coach_id"),
+            created_at=user.get("created_at")
+        ))
+    
+    return result
+
+@api_router.post("/admin/organizations")
+async def admin_create_organization(data: AdminCreateOrganizationRequest, request: Request):
+    """Create a new organization/club (Admin only)"""
+    await require_admin(request)
+    
+    # Generate organization ID
+    org_id = f"org_{uuid.uuid4().hex[:12]}"
+    
+    org_doc = {
+        "org_id": org_id,
+        "club_name": data.club_name,
+        "club_logo": data.club_logo,
+        "owner_id": None,  # Will be set when a Coach Developer is assigned
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.organizations.insert_one(org_doc)
+    
+    return {
+        "org_id": org_id,
+        "club_name": data.club_name,
+        "club_logo": data.club_logo,
+        "message": "Organization created successfully"
+    }
+
+@api_router.post("/admin/users")
+async def admin_create_user(data: AdminCreateUserRequest, request: Request):
+    """Create a new user for any organization (Admin only)"""
+    await require_admin(request)
+    
+    # Validate role
+    if data.role not in ["coach_developer", "coach"]:
+        raise HTTPException(status_code=400, detail="Role must be 'coach_developer' or 'coach'")
+    
+    # Check if email already exists
+    existing_user = await db.users.find_one({"email": data.email.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Verify organization exists
+    org = await db.organizations.find_one({"org_id": data.organization_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Generate user ID and temporary password
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    temp_password = f"Temp_{uuid.uuid4().hex[:8]}!"
+    hashed_pw = hash_password(temp_password)
+    
+    full_name = f"{data.first_name} {data.last_name}"
+    
+    user_doc = {
+        "user_id": user_id,
+        "email": data.email.lower(),
+        "name": full_name,
+        "password": hashed_pw,
+        "role": data.role,
+        "organization_id": data.organization_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # If creating a Coach Developer and org has no owner, set this user as owner
+    if data.role == "coach_developer":
+        if not org.get("owner_id"):
+            await db.organizations.update_one(
+                {"org_id": data.organization_id},
+                {"$set": {"owner_id": user_id}}
+            )
+    
+    # If creating a Coach, also create a coach profile
+    linked_coach_id = None
+    if data.role == "coach":
+        coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+        coach_doc = {
+            "id": coach_id,
+            "coach_id": coach_id,
+            "name": full_name,
+            "email": data.email.lower(),
+            "organization_id": data.organization_id,
+            "created_by": org.get("owner_id"),
+            "status": "active",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.coaches.insert_one(coach_doc)
+        linked_coach_id = coach_id
+        user_doc["linked_coach_id"] = coach_id
+    
+    await db.users.insert_one(user_doc)
+    
+    return {
+        "user_id": user_id,
+        "email": data.email,
+        "name": full_name,
+        "role": data.role,
+        "temporary_password": temp_password,
+        "linked_coach_id": linked_coach_id,
+        "message": "User created successfully. They should reset their password on first login."
+    }
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_user_password(user_id: str, data: AdminResetPasswordRequest, request: Request):
+    """Reset password for any user (Admin only)"""
+    await require_admin(request)
+    
+    # Find the user
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Don't allow resetting admin passwords
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot reset admin password through this endpoint")
+    
+    # Hash the new password
+    hashed_pw = hash_password(data.new_password)
+    
+    # Update the user's password
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"password": hashed_pw, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Password reset successfully", "user_id": user_id}
+
+@api_router.get("/admin/users")
+async def admin_list_all_users(request: Request):
+    """List all users in the system (Admin only)"""
+    await require_admin(request)
+    
+    users = await db.users.find({}, {"_id": 0, "password": 0}).to_list(10000)
+    
+    result = []
+    for user in users:
+        result.append(AdminUserListItem(
+            user_id=user.get("user_id"),
+            email=user.get("email"),
+            name=user.get("name"),
+            role=user.get("role"),
+            organization_id=user.get("organization_id"),
+            linked_coach_id=user.get("linked_coach_id"),
+            created_at=user.get("created_at")
+        ))
+    
+    return result
+
+@api_router.post("/admin/impersonate/{user_id}")
+async def admin_impersonate_user(user_id: str, request: Request, response: Response):
+    """Generate a token to impersonate a user (Admin only)"""
+    admin_user = await require_admin(request)
+    
+    # Find the target user
+    target_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Don't allow impersonating other admins
+    if target_user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot impersonate admin users")
+    
+    # Generate impersonation token with extra claim
+    impersonate_token = jwt.encode({
+        "user_id": target_user.get("user_id"),
+        "email": target_user.get("email"),
+        "role": target_user.get("role"),
+        "impersonated_by": admin_user.user_id,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=2)  # Shorter expiry for impersonation
+    }, JWT_SECRET, algorithm="HS256")
+    
+    return {
+        "token": impersonate_token,
+        "user": {
+            "user_id": target_user.get("user_id"),
+            "email": target_user.get("email"),
+            "name": target_user.get("name"),
+            "role": target_user.get("role"),
+            "organization_id": target_user.get("organization_id"),
+            "linked_coach_id": target_user.get("linked_coach_id")
+        },
+        "impersonated_by": admin_user.user_id,
+        "expires_in": "2 hours"
+    }
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, request: Request):
+    """Delete a user (Admin only)"""
+    await require_admin(request)
+    
+    # Find the user
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Don't allow deleting admin users
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete admin users")
+    
+    # Delete the user
+    await db.users.delete_one({"user_id": user_id})
+    
+    # If user was a coach, optionally delete their coach profile
+    if user.get("linked_coach_id"):
+        await db.coaches.delete_one({"coach_id": user.get("linked_coach_id")})
+    
+    return {"message": "User deleted successfully", "user_id": user_id}
+
+@api_router.delete("/admin/organizations/{org_id}")
+async def admin_delete_organization(org_id: str, request: Request):
+    """Delete an organization and all its users (Admin only)"""
+    await require_admin(request)
+    
+    # Find the organization
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    owner_id = org.get("owner_id")
+    
+    # Delete all users in this organization
+    delete_result = await db.users.delete_many({
+        "$or": [
+            {"organization_id": org_id},
+            {"user_id": owner_id}
+        ],
+        "role": {"$ne": "admin"}  # Never delete admins
+    })
+    
+    # Delete all coaches created by the owner
+    await db.coaches.delete_many({"created_by": owner_id})
+    
+    # Delete the organization
+    await db.organizations.delete_one({"org_id": org_id})
+    
+    return {
+        "message": "Organization deleted successfully",
+        "org_id": org_id,
+        "users_deleted": delete_result.deleted_count
+    }
+
+# ============================================
+# END ADMIN API ENDPOINTS
+# ============================================
+
 # Add CORS middleware BEFORE including routes (order matters!)
 # Build comprehensive list of allowed origins for CORS with credentials
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
