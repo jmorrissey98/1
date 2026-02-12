@@ -45,6 +45,16 @@ export default function AppHeader() {
         
         {/* Center - Navigation buttons */}
         <div className="flex items-center gap-2">
+          {/* Home button - always visible */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/')}
+            data-testid="nav-home-btn"
+            title="Home"
+          >
+            <Home className="w-4 h-4" />
+          </Button>
           {isCoachDeveloper && isCoachDeveloper() && (
             <>
               <Button 
