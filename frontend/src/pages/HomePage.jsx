@@ -31,13 +31,11 @@ export default function HomePage() {
 
   useEffect(() => {
     loadSessions();
-    if (isCoachDeveloper()) {
-      loadUpcomingObservations();
-    }
   }, []);
 
   const loadSessions = async () => {
     setLoadingSessions(true);
+    setLoadingUpcoming(true);
     try {
       // Try to load from cloud first
       const result = await fetchCloudSessions();
@@ -52,14 +50,63 @@ export default function HomePage() {
           observationContext: s.observation_context,
           createdAt: s.created_at,
           updatedAt: s.updated_at,
+          plannedDate: s.planned_date,
           totalDuration: s.total_duration,
           events: { length: s.event_count || 0 }
         }));
-        setSessions(cloudSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+        
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        // Separate sessions into upcoming (planned with future/today date) and regular
+        const upcoming = [];
+        const regular = [];
+        
+        cloudSessions.forEach(session => {
+          // Check if this is a planned session with a future or today date
+          if (session.status === 'planned' && session.plannedDate) {
+            const plannedDate = new Date(session.plannedDate);
+            const plannedDay = new Date(plannedDate.getFullYear(), plannedDate.getMonth(), plannedDate.getDate());
+            
+            // If planned date is today or in the future, show in upcoming
+            if (plannedDay >= today) {
+              upcoming.push(session);
+            } else {
+              // Expired planned session - show in regular sessions
+              regular.push(session);
+            }
+          } else if (session.status === 'planned') {
+            // Planned but no date - show in upcoming anyway
+            upcoming.push(session);
+          } else {
+            // All other sessions (draft, active, completed) go to regular
+            regular.push(session);
+          }
+        });
+        
+        // Sort upcoming by planned date (ascending - soonest first)
+        upcoming.sort((a, b) => {
+          const dateA = a.plannedDate ? new Date(a.plannedDate) : new Date();
+          const dateB = b.plannedDate ? new Date(b.plannedDate) : new Date();
+          return dateA - dateB;
+        });
+        
+        // Sort regular by updated date (descending - most recent first)
+        regular.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        
+        setUpcomingObservations(upcoming);
+        setSessions(regular);
       } else {
         // Fall back to localStorage
         const localSessions = storage.getSessions() || [];
-        setSessions(localSessions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)));
+        const sorted = localSessions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        
+        // Also separate local sessions
+        const upcoming = sorted.filter(s => s.status === 'planned');
+        const regular = sorted.filter(s => s.status !== 'planned');
+        
+        setUpcomingObservations(upcoming);
+        setSessions(regular);
       }
     } catch (err) {
       console.error('Failed to load sessions:', err);
@@ -68,25 +115,6 @@ export default function HomePage() {
       setSessions(localSessions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)));
     } finally {
       setLoadingSessions(false);
-    }
-  };
-
-  const loadUpcomingObservations = async () => {
-    setLoadingUpcoming(true);
-    try {
-      const result = await safeGet(`${API_URL}/api/scheduled-observations`);
-      if (result.ok && result.data) {
-        // Filter to only future observations and sort by date
-        const now = new Date();
-        const upcoming = result.data
-          .filter(obs => new Date(obs.scheduled_date) >= now)
-          .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
-          .slice(0, 5); // Show max 5 upcoming
-        setUpcomingObservations(upcoming);
-      }
-    } catch (err) {
-      console.error('Failed to load upcoming observations:', err);
-    } finally {
       setLoadingUpcoming(false);
     }
   };
