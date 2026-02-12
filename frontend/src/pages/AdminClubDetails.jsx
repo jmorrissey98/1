@@ -112,10 +112,21 @@ export default function AdminClubDetails() {
 
   const handleImpersonate = async (user) => {
     try {
+      // Save the admin's current token before impersonating
+      const adminToken = getAuthToken();
+      if (adminToken) {
+        localStorage.setItem('admin_token_backup', adminToken);
+      }
+      
       const result = await safePost(`${API_URL}/api/admin/impersonate/${user.user_id}`);
       
       if (!result.ok) {
         throw new Error(result.data?.detail || result.error || 'Failed to impersonate user');
+      }
+      
+      // Set the impersonation token as the new auth token
+      if (result.data.token) {
+        setAuthToken(result.data.token);
       }
       
       // Store impersonation metadata in localStorage for UI purposes
