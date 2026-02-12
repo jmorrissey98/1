@@ -360,14 +360,14 @@ export default function MyCoaches() {
               {coaches.map((coach) => (
                 <Card 
                   key={coach.id} 
-                  className="hover:shadow-md transition-shadow"
+                  className={`hover:shadow-md transition-shadow ${coach._pending ? 'border-amber-300 bg-amber-50/30' : ''}`}
                   data-testid={`coach-card-${coach.id}`}
                 >
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">
                       <div 
                         className="flex items-center gap-4 flex-1 cursor-pointer"
-                        onClick={() => navigate(`/coaches/${coach.id}`)}
+                        onClick={() => !coach._pending && navigate(`/coaches/${coach.id}`)}
                       >
                         <Avatar className="w-12 h-12">
                           <AvatarImage src={coach.photo} alt={coach.name} />
@@ -380,7 +380,12 @@ export default function MyCoaches() {
                             <h3 className="font-semibold text-slate-900 font-['Manrope']">
                               {coach.name}
                             </h3>
-                            {coach.has_account ? (
+                            {coach._pending ? (
+                              <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
+                                <WifiOff className="w-3 h-3 mr-1" />
+                                Pending Sync
+                              </Badge>
+                            ) : coach.has_account ? (
                               <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
                                 <CheckCircle className="w-3 h-3 mr-1" />
                                 Active
