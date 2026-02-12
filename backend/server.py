@@ -1852,21 +1852,30 @@ async def update_coach(coach_id: str, request: Request):
 async def delete_coach(coach_id: str, request: Request):
     """
     Delete a coach profile (Coach Developer only).
-    Does not delete the user account - only the coach profile.
-    Also deletes any associated pending invites.
+    Query params:
+      - delete_user=true: Also delete the associated user account
     """
     try:
         user = await require_coach_developer(request)
+        
+        # Check query param for full user deletion
+        delete_user = request.query_params.get("delete_user", "").lower() == "true"
         
         coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
         if not coach:
             raise HTTPException(status_code=404, detail="Coach not found")
         
-        # Unlink from user account if linked
-        if coach.get("user_id"):
+        coach_user_id = coach.get("user_id")
+        
+        if delete_user and coach_user_id:
+            # Delete the user account entirely
+            await db.users.delete_one({"user_id": coach_user_id})
+            logger.info(f"Deleted user account {coach_user_id} for coach {coach_id}")
+        elif coach_user_id:
+            # Just unlink from user account
             await db.users.update_one(
-                {"user_id": coach["user_id"]},
-                {"$set": {"linked_coach_id": None}}
+                {"user_id": coach_user_id},
+                {"$set": {"linked_coach_id": None, "role": "coach_developer"}}  # Promote to developer or set neutral role
             )
         
         # Delete any associated pending invites (by coach_id or by email)
@@ -1889,7 +1898,7 @@ async def delete_coach(coach_id: str, request: Request):
         
         logger.info(f"Coach {coach_id} deleted by {user.user_id}")
         
-        return {"status": "deleted"}
+        return {"status": "deleted", "user_deleted": delete_user and coach_user_id is not None}
     except HTTPException:
         raise
     except Exception as e:
