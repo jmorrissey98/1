@@ -217,6 +217,14 @@
   - Backend `/api/coach/dashboard` now checks BOTH `scheduled_observations` collection AND `observation_sessions` with `status='planned'`
   - Planned sessions linked to coach now appear in their "Upcoming Observations" section
 
+### New Logo Update - February 12, 2026
+- [x] Updated MCD logo across all platform areas
+- [x] New logo (stylized "MCD" letters) in login page header
+- [x] New logo in app header (top right)
+- [x] Updated favicon (browser tab icon) - mcd-favicon.ico
+- [x] Updated PWA icons (192x192, 384x384, 512x512)
+- [x] Updated Apple touch icon for iOS home screen
+
 ### Home Button in Header - February 12, 2026
 - [x] Added Home icon button to the left of "My Coaches" in the navigation header
 - [x] Icon-only button (no text) using lucide-react Home icon
