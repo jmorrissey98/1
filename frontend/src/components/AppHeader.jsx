@@ -72,7 +72,27 @@ export default function AppHeader() {
   };
   
   return (
-    <div className="bg-white border-b border-slate-200 px-4 py-2 sticky top-0 z-20">
+    <>
+      {/* Impersonation Banner */}
+      {impersonating && (
+        <div className="bg-amber-500 text-amber-950 px-4 py-2 text-center flex items-center justify-center gap-3">
+          <Eye className="w-4 h-4" />
+          <span className="text-sm font-medium">
+            Viewing as: <strong>{impersonatedUser?.name || user?.name}</strong> ({impersonatedUser?.role || user?.role})
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExitImpersonation}
+            className="ml-2 bg-amber-100 hover:bg-amber-200 text-amber-900 h-7"
+            data-testid="exit-impersonation-btn"
+          >
+            <XCircle className="w-3 h-3 mr-1" />
+            Exit
+          </Button>
+        </div>
+      )}
+      <div className="bg-white border-b border-slate-200 px-4 py-2 sticky top-0 z-20">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         {/* Left side - Club branding */}
         <div className="flex items-center gap-3">
