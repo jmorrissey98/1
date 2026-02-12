@@ -55,11 +55,14 @@ export default function AppHeader() {
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
       
+      // Show toast before navigation
       toast.success('Returned to admin view');
       
-      // Force full page reload to /admin to refresh auth context
-      // Using replace to avoid the impersonated page in history
-      window.location.replace('/admin');
+      // Use setTimeout to ensure localStorage changes are committed before navigation
+      setTimeout(() => {
+        // Force full page reload to /admin to refresh auth context
+        window.location.href = window.location.origin + '/admin';
+      }, 100);
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
       toast.error('Failed to exit impersonation. Please login again.');
@@ -69,7 +72,9 @@ export default function AppHeader() {
       localStorage.removeItem('impersonated_by');
       localStorage.removeItem('admin_token_backup');
       localStorage.removeItem('auth_token');
-      window.location.replace('/login');
+      setTimeout(() => {
+        window.location.href = window.location.origin + '/login';
+      }, 100);
     }
   };
   
