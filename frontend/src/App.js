@@ -26,13 +26,23 @@ import CoachDevelopment from "./pages/CoachDevelopment";
 import CoachSessions from "./pages/CoachSessions";
 import CoachSessionDetail from "./pages/CoachSessionDetail";
 import CoachMyProfile from "./pages/CoachMyProfile";
+// Admin Pages
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminCreateClub from "./pages/AdminCreateClub";
+import AdminCreateUser from "./pages/AdminCreateUser";
+import AdminClubDetails from "./pages/AdminClubDetails";
 // Admin Tools
 import DataRecovery from "./pages/DataRecovery";
 import "./App.css";
 
 // Role-based home redirect component
 function HomeRedirect() {
-  const { user, isCoachDeveloper } = useAuth();
+  const { user, isCoachDeveloper, isAdmin } = useAuth();
+  
+  // Admin goes to admin dashboard
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
   
   // Coach role goes to coach dashboard
   if (user?.role === 'coach') {
