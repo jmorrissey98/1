@@ -38,56 +38,20 @@ export default function AppHeader() {
     }
   }, []);
   
-  // Exit impersonation mode - forces full page reload to properly restore admin session
-  const handleExitImpersonation = async () => {
-    try {
-      // Restore the admin token from backup
-      const adminToken = localStorage.getItem('admin_token_backup');
-      
-      if (!adminToken) {
-        throw new Error('Admin token not found');
-      }
-      
-      // Clear ALL impersonation-related items
-      localStorage.removeItem('impersonating');
-      localStorage.removeItem('impersonated_user');
-      localStorage.removeItem('impersonated_by');
-      localStorage.removeItem('admin_token_backup');
-      
-      // Restore admin token
-      setAuthToken(adminToken);
-      
-      // Verify the token works before navigating
-      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
-      const response = await fetch(`${API_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${adminToken}` }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Admin session expired');
-      }
-      
-      const userData = await response.json();
-      console.log('Exit impersonation - verified admin user:', userData.role);
-      
-      if (userData.role !== 'admin') {
-        throw new Error('Token is not an admin token');
-      }
-      
-      toast.success('Returned to admin view');
-      
-      // Navigate to admin
-      window.location.href = '/admin';
-    } catch (err) {
-      console.error('Failed to exit impersonation:', err);
-      toast.error(err.message || 'Failed to exit impersonation. Please login again.');
-      localStorage.removeItem('impersonating');
-      localStorage.removeItem('impersonated_user');
-      localStorage.removeItem('impersonated_by');
-      localStorage.removeItem('admin_token_backup');
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
-    }
+  // Exit impersonation mode - clears session and returns to login
+  // Note: Admin will need to login again after exiting impersonation
+  const handleExitImpersonation = () => {
+    // Clear all auth data
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('impersonating');
+    localStorage.removeItem('impersonated_user');
+    localStorage.removeItem('impersonated_by');
+    localStorage.removeItem('admin_token_backup');
+    
+    toast.success('Exited impersonation mode');
+    
+    // Redirect to login page
+    window.location.href = '/login';
   };
   
   // Don't show header on excluded pages, admin pages, or when not logged in
