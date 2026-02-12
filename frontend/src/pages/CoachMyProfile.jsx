@@ -53,6 +53,7 @@ export default function CoachMyProfile() {
       setAgeGroup(result.data.age_group || '');
       setDepartment(result.data.department || '');
       setBio(result.data.bio || '');
+      setPhotoUrl(result.data.photo || '');
     } catch (err) {
       console.error('Profile error:', err);
       setError(err.message || 'Failed to load profile');
