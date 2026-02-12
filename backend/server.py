@@ -3520,7 +3520,17 @@ async def bootstrap_admin():
     # Check if admin user already exists
     existing_admin = await db.users.find_one({"email": admin_email})
     if existing_admin:
-        logger.info(f"Admin user already exists: {admin_email}")
+        # Check if admin has password_hash, update if needed
+        if not existing_admin.get("password_hash"):
+            admin_password = "_mcDeveloper26!"
+            hashed_pw = hash_password(admin_password)
+            await db.users.update_one(
+                {"email": admin_email},
+                {"$set": {"password_hash": hashed_pw, "role": "admin"}}
+            )
+            logger.info(f"Updated admin user password_hash: {admin_email}")
+        else:
+            logger.info(f"Admin user already exists: {admin_email}")
         return
     
     # Create default admin user
@@ -3532,7 +3542,7 @@ async def bootstrap_admin():
         "user_id": admin_user_id,
         "email": admin_email,
         "name": "Coach Developer",
-        "password": hashed_pw,
+        "password_hash": hashed_pw,
         "role": "admin",
         "organization_id": None,  # Admin is not tied to any organization
         "created_at": datetime.now(timezone.utc).isoformat()
