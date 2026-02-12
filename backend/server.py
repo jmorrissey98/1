@@ -1156,6 +1156,23 @@ async def check_first_user():
     user_count = await db.users.count_documents({})
     return {"is_first": user_count == 0}
 
+@api_router.get("/admin/check")
+async def check_admin_exists():
+    """Check if the admin user exists (for debugging deployment issues)"""
+    admin_email = "hello@mycoachdeveloper.com"
+    admin_user = await db.users.find_one(
+        {"email": admin_email}, 
+        {"_id": 0, "password_hash": 0}
+    )
+    if admin_user:
+        return {
+            "exists": True,
+            "user_id": admin_user.get("user_id"),
+            "role": admin_user.get("role"),
+            "has_password": bool(admin_user.get("password_hash")) if "password_hash" in admin_user else "excluded"
+        }
+    return {"exists": False}
+
 # Email/Password Auth Endpoints
 @api_router.post("/auth/signup")
 async def signup(signup_data: SignupRequest, response: Response):
