@@ -347,6 +347,26 @@ export default function ReviewSession() {
     }
   };
 
+  const handleEditSummary = () => {
+    setEditedSummary(session.aiSummary || '');
+    setIsEditingSummary(true);
+  };
+
+  const handleSaveSummary = () => {
+    const updated = {
+      ...session,
+      aiSummary: editedSummary
+    };
+    saveSession(updated);
+    setIsEditingSummary(false);
+    toast.success('Summary updated');
+  };
+
+  const handleCancelEditSummary = () => {
+    setIsEditingSummary(false);
+    setEditedSummary('');
+  };
+
   const handleExportPDF = async () => {
     try {
       await exportToPDF(session);
