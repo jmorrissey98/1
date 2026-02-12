@@ -1589,10 +1589,30 @@ async def list_all_coaches(request: Request):
         ).to_list(200)
         users_map = {u["user_id"]: u for u in users}
     
-    # Enrich with user account status
+    # Batch fetch session counts for all coaches
+    coach_ids = [c.get("id") for c in coaches if c.get("id")]
+    session_counts_map = {}
+    upcoming_counts_map = {}
+    
+    if coach_ids:
+        # Get completed session counts
+        for coach_id in coach_ids:
+            completed_count = await db.observation_sessions.count_documents({
+                "coach_id": coach_id,
+                "status": "completed"
+            })
+            planned_count = await db.observation_sessions.count_documents({
+                "coach_id": coach_id,
+                "status": "planned"
+            })
+            session_counts_map[coach_id] = completed_count
+            upcoming_counts_map[coach_id] = planned_count
+    
+    # Enrich with user account status and session counts
     result = []
     for coach in coaches:
         user_id = coach.get("user_id")
+        coach_id = coach.get("id")
         has_account = False
         user_email = coach.get("email")
         
@@ -1601,7 +1621,7 @@ async def list_all_coaches(request: Request):
             user_email = users_map[user_id].get("email", user_email)
         
         result.append({
-            "id": coach.get("id"),
+            "id": coach_id,
             "name": coach.get("name"),
             "email": user_email,
             "photo": coach.get("photo"),
@@ -1613,7 +1633,9 @@ async def list_all_coaches(request: Request):
             "created_at": coach.get("created_at"),
             "updated_at": coach.get("updated_at"),
             "has_account": has_account,
-            "user_id": user_id
+            "user_id": user_id,
+            "sessionCount": session_counts_map.get(coach_id, 0),
+            "upcomingCount": upcoming_counts_map.get(coach_id, 0)
         })
     
     return result
