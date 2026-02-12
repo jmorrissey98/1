@@ -1,0 +1,87 @@
+{
+  "summary": "Successfully tested all session display logic features. Backend: 10/10 tests passed. Frontend: All features verified working correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: POST /api/auth/login - Coach Developer login works",
+    "Backend: GET /api/coaches - Returns sessionCount and upcomingCount for each coach",
+    "Backend: GET /api/coaches/{coach_id} - Returns coach profile",
+    "Backend: GET /api/observations - Returns sessions with status and planned_date",
+    "Backend: POST /api/observations - Creates planned sessions with future date",
+    "Backend: POST /api/observations - Creates draft sessions correctly",
+    "Backend: GET /api/coaches/{coach_id}/sessions - Returns sessions for specific coach",
+    "Backend: Sessions have dates for calendar display (created_at or planned_date)",
+    "Frontend: HomePage shows 'Upcoming Observations' card with planned sessions",
+    "Frontend: HomePage 'Upcoming Observations' shows Start button for each session",
+    "Frontend: HomePage 'Your Sessions' shows only draft, active, completed (not planned)",
+    "Frontend: SessionCalendar loads from cloud API (not localStorage)",
+    "Frontend: Calendar displays sessions on correct dates with color-coded dots",
+    "Frontend: MyCoaches shows sessionCount badge (calendar icon with number)",
+    "Frontend: MyCoaches shows upcomingCount badge (clock icon with number)",
+    "Frontend: CoachProfile Sessions tab has 'Upcoming' section (blue background)",
+    "Frontend: CoachProfile Sessions tab has 'Observation History' section",
+    "Frontend: CoachProfile Sessions tab has 'In Progress' section"
+  ],
+
+  "features_verified": {
+    "homepage_upcoming_observations": "WORKING - Planned sessions appear in 'Upcoming Observations' card with Planned badge and Start button",
+    "homepage_your_sessions": "WORKING - Only non-planned sessions (draft, active, completed) appear in 'Your Sessions'",
+    "session_calendar_cloud_api": "WORKING - SessionCalendar loads from fetchCloudSessions() not localStorage",
+    "session_calendar_display": "WORKING - Both planned and completed sessions display on correct dates",
+    "coach_profile_sessions_tab": "WORKING - Separates 'Upcoming' (planned) from 'Observation History' (completed)",
+    "my_coaches_badges": "WORKING - Shows sessionCount (completed) and upcomingCount (planned) badges",
+    "backend_coaches_endpoint": "WORKING - /api/coaches returns sessionCount and upcomingCount"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_session_display.py",
+    "/app/test_reports/pytest/session_display_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "HomePage.jsx correctly separates sessions into upcoming (planned with future/today date) and regular (draft, active, completed)",
+    "SessionCalendar.jsx properly calls fetchCloudSessions() from cloudSessionService instead of localStorage",
+    "CoachProfile.jsx Sessions tab correctly filters sessions by status into Upcoming, Observation History, and In Progress sections",
+    "Backend list_all_coaches() correctly counts completed sessions (sessionCount) and planned sessions (upcomingCount) separately"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_session_display.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% (All UI features verified)"
+  },
+
+  "test_credentials": {
+    "coach_developer": "joemorrisseyg@gmail.com / 12345"
+  },
+
+  "seed_data_creation": "Test sessions were created during backend tests and cleaned up after. Existing sessions found: 2 planned, 1 draft, 1 completed",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Session display logic is fully working: 1) HomePage separates planned sessions to 'Upcoming Observations' card, other sessions to 'Your Sessions', 2) Calendar loads from cloud API and shows sessions on dates, 3) CoachProfile Sessions tab has separate sections for Upcoming/History/In Progress, 4) MyCoaches shows both sessionCount and upcomingCount badges. Test data exists in preview environment with coach_67857d39dbbc having 4 sessions.",
+
+  "screenshots": {
+    "homepage_after_login": "/app/.screenshots/homepage_after_login.png",
+    "calendar_page": "/app/.screenshots/calendar_page.png",
+    "my_coaches_page": "/app/.screenshots/my_coaches_page.png",
+    "coach_sessions_tab": "/app/.screenshots/coach_sessions_tab.png"
+  }
+}
