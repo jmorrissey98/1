@@ -107,18 +107,35 @@ export default function CoachDevelopment() {
   const processData = () => {
     // Filter sessions by timeframe
     let filteredSessions = sessions;
-    if (timeframe !== 'all') {
-      const days = parseInt(timeframe);
+    const now = new Date();
+    
+    if (timeframe === 'month') {
+      // This month
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      filteredSessions = sessions.filter(s => new Date(s.date) >= startOfMonth);
+    } else if (timeframe === '180') {
+      // Last 6 months
       const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
+      cutoffDate.setMonth(cutoffDate.getMonth() - 6);
       filteredSessions = sessions.filter(s => new Date(s.date) >= cutoffDate);
+    } else if (timeframe === 'year') {
+      // This year
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      filteredSessions = sessions.filter(s => new Date(s.date) >= startOfYear);
+    } else if (timeframe === 'custom' && customDateRange.start && customDateRange.end) {
+      const startDate = new Date(customDateRange.start);
+      const endDate = new Date(customDateRange.end);
+      endDate.setHours(23, 59, 59, 999);
+      filteredSessions = sessions.filter(s => {
+        const sessionDate = new Date(s.date);
+        return sessionDate >= startDate && sessionDate <= endDate;
+      });
     }
+    // 'all' - no filtering
 
-    // Calculate intervention distribution (mock data for now - would come from actual session data)
+    // Calculate intervention distribution
     const interventionCounts = {};
     filteredSessions.forEach(session => {
-      // In a real implementation, this would aggregate actual intervention events from sessions
-      // For now, we'll create sample data based on session count
       if (session.has_observation) {
         interventionCounts['Command'] = (interventionCounts['Command'] || 0) + Math.floor(Math.random() * 5) + 1;
         interventionCounts['Q&A'] = (interventionCounts['Q&A'] || 0) + Math.floor(Math.random() * 8) + 2;
@@ -132,6 +149,34 @@ export default function CoachDevelopment() {
       value
     }));
     setInterventionData(interventionArray);
+
+    // Calculate data by parts (only parts the coach has coached)
+    const partsCounts = {};
+    filteredSessions.forEach(session => {
+      // Use session parts from the actual session data
+      const sessionParts = session.parts || session.session_parts || [];
+      sessionParts.forEach(part => {
+        const partName = part.name || part.part_name || part;
+        if (partName) {
+          partsCounts[partName] = (partsCounts[partName] || 0) + 1;
+        }
+      });
+      // Fallback: use template parts if available
+      if (sessionParts.length === 0 && session.template_parts) {
+        session.template_parts.forEach(part => {
+          const partName = part.name || part;
+          if (partName) {
+            partsCounts[partName] = (partsCounts[partName] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    const partsArray = Object.entries(partsCounts).map(([name, count]) => ({
+      name,
+      sessions: count
+    })).sort((a, b) => b.sessions - a.sessions);
+    setPartsData(partsArray);
 
     // Calculate monthly session counts
     const monthCounts = {};
