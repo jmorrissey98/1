@@ -85,6 +85,21 @@ export default function ReviewSession() {
     return session.sessionParts || [];
   };
 
+  // Get session parts that actually have data (events, ball rolling time, or ball stopped time)
+  const getActiveSessionParts = () => {
+    if (!session) return [];
+    const parts = session.sessionParts || [];
+    const events = session.events || [];
+    
+    return parts.filter(part => {
+      // Check if part has any events
+      const hasEvents = events.some(e => e.sessionPartId === part.id);
+      // Check if part has ball rolling or stopped time
+      const hasBallTime = (part.ballRollingTime || 0) > 0 || (part.ballNotRollingTime || 0) > 0;
+      return hasEvents || hasBallTime;
+    });
+  };
+
   const getPreviousSessionsSummary = () => {
     if (!session.coachId) return null;
     
