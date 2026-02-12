@@ -196,6 +196,28 @@
   - `session.descriptorGroup1` / `session.descriptorGroup2` - safely handled with defaults
   - All descriptor and event type operations now safely handle null values
 
+### Session Summary UI Update - February 12, 2026
+- [x] **Renamed from "AI Session Summary" to "Session Summary"**
+- [x] **Removed purple styling** - now uses consistent card styling like other sections
+- [x] **Added Edit functionality** - Edit button appears when summary exists
+  - Click Edit to show textarea with summary content
+  - Save/Cancel buttons to save changes or discard
+
+### Offline Sync for Admin Pages - February 12, 2026
+- [x] **MyCoaches page now works offline**
+  - Create coach works offline (queued with "Pending Sync" badge)
+  - Delete coach works offline (queued)
+  - Data loads from localStorage cache when offline
+  - Offline banner shows "You're offline. Changes will sync when connected."
+  - Pending sync count displayed in UI
+- [x] **offlineApi.js enhancements**
+  - Added `createCoach()` function with offline queue support
+  - Added `deleteCoach()` function with offline queue support
+  - Coach data cached in localStorage for offline access
+- [x] **offlineSync.js enhancements**
+  - Added CREATE_COACH queue item handler
+  - Added DELETE_COACH queue item handler
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
@@ -204,7 +226,6 @@
 - [ ] Investigate "body stream already read" error in safeFetch.js
 
 ### P2 - Medium Priority
-- [ ] Extend offline sync to admin pages
 - [ ] Session comparison view for coaches
 - [ ] iPad portrait orientation optimizations
 - [ ] Full audit for remaining localStorage usage
