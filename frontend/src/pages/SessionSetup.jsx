@@ -57,6 +57,10 @@ export default function SessionSetup() {
           if (existing) {
             setSession(existing);
             setSelectedCoachId(existing.coachId || 'none');
+            // Also restore the planned date if it exists
+            if (existing.plannedDate) {
+              setSessionDate(existing.plannedDate);
+            }
           } else {
             toast.error('Session not found');
             navigate('/');
