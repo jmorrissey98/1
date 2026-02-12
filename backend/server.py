@@ -3417,6 +3417,62 @@ async def admin_impersonate_user(user_id: str, request: Request, response: Respo
         "expires_in": "2 hours"
     }
 
+@api_router.post("/admin/exit-impersonation")
+async def admin_exit_impersonation(request: Request, response: Response):
+    """Exit impersonation mode and restore admin session"""
+    # Get current session token
+    current_session_token = request.cookies.get("session_token")
+    if not current_session_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Find the current session
+    current_session = await db.user_sessions.find_one(
+        {"session_token": current_session_token},
+        {"_id": 0}
+    )
+    
+    if not current_session:
+        raise HTTPException(status_code=401, detail="Session not found")
+    
+    # Check if this is an impersonation session
+    admin_session_token = current_session.get("admin_session_token")
+    if not admin_session_token:
+        raise HTTPException(status_code=400, detail="Not in impersonation mode")
+    
+    # Verify the admin session is still valid
+    admin_session = await db.user_sessions.find_one(
+        {"session_token": admin_session_token},
+        {"_id": 0}
+    )
+    
+    if not admin_session:
+        raise HTTPException(status_code=401, detail="Admin session expired. Please login again.")
+    
+    # Check admin session expiry
+    expires_at = admin_session.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Admin session expired. Please login again.")
+    
+    # Delete the impersonation session
+    await db.user_sessions.delete_one({"session_token": current_session_token})
+    
+    # Restore the admin session cookie
+    response.set_cookie(
+        key="session_token",
+        value=admin_session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7 * 24 * 60 * 60,  # Match original admin session duration
+        path="/"
+    )
+    
+    return {"message": "Exited impersonation mode", "redirect": "/admin"}
+
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, request: Request):
     """Delete a user (Admin only)"""
