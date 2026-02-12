@@ -286,19 +286,21 @@ export default function SessionCalendar() {
                     return (
                       <div 
                         key={session.id}
-                        className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer"
-                        onClick={() => {
-                          if (session.status === 'completed') {
-                            navigate(`/session/${session.id}/review`);
-                          } else if (session.status === 'planned') {
-                            navigate(`/session/${session.id}/setup`);
-                          } else {
-                            navigate(`/session/${session.id}/observe`);
-                          }
-                        }}
+                        className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100"
                       >
                         <div className="flex items-start justify-between">
-                          <div>
+                          <div 
+                            className="flex-1 cursor-pointer"
+                            onClick={() => {
+                              if (session.status === 'completed') {
+                                navigate(`/session/${session.id}/review`);
+                              } else if (session.status === 'planned') {
+                                navigate(`/session/${session.id}/setup`);
+                              } else {
+                                navigate(`/session/${session.id}/observe`);
+                              }
+                            }}
+                          >
                             <h4 className="font-medium text-slate-900">{session.name}</h4>
                             {session.coachName && (
                               <p className="text-sm text-slate-500">{session.coachName}</p>
@@ -312,11 +314,37 @@ export default function SessionCalendar() {
                               </Badge>
                             </div>
                           </div>
-                          {session.status === 'completed' ? (
-                            <Eye className="w-4 h-4 text-slate-400" />
-                          ) : (
-                            <Play className="w-4 h-4 text-slate-400" />
-                          )}
+                          <div className="flex items-center gap-1">
+                            {session.status === 'completed' ? (
+                              <Eye 
+                                className="w-4 h-4 text-slate-400 cursor-pointer hover:text-slate-600" 
+                                onClick={() => navigate(`/session/${session.id}/review`)}
+                              />
+                            ) : (
+                              <Play 
+                                className="w-4 h-4 text-slate-400 cursor-pointer hover:text-slate-600" 
+                                onClick={() => {
+                                  if (session.status === 'planned') {
+                                    navigate(`/session/${session.id}/setup`);
+                                  } else {
+                                    navigate(`/session/${session.id}/observe`);
+                                  }
+                                }}
+                              />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSessionToDelete(session);
+                              }}
+                              data-testid={`delete-session-${session.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
