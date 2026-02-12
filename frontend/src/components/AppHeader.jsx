@@ -40,25 +40,32 @@ export default function AppHeader() {
   // Exit impersonation mode
   const handleExitImpersonation = async () => {
     try {
-      // Call logout endpoint to properly clear the httponly session cookie
+      // Call exit-impersonation endpoint to restore admin session
       const API_URL = process.env.REACT_APP_BACKEND_URL || '';
-      await fetch(`${API_URL}/api/auth/logout`, {
+      const response = await fetch(`${API_URL}/api/admin/exit-impersonation`, {
         method: 'POST',
         credentials: 'include'
       });
       
-      // Clear localStorage
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to exit impersonation');
+      }
+      
+      // Clear localStorage impersonation flags
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
       
-      toast.success('Exited impersonation mode. Please login again.');
+      toast.success('Returned to admin view');
       
-      // Redirect to login
-      window.location.href = '/login';
+      // Redirect to admin dashboard
+      window.location.href = '/admin';
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
-      // Still try to redirect even if logout fails
+      toast.error(err.message || 'Failed to exit impersonation. Please login again.');
+      // Fallback: clear everything and go to login
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
