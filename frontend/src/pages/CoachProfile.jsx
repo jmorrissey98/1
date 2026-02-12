@@ -71,9 +71,10 @@ export default function CoachProfile() {
       
       // Load sessions for this coach from API
       try {
-        const sessionsResponse = await axios.get(`${API}/coach/sessions/${coachId}`, { withCredentials: true });
+        const sessionsResponse = await axios.get(`${API}/coaches/${coachId}/sessions`, { withCredentials: true });
         setSessions(sessionsResponse.data || []);
       } catch (sessErr) {
+        console.warn('Failed to load coach sessions from API:', sessErr);
         // Fall back to localStorage for sessions if API fails
         const coachSessions = storage.getCoachSessions(coachId)
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
