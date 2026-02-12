@@ -21,14 +21,17 @@ export default function CoachMyProfile() {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
   
   // Form state
   const [roleTitle, setRoleTitle] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [department, setDepartment] = useState('');
   const [bio, setBio] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
 
   useEffect(() => {
     loadProfile();
