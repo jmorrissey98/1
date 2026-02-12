@@ -141,13 +141,21 @@ export default function MyCoaches() {
     setIsDeleting(true);
     
     try {
-      const result = await safeDelete(`${API_URL}/api/coaches/${coachToDelete.id}`);
+      const result = await deleteCoach(coachToDelete.id);
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to delete coach');
+        throw new Error(result.error || 'Failed to delete coach');
       }
       
-      toast.success(`Coach "${coachToDelete.name}" removed`);
+      const msg = result.queued 
+        ? `Coach "${coachToDelete.name}" removed locally. Will sync when online.`
+        : `Coach "${coachToDelete.name}" removed`;
+      toast.success(msg);
+      
+      if (result.queued) {
+        setPendingSync(getPendingSyncCount());
+      }
+      
       setCoachToDelete(null);
       await loadCoaches();
     } catch (err) {
