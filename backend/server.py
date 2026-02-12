@@ -1777,6 +1777,62 @@ async def get_coach_detail(coach_id: str, request: Request):
         "has_account": has_account
     }
 
+@api_router.get("/coaches/{coach_id}/sessions")
+async def get_coach_sessions_by_id(coach_id: str, request: Request):
+    """
+    Get all observation sessions for a specific coach.
+    Coach Developer only - used to view a coach's session history.
+    """
+    await require_coach_developer(request)
+    
+    # Verify coach exists
+    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    # Get all observation sessions for this coach
+    sessions_cursor = db.observation_sessions.find(
+        {"coach_id": coach_id},
+        {"_id": 0}
+    ).sort("updated_at", -1)
+    
+    sessions = await sessions_cursor.to_list(100)
+    
+    # Get observer names in batch
+    observer_ids = list(set(s.get("observer_id") for s in sessions if s.get("observer_id")))
+    observers_map = {}
+    if observer_ids:
+        observers = await db.users.find(
+            {"user_id": {"$in": observer_ids}},
+            {"_id": 0, "user_id": 1, "name": 1}
+        ).to_list(100)
+        observers_map = {o["user_id"]: o.get("name") for o in observers}
+    
+    result = []
+    for s in sessions:
+        result.append({
+            "session_id": s.get("session_id"),
+            "id": s.get("session_id"),  # Also include 'id' for frontend compatibility
+            "name": s.get("name", "Untitled"),
+            "title": s.get("name", "Untitled"),  # Also include 'title' for compatibility
+            "coach_id": coach_id,
+            "observer_id": s.get("observer_id"),
+            "observer_name": observers_map.get(s.get("observer_id")),
+            "observation_context": s.get("observation_context", "training"),
+            "status": s.get("status", "draft"),
+            "created_at": s.get("created_at", ""),
+            "createdAt": s.get("created_at", ""),  # Also include camelCase for compatibility
+            "updated_at": s.get("updated_at", ""),
+            "total_duration": s.get("total_duration", 0),
+            "totalDuration": s.get("total_duration", 0),  # Also include camelCase
+            "events": s.get("events", []),
+            "event_count": len(s.get("events", [])),
+            "sessionParts": s.get("session_parts", []),
+            "eventTypes": s.get("intervention_types", [])
+        })
+    
+    return result
+
 @api_router.put("/coaches/{coach_id}")
 async def update_coach(coach_id: str, request: Request):
     """
