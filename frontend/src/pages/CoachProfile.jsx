@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { storage } from '../lib/storage';
 import { formatDate, formatTime, generateId, calcPercentage, countBy } from '../lib/utils';
@@ -28,6 +29,7 @@ export default function CoachProfile() {
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState('');
@@ -54,6 +56,7 @@ export default function CoachProfile() {
   }, [coachId]);
 
   const loadCoach = async () => {
+    setIsLoadingSessions(true);
     try {
       // Load from API instead of localStorage
       const response = await axios.get(`${API}/coaches/${coachId}`, { withCredentials: true });
