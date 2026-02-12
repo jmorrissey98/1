@@ -1,5 +1,45 @@
 // Safe fetch utilities to prevent "body stream already read" errors
 
+// Token storage key
+const TOKEN_KEY = 'auth_token';
+
+/**
+ * Get stored auth token
+ */
+export function getAuthToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+/**
+ * Set auth token
+ */
+export function setAuthToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+/**
+ * Clear auth token
+ */
+export function clearAuthToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+/**
+ * Build headers with auth token if available
+ */
+function buildHeaders(customHeaders = {}) {
+  const headers = { ...customHeaders };
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 /**
  * Safely fetch and parse JSON response
  * Handles network errors gracefully and prevents body stream issues
@@ -11,9 +51,13 @@ export async function safeFetch(url, options = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   
+  // Build headers with auth token
+  const headers = buildHeaders(options.headers || {});
+  
   try {
     const response = await fetch(url, {
       ...options,
+      headers,
       signal: controller.signal
     });
     
