@@ -3364,7 +3364,7 @@ async def admin_list_all_users(request: Request):
 
 @api_router.post("/admin/impersonate/{user_id}")
 async def admin_impersonate_user(user_id: str, request: Request, response: Response):
-    """Generate a token to impersonate a user (Admin only)"""
+    """Generate a session token to impersonate a user (Admin only)"""
     admin_user = await require_admin(request)
     
     # Find the target user
@@ -3376,14 +3376,17 @@ async def admin_impersonate_user(user_id: str, request: Request, response: Respo
     if target_user.get("role") == "admin":
         raise HTTPException(status_code=403, detail="Cannot impersonate admin users")
     
-    # Generate impersonation token with extra claim
-    impersonate_token = jwt.encode({
+    # Generate impersonation session token
+    impersonate_token = secrets.token_urlsafe(32)
+    
+    # Store the impersonation session
+    await db.user_sessions.insert_one({
         "user_id": target_user.get("user_id"),
-        "email": target_user.get("email"),
-        "role": target_user.get("role"),
+        "session_token": impersonate_token,
         "impersonated_by": admin_user.user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=2)  # Shorter expiry for impersonation
-    }, JWT_SECRET, algorithm="HS256")
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+    })
     
     return {
         "token": impersonate_token,
