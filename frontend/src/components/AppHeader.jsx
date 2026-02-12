@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { Users, ClipboardList, Calendar, Cog } from 'lucide-react';
+import { Home, Users, ClipboardList, Calendar, Cog } from 'lucide-react';
 import { Button } from './ui/button';
 import SyncStatusIndicator from './SyncStatusIndicator';
 
