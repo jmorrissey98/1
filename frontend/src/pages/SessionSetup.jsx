@@ -163,57 +163,64 @@ export default function SessionSetup() {
 
   // Event type management
   const addEventType = () => {
+    const currentEventTypes = session.eventTypes || session.interventionTypes || [];
     const newEvent = { id: generateId('event'), name: 'New Event', color: 'yellow' };
-    updateSession({ eventTypes: [...session.eventTypes, newEvent] });
+    updateSession({ eventTypes: [...currentEventTypes, newEvent], interventionTypes: [...currentEventTypes, newEvent] });
   };
 
   const updateEventType = (id, name) => {
+    const currentEventTypes = session.eventTypes || session.interventionTypes || [];
+    const updated = currentEventTypes.map(e => e.id === id ? { ...e, name } : e);
     updateSession({
-      eventTypes: session.eventTypes.map(e => e.id === id ? { ...e, name } : e)
+      eventTypes: updated,
+      interventionTypes: updated
     });
   };
 
   const removeEventType = (id) => {
-    if (session.eventTypes.length <= 1) {
+    const currentEventTypes = session.eventTypes || session.interventionTypes || [];
+    if (currentEventTypes.length <= 1) {
       toast.error('You need at least one event type');
       return;
     }
-    updateSession({ eventTypes: session.eventTypes.filter(e => e.id !== id) });
+    const filtered = currentEventTypes.filter(e => e.id !== id);
+    updateSession({ eventTypes: filtered, interventionTypes: filtered });
   };
 
   // Descriptor management
   const addDescriptor = (groupNum) => {
     const groupKey = `descriptorGroup${groupNum}`;
-    const group = session[groupKey];
+    const group = session[groupKey] || { name: `Descriptor Group ${groupNum}`, descriptors: [] };
     const newDesc = { id: generateId('desc'), name: 'New' };
     updateSession({
-      [groupKey]: { ...group, descriptors: [...group.descriptors, newDesc] }
+      [groupKey]: { ...group, descriptors: [...(group.descriptors || []), newDesc] }
     });
   };
 
   const updateDescriptor = (groupNum, id, name) => {
     const groupKey = `descriptorGroup${groupNum}`;
-    const group = session[groupKey];
+    const group = session[groupKey] || { name: `Descriptor Group ${groupNum}`, descriptors: [] };
     updateSession({
       [groupKey]: {
         ...group,
-        descriptors: group.descriptors.map(d => d.id === id ? { ...d, name } : d)
+        descriptors: (group.descriptors || []).map(d => d.id === id ? { ...d, name } : d)
       }
     });
   };
 
   const removeDescriptor = (groupNum, id) => {
     const groupKey = `descriptorGroup${groupNum}`;
-    const group = session[groupKey];
+    const group = session[groupKey] || { name: `Descriptor Group ${groupNum}`, descriptors: [] };
     updateSession({
-      [groupKey]: { ...group, descriptors: group.descriptors.filter(d => d.id !== id) }
+      [groupKey]: { ...group, descriptors: (group.descriptors || []).filter(d => d.id !== id) }
     });
   };
 
   const updateGroupName = (groupNum, name) => {
     const groupKey = `descriptorGroup${groupNum}`;
+    const group = session[groupKey] || { name: `Descriptor Group ${groupNum}`, descriptors: [] };
     updateSession({
-      [groupKey]: { ...session[groupKey], name }
+      [groupKey]: { ...group, name }
     });
   };
 
