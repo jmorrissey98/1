@@ -226,6 +226,22 @@ const processQueueItem = async (item) => {
         });
         break;
       
+      case QueueItemType.CREATE_COACH:
+        response = await fetch(`${API_URL}/api/coaches`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(item.data)
+        });
+        break;
+      
+      case QueueItemType.DELETE_COACH:
+        response = await fetch(`${API_URL}/api/coaches/${item.entityId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        break;
+      
       default:
         console.log('[Sync] Unknown item type:', item.type);
         return { success: true, skipped: true };
