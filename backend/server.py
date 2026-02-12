@@ -3537,33 +3537,31 @@ async def admin_delete_organization(org_id: str, request: Request):
 # Build comprehensive list of allowed origins for CORS with credentials
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 
-# Check if CORS is set to allow all origins
-if cors_origins_env == '*':
-    allowed_origins = ["*"]
-else:
-    # Start with known origins - production and development
-    allowed_origins = [
-        APP_URL,
-        "https://mycoachdeveloper.com",
-        "https://www.mycoachdeveloper.com",
-        "http://localhost:3000",
-        "http://localhost:8001",
-    ]
-    
-    # Add preview URLs dynamically from environment
-    preview_url = os.environ.get('REACT_APP_BACKEND_URL', '')
-    if preview_url and preview_url not in allowed_origins:
-        allowed_origins.append(preview_url)
-    
-    # Add any additional origins from CORS_ORIGINS environment
-    if cors_origins_env:
-        for origin in cors_origins_env.split(','):
-            origin = origin.strip()
-            if origin and origin not in allowed_origins:
-                allowed_origins.append(origin)
-    
-    # Remove duplicates while preserving order
-    allowed_origins = list(dict.fromkeys(allowed_origins))
+# IMPORTANT: When using credentials (cookies), we CANNOT use wildcard '*'
+# We must explicitly list allowed origins
+# Start with known origins - production and development
+allowed_origins = [
+    APP_URL,
+    "https://mycoachdeveloper.com",
+    "https://www.mycoachdeveloper.com",
+    "http://localhost:3000",
+    "http://localhost:8001",
+]
+
+# Add preview URLs dynamically from environment
+preview_url = os.environ.get('REACT_APP_BACKEND_URL', '')
+if preview_url and preview_url not in allowed_origins:
+    allowed_origins.append(preview_url)
+
+# Add any additional origins from CORS_ORIGINS environment (except wildcard)
+if cors_origins_env and cors_origins_env != '*':
+    for origin in cors_origins_env.split(','):
+        origin = origin.strip()
+        if origin and origin != '*' and origin not in allowed_origins:
+            allowed_origins.append(origin)
+
+# Remove duplicates while preserving order, and filter out any empty strings
+allowed_origins = [o for o in dict.fromkeys(allowed_origins) if o]
 
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
