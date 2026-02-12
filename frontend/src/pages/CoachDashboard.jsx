@@ -92,59 +92,20 @@ export default function CoachDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header with Navigation */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">Dashboard</h1>
-              <p className="text-sm text-slate-500">Your coaching overview</p>
-            </div>
-            {(!online || fromCache) && (
-              <div className="flex items-center gap-2 text-amber-600 text-sm">
-                <CloudOff className="w-4 h-4" />
-                <span>{!online ? 'Offline' : 'Cached'}</span>
-              </div>
-            )}
-          </div>
-          {/* Navigation Tabs */}
-          <nav className="flex gap-1 mt-4 -mb-4 border-b-0">
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-emerald-600 text-emerald-700 font-medium"
-              data-testid="nav-dashboard"
-            >
-              Dashboard
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
-              onClick={() => navigate('/coach/development')}
-              data-testid="nav-development"
-            >
-              My Development
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
-              onClick={() => navigate('/coach/sessions')}
-              data-testid="nav-sessions"
-            >
-              My Sessions
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="rounded-b-none border-b-2 border-transparent text-slate-600 hover:text-slate-900"
-              onClick={() => navigate('/coach/profile')}
-              data-testid="nav-profile"
-            >
-              My Profile
-            </Button>
-          </nav>
-        </div>
-      </header>
-
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Page Title */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 font-['Manrope']">Dashboard</h1>
+            <p className="text-sm text-slate-500">Your coaching overview</p>
+          </div>
+          {(!online || fromCache) && (
+            <div className="flex items-center gap-2 text-amber-600 text-sm">
+              <CloudOff className="w-4 h-4" />
+              <span>{!online ? 'Offline' : 'Cached'}</span>
+            </div>
+          )}
+        </div>
         
         {/* Profile Summary - Simplified without Edit button */}
         <Card>
@@ -171,26 +132,31 @@ export default function CoachDashboard() {
           </CardContent>
         </Card>
 
-        {/* Reflection Prompt */}
+        {/* Reflection Prompt - Softer blue styling instead of amber alert */}
         {has_pending_reflection && (
-          <Alert className="bg-amber-50 border-amber-200">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="flex items-center justify-between">
-              <div>
-                <span className="font-medium text-amber-800">Time for reflection</span>
-                <p className="text-amber-700 text-sm mt-1">
-                  You have a recent session that's waiting for your thoughts. Taking a moment to reflect can deepen your learning.
-                </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-blue-800">Session available for reflection</p>
+                  <p className="text-blue-600 text-sm mt-0.5">
+                    Take a moment to reflect on your recent session.
+                  </p>
+                </div>
               </div>
               <Button 
                 size="sm" 
-                className="ml-4 bg-amber-600 hover:bg-amber-700"
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
                 onClick={() => navigate(`/coach/session/${pending_reflection_session_id}`)}
               >
                 Add Reflection
               </Button>
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         )}
 
         {/* My Targets */}
