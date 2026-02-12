@@ -102,19 +102,25 @@ export default function MyCoaches() {
     setIsCreating(true);
     
     try {
-      const result = await safePost(`${API_URL}/api/coaches`, {
+      const result = await createCoach({
         name: newCoachName.trim(),
         email: newCoachEmail.trim(),
         role_title: newCoachRole.trim() || null
       });
       
       if (!result.ok) {
-        throw new Error(result.data?.detail || 'Failed to create coach');
+        throw new Error(result.error || 'Failed to create coach');
       }
       
-      const successMsg = result.data?.invite_sent 
-        ? `Coach "${newCoachName}" added and invite sent!`
-        : `Coach "${newCoachName}" added successfully`;
+      let successMsg;
+      if (result.queued) {
+        successMsg = `Coach "${newCoachName}" saved locally. Will sync when online.`;
+        setPendingSync(getPendingSyncCount());
+      } else {
+        successMsg = result.data?.invite_sent 
+          ? `Coach "${newCoachName}" added and invite sent!`
+          : `Coach "${newCoachName}" added successfully`;
+      }
       toast.success(successMsg);
       
       setShowAddCoach(false);
