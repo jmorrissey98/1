@@ -285,10 +285,19 @@
 
 ## Remaining Work / Backlog
 
+### P0 - Critical (Next Phase)
+- [ ] **Admin User System** - Create system-level admin with:
+  - Default admin: hello@mycoachdeveloper.com / _mcDeveloper26!
+  - View all clubs/users
+  - Impersonate Coach Developers
+  - Create clubs with badge upload
+  - Create users, reset passwords
+
 ### P1 - High Priority  
 - [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
 - [ ] Investigate "body stream already read" error in safeFetch.js
+- [ ] Improve invite/signup flow error messages (generic 400 errors)
 
 ### P2 - Medium Priority
 - [ ] Session comparison view for coaches
