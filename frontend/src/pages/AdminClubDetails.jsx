@@ -115,13 +115,16 @@ export default function AdminClubDetails() {
       const result = await safePost(`${API_URL}/api/admin/impersonate/${user.user_id}`);
       
       if (!result.ok) {
-        throw new Error(result.error || 'Failed to impersonate user');
+        throw new Error(result.data?.detail || result.error || 'Failed to impersonate user');
       }
       
-      // Store the impersonation token
-      localStorage.setItem('token', result.data.token);
+      // Set the session token as a cookie (same settings as login)
+      document.cookie = `session_token=${result.data.token}; path=/; secure; samesite=none; max-age=${2 * 60 * 60}`;
+      
+      // Store impersonation metadata in localStorage for UI purposes
       localStorage.setItem('impersonating', 'true');
       localStorage.setItem('impersonated_user', JSON.stringify(result.data.user));
+      localStorage.setItem('impersonated_by', result.data.impersonated_by);
       
       toast.success(`Now viewing as ${result.data.user.name}`);
       
