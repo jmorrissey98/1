@@ -5,9 +5,10 @@ import { Loader2 } from 'lucide-react';
 export default function ProtectedRoute({ 
   children, 
   requireCoachDeveloper = false,
-  requireCoach = false 
+  requireCoach = false,
+  requireAdmin = false
 }) {
-  const { user, loading, isCoachDeveloper } = useAuth();
+  const { user, loading, isCoachDeveloper, isAdmin } = useAuth();
   const location = useLocation();
 
   // Check if user was passed from AuthCallback
@@ -31,6 +32,11 @@ export default function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check admin role requirement
+  if (requireAdmin && user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
   // Check coach role requirement
   if (requireCoach && user.role !== 'coach') {
     return <Navigate to="/" replace />;
@@ -41,6 +47,10 @@ export default function ProtectedRoute({
     // Redirect coaches to their dashboard
     if (user.role === 'coach') {
       return <Navigate to="/coach" replace />;
+    }
+    // Redirect admin to admin dashboard
+    if (user.role === 'admin') {
+      return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/" replace />;
   }
