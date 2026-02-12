@@ -385,7 +385,18 @@ export default function ReviewSession() {
             </Button>
             <div>
               <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.name}</h1>
-              <p className="text-sm text-slate-500">{formatDateTime(session.createdAt)}</p>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>{formatDateTime(session.createdAt)}</span>
+                {session.coachName && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <User className="w-3.5 h-3.5" />
+                      {session.coachName}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
