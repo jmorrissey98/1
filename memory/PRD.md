@@ -153,6 +153,8 @@
   - `event.descriptors1/2` -> `(event.descriptors1 || [])`
   - `session.descriptorGroup1?.descriptors` -> optional chaining
 - [x] **Fixed CoachProfile.jsx**: Updated API endpoint from `/api/coach/sessions/${coachId}` to `/api/coaches/${coachId}/sessions`
+- [x] **Session parts filtering**: ReviewSession.jsx now only shows session parts that have data (events or ball rolling time) in the toggle
+- [x] **Skeleton loading UI**: Added skeleton loading state for Coach Profile sessions tab while data loads from API
 
 ## Remaining Work / Backlog
 
