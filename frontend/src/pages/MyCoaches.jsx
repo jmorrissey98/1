@@ -372,10 +372,16 @@ export default function MyCoaches() {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-slate-600">
+                            <div className="flex items-center gap-1 text-slate-600" title="Completed sessions">
                               <Calendar className="w-4 h-4" />
                               <span>{coach.sessionCount || 0}</span>
                             </div>
+                            {(coach.upcomingCount || 0) > 0 && (
+                              <Badge className="bg-blue-100 text-blue-800 border-blue-200" title="Upcoming planned sessions">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {coach.upcomingCount}
+                              </Badge>
+                            )}
                             {coach.activeTargets > 0 && (
                               <Badge variant="outline" className="text-orange-600 border-orange-300">
                                 <Target className="w-3 h-3 mr-1" />
