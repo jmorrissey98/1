@@ -233,17 +233,75 @@ export default function CoachDevelopment() {
             <h1 className="text-2xl font-bold text-slate-900 font-['Manrope']">My Development</h1>
             <p className="text-sm text-slate-500">Your coaching journey</p>
           </div>
-          <Select value={timeframe} onValueChange={handleTimeframeChange}>
-            <SelectTrigger className="w-40" data-testid="timeframe-select">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEFRAMES.map(tf => (
-                <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <Select value={viewMode} onValueChange={handleViewModeChange}>
+              <SelectTrigger className="w-32" data-testid="viewmode-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VIEW_MODES.map(vm => (
+                  <SelectItem key={vm.value} value={vm.value}>{vm.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Timeframe Select */}
+            <Select value={timeframe} onValueChange={handleTimeframeChange}>
+              <SelectTrigger className="w-36" data-testid="timeframe-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIMEFRAMES.map(tf => (
+                  <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {/* Custom Date Range Picker */}
+        {showCustomDatePicker && (
+          <Card className="border-emerald-200 bg-emerald-50/50">
+            <CardContent className="pt-4">
+              <div className="flex items-end gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.start}
+                    onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    data-testid="custom-date-start"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.end}
+                    onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    data-testid="custom-date-end"
+                  />
+                </div>
+                <Button 
+                  onClick={applyCustomDateRange}
+                  disabled={!customDateRange.start || !customDateRange.end}
+                  data-testid="apply-custom-date"
+                >
+                  Apply
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowCustomDatePicker(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-3 gap-4">
