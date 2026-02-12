@@ -161,6 +161,28 @@ function AppRouter() {
           <DataRecovery />
         </ProtectedRoute>
       } />
+      
+      {/* Admin Routes */}
+      <Route path="/admin" element={
+        <ProtectedRoute requireAdmin>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/clubs/new" element={
+        <ProtectedRoute requireAdmin>
+          <AdminCreateClub />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/clubs/:orgId" element={
+        <ProtectedRoute requireAdmin>
+          <AdminClubDetails />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users/new" element={
+        <ProtectedRoute requireAdmin>
+          <AdminCreateUser />
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 }
