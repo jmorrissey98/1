@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus, Trash2, AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -10,7 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { safeGet, safePost, safeDelete } from '../lib/safeFetch';
+import { fetchCoaches, createCoach, deleteCoach } from '../lib/offlineApi';
+import { isOnline, getPendingSyncCount } from '../lib/offlineSync';
 
 const API_URL = '';
 
