@@ -39,30 +39,36 @@ export default function AppHeader() {
   }, []);
   
   // Exit impersonation mode
-  const handleExitImpersonation = async () => {
+  const handleExitImpersonation = () => {
     try {
       // Restore the admin token from backup
       const adminToken = localStorage.getItem('admin_token_backup');
       
-      if (adminToken) {
-        // Restore admin token
-        setAuthToken(adminToken);
-        localStorage.removeItem('admin_token_backup');
+      if (!adminToken) {
+        throw new Error('Admin token not found');
       }
       
-      // Clear localStorage impersonation flags
+      // Clear ALL impersonation-related items FIRST
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
+      localStorage.removeItem('admin_token_backup');
+      
+      // Restore admin token AFTER clearing impersonation data
+      setAuthToken(adminToken);
       
       // Show toast before navigation
       toast.success('Returned to admin view');
       
-      // Use setTimeout to ensure localStorage changes are committed before navigation
+      // Use setTimeout to ensure all localStorage changes are committed
       setTimeout(() => {
-        // Force full page reload to /admin to refresh auth context
-        window.location.href = window.location.origin + '/admin';
-      }, 100);
+        // Verify token was set
+        const verifyToken = localStorage.getItem('auth_token');
+        console.log('Exit impersonation - token restored:', !!verifyToken);
+        
+        // Force full page reload to /admin
+        window.location.href = '/admin';
+      }, 200);
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
       toast.error('Failed to exit impersonation. Please login again.');
@@ -73,7 +79,7 @@ export default function AppHeader() {
       localStorage.removeItem('admin_token_backup');
       localStorage.removeItem('auth_token');
       setTimeout(() => {
-        window.location.href = window.location.origin + '/login';
+        window.location.href = '/login';
       }, 100);
     }
   };
