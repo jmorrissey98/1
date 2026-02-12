@@ -3598,32 +3598,38 @@ app.include_router(api_router)
 async def bootstrap_admin():
     """Create default admin user if it doesn't exist"""
     admin_email = "hello@mycoachdeveloper.com"
+    admin_password = "_mcDeveloper26!"
     
     # Check if admin user already exists
     existing_admin = await db.users.find_one({"email": admin_email})
     if existing_admin:
-        # Check if admin has password_hash, update if needed
+        # Always ensure this user has admin role and password
+        updates = {}
+        if existing_admin.get("role") != "admin":
+            updates["role"] = "admin"
+            logger.info(f"Updating user role to admin: {admin_email}")
         if not existing_admin.get("password_hash"):
-            admin_password = "_mcDeveloper26!"
-            hashed_pw = hash_password(admin_password)
+            updates["password_hash"] = hash_password(admin_password)
+            logger.info(f"Setting admin user password: {admin_email}")
+        
+        if updates:
             await db.users.update_one(
                 {"email": admin_email},
-                {"$set": {"password_hash": hashed_pw, "role": "admin"}}
+                {"$set": updates}
             )
-            logger.info(f"Updated admin user password_hash: {admin_email}")
+            logger.info(f"Updated admin user: {admin_email} with {list(updates.keys())}")
         else:
-            logger.info(f"Admin user already exists: {admin_email}")
+            logger.info(f"Admin user already configured: {admin_email} (role={existing_admin.get('role')})")
         return
     
     # Create default admin user
     admin_user_id = f"admin_{uuid.uuid4().hex[:12]}"
-    admin_password = "_mcDeveloper26!"
     hashed_pw = hash_password(admin_password)
     
     admin_doc = {
         "user_id": admin_user_id,
         "email": admin_email,
-        "name": "Coach Developer",
+        "name": "Coach Developer Admin",
         "password_hash": hashed_pw,
         "role": "admin",
         "organization_id": None,  # Admin is not tied to any organization
