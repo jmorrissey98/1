@@ -71,6 +71,17 @@ export default function AdminDashboard() {
   }
 
   if (error) {
+    const isAuthError = error.includes('authenticated') || error.includes('Access denied') || error.includes('admin privileges');
+    
+    const handleLogout = async () => {
+      try {
+        await safePost(`${API_URL}/api/auth/logout`, {});
+      } catch (e) {
+        // Ignore logout errors
+      }
+      window.location.href = '/login';
+    };
+    
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md">
@@ -79,10 +90,24 @@ export default function AdminDashboard() {
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">Error Loading Dashboard</h2>
               <p className="text-slate-600 mb-4">{error}</p>
-              <Button onClick={loadData}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Retry
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={loadData} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+                {isAuthError && (
+                  <Button onClick={handleLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Login Again
+                  </Button>
+                )}
+              </div>
+              {isAuthError && (
+                <p className="text-sm text-slate-500 mt-4">
+                  Make sure you're logging in with the admin account:<br />
+                  <code className="bg-slate-100 px-2 py-1 rounded text-xs">hello@mycoachdeveloper.com</code>
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
