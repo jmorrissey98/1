@@ -161,18 +161,23 @@
   - Shows session name, coach name, planned date
   - Includes "Start" button to begin observation immediately
   - Filters out sessions with expired planned dates
+  - **NEW**: Added Edit (pencil) and Delete (trash) buttons for each planned session
 - [x] **HomePage Your Sessions**: Now only shows draft, active, and completed sessions (excludes planned)
 - [x] **SessionCalendar**: Now loads sessions from cloud API instead of localStorage
   - Shows planned sessions on their scheduled date (blue dot)
   - Shows completed sessions on their creation date (green dot)
   - Shows in-progress sessions (orange dot)
 - [x] **CoachProfile Sessions Tab**: Completely redesigned to separate session types:
-  - "Upcoming" section (blue background) - planned sessions with "Start" button
+  - "Upcoming" section (blue background) - planned sessions with Edit, Delete, and "Start" buttons
   - "Observation History" section - completed sessions
   - "In Progress" section (orange background) - draft/active sessions
 - [x] **MyCoaches Page**: Backend now returns `sessionCount` and `upcomingCount` per coach
   - Calendar icon shows completed session count
   - Clock icon badge shows upcoming planned sessions
+- [x] **SessionSetup.jsx Runtime Error Fix**: Added comprehensive null checks for:
+  - `session.eventTypes` / `session.interventionTypes` - safely handled with defaults
+  - `session.descriptorGroup1` / `session.descriptorGroup2` - safely handled with defaults
+  - All descriptor and event type operations now safely handle null values
 
 ## Remaining Work / Backlog
 
