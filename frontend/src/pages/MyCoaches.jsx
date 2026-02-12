@@ -376,13 +376,13 @@ export default function MyCoaches() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {/* Info Banner */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+            {/* Info Banner - Dismissible */}
+            <DismissibleTip tipId="my-coaches-invite-tip">
               <p>
                 <strong>Tip:</strong> When you add a coach, they automatically receive an invite email.
                 Once they sign up, their status changes from "Pending" to "Active".
               </p>
-            </div>
+            </DismissibleTip>
             
             {/* Coach List */}
             <div className="grid gap-4">
