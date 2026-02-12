@@ -311,7 +311,7 @@ export const createCoach = async (coachData) => {
   return result;
 };
 
-export const deleteCoach = async (coachId) => {
+export const deleteCoach = async (coachId, deleteUser = false) => {
   // Remove from local cache immediately
   const cached = getCached(STORAGE_KEYS.COACHES);
   if (cached?.data) {
@@ -322,13 +322,16 @@ export const deleteCoach = async (coachId) => {
   if (!isOnline()) {
     addToOfflineQueue(
       QueueItemType.DELETE_COACH,
-      {},
+      { deleteUser },
       coachId
     );
     return { ok: true, queued: true };
   }
   
-  const result = await safeDelete(`${API_URL}/api/coaches/${coachId}`);
+  const url = deleteUser 
+    ? `${API_URL}/api/coaches/${coachId}?delete_user=true`
+    : `${API_URL}/api/coaches/${coachId}`;
+  const result = await safeDelete(url);
   return result;
 };
 
