@@ -324,10 +324,10 @@ export default function ReviewSession() {
         session_parts: sessionPartsData,
         user_notes: (session.observerReflections || []).map(r => r.text).join('\n'),
         observation_context: session.observationContext || 'training',
-        // Coach context - use session data directly (populated by backend)
+        // Coach context - use session data and fetched targets
         coach_name: session.coachName || null,
-        coach_targets: null, // TODO: Fetch from API if needed
-        previous_sessions_summary: null // TODO: Implement with cloud API
+        coach_targets: coachTargets,
+        previous_sessions_summary: null
       });
       
       const updated = {
