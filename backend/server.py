@@ -1598,24 +1598,34 @@ async def list_all_coaches(request: Request):
         ).to_list(200)
         users_map = {u["user_id"]: u for u in users}
     
-    # Batch fetch session counts for all coaches
+    # Batch fetch session counts for all coaches using aggregation (avoids N+1 queries)
     coach_ids = [c.get("id") for c in coaches if c.get("id")]
     session_counts_map = {}
     upcoming_counts_map = {}
     
     if coach_ids:
-        # Get completed session counts
-        for coach_id in coach_ids:
-            completed_count = await db.observation_sessions.count_documents({
-                "coach_id": coach_id,
-                "status": "completed"
-            })
-            planned_count = await db.observation_sessions.count_documents({
-                "coach_id": coach_id,
-                "status": "planned"
-            })
-            session_counts_map[coach_id] = completed_count
-            upcoming_counts_map[coach_id] = planned_count
+        # Use aggregation pipeline to get all counts in a single query
+        pipeline = [
+            {"$match": {"coach_id": {"$in": coach_ids}, "status": {"$in": ["completed", "planned"]}}},
+            {"$group": {
+                "_id": {"coach_id": "$coach_id", "status": "$status"},
+                "count": {"$sum": 1}
+            }}
+        ]
+        
+        counts_cursor = db.observation_sessions.aggregate(pipeline)
+        counts_result = await counts_cursor.to_list(length=None)
+        
+        # Process aggregation results into maps
+        for item in counts_result:
+            coach_id = item["_id"]["coach_id"]
+            status = item["_id"]["status"]
+            count = item["count"]
+            
+            if status == "completed":
+                session_counts_map[coach_id] = count
+            elif status == "planned":
+                upcoming_counts_map[coach_id] = count
     
     # Enrich with user account status and session counts
     result = []
