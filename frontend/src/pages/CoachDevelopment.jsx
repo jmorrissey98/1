@@ -35,9 +35,13 @@ export default function CoachDevelopment() {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [timeframe, setTimeframe] = useState('all');
+  const [viewMode, setViewMode] = useState('sessions'); // 'sessions' or 'parts'
   const [interventionData, setInterventionData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [partsData, setPartsData] = useState([]); // Data aggregated by session parts
   const [stats, setStats] = useState({ totalSessions: 0, totalInterventions: 0, avgPerSession: 0 });
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   useEffect(() => {
     // Load saved timeframe preference
