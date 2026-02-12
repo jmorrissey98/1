@@ -258,8 +258,6 @@ export default function SessionCalendar() {
               ) : (
                 <div className="space-y-3">
                   {selectedDateSessions.map(session => {
-                    const coach = session.coachId ? storage.getCoach(session.coachId) : null;
-                    
                     return (
                       <div 
                         key={session.id}
@@ -277,8 +275,8 @@ export default function SessionCalendar() {
                         <div className="flex items-start justify-between">
                           <div>
                             <h4 className="font-medium text-slate-900">{session.name}</h4>
-                            {coach && (
-                              <p className="text-sm text-slate-500">{coach.name}</p>
+                            {session.coachName && (
+                              <p className="text-sm text-slate-500">{session.coachName}</p>
                             )}
                             <div className="flex gap-2 mt-2">
                               <Badge variant="outline" className="text-xs">
