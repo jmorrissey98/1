@@ -283,6 +283,32 @@
   - Preferences persisted per user in localStorage
 - [x] **Parts Data Aggregation**: Shows only session parts the coach has actually coached
 
+### Admin User System - February 12, 2026
+- [x] **Default Admin Bootstrap**
+  - Admin user created on server startup: hello@mycoachdeveloper.com / _mcDeveloper26!
+  - Role: "admin" - separate from coach_developer and coach
+- [x] **Admin Dashboard** (/admin)
+  - Stats overview: Total Clubs, Users, Coaches
+  - Quick Actions: Create Club, Create User, Manage Users
+  - Clubs list with user/coach counts
+- [x] **Admin Capabilities**
+  - View all organizations/clubs
+  - View all users within any club
+  - Create new clubs with badge upload
+  - Create users for any club (Coach Developer or Coach)
+  - Reset passwords for any non-admin user
+  - Delete users
+  - Impersonate users (generates session token to view app as that user)
+- [x] **Admin API Endpoints**
+  - GET /api/admin/organizations - List all clubs
+  - GET /api/admin/organizations/{org_id}/users - List users in club
+  - POST /api/admin/organizations - Create club
+  - POST /api/admin/users - Create user
+  - POST /api/admin/users/{user_id}/reset-password - Reset password
+  - POST /api/admin/impersonate/{user_id} - Generate impersonation token
+  - DELETE /api/admin/users/{user_id} - Delete user
+  - DELETE /api/admin/organizations/{org_id} - Delete club
+
 ## Remaining Work / Backlog
 
 ### P0 - Critical (Next Phase)
