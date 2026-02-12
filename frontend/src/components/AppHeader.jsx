@@ -6,6 +6,7 @@ import { Home, Users, ClipboardList, Calendar, Cog, TrendingUp, User, XCircle, E
 import { Button } from './ui/button';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import { toast } from 'sonner';
+import { setAuthToken } from '../lib/safeFetch';
 
 // Pages where we don't show the app header (they have their own headers)
 const EXCLUDED_PATHS = [
