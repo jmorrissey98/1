@@ -3541,12 +3541,15 @@ cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 # We must explicitly list allowed origins
 # Start with known origins - production and development
 allowed_origins = [
-    APP_URL,
     "https://mycoachdeveloper.com",
     "https://www.mycoachdeveloper.com",
     "http://localhost:3000",
     "http://localhost:8001",
 ]
+
+# Add APP_URL if set and not empty
+if APP_URL and APP_URL not in allowed_origins:
+    allowed_origins.append(APP_URL)
 
 # Add preview URLs dynamically from environment
 preview_url = os.environ.get('REACT_APP_BACKEND_URL', '')
