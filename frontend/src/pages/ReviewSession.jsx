@@ -41,6 +41,8 @@ export default function ReviewSession() {
   const [newReflection, setNewReflection] = useState('');
   const [newCoachReflection, setNewCoachReflection] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [editedSummary, setEditedSummary] = useState('');
   
   const isCoachView = user?.role === 'coach';
 
