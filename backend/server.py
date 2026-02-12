@@ -1283,7 +1283,7 @@ async def signup(signup_data: SignupRequest, response: Response):
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
-        # Set cookie
+        # Set cookie (for same-domain scenarios)
         response.set_cookie(
             key="session_token",
             value=session_token,
@@ -1294,13 +1294,15 @@ async def signup(signup_data: SignupRequest, response: Response):
             path="/"
         )
         
+        # Return token in body as well (for cross-domain scenarios where cookies don't work)
         return {
             "user_id": user_id,
             "email": signup_data.email,
             "name": signup_data.name,
             "role": user_role,
             "linked_coach_id": linked_coach_id,
-            "auth_provider": "email"
+            "auth_provider": "email",
+            "token": session_token
         }
         
     except HTTPException:
