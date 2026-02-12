@@ -25,7 +25,13 @@ export default function AdminDashboard() {
       const result = await safeGet(`${API_URL}/api/admin/organizations`);
       
       if (!result.ok) {
-        throw new Error(result.error || 'Failed to load organizations');
+        // Check for specific error codes
+        if (result.status === 401) {
+          throw new Error('Not authenticated. Please login again.');
+        } else if (result.status === 403) {
+          throw new Error('Access denied. Your account does not have admin privileges.');
+        }
+        throw new Error(result.data?.detail || result.error || 'Failed to load organizations');
       }
       
       const orgs = result.data || [];
