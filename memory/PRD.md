@@ -164,6 +164,15 @@
   - Removed dead code: `getPreviousSessionsSummary()` function that also used undefined `storage`
   - Verified: AI summary now generates successfully without errors
 
+### AI Summary Enhancements - February 12, 2026
+- [x] **Coach Targets Integration**: Summary now includes coach's active development targets
+  - Frontend fetches targets from `/api/coaches/{coach_id}` before generating
+  - Filters for `status === 'active'` targets only
+  - AI references targets in its analysis (e.g., "To hit your Q&A target...")
+- [x] **Shorter Summary**: Reduced from ~400 words to ~150-180 words
+  - Sections: SUMMARY (2-3 sentences), STRENGTHS (1-2 sentences), AREAS TO DEVELOP (1-2 sentences), 2 REFLECTIVE QUESTIONS
+  - More concise and actionable feedback
+
 ### Session Display Logic Fixes - February 12, 2026
 - [x] **HomePage Upcoming Observations**: Planned sessions now correctly appear in "Upcoming Observations" card (not "Your Sessions")
   - Shows session name, coach name, planned date
