@@ -39,8 +39,11 @@ import "./App.css";
 function HomeRedirect() {
   const { user, isCoachDeveloper, isAdmin } = useAuth();
   
-  // Admin goes to admin dashboard
-  if (user?.role === 'admin') {
+  // Check if impersonating - always show home page (don't redirect to admin)
+  const isImpersonating = localStorage.getItem('impersonating') === 'true';
+  
+  // Admin goes to admin dashboard (but not if impersonating)
+  if (user?.role === 'admin' && !isImpersonating) {
     return <Navigate to="/admin" replace />;
   }
   
@@ -49,7 +52,7 @@ function HomeRedirect() {
     return <Navigate to="/coach" replace />;
   }
   
-  // Coach Developer goes to main home page
+  // Coach Developer (or impersonating user) goes to main home page
   return <HomePage />;
 }
 
