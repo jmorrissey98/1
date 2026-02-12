@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, UserPlus, Settings, RefreshCw, Loader2, AlertCircle, Shield } from 'lucide-react';
+import { Building2, Users, UserPlus, Settings, RefreshCw, Loader2, AlertCircle, Shield, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { safeGet } from '../lib/safeFetch';
+import { safeGet, safePost } from '../lib/safeFetch';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
