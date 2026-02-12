@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { Home, Users, ClipboardList, Calendar, Cog, TrendingUp, User } from 'lucide-react';
+import { Home, Users, ClipboardList, Calendar, Cog, TrendingUp, User, XCircle, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import SyncStatusIndicator from './SyncStatusIndicator';
+import { toast } from 'sonner';
 
 // Pages where we don't show the app header (they have their own headers)
 const EXCLUDED_PATHS = [
