@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { storage } from '../lib/storage';
+import { deleteCloudSession } from '../lib/cloudSessionService';
 import { formatDate, formatTime, generateId, calcPercentage, countBy } from '../lib/utils';
 import { exportCoachReportPDF, exportCoachReportCSV } from '../lib/export';
 import { fetchSessionParts } from '../lib/sessionPartsApi';
