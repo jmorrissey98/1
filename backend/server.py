@@ -720,71 +720,37 @@ async def generate_session_summary(request: SessionSummaryRequest):
             secs_rem = secs % 60
             return f"{mins}m {secs_rem}s"
         
-        # Build the prompt
-        prompt = f"""You are a coach educator assistant. Analyze this coaching observation session data and write a constructive, developmental summary suitable for coach reflection and mentoring conversations.
+        # Build the prompt - concise version
+        prompt = f"""Analyze this coaching observation and provide a brief developmental summary.
 
-IMPORTANT FORMATTING RULES:
-- Do NOT use asterisks, bullet points with *, or markdown formatting
-- Write in clear paragraphs with natural flow
-- Use numbered lists only where specifically asked
-- Keep language conversational and professional
+SESSION: {request.session_name} | DURATION: {format_time(request.total_duration)} | EVENTS: {request.total_events}
+Ball Rolling: {ball_rolling_pct}% | Ball Stopped: {100 - ball_rolling_pct}%
 
-SESSION: {request.session_name}
-DURATION: {format_time(request.total_duration)}
-TOTAL EVENTS LOGGED: {request.total_events}
-
-BALL IN PLAY:
-Ball Rolling: {format_time(request.ball_rolling_time)} ({ball_rolling_pct}%)
-Ball Stopped: {format_time(request.ball_not_rolling_time)} ({100 - ball_rolling_pct}%)
-
-COACHING INTERVENTIONS:
-{chr(10).join([f"{k}: {v} times" for k, v in request.event_breakdown.items()])}
-
-{request.descriptor1_name.upper()}:
-{chr(10).join([f"{k}: {v}" for k, v in request.descriptor1_breakdown.items()])}
-
-{request.descriptor2_name.upper()}:
-{chr(10).join([f"{k}: {v}" for k, v in request.descriptor2_breakdown.items()])}
-
-SESSION PARTS USED:
-{chr(10).join([f"{p.get('name', 'Part')}: {p.get('events', 0)} events, Ball rolling {p.get('ballRollingPct', 0)}%" for p in request.session_parts])}
+INTERVENTIONS: {', '.join([f"{k}: {v}" for k, v in request.event_breakdown.items()])}
+{request.descriptor1_name}: {', '.join([f"{k}: {v}" for k, v in request.descriptor1_breakdown.items()])}
+{request.descriptor2_name}: {', '.join([f"{k}: {v}" for k, v in request.descriptor2_breakdown.items()])}
 """
         
         if request.coach_name:
-            prompt += f"\nCOACH: {request.coach_name}\n"
+            prompt += f"COACH: {request.coach_name}\n"
         
         if request.coach_targets and len(request.coach_targets) > 0:
-            prompt += "\nCOACH'S CURRENT DEVELOPMENT TARGETS:\n"
-            for i, target in enumerate(request.coach_targets, 1):
-                prompt += f"{i}. {target}\n"
-            prompt += "\nPlease reference these targets in your analysis where relevant.\n"
-        
-        if request.previous_sessions_summary:
-            prompt += f"\nPREVIOUS SESSIONS CONTEXT:\n{request.previous_sessions_summary}\n"
-            prompt += "\nNote any changes or progress compared to previous observations.\n"
+            prompt += f"DEVELOPMENT TARGETS: {', '.join(request.coach_targets)}\n"
+            prompt += "Reference these targets in your analysis.\n"
         
         if request.user_notes:
-            prompt += f"\nOBSERVER'S NOTES:\n{request.user_notes}\n"
+            prompt += f"OBSERVER NOTES: {request.user_notes}\n"
         
         prompt += """
-Please provide your response in this structure (use plain text, no markdown):
+Respond in plain text (no markdown/asterisks). Be concise - aim for ~150 words total.
 
-OVERVIEW
-Write 1-2 paragraphs summarizing the key patterns observed in this session.
+SUMMARY (2-3 sentences on key patterns)
 
-STRENGTHS OBSERVED
-Write 1 paragraph highlighting what the coach did well.
+STRENGTHS (1-2 sentences)
 
-AREAS FOR REFLECTION
-Write 1 paragraph with constructive areas the coach might consider developing.
+AREAS TO DEVELOP (1-2 sentences)
 
-REFLECTIVE QUESTIONS
-Write 3-4 questions (numbered 1, 2, 3, 4) the coach might consider for self-reflection.
-
-SUGGESTED DEVELOPMENT TARGETS
-Based on this observation, suggest 2-3 specific, actionable development targets (numbered 1, 2, 3) the coach could work on.
-
-Keep the tone professional, supportive, and non-judgmental throughout."""
+2 REFLECTIVE QUESTIONS (numbered)"""
 
         chat = LlmChat(
             api_key=api_key,
