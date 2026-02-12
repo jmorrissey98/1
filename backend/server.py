@@ -3367,6 +3367,9 @@ async def admin_impersonate_user(user_id: str, request: Request, response: Respo
     """Generate a session token to impersonate a user (Admin only)"""
     admin_user = await require_admin(request)
     
+    # Get the admin's current session token to preserve it
+    admin_session_token = request.cookies.get("session_token")
+    
     # Find the target user
     target_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password": 0})
     if not target_user:
@@ -3379,11 +3382,12 @@ async def admin_impersonate_user(user_id: str, request: Request, response: Respo
     # Generate impersonation session token
     impersonate_token = secrets.token_urlsafe(32)
     
-    # Store the impersonation session
+    # Store the impersonation session with reference to admin's original session
     await db.user_sessions.insert_one({
         "user_id": target_user.get("user_id"),
         "session_token": impersonate_token,
         "impersonated_by": admin_user.user_id,
+        "admin_session_token": admin_session_token,  # Store admin's original session
         "created_at": datetime.now(timezone.utc).isoformat(),
         "expires_at": (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
     })
