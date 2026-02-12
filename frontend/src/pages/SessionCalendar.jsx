@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, ChevronLeft, ChevronRight, Play, Eye, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronLeft, ChevronRight, Play, Eye, Calendar as CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
-import { fetchCloudSessions } from '../lib/cloudSessionService';
+import { fetchCloudSessions, deleteCloudSession } from '../lib/cloudSessionService';
 import { cn } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function SessionCalendar() {
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ export default function SessionCalendar() {
   const [sessions, setSessions] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadSessions();
