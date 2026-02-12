@@ -999,9 +999,9 @@ export default function CoachProfile() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="font-['Manrope']">Observation History</CardTitle>
+                  <CardTitle className="font-['Manrope']">Sessions</CardTitle>
                   <CardDescription>
-                    {isLoadingSessions ? 'Loading sessions...' : `${sessions.length} sessions recorded`}
+                    {isLoadingSessions ? 'Loading sessions...' : `${sessions.length} sessions`}
                   </CardDescription>
                 </div>
                 <Button onClick={() => navigate(`/session/new?coachId=${coachId}`)}>
@@ -1030,31 +1030,129 @@ export default function CoachProfile() {
                 ) : sessions.length === 0 ? (
                   <p className="text-slate-400 italic text-center py-8">No observations recorded yet</p>
                 ) : (
-                  <div className="space-y-3">
-                    {sessions.map(session => (
-                      <div 
-                        key={session.id || session.session_id}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer"
-                        onClick={() => navigate(`/session/${session.id || session.session_id}/review`)}
-                      >
+                  <div className="space-y-6">
+                    {/* Upcoming Sessions (planned) */}
+                    {(() => {
+                      const upcomingSessions = sessions.filter(s => s.status === 'planned');
+                      if (upcomingSessions.length === 0) return null;
+                      
+                      return (
                         <div>
-                          <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
-                          <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                            <span>{formatDate(session.createdAt || session.created_at)}</span>
-                            <span>•</span>
-                            <span>{formatTime(session.totalDuration || session.total_duration || 0)}</span>
-                            <span>•</span>
-                            <span>{session.events?.length || session.event_count || 0} events</span>
+                          <h4 className="text-sm font-medium text-slate-500 mb-3 flex items-center gap-2">
+                            <CalendarClock className="w-4 h-4" />
+                            Upcoming ({upcomingSessions.length})
+                          </h4>
+                          <div className="space-y-3">
+                            {upcomingSessions.map(session => (
+                              <div 
+                                key={session.id || session.session_id}
+                                className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer border border-blue-200"
+                                onClick={() => navigate(`/session/${session.id || session.session_id}/setup`)}
+                              >
+                                <div>
+                                  <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
+                                  <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                    <span>Scheduled: {formatDate(session.plannedDate || session.planned_date || session.createdAt || session.created_at)}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-blue-500 hover:bg-blue-500">Planned</Badge>
+                                  <Button 
+                                    size="sm"
+                                    className="bg-orange-500 hover:bg-orange-600"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/session/${session.id || session.session_id}/observe`);
+                                    }}
+                                  >
+                                    <Play className="w-4 h-4 mr-1" />
+                                    Start
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
-                            {session.status === 'completed' ? 'Completed' : session.status}
-                          </Badge>
-                          <Eye className="w-4 h-4 text-slate-400" />
+                      );
+                    })()}
+                    
+                    {/* Completed Sessions */}
+                    {(() => {
+                      const completedSessions = sessions.filter(s => s.status === 'completed');
+                      if (completedSessions.length === 0 && sessions.filter(s => s.status === 'planned').length > 0) {
+                        return (
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500 mb-3">Observation History</h4>
+                            <p className="text-slate-400 italic text-center py-4">No completed observations yet</p>
+                          </div>
+                        );
+                      }
+                      if (completedSessions.length === 0) return null;
+                      
+                      return (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500 mb-3">Observation History ({completedSessions.length})</h4>
+                          <div className="space-y-3">
+                            {completedSessions.map(session => (
+                              <div 
+                                key={session.id || session.session_id}
+                                className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer"
+                                onClick={() => navigate(`/session/${session.id || session.session_id}/review`)}
+                              >
+                                <div>
+                                  <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
+                                  <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                    <span>{formatDate(session.createdAt || session.created_at)}</span>
+                                    <span>•</span>
+                                    <span>{formatTime(session.totalDuration || session.total_duration || 0)}</span>
+                                    <span>•</span>
+                                    <span>{session.events?.length || session.event_count || 0} events</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-green-600 hover:bg-green-600">Completed</Badge>
+                                  <Eye className="w-4 h-4 text-slate-400" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })()}
+                    
+                    {/* Draft/Active Sessions (if any) */}
+                    {(() => {
+                      const otherSessions = sessions.filter(s => s.status !== 'planned' && s.status !== 'completed');
+                      if (otherSessions.length === 0) return null;
+                      
+                      return (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500 mb-3">In Progress ({otherSessions.length})</h4>
+                          <div className="space-y-3">
+                            {otherSessions.map(session => (
+                              <div 
+                                key={session.id || session.session_id}
+                                className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 cursor-pointer border border-orange-200"
+                                onClick={() => navigate(`/session/${session.id || session.session_id}/observe`)}
+                              >
+                                <div>
+                                  <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
+                                  <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                    <span>{formatDate(session.createdAt || session.created_at)}</span>
+                                    <span>•</span>
+                                    <span>{session.events?.length || session.event_count || 0} events</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-orange-500 hover:bg-orange-500">{session.status}</Badge>
+                                  <Play className="w-4 h-4 text-slate-400" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </CardContent>
