@@ -32,6 +32,7 @@ export default function MyCoaches() {
   // Delete confirmation state
   const [coachToDelete, setCoachToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteUserToo, setDeleteUserToo] = useState(false);
 
   useEffect(() => {
     // Online/offline listener
