@@ -10,6 +10,9 @@ export default function ProtectedRoute({
 }) {
   const { user, loading, isCoachDeveloper, isAdmin } = useAuth();
   const location = useLocation();
+  
+  // Check if user is in impersonation mode
+  const isImpersonating = localStorage.getItem('impersonating') === 'true';
 
   // Check if user was passed from AuthCallback
   if (location.state?.user) {
@@ -32,6 +35,11 @@ export default function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Block admin pages when impersonating
+  if (requireAdmin && isImpersonating) {
+    return <Navigate to="/" replace />;
+  }
+
   // Check admin role requirement
   if (requireAdmin && user.role !== 'admin') {
     return <Navigate to="/" replace />;
@@ -48,8 +56,8 @@ export default function ProtectedRoute({
     if (user.role === 'coach') {
       return <Navigate to="/coach" replace />;
     }
-    // Redirect admin to admin dashboard
-    if (user.role === 'admin') {
+    // Redirect admin to admin dashboard (only if not impersonating)
+    if (user.role === 'admin' && !isImpersonating) {
       return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/" replace />;
