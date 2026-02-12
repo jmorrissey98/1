@@ -1,13 +1,97 @@
 import { useState, useEffect } from 'react';
 import { Cloud, CloudOff, Loader2, CheckCircle, AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
-import { useCloudSync } from '../contexts/CloudSyncContext';
-import { getPendingChangeCount, processOfflineQueue } from '../lib/cloudSessionService';
+import { useAuth } from '../contexts/AuthContext';
+import { getPendingChangeCount, processOfflineQueue, getSyncStatus, SyncStatus } from '../lib/cloudSessionService';
 import { cn } from '../lib/utils';
 
+// Try to use CloudSyncContext if available, otherwise use direct service
+let useCloudSync;
+try {
+  const cloudSyncModule = require('../contexts/CloudSyncContext');
+  useCloudSync = cloudSyncModule.useCloudSync;
+} catch (e) {
+  useCloudSync = null;
+}
+
 export default function SyncStatusIndicator({ className, showDetails = false }) {
-  const { syncStatus, lastSyncTime, isSyncing, isSynced, isOffline, hasError } = useCloudSync();
+  const { isCoach } = useAuth();
+  const isCoachUser = isCoach && isCoach();
+  
+  // For coach users, show a simpler indicator that doesn't rely on CloudSyncContext
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [online, setOnline] = useState(navigator.onLine);
+  
+  // Update pending count periodically
+  useEffect(() => {
+    const updateCount = () => setPendingCount(getPendingChangeCount());
+    updateCount();
+    
+    const interval = setInterval(updateCount, 2000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Listen to online/offline events
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  // For coach users, show a simple online/offline indicator
+  if (isCoachUser) {
+    return (
+      <div className={cn("flex items-center gap-1.5 text-xs", className)}>
+        {online ? (
+          <>
+            <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+            <span className="text-green-600">Synced</span>
+          </>
+        ) : (
+          <>
+            <CloudOff className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-amber-600">Offline</span>
+          </>
+        )}
+      </div>
+    );
+  }
+  
+  // For coach developers, use full CloudSyncContext if available
+  return <CoachDeveloperSyncIndicator className={className} showDetails={showDetails} />;
+}
+
+// Separate component for coach developer sync that uses CloudSyncContext
+function CoachDeveloperSyncIndicator({ className, showDetails }) {
+  // Try to use CloudSyncContext
+  let cloudSyncState = null;
+  
+  try {
+    // This will throw if not within CloudSyncProvider
+    if (useCloudSync) {
+      cloudSyncState = useCloudSync();
+    }
+  } catch (e) {
+    // Not within CloudSyncProvider
+  }
+  
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Fallback to direct service state
+  const syncStatus = cloudSyncState?.syncStatus || getSyncStatus();
+  const lastSyncTime = cloudSyncState?.lastSyncTime;
+  const isSyncing = cloudSyncState?.isSyncing || syncStatus === SyncStatus.SYNCING;
+  const isSynced = cloudSyncState?.isSynced || syncStatus === SyncStatus.SYNCED;
+  const isOffline = cloudSyncState?.isOffline || syncStatus === SyncStatus.OFFLINE || !navigator.onLine;
+  const hasError = cloudSyncState?.hasError || syncStatus === SyncStatus.ERROR;
 
   // Update pending count periodically
   useEffect(() => {
