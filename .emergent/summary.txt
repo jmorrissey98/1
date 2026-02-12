@@ -1,181 +1,382 @@
 <analysis>**original_problem_statement:**
-The user's core objective is to make their My Coach Developer PWA fully stateful and reliable, with all data stored in a cloud database and accessible across devices. The project migrated from  to a MongoDB backend, but several critical data persistence and UI bugs have emerged.
+The user's core objective is to build a reliable PWA (My Coach Developer) for sports coaching observations. The application was migrated from  to a MongoDB backend, which introduced several critical bugs related to data persistence, UI crashes, and incorrect data display.
 
-The most recent user request is to fix two specific issues:
-1.  When a session is assigned to a coach, it is not being saved or linked to that coach's profile.
-2.  When reviewing a session, the name of the coach who was observed is not displayed.
+Throughout this session, the user has requested fixes for:
+1.  Sessions not being linked to coaches and coach names not appearing on review pages.
+2.  Recurring runtime crashes on the  and  pages.
+3.  Incorrect application logic where planned sessions were being displayed as completed across the application (Home Page, Coach Profile, Calendar).
+4.  The ability to edit and delete planned sessions.
+5.  UI/UX improvements like adding a skeleton loader and filtering irrelevant data from session reports.
 
-This is in addition to several recurring, unresolved bugs related to data disappearing on navigation, sync failures, and runtime errors on the session review page.
+The most recent user request is to fix a bug where the AI summary failed after a session was completed.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a React (frontend) and FastAPI (backend) PWA using MongoDB for data persistence. The initial migration from  to a cloud database is functionally complete, with backend CRUD endpoints for sessions, a  for global state management, and an offline sync queue. Google Authentication has been completely removed in favor of a custom email/password system. The UI includes a Data Recovery tool for the admin and a Sync Status indicator. However, the implementation has several critical bugs preventing reliable use.
+The application is a full-stack PWA with a React frontend and a FastAPI backend using MongoDB. The core data persistence logic is now cloud-based.
+
+In this session, the agent has successfully:
+- Implemented the correct logic for linking sessions to coaches by adding a new backend endpoint () and fixing the frontend calls.
+- Resolved the missing coach name display on the session review page.
+- Thoroughly fixed recurring runtime crashes on  and  by adding robust null-checking and defensive coding.
+- Corrected the application-wide logic for handling planned vs. completed sessions, ensuring they appear in the correct sections (Upcoming vs. History) on the Home Page, Coach Profile, and Calendar.
+- Migrated the  component to fetch data from the cloud API instead of the deprecated .
+- Implemented the user-requested feature to edit and delete planned sessions from the UI.
+- Added a skeleton loading component to the Coach Profile page for a better user experience.
+- Updated the backend to provide session counts (upcoming vs. completed) for the My Coaches overview.
 
 **Last working item**:
-- **Last item agent was working:** The user reported two new bugs via screenshots:
-    1.  Sessions are not being correctly linked to the assigned coach's profile upon creation.
-    2.  The Review Session page does not display the name of the coach who was observed.
+- **Last item agent was working:** The user reported a bug: The ai summary failed after a session was completed, and provided a screenshot. The agent acknowledged the issue but has not yet started the investigation.
 - **Status:** NOT STARTED
 - **Agent Testing Done:** N
 - **Which testing method agent to use?** both
-- **User Testing Done:** Y (User reported the bug with screenshots)
+- **User Testing Done:** Y (User reported the bug with a screenshot)
 
 **All Pending/In progress Issue list**:
-*   **Issue 1 (P0):** Sessions are not being linked to the assigned coach's profile.
-*   **Issue 2 (P0):** The coach's name is not displayed on the Review Session page.
-*   **Issue 3 (P1):** Runtime error on the Review Session page is still occurring.
-*   **Issue 4 (P1):** Sync is failing on the production environment, and sessions disappear upon navigation.
-*   **Issue 5 (P2):** The invite/signup flow is causing user confusion due to generic 400 errors.
+*   **Issue 1 (P0):** The AI summary fails after a session is completed.
+*   **Issue 2 (P1):** Sync is failing on the production environment, and sessions disappear upon navigation.
+*   **Issue 3 (P2):** The invite/signup flow is causing user confusion due to generic 400 errors.
 
 **Issues Detail:**
-*   **Issue 1: Sessions are not being linked to the assigned coach's profile.**
-    *   **Attempted fixes:** None.
-    *   **Next debug checklist:**
-        1.  Review the backend endpoint responsible for creating/updating sessions (e.g., ).
-        2.  Ensure that when a  is provided, the logic updates both the  collection and the corresponding document in the  collection to create a link.
-        3.  Verify that the  endpoint is correctly fetching and returning these linked sessions.
-    *   **Why fix this issue and what will be achieved with the fix?** This is core functionality. Fixing it will allow coaches to see and access the observation sessions assigned to them.
-    *   **Status:** NOT STARTED
-    *   **Is recurring issue?** N
-    *   **Should Test frontend/backend/both after fix?** both
+- **Issue 1: The AI summary fails after a session is completed.**
+    - **Attempted fixes:** None.
+    - **Next debug checklist:**
+        1.  Analyze the user's screenshot for any console errors or network request failures related to the summary generation.
+        2.  Identify the backend endpoint in  responsible for generating the AI summary.
+        3.  Check the backend logs (==> /var/log/supervisor/backend.err.log <==
+INFO:     Started reloader process [46] using WatchFiles
+2026-02-12 10:42:55,844 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [90]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [90]
+2026-02-12 10:45:56,024 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [483]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [483]
+INFO:     Stopping reloader process [46]
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [1058] using WatchFiles
+2026-02-12 10:48:22,220 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [1060]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'tests/test_coach_sessions_fix.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1060]
+2026-02-12 10:52:33,369 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [2281]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-12 10:52:38,913 - server - INFO - Creating/updating observation session: test_nullcheck_session, status: draft
+2026-02-12 10:53:24,574 - server - INFO - Creating/updating observation session: session_1770893600296_vlbrknjk4, status: draft
+2026-02-12 10:54:31,211 - server - INFO - Creating/updating observation session: test_coach_name_session, status: completed
+2026-02-12 10:55:35,372 - server - INFO - Creating/updating observation session: test_nullcheck_session, status: draft
+2026-02-12 11:30:53,160 - server - INFO - Creating/updating observation session: session_1770895845382_3x3qqas2l, status: draft
+2026-02-12 11:31:03,816 - server - INFO - Creating/updating observation session: session_1770895845382_3x3qqas2l, status: completed
+2026-02-12 11:39:17,541 - server - INFO - Creating/updating observation session: session_1770896348980_35ocxyo4d, status: planned
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2281]
+2026-02-12 11:51:37,836 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [4392]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4392]
+INFO:     Stopping reloader process [1058]
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [4609] using WatchFiles
+2026-02-12 11:52:06,937 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [4611]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'tests/test_session_display.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4611]
+2026-02-12 11:53:22,431 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [4751]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-12 11:53:36,114 - server - INFO - Creating/updating observation session: test_planned_efde8988, status: planned
+2026-02-12 11:53:36,152 - server - INFO - Creating/updating observation session: test_draft_0f70e28e, status: draft
+WARNING:  WatchFiles detected changes in 'tests/test_session_display.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4751]
+WARNING:  WatchFiles detected changes in 'tests/test_session_display.py'. Reloading...
+2026-02-12 11:53:54,622 - server - INFO - CORS allowed origins: ['*']
+INFO:     Started server process [4854]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-12 11:53:57,803 - server - INFO - Creating/updating observation session: test_planned_2c20f80b, status: planned
+2026-02-12 11:53:57,921 - server - INFO - Creating/updating observation session: test_draft_f83611be, status: draft
+2026-02-12 12:02:30,971 - server - INFO - Creating/updating observation session: session_1770897746250_fl8iqlphs, status: planned
+2026-02-12 12:03:17,070 - server - INFO - Creating/updating observation session: session_1770897782560_j9wg7ggfo, status: draft
+2026-02-12 12:03:32,053 - server - INFO - Creating/updating observation session: session_1770897782560_j9wg7ggfo, status: completed
+2026-02-12 12:04:41,989 - server - INFO - Coach coach_67857d39dbbc updated by user_f56b1ee9d151
+2026-02-12 12:04:43,563 - server - INFO - Coach coach_67857d39dbbc updated by user_f56b1ee9d151
+2026-02-12 12:05:00,432 - server - INFO - Coach coach_67857d39dbbc updated by user_f56b1ee9d151
+2026-02-12 12:05:04,111 - server - INFO - Coach coach_67857d39dbbc updated by user_f56b1ee9d151
+2026-02-12 12:05:18,583 - server - INFO - Coach coach_67857d39dbbc updated by user_f56b1ee9d151
+2026-02-12 12:05:38,218 - server - INFO - Creating/updating observation session: session_1770897924841_bu9vhupev, status: draft
+2026-02-12 12:06:03,667 - server - INFO - Creating/updating observation session: session_1770897924841_bu9vhupev, status: completed
+2026-02-12 12:07:00,476 - server - INFO - Creating/updating observation session: session_1770897924841_bu9vhupev, status: completed
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [47] using WatchFiles
 
-*   **Issue 2: The coach's name is not displayed on the Review Session page.**
-    *   **Attempted fixes:** None.
-    *   **Next debug checklist:**
-        1.  Modify the backend endpoint  to perform a lookup on the  collection and include the coach's name in the response.
-        2.  In , update the  hook that fetches session data to handle the new coach information.
-        3.  Update the JSX to render the coach's name in the page header or another appropriate location.
-    *   **Why fix this issue and what will be achieved with the fix?** This provides essential context to the user (Coach Developer) who is reviewing the observation.
-    *   **Status:** NOT STARTED
-    *   **Is recurring issue?** N
-    *   **Should Test frontend/backend/both after fix?** both
+==> /var/log/supervisor/backend.out.log <==
+INFO:     10.64.130.116:50704 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.136:47224 - "GET /api/organization HTTP/1.1" 200 OK
+INFO:     10.64.130.130:43774 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.136:47224 - "GET /api/organization HTTP/1.1" 200 OK
+INFO:     10.64.130.135:52456 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.137:50422 - "DELETE /api/observations/session_1770896348980_35ocxyo4d HTTP/1.1" 200 OK
+INFO:     10.64.130.135:48316 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.136:45008 - "DELETE /api/observations/test_planned_efde8988 HTTP/1.1" 200 OK
+INFO:     10.64.130.136:45008 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.116:38462 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.130.130:42686 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.134:56538 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.130.130:42686 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.136:45008 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.134:56538 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.136:45008 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.135:35806 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.136:45008 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.135:35806 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.133.37:32902 - "POST /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.18:48392 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.18:48392 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.8:44992 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.19:58066 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.18:48392 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.19:58066 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.22:50762 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.37:33548 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.128.23:40040 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.128.18:34882 - "GET /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.128.9:58532 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.133.8:43898 - "GET /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.133.8:43898 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.128.18:34882 - "GET /api/coaches/coach_67857d39dbbc/sessions HTTP/1.1" 200 OK
+INFO:     10.64.133.37:33548 - "GET /api/coaches/coach_67857d39dbbc/sessions HTTP/1.1" 200 OK
+INFO:     10.64.130.136:37304 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.137:51624 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.136:37304 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.136:37304 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.132.55:32852 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.132.44:58696 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.9:43042 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.18:32940 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.8:34164 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.128.19:49442 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.128.22:35308 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.128.23:36882 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.133.37:38594 - "POST /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.19:51706 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.18:38224 - "POST /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.37:34034 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.9:38336 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.37:45568 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.19:46020 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.22:39812 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.137:44712 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.135:57772 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.22:56750 - "DELETE /api/observations/session_1770897782560_j9wg7ggfo HTTP/1.1" 200 OK
+INFO:     10.64.128.9:35218 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.19:40826 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.128.23:47230 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.133.37:49366 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.8:33656 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.132.44:52830 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.132.55:41180 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.132.44:52830 - "GET /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.132.44:52830 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.132.44:52830 - "GET /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.132.55:41180 - "GET /api/coaches/coach_67857d39dbbc/sessions HTTP/1.1" 200 OK
+INFO:     10.64.132.44:52830 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.132.55:41180 - "GET /api/coaches/coach_67857d39dbbc/sessions HTTP/1.1" 200 OK
+INFO:     10.64.128.18:60826 - "PUT /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.128.22:47740 - "PUT /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.132.44:37126 - "PUT /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.132.55:53328 - "PUT /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.130.135:35170 - "PUT /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.130.135:35170 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.136:42720 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.137:41646 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.137:41646 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.134:45320 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.130.136:42720 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.137:41646 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.130.116:51544 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.130.136:51910 - "POST /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.116:50754 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.9:43130 - "POST /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.23:34986 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.133.37:44104 - "POST /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.19:39140 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.134:57818 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.130.130:57440 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.64.128.18:48088 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.128.9:54788 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.64.128.22:40946 - "GET /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.128.22:40954 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.128.23:60522 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.64.133.8:50990 - "GET /api/coaches/coach_67857d39dbbc HTTP/1.1" 200 OK
+INFO:     10.64.133.37:45952 - "GET /api/coaches/coach_67857d39dbbc/sessions HTTP/1.1" 200 OK
+INFO:     10.64.128.19:45374 - "GET /api/coaches/coach_67857d39dbbc/sessions HTTP/1.1" 200 OK) for errors when this endpoint is triggered after a session is completed.
+        4.  Verify the data payload being sent to the AI service. It's possible that the session completion flow is passing incomplete or incorrectly formatted data, causing the AI endpoint to fail.
+        5.  Inspect the frontend code (likely in  or related components) that triggers the summary generation to confirm what data is being sent.
+    - **Why fix this issue and what will be achieved with the fix?** This is a key feature for the user that provides value after an observation. Fixing it restores core application functionality.
+    - **Status:** NOT STARTED
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on other issue:** None.
 
-*   **Issue 3: Runtime error on the Review Session page is still occurring.**
-    *   **Attempted fixes:** The previous agent added optional chaining () to  accesses. This was insufficient.
-    *   **Next debug checklist:**
-        1.  Re-examine user screenshots showing the error: .
-        2.  In , add an early return with a loading indicator if the main  object is null after fetching.
-        3.  Log the entire  object to the console upon loading to identify exactly which nested object is null or missing.
-        4.  Add further defensive null checks for any property accessed on the  object (e.g., ).
-    *   **Why fix this issue and what will be achieved with the fix?** The session review page is a critical part of the user workflow and is currently unusable.
-    *   **Status:** IN PROGRESS
-    *   **Is recurring issue?** Y
-    *   **Should Test frontend/backend/both after fix?** frontend
-    *   **Blocked on other issue:** None.
-
-*   **Issue 4: Sync is failing and sessions disappear upon navigation.**
-    *   **Attempted fixes:** The agent fixed a backend Pydantic validation error that was causing  responses.
-    *   **Next debug checklist:**
-        1.  Ask the user to reproduce the Sync failed error and provide the full console log output, as the previous agent added more detailed error logging to .
-        2.  Investigate the global state management in . The state might be getting improperly reset during page navigation.
-        3.  Ensure the  hooks that fetch data in  and other pages have correct dependency arrays to prevent unnecessary re-fetching that could wipe the session list.
-    *   **Why fix this issue and what will be achieved with the fix?** This is a critical data loss bug that makes the application unreliable.
-    *   **Status:** IN PROGRESS
-    *   **Is recurring issue?** Y
-    *   **Should Test frontend/backend/both after fix?** both
-    *   **Blocked on other issue:** None.
+- **Issue 2: Sync is failing and sessions disappear upon navigation (on production).**
+    - **Attempted fixes:** A previous agent fixed a Pydantic validation error, but the root cause on production persists.
+    - **Next debug checklist:**
+        1.  Ask the user to reproduce the error on their production site and provide full browser console logs.
+        2.  Investigate global state management in  for potential state-reset issues during page navigation.
+    - **Why fix this issue and what will be achieved with the fix?** This is a critical data loss bug that makes the application unreliable for the end-user.
+    - **Status:** NOT STARTED
+    - **Is recurring issue?** Y
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on other issue:** None.
 
 **In progress Task List**:
 *   None.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **(P1) Complete My Development page for Coaches:** The page is a placeholder. It requires a new backend endpoint to provide aggregated session data and frontend implementation to render charts using .
-    *   **(P1) Add Club Branding to Signup Flow:** The signup form for the first-ever user (Coach Developer) should include fields for Club Name and Club Logo, which are then used to create the organization.
+    *   **(P1) Complete My Development page for Coaches:** The page is currently a placeholder and needs backend endpoints and frontend  implementation to show aggregated session data.
+    - **(P1) Add Club Branding to Signup Flow:** The initial signup form should include Club Name and Club Logo fields to create the organization.
 *   **Future Tasks:**
-    *   Extend offline sync functionality to the Coach Developer (admin) pages.
-    *   Implement a session comparison view for coaches.
-    *   Add UI optimizations for iPad portrait orientation.
-    *   Add the ability to export sessions as PDF.
+    - Extend offline sync functionality to the Coach Developer (admin) pages.
+    - Implement a session comparison view for coaches.
+    - Add UI optimizations for iPad portrait orientation.
+    - Add the ability to export sessions as PDF.
 
 **Completed work in this session**
-- **Data Migration:** Completed a full migration from  to a cloud-based MongoDB solution for sessions, including backend endpoints, a frontend service (), and a global .
-- **Offline & Sync:** Implemented an offline queue for session saving and a  component in the UI.
-- **Auth Rework:** Fully removed Google Authentication and improved UI feedback for the email/password signup and invitation flows, including adding hints for password requirements.
-- **Bug Fixes:**
-    - Addressed a critical  error by making backend Pydantic models for session duration more flexible ().
-    - Fixed a bug where completed sessions were still marked as draft and added a confirmation dialog before ending a session.
-    - Resolved deployment blockers related to  and hardcoded secrets.
+- **Bug Fix: Session-Coach Linking & Data Display:**
+    - Added a new backend endpoint  in .
+    - Fixed the frontend call in  to use the new endpoint, resolving a 404 error.
+    - Updated the  endpoint to include  and displayed it in .
+- **Bug Fix: Application Stability:**
+    - Eliminated recurring runtime crashes on  and  by adding comprehensive null-checking for session data.
+- **Feature: Correct Session State Logic:**
+    - Refactored , , and  to correctly separate planned and completed sessions.
+    - Updated  to fetch data from the cloud instead of .
+    - Modified the  backend endpoint to return  and .
+- **Feature: Edit/Delete Planned Sessions:**
+    - Added edit/delete buttons and handler logic to  and .
+- **UI/UX Improvements:**
+    - Implemented a skeleton loader in  for better perceived performance.
+    - Filtered the session report in  to only show parts with logged data.
 
 **Earlier issues found/mentioned but not fixed**
-*   **Unoptimized Database Queries:** A comprehensive audit of all database interactions for performance has not been conducted.
-*   **Body stream already read error:** A console error indicating a response is being read twice was seen in user screenshots but not investigated. This could be the root cause of confusing error messages on the frontend.
+- **Unoptimized Database Queries:** A comprehensive audit of database interactions for performance has not been conducted.
+- **Body stream already read error:** A console error indicating a response is being read twice was seen in user screenshots but not investigated.
 
 **Known issue recurrence from previous fork**
-*   **Stale/disappearing data:** This issue has evolved from being -based to a problem with the new cloud sync and state management system. It remains the most critical recurring problem.
+- **Stale/disappearing data:** This issue remains a high-level concern, especially on the user's production environment.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-*   **Global State Management:** Using React Context () to provide session data and sync status throughout the application, aiming for a single source of truth.
-*   **Offline-First Sync:** Storing pending API calls in an offline queue () via  and processing them when the application comes back online.
-- **Defensive Frontend Code:** Adding null checks and optional chaining () to prevent UI crashes from unexpected API responses.
+*   **Global State Management:** Using React Context () to provide session data and sync status.
+*   **Offline-First Sync:** Using an offline queue in  to sync changes when online.
+*   **Defensive Frontend Programming:** Extensive use of optional chaining () and default values () to prevent UI crashes from incomplete API data.
 
 **key DB schema**
 -   **users:** 
--   **coaches:**  (Needs verification if it stores )
+-   **coaches:** 
 -   **sessions:** 
 -   **organizations:** 
 
 **changes in tech stack**
-- None in this session.  was added previously.
+*   None.
 
 **All files of reference**
-*    (For session logic and user management)
-*    (Known to be buggy)
-*    (For session list display)
-*    (Core sync logic)
-*    (Core state management)
+*   
+*   
+*   
+*   
+*   
+*   
+*   
+*   
+*   
 
 **Areas that need refactoring**:
-- The error handling in  should be reviewed to fix the body stream already read error, which likely masks the true error messages from the backend.
-- The state management in  needs to be made more robust to prevent data from disappearing on page navigation.
+- The error handling in  should be reviewed to fix the body stream already read error.
+- The state management in  may need to be hardened to prevent data loss on navigation, especially on the production environment.
 
 **key api endpoints**
-*    (Core session management)
-*    (To get coach details and linked sessions)
-*    (User registration)
-*    (User invitation)
+*   
+*    (Modified to include session counts)
+*    (**New**)
+*   
+*   
 
 **Critical Info for New Agent**
-*   **The user tests on their production site (), which uses a separate database from the agent's preview environment.** This is a frequent source of it works for me but not for you bugs. Always consider that the root cause might be specific to the production data or environment.
-*   The highest priority is fixing the chain of bugs related to data persistence: linking sessions to coaches, displaying coach data, and preventing sessions from disappearing.
-*   The runtime crash on the  page is a recurring blocker that needs a definitive fix. Previous attempts were insufficient.
+*   **Production vs. Preview Environment:** The user tests on their production site (), which has a separate database. Bugs that don't reproduce in the preview environment might be related to production data or environment specifics. The sync failing issue is likely in this category.
+*   **Top Priority:** The immediate priority is to fix the AI summary failed bug. After that, investigating the production sync issue is critical.
+*   **Defensive Coding:** The application data can be inconsistent, especially for sessions in a planned state. Continue the pattern of robust null-checking and optional chaining when developing new features or fixing bugs.
 
 **documents and test reports created in this job**
+*    (Updated multiple times)
+*   
 *   
 *   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Reports runtime error on Review page and sync failure. (IN PROGRESS)
-2.  **User:** Reports  runtime error and 422 validation error when saving. (Agent fixed 422, attempted fix for runtime error).
-3.  **User:** Reports sessions disappearing on navigation and sync failure. (IN PROGRESS)
-4.  **User:** Reports 400 error when inviting a user. (Agent explained behavior, improved UI).
-5.  **User:** Reports 400 error on signup. (Agent explained password rules, improved UI).
-6.  **User (LATEST):** Reports sessions are not linking to coach profiles and the coach's name is missing from the review page. (PENDING - This is the top priority).
+1.  **LATEST:** The ai summary failed after a session was completed. (PENDING)
+2.  User requested the ability to edit/delete planned sessions and reported a runtime error when starting one. (RESOLVED)
+3.  User provided detailed feedback on multiple pages where planned sessions were being displayed incorrectly as completed. (RESOLVED)
+4.  User reported that session reports showed empty sections and requested a skeleton loader for the Coach Profile. (RESOLVED)
+5.  User confirmed the agent could proceed and provided a console screenshot showing a critical  error, which helped guide the initial fix. (RESOLVED)
 
 **Project Health Check:**
 *   **Broken:**
-    *   Core logic for linking sessions to coaches.
-    *   Data persistence on navigation (sessions disappear).
-    *   The Review Session page frequently crashes.
-    *   Sync reliability on the production environment.
+    *   The AI Summary feature after session completion.
+    *   Sync reliability on the production environment (unresolved from handoff).
 
 **3rd Party Integrations**
 *   **Resend (Email API)** - Requires User API Key.
 *   **recharts** - Charting library for React.
 
 **Testing status**
-- **Testing agent used after significant changes:** YES
+- **Testing agent used after significant changes:** YES (used twice)
 - **Troubleshoot agent used after agent stuck in loop:** NO
-- **Test files created:** None
-- **Known regressions:** The cloud data migration introduced severe data persistence and state management bugs that are still unresolved.
+- **Test files created:**
+    - 
+- **Known regressions:** The production data sync issue remains unresolved from the previous fork.
 
 **Credentials to test flow:**
 *   **Coach Developer:**  / 
 
 **What agent forgot to execute**
-- The agent did not resolve the root cause of the  crash or the sync/data disappearance issues, as the user reported them as still occurring after attempted fixes.
-- The body stream already read console error, visible in user screenshots, was noted but not investigated. This is a likely cause of misleading error messages on the frontend and should be a priority to debug.</analysis>
+- The agent did not address the long-standing issues from the handoff summary related to the production sync failure and the confusing 400 errors in the invite/signup flow. This was a reasonable trade-off given the large number of critical bugs and features that were addressed in this session.</analysis>

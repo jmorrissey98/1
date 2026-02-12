@@ -16,7 +16,7 @@
     "PWA manifest.json served at /manifest.json with correct content-type (application/json)",
     "Service worker served at /service-worker.js with correct content-type (application/javascript)",
     "Service worker registers successfully on page load",
-    "Service worker scope is correct (https://review-page-crash.preview.emergentagent.com/)",
+    "Service worker scope is correct (https://dev-observer-tool.preview.emergentagent.com/)",
     "PWA icons (192, 384, 512) served correctly with 200 status",
     "Offline indicator hidden on login page (/login)",
     "Offline indicator hidden on auth callback page (/auth/callback)",

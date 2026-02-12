@@ -8,7 +8,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://review-page-crash.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://dev-observer-tool.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 COACH_DEVELOPER_EMAIL = "joemorrisseyg@gmail.com"
