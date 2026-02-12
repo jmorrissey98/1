@@ -59,11 +59,10 @@ export default function AppHeader() {
       
       toast.success('Returned to admin view');
       
-      // Force a TRUE full browser reload to /admin
-      // This bypasses React Router and ensures a fresh app initialization
-      window.location.href = '/admin';
-      // Add reload to force fresh load if href doesn't trigger it
-      window.location.reload(true);
+      // Force a hard reload by changing the URL with a cache-busting parameter
+      // and then navigating to /admin
+      const cacheBuster = Date.now();
+      window.location.href = `/admin?_cb=${cacheBuster}`;
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
       toast.error('Failed to exit impersonation. Please login again.');
