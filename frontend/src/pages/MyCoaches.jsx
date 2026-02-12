@@ -58,18 +58,15 @@ export default function MyCoaches() {
     setError(null);
     
     try {
-      const result = await safeGet(`${API_URL}/api/coaches`);
+      const result = await fetchCoaches();
       
       if (!result.ok) {
-        // Check for specific error types
-        const errorMsg = result.data?.detail || result.error || 'Failed to load coaches';
-        if (errorMsg.includes('502') || errorMsg.includes('503') || errorMsg.includes('504')) {
-          throw new Error('Server is temporarily unavailable. Please try again in a moment.');
-        }
+        const errorMsg = result.error || 'Failed to load coaches';
         throw new Error(errorMsg);
       }
       
-      // Use only API data - no localStorage enrichment that might cause issues
+      setFromCache(result.fromCache || false);
+      
       const coachesFromApi = result.data || [];
       setCoaches(coachesFromApi.map(coach => ({
         ...coach,
@@ -78,7 +75,7 @@ export default function MyCoaches() {
     } catch (err) {
       console.error('Failed to load coaches:', err);
       setError(err.message || 'Failed to load coaches. Please try again.');
-      setCoaches([]); // Clear any stale data on error
+      setCoaches([]);
     } finally {
       setLoading(false);
     }
