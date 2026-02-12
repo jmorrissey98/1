@@ -149,66 +149,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 safe-area-top">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Manrope']" data-testid="app-title">
-                My Coach Developer
-              </h1>
-              <div className="flex items-center gap-3">
-                <p className="text-xs sm:text-sm text-slate-500">Coach Observation Tool</p>
-                <SyncStatusIndicator />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {isCoachDeveloper() && (
-                <>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate('/coaches')}
-                    className="text-sm sm:text-base"
-                    data-testid="my-coaches-btn"
-                  >
-                    <Users className="w-4 h-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">My </span>Coaches
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate('/templates')}
-                    className="text-sm sm:text-base"
-                    data-testid="manage-templates-btn"
-                  >
-                    <ClipboardList className="w-4 h-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">Templates</span>
-                    <span className="sm:hidden">Temp.</span>
-                  </Button>
-                </>
-              )}
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/calendar')}
-                className="text-sm sm:text-base"
-                data-testid="calendar-btn"
-              >
-                <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
-                Calendar
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/settings')}
-                className="text-sm sm:text-base"
-                data-testid="user-settings-btn"
-              >
-                <Cog className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Settings</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Create New Session */}
