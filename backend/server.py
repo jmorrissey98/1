@@ -3388,6 +3388,17 @@ async def admin_impersonate_user(user_id: str, request: Request, response: Respo
         "expires_at": (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
     })
     
+    # Set the session cookie directly (same settings as regular login)
+    response.set_cookie(
+        key="session_token",
+        value=impersonate_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=2 * 60 * 60,  # 2 hours
+        path="/"
+    )
+    
     return {
         "token": impersonate_token,
         "user": {
