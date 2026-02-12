@@ -935,8 +935,15 @@ async def require_auth(request: Request) -> User:
 async def require_coach_developer(request: Request) -> User:
     """Require Coach Developer role"""
     user = await require_auth(request)
-    if user.role != "coach_developer":
+    if user.role != "coach_developer" and user.role != "admin":
         raise HTTPException(status_code=403, detail="Coach Developer role required")
+    return user
+
+async def require_admin(request: Request) -> User:
+    """Require Admin role"""
+    user = await require_auth(request)
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 # Auth endpoints
