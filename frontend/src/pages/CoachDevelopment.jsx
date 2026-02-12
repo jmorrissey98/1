@@ -44,10 +44,22 @@ export default function CoachDevelopment() {
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   useEffect(() => {
-    // Load saved timeframe preference
-    const savedTimeframe = localStorage.getItem(`mcd_dev_timeframe_${user?.user_id}`);
-    if (savedTimeframe) {
-      setTimeframe(savedTimeframe);
+    // Load saved preferences
+    if (user?.user_id) {
+      const savedTimeframe = localStorage.getItem(`mcd_dev_timeframe_${user.user_id}`);
+      const savedViewMode = localStorage.getItem(`mcd_dev_viewmode_${user.user_id}`);
+      const savedCustomStart = localStorage.getItem(`mcd_dev_custom_start_${user.user_id}`);
+      const savedCustomEnd = localStorage.getItem(`mcd_dev_custom_end_${user.user_id}`);
+      
+      if (savedTimeframe) {
+        setTimeframe(savedTimeframe);
+      }
+      if (savedViewMode) {
+        setViewMode(savedViewMode);
+      }
+      if (savedCustomStart && savedCustomEnd) {
+        setCustomDateRange({ start: savedCustomStart, end: savedCustomEnd });
+      }
     }
     loadData();
   }, [user]);
