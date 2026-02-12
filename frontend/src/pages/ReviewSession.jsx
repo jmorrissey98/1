@@ -263,6 +263,20 @@ export default function ReviewSession() {
     try {
       const stats = getStats();
       
+      // Fetch coach targets if session has a coach
+      let coachTargets = null;
+      if (session.coachId) {
+        try {
+          const coachResponse = await axios.get(`${API}/coaches/${session.coachId}`);
+          const targets = coachResponse.data?.targets || [];
+          coachTargets = targets
+            .filter(t => t.status === 'active')
+            .map(t => t.text);
+        } catch (err) {
+          console.warn('Could not fetch coach targets:', err);
+        }
+      }
+      
       // Prepare intervention breakdown
       const interventionTypes = session.interventionTypes || session.eventTypes || [];
       const eventBreakdown = {};
