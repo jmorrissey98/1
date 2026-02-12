@@ -257,44 +257,53 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {upcomingObservations.map((obs) => (
+                  {upcomingObservations.slice(0, 5).map((obs) => (
                     <div 
-                      key={obs.schedule_id} 
+                      key={obs.id} 
                       className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                      onClick={() => navigate('/calendar')}
+                      onClick={() => navigate(`/session/${obs.id}/setup`)}
+                      data-testid={`upcoming-session-${obs.id}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
                           <User className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900">{obs.coach_name || 'Unknown Coach'}</p>
+                          <p className="font-medium text-slate-900">{obs.name}</p>
                           <p className="text-sm text-slate-500">
-                            {new Date(obs.scheduled_date).toLocaleDateString('en-GB', {
+                            {obs.coachName && <span>{obs.coachName} • </span>}
+                            {obs.plannedDate ? new Date(obs.plannedDate).toLocaleDateString('en-GB', {
                               weekday: 'short',
                               day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                              month: 'short'
+                            }) : 'Date TBD'}
                           </p>
                         </div>
                       </div>
-                      {obs.session_context && (
-                        <Badge variant="secondary" className="hidden sm:inline-flex">
-                          {obs.session_context}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-blue-500 hover:bg-blue-500">Planned</Badge>
+                        <Button 
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/session/${obs.id}/observe`);
+                          }}
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Start
+                        </Button>
+                      </div>
                     </div>
                   ))}
-                  {upcomingObservations.length > 0 && (
+                  {upcomingObservations.length > 5 && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="w-full mt-2"
                       onClick={() => navigate('/calendar')}
                     >
-                      View all in calendar
+                      View all ({upcomingObservations.length}) in calendar
                     </Button>
                   )}
                 </div>
