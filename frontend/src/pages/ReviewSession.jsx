@@ -837,14 +837,14 @@ export default function ReviewSession() {
               </CardContent>
             </Card>
 
-            {/* AI Summary - Collapsible by default */}
+            {/* Session Summary - Collapsible by default */}
             <Collapsible open={aiSummaryExpanded} onOpenChange={setAiSummaryExpanded}>
-              <Card className="border-purple-200">
+              <Card>
                 <CardHeader className="cursor-pointer" onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
-                      <Sparkles className="w-5 h-5" />
-                      AI Summary
+                    <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Session Summary
                       {session.aiSummary && (
                         <Badge variant="secondary" className="ml-2">Generated</Badge>
                       )}
@@ -861,32 +861,65 @@ export default function ReviewSession() {
                 </CardHeader>
                 <CollapsibleContent>
                   <CardContent className="space-y-4 pt-0">
-                    <Button 
-                      onClick={handleGenerateSummary}
-                      disabled={isGeneratingSummary || (session.events || []).length === 0}
-                      className="bg-purple-600 hover:bg-purple-700"
-                      data-testid="generate-summary-btn"
-                    >
-                      {isGeneratingSummary ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          {session.aiSummary ? 'Regenerate Summary' : 'Generate Summary'}
-                        </>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleGenerateSummary}
+                        disabled={isGeneratingSummary || (session.events || []).length === 0}
+                        variant="default"
+                        data-testid="generate-summary-btn"
+                      >
+                        {isGeneratingSummary ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            {session.aiSummary ? 'Regenerate' : 'Generate Summary'}
+                          </>
+                        )}
+                      </Button>
+                      {session.aiSummary && !isEditingSummary && (
+                        <Button 
+                          onClick={handleEditSummary}
+                          variant="outline"
+                          data-testid="edit-summary-btn"
+                        >
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                     
                     {session.aiSummary && (
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <div className="prose prose-slate prose-sm max-w-none">
-                          {session.aiSummary.split('\n').map((paragraph, i) => (
-                            paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
-                          ))}
-                        </div>
+                      <div className="p-4 bg-slate-50 rounded-lg">
+                        {isEditingSummary ? (
+                          <div className="space-y-3">
+                            <Textarea
+                              value={editedSummary}
+                              onChange={(e) => setEditedSummary(e.target.value)}
+                              className="min-h-[200px] font-normal"
+                              placeholder="Edit the session summary..."
+                            />
+                            <div className="flex gap-2">
+                              <Button onClick={handleSaveSummary} size="sm">
+                                <Check className="w-4 h-4 mr-1" />
+                                Save
+                              </Button>
+                              <Button onClick={handleCancelEditSummary} variant="outline" size="sm">
+                                <X className="w-4 h-4 mr-1" />
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="prose prose-slate prose-sm max-w-none">
+                            {session.aiSummary.split('\n').map((paragraph, i) => (
+                              paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
