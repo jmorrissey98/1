@@ -13,8 +13,6 @@ import { toast } from 'sonner';
 import { fetchCoaches, createCoach, deleteCoach } from '../lib/offlineApi';
 import { isOnline, getPendingSyncCount } from '../lib/offlineSync';
 
-const API_URL = '';
-
 export default function MyCoaches() {
   const navigate = useNavigate();
   const [coaches, setCoaches] = useState([]);
