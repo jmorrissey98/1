@@ -95,6 +95,11 @@ export default function LoginPage() {
         return;
       }
       
+      // Store the auth token for subsequent requests (needed for cross-domain auth)
+      if (result.data?.token) {
+        setAuthToken(result.data.token);
+      }
+      
       toast.success('Welcome back!');
       await checkAuth();
       
