@@ -520,7 +520,7 @@ export default function SessionSetup() {
           <CardContent>
             <p className="text-sm text-slate-500 mb-4">These are the coaching interventions you want to track (shown as yellow buttons).</p>
             <div className="space-y-2">
-              {session.eventTypes.map((event) => (
+              {eventTypes.map((event) => (
                 <div key={event.id} className="flex items-center gap-2">
                   <GripVertical className="w-4 h-4 text-slate-400" />
                   <div className="w-4 h-4 rounded bg-yellow-400" />
@@ -551,7 +551,7 @@ export default function SessionSetup() {
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-sky-400" />
               <Input
-                value={session.descriptorGroup1.name}
+                value={descriptorGroup1.name}
                 onChange={(e) => updateGroupName(1, e.target.value)}
                 className="font-semibold border-0 p-0 h-auto text-lg focus-visible:ring-0"
                 data-testid="descriptor-group-1-name"
@@ -564,7 +564,7 @@ export default function SessionSetup() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {session.descriptorGroup1.descriptors.map((desc) => (
+              {(descriptorGroup1.descriptors || []).map((desc) => (
                 <div key={desc.id} className="flex items-center gap-1 bg-sky-100 rounded-lg pl-3 pr-1 py-1">
                   <Input
                     value={desc.name}
@@ -592,7 +592,7 @@ export default function SessionSetup() {
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-green-400" />
               <Input
-                value={session.descriptorGroup2.name}
+                value={descriptorGroup2.name}
                 onChange={(e) => updateGroupName(2, e.target.value)}
                 className="font-semibold border-0 p-0 h-auto text-lg focus-visible:ring-0"
                 data-testid="descriptor-group-2-name"
@@ -605,7 +605,7 @@ export default function SessionSetup() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {session.descriptorGroup2.descriptors.map((desc) => (
+              {(descriptorGroup2.descriptors || []).map((desc) => (
                 <div key={desc.id} className="flex items-center gap-1 bg-green-100 rounded-lg pl-3 pr-1 py-1">
                   <Input
                     value={desc.name}
