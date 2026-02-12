@@ -203,6 +203,20 @@
   - Click Edit to show textarea with summary content
   - Save/Cancel buttons to save changes or discard
 
+### Bug Fixes - February 12, 2026
+- [x] **Planned date not saving/displaying** - Fixed multiple issues:
+  - Added `planned_date` field to `SessionListItem` model (was missing from API response)
+  - Updated `list_observation_sessions` endpoint to include `planned_date`
+  - Fixed SessionSetup to restore `sessionDate` when loading existing session for editing
+  - Fixed `mergeSessionData` to preserve `plannedDate` and `status` during sync conflicts
+- [x] **Coach reflections not appearing in coach developer view** - Fixed:
+  - Backend now fetches reflections from separate `reflections` collection (coach-submitted)
+  - Merged with any inline `coach_reflections` on the session document
+  - Frontend now displays structured reflection fields: rating, text, what_went_well, areas_for_development
+- [x] **Coach dashboard not showing upcoming sessions** - Fixed:
+  - Backend `/api/coach/dashboard` now checks BOTH `scheduled_observations` collection AND `observation_sessions` with `status='planned'`
+  - Planned sessions linked to coach now appear in their "Upcoming Observations" section
+
 ### Offline Sync for Admin Pages - February 12, 2026
 - [x] **MyCoaches page now works offline**
   - Create coach works offline (queued with "Pending Sync" badge)
