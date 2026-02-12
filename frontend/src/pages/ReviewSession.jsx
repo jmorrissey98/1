@@ -828,7 +828,7 @@ export default function ReviewSession() {
                   <CardContent className="space-y-4 pt-0">
                     <Button 
                       onClick={handleGenerateSummary}
-                      disabled={isGeneratingSummary || session.events.length === 0}
+                      disabled={isGeneratingSummary || (session.events || []).length === 0}
                       className="bg-purple-600 hover:bg-purple-700"
                       data-testid="generate-summary-btn"
                     >
