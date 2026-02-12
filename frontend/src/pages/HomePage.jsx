@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Trash2, Cog, FileText, Users, Calendar, User, LogOut, ClipboardList, CalendarClock, Loader2, Cloud, Edit2 } from 'lucide-react';
+import { Plus, Play, Eye, Trash2, FileText, User, LogOut, CalendarClock, Loader2, Cloud, Edit2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
@@ -10,7 +10,6 @@ import { fetchCloudSessions, deleteCloudSession, cloudToLocalSession } from '../
 import { formatDate, formatTime } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { safeGet } from '../lib/safeFetch';
-import SyncStatusIndicator from '../components/SyncStatusIndicator';
 
 const API_URL = '';
 
