@@ -114,8 +114,11 @@ export default function AdminClubDetails() {
     try {
       // Save the admin's current token before impersonating
       const adminToken = getAuthToken();
+      console.log('Impersonate: Current token before save:', adminToken?.substring(0, 20) + '...');
+      
       if (adminToken) {
         localStorage.setItem('admin_token_backup', adminToken);
+        console.log('Impersonate: Saved admin token backup');
       }
       
       const result = await safePost(`${API_URL}/api/admin/impersonate/${user.user_id}`);
@@ -123,6 +126,8 @@ export default function AdminClubDetails() {
       if (!result.ok) {
         throw new Error(result.data?.detail || result.error || 'Failed to impersonate user');
       }
+      
+      console.log('Impersonate: Got new token:', result.data.token?.substring(0, 20) + '...');
       
       // Set the impersonation token as the new auth token
       if (result.data.token) {
