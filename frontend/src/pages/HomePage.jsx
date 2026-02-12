@@ -318,7 +318,7 @@ export default function HomePage() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => handleDeleteSession(obs.id)}
+                                onClick={() => handleDelete(obs.id)}
                                 className="bg-red-600 hover:bg-red-700"
                               >
                                 Delete
