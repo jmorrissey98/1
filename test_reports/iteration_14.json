@@ -1,0 +1,129 @@
+{
+  "summary": "Frontend testing for PWA My Coach Developer UI/UX improvements. All main features verified working correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Login page: MCD logo displays correctly",
+    "Login page: Title 'My Coach Developer' visible",
+    "Coach Developer login: Successfully authenticates",
+    "Coach Developer header: Home button present with data-testid='nav-home-btn'",
+    "Coach Developer header: My Coaches button present with data-testid='nav-my-coaches-btn'",
+    "Coach Developer header: Templates button present with data-testid='nav-templates-btn'",
+    "Coach Developer header: Calendar button present with data-testid='nav-calendar-btn'",
+    "Coach Developer header: Settings button present with data-testid='nav-settings-btn'",
+    "Coach Developer header: MCD App Logo present with data-testid='mcd-app-logo'",
+    "Coach Developer header: Coach-only buttons (My Development, My Profile) NOT shown",
+    "Coach Developer: Sync status shows 'Saved' (not 'Sync failed')",
+    "My Coaches page: Dismissible tip visible with X button",
+    "My Coaches page: Tip dismisses when X clicked",
+    "My Coaches page: Tip stays dismissed after page reload (localStorage persistence)",
+    "Coach login: Successfully authenticates and redirects to /coach",
+    "Coach header: Home button present",
+    "Coach header: My Development button present with data-testid='nav-my-development-btn'",
+    "Coach header: Calendar button present",
+    "Coach header: My Profile button present with data-testid='nav-my-profile-btn'",
+    "Coach header: Coach Developer-only buttons (My Coaches, Templates, Settings) NOT shown",
+    "Coach: 'Synced' status visible (not 'Sync failed')",
+    "Coach My Development: Page loads correctly",
+    "Coach My Development: View Mode select present (Session/Parts toggle) with data-testid='viewmode-select'",
+    "Coach My Development: Timeframe select present with data-testid='timeframe-select'",
+    "Coach My Development: Shows 'By Sessions' option",
+    "Coach My Development: Shows 'All Time' timeframe option",
+    "Coach My Profile: Page loads correctly",
+    "Coach My Profile: Photo upload button (camera icon) present with data-testid='upload-photo-btn'",
+    "Coach My Profile: Photo upload input present with data-testid='photo-upload-input'",
+    "Coach My Profile: Role/Job Title input present",
+    "Coach My Profile: Age Group/Team input present",
+    "Coach My Profile: Department input present",
+    "Coach My Profile: Coaching Focus/Bio textarea present",
+    "Coach My Profile: Save Changes button present",
+    "Coach My Profile: Log Out button present"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_14.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "AppHeader.jsx correctly implements role-based navigation: Coach Developer gets (Home, My Coaches, Templates, Calendar, Settings), Coach gets (Home, My Development, Calendar, My Profile)",
+    "SyncStatusIndicator.jsx correctly shows 'Synced' for coaches (not 'Sync failed') - uses simple online/offline check for coach users",
+    "DismissibleTip.jsx correctly stores dismissed tips in localStorage with DISMISSED_TIPS_KEY='mcd_dismissed_tips'",
+    "CoachDevelopment.jsx has proper viewmode toggle (Sessions/Parts) and timeframe options (All Time, This Month, 6 Months, This Year, Custom Range)",
+    "CoachMyProfile.jsx has proper photo upload button with camera icon and file input for image upload"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (All tested features working correctly)"
+  },
+
+  "test_credentials": {
+    "coach_developer": "joemorrisseyg@gmail.com / 12345",
+    "coach": "joe_morrissey@hotmail.co.uk / CoachTest123"
+  },
+
+  "seed_data_creation": "None - used existing test accounts",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "UI/UX improvements verified: 1) Login page MCD logo working. 2) Coach Developer header has Home, My Coaches, Templates, Calendar, Settings buttons. 3) Coach header has Home, My Development, Calendar, My Profile buttons. 4) Sync status shows 'Synced' not 'Sync failed' for coaches. 5) DismissibleTip on My Coaches page works with localStorage persistence. 6) CoachDevelopment has Session/Parts toggle and timeframe filters. 7) CoachMyProfile has camera button for photo upload.",
+
+  "feature_verification": {
+    "login_page_logo": {
+      "status": "VERIFIED",
+      "notes": "MCD logo displays correctly at /mcd-logo.png"
+    },
+    "coach_developer_header": {
+      "status": "VERIFIED",
+      "buttons": ["Home", "My Coaches", "Templates", "Calendar", "Settings"],
+      "notes": "Unified single header with all navigation buttons"
+    },
+    "coach_header": {
+      "status": "VERIFIED",
+      "buttons": ["Home", "My Development", "Calendar", "My Profile"],
+      "notes": "Unified single header with role-appropriate buttons"
+    },
+    "sync_status": {
+      "status": "VERIFIED",
+      "notes": "Shows 'Synced' for coaches, 'Saved' for coach developers - no 'Sync failed' errors"
+    },
+    "dismissible_tip": {
+      "status": "VERIFIED",
+      "notes": "Tip on My Coaches page can be dismissed with X button, stays dismissed after reload via localStorage"
+    },
+    "coach_development_page": {
+      "status": "VERIFIED",
+      "notes": "Has Session/Parts viewmode toggle and timeframe filter (All Time, This Month, 6 Months, This Year, Custom Range)"
+    },
+    "coach_profile_photo_upload": {
+      "status": "VERIFIED",
+      "notes": "Camera button visible on profile avatar, file input available for photo selection"
+    }
+  },
+
+  "screenshots": {
+    "login_page": ".screenshots/login_page_logo.png",
+    "coach_developer_dashboard": ".screenshots/coach_developer_dashboard_header.png",
+    "my_coaches_tip_visible": ".screenshots/my_coaches_tip_visible.png",
+    "my_coaches_tip_dismissed": ".screenshots/my_coaches_after_dismiss.png",
+    "coach_dashboard": ".screenshots/coach_dashboard_header.png",
+    "coach_my_development": ".screenshots/coach_my_dev.png",
+    "coach_my_profile": ".screenshots/coach_my_profile.png"
+  }
+}
