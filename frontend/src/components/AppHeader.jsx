@@ -20,6 +20,38 @@ export default function AppHeader() {
   const navigate = useNavigate();
   const { user, isCoachDeveloper, isCoach, isAdmin } = useAuth();
   const { organization } = useOrganization();
+  const [impersonating, setImpersonating] = useState(false);
+  const [impersonatedUser, setImpersonatedUser] = useState(null);
+  
+  // Check if we're in impersonation mode
+  useEffect(() => {
+    const isImpersonating = localStorage.getItem('impersonating') === 'true';
+    setImpersonating(isImpersonating);
+    if (isImpersonating) {
+      try {
+        const userData = JSON.parse(localStorage.getItem('impersonated_user') || '{}');
+        setImpersonatedUser(userData);
+      } catch (e) {
+        console.error('Failed to parse impersonated user data');
+      }
+    }
+  }, []);
+  
+  // Exit impersonation mode
+  const handleExitImpersonation = () => {
+    // Clear localStorage
+    localStorage.removeItem('impersonating');
+    localStorage.removeItem('impersonated_user');
+    localStorage.removeItem('impersonated_by');
+    
+    // Clear the session cookie by setting it to expire
+    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=none';
+    
+    toast.success('Exited impersonation mode. Please login again.');
+    
+    // Redirect to login
+    window.location.href = '/login';
+  };
   
   // Don't show header on excluded pages, admin pages, or when not logged in
   const shouldHide = !user || 
