@@ -140,15 +140,20 @@ export default function MyCoaches() {
     setIsDeleting(true);
     
     try {
-      const result = await deleteCoach(coachToDelete.id);
+      const result = await deleteCoach(coachToDelete.id, deleteUserToo);
       
       if (!result.ok) {
         throw new Error(result.error || 'Failed to delete coach');
       }
       
-      const msg = result.queued 
-        ? `Coach "${coachToDelete.name}" removed locally. Will sync when online.`
-        : `Coach "${coachToDelete.name}" removed`;
+      let msg;
+      if (result.queued) {
+        msg = `Coach "${coachToDelete.name}" removed locally. Will sync when online.`;
+      } else if (deleteUserToo) {
+        msg = `Coach "${coachToDelete.name}" and their user account have been removed`;
+      } else {
+        msg = `Coach "${coachToDelete.name}" removed`;
+      }
       toast.success(msg);
       
       if (result.queued) {
@@ -156,6 +161,7 @@ export default function MyCoaches() {
       }
       
       setCoachToDelete(null);
+      setDeleteUserToo(false);
       await loadCoaches();
     } catch (err) {
       toast.error(err.message || 'Failed to delete coach');
