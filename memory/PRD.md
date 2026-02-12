@@ -310,6 +310,16 @@
   - DELETE /api/admin/users/{user_id} - Delete user
   - DELETE /api/admin/organizations/{org_id} - Delete club
 
+### Admin Impersonation Fix - February 12, 2026
+- [x] **Fixed impersonation not working**: Backend now sets session cookie directly
+  - POST /api/admin/impersonate/{user_id} sets httponly cookie (not just returns token)
+  - Frontend no longer tries to manually set cookies
+  - Uses `window.location.href` for proper page reload with new session
+- [x] **Added impersonation banner**
+  - Amber banner at top of page showing "Viewing as: [User Name] (role)"
+  - "Exit" button to end impersonation and return to login
+  - Visible across all pages while impersonating
+
 ## Remaining Work / Backlog
 
 ### P0 - Critical (Next Phase)
