@@ -728,13 +728,57 @@ export default function ReviewSession() {
                 {(session.coachReflections || []).length > 0 ? (
                   <div className="space-y-3">
                     {session.coachReflections.map(r => (
-                      <div key={r.id} className="p-3 bg-green-50 rounded-lg">
+                      <div key={r.id} className="p-4 bg-green-50 rounded-lg space-y-3">
                         <div className="flex items-start justify-between">
-                          <div>
-                            <p className="text-slate-700">{r.text}</p>
-                            <p className="text-xs text-slate-400 mt-1">{formatDateTime(r.timestamp)}</p>
+                          <div className="space-y-3 flex-1">
+                            {/* Self Rating */}
+                            {r.rating && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">Self Assessment</p>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map(n => (
+                                    <div 
+                                      key={n}
+                                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${
+                                        n <= r.rating 
+                                          ? 'bg-blue-500 text-white' 
+                                          : 'bg-slate-200 text-slate-400'
+                                      }`}
+                                    >
+                                      {n}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Main Reflection */}
+                            {r.text && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">Reflection</p>
+                                <p className="text-slate-700">{r.text}</p>
+                              </div>
+                            )}
+                            
+                            {/* What Went Well */}
+                            {r.what_went_well && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">What went well</p>
+                                <p className="text-slate-700">{r.what_went_well}</p>
+                              </div>
+                            )}
+                            
+                            {/* Areas for Development */}
+                            {r.areas_for_development && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">Areas for development</p>
+                                <p className="text-slate-700">{r.areas_for_development}</p>
+                              </div>
+                            )}
+                            
+                            <p className="text-xs text-slate-400 mt-2">{formatDateTime(r.timestamp)}</p>
                           </div>
-                          {isCoachView && (
+                          {isCoachView && !r.source && (
                             <Button
                               size="icon"
                               variant="ghost"
