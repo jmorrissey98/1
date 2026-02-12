@@ -875,7 +875,7 @@ export default function ReviewSession() {
                   <ScrollArea className="h-[500px] pr-4">
                     <div className="space-y-3">
                       {events.map((event, index) => {
-                        const part = session.sessionParts.find(p => p.id === event.sessionPartId);
+                        const part = (session.sessionParts || []).find(p => p.id === event.sessionPartId);
                         const isEditing = editingEvent === event.id;
                         
                         return (
@@ -951,16 +951,16 @@ export default function ReviewSession() {
                                 >
                                   {event.ballRolling ? 'Ball Rolling' : 'Ball Stopped'}
                                 </Badge>
-                                {event.descriptors1.map(d => {
-                                  const desc = session.descriptorGroup1.descriptors.find(x => x.id === d);
+                                {(event.descriptors1 || []).map(d => {
+                                  const desc = session.descriptorGroup1?.descriptors?.find(x => x.id === d);
                                   return desc && (
                                     <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100 text-xs">
                                       {desc.name}
                                     </Badge>
                                   );
                                 })}
-                                {event.descriptors2.map(d => {
-                                  const desc = session.descriptorGroup2.descriptors.find(x => x.id === d);
+                                {(event.descriptors2 || []).map(d => {
+                                  const desc = session.descriptorGroup2?.descriptors?.find(x => x.id === d);
                                   return desc && (
                                     <Badge key={d} className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
                                       {desc.name}
