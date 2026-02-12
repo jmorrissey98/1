@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, ChevronLeft, ChevronRight, Play, Eye, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronLeft, ChevronRight, Play, Eye, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
+import { fetchCloudSessions } from '../lib/cloudSessionService';
 import { cn } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 
@@ -13,14 +14,46 @@ export default function SessionCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [sessions, setSessions] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadSessions();
   }, []);
 
-  const loadSessions = () => {
-    const allSessions = storage.getSessions();
-    setSessions(allSessions);
+  const loadSessions = async () => {
+    setLoading(true);
+    try {
+      // Load from cloud API
+      const result = await fetchCloudSessions();
+      if (result.success && Array.isArray(result.data)) {
+        // Convert cloud format to local format for display
+        const cloudSessions = result.data.map(s => ({
+          id: s.session_id,
+          name: s.name,
+          coachId: s.coach_id,
+          coachName: s.coach_name,
+          status: s.status,
+          observationContext: s.observation_context,
+          createdAt: s.created_at,
+          updatedAt: s.updated_at,
+          plannedDate: s.planned_date,
+          totalDuration: s.total_duration,
+          events: s.events || []
+        }));
+        setSessions(cloudSessions);
+      } else {
+        // Fall back to localStorage
+        const allSessions = storage.getSessions() || [];
+        setSessions(allSessions);
+      }
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+      // Fall back to localStorage
+      const allSessions = storage.getSessions() || [];
+      setSessions(allSessions);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const monthStart = startOfMonth(currentMonth);
