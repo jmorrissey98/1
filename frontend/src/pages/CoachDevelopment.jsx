@@ -330,37 +330,66 @@ export default function CoachDevelopment() {
           <CardHeader>
             <CardTitle className="font-['Manrope'] flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-emerald-600" />
-              Intervention Distribution
+              {viewMode === 'sessions' ? 'Intervention Distribution' : 'Sessions by Part'}
             </CardTitle>
-            <CardDescription>Breakdown of coaching intervention types used</CardDescription>
+            <CardDescription>
+              {viewMode === 'sessions' 
+                ? 'Breakdown of coaching intervention types used'
+                : 'Number of sessions per coaching part (only parts you have coached)'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {interventionData.length > 0 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={interventionData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {interventionData.map((entry, index) => (
-                        <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            {viewMode === 'sessions' ? (
+              // Sessions view - Pie chart of interventions
+              interventionData.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={interventionData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {interventionData.map((entry, index) => (
+                          <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-slate-400">
+                  No intervention data available yet
+                </div>
+              )
             ) : (
-              <div className="h-64 flex items-center justify-center text-slate-400">
-                No intervention data available yet
-              </div>
+              // Parts view - Bar chart of sessions per part
+              partsData.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={partsData} layout="vertical" margin={{ left: 100, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="sessions" fill="#10b981" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-slate-400">
+                  <div className="text-center">
+                    <p>No session parts data available yet</p>
+                    <p className="text-sm mt-1">Parts will appear here once you have coaching sessions</p>
+                  </div>
+                </div>
+              )
             )}
           </CardContent>
         </Card>
