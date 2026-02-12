@@ -266,6 +266,72 @@ export const fetchCoaches = async () => {
   return result;
 };
 
+export const createCoach = async (coachData) => {
+  const tempId = `coach_temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Add to local cache immediately
+  const cached = getCached(STORAGE_KEYS.COACHES);
+  const newCoach = {
+    id: tempId,
+    ...coachData,
+    created_at: new Date().toISOString(),
+    sessionCount: 0,
+    upcomingCount: 0,
+    _pending: true
+  };
+  
+  if (cached?.data) {
+    setCached(STORAGE_KEYS.COACHES, [newCoach, ...cached.data]);
+  } else {
+    setCached(STORAGE_KEYS.COACHES, [newCoach]);
+  }
+  
+  if (!isOnline()) {
+    addToOfflineQueue(
+      QueueItemType.CREATE_COACH,
+      coachData,
+      tempId
+    );
+    return { ok: true, data: newCoach, queued: true };
+  }
+  
+  const result = await safePost(`${API_URL}/api/coaches`, coachData);
+  
+  if (result.ok) {
+    // Update cache with real ID from server
+    const updatedCached = getCached(STORAGE_KEYS.COACHES);
+    if (updatedCached?.data) {
+      const coaches = updatedCached.data.map(c => 
+        c.id === tempId ? { ...result.data, _pending: false } : c
+      );
+      setCached(STORAGE_KEYS.COACHES, coaches);
+    }
+  }
+  
+  return result;
+};
+
+export const deleteCoach = async (coachId) => {
+  // Remove from local cache immediately
+  const cached = getCached(STORAGE_KEYS.COACHES);
+  if (cached?.data) {
+    const coaches = cached.data.filter(c => c.id !== coachId);
+    setCached(STORAGE_KEYS.COACHES, coaches);
+  }
+  
+  if (!isOnline()) {
+    addToOfflineQueue(
+      QueueItemType.DELETE_COACH,
+      {},
+      coachId
+    );
+    return { ok: true, queued: true };
+  }
+  
+  const result = await safeDelete(`${API_URL}/api/coaches/${coachId}`);
+  return result;
+};
+
 export const updateCoach = async (coachId, coachData) => {
   // Update local cache
   const cached = getCached(STORAGE_KEYS.COACHES);
