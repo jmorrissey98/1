@@ -230,6 +230,9 @@ const mergeSessionData = (local, cloud) => {
       (r, i, arr) => arr.findIndex(x => x.id === r.id) === i
     ),
     sessionNotes: local.sessionNotes || cloud.sessionNotes,
+    // Preserve plannedDate - prefer local if set, otherwise use cloud
+    plannedDate: local.plannedDate || cloud.plannedDate,
+    status: local.status || cloud.status,
     // Use latest timestamp
     updatedAt: new Date().toISOString()
   };
