@@ -38,7 +38,7 @@ export default function AppHeader() {
     }
   }, []);
   
-  // Exit impersonation mode
+  // Exit impersonation mode - forces full page reload to properly restore admin session
   const handleExitImpersonation = () => {
     try {
       // Restore the admin token from backup
@@ -48,34 +48,31 @@ export default function AppHeader() {
         throw new Error('Admin token not found');
       }
       
-      // Clear ALL impersonation-related items FIRST
+      // Clear ALL impersonation-related items
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
       localStorage.removeItem('admin_token_backup');
       
-      // Restore admin token AFTER clearing impersonation data
+      // Restore admin token
       setAuthToken(adminToken);
       
-      // Show toast before navigation
       toast.success('Returned to admin view');
       
-      // Navigate to admin and force a complete page reload
-      // This ensures AuthContext re-initializes with the correct token
-      setTimeout(() => {
-        // Use assign instead of href to force a complete reload
-        window.location.assign('/admin');
-      }, 100);
+      // Force a TRUE full browser reload to /admin
+      // This bypasses React Router and ensures a fresh app initialization
+      window.location.href = '/admin';
+      // Add reload to force fresh load if href doesn't trigger it
+      window.location.reload(true);
     } catch (err) {
       console.error('Failed to exit impersonation:', err);
       toast.error('Failed to exit impersonation. Please login again.');
-      // Fallback: clear everything and go to login
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
       localStorage.removeItem('admin_token_backup');
       localStorage.removeItem('auth_token');
-      window.location.assign('/login');
+      window.location.href = '/login';
     }
   };
   
