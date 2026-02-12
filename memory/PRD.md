@@ -217,6 +217,12 @@
   - Backend `/api/coach/dashboard` now checks BOTH `scheduled_observations` collection AND `observation_sessions` with `status='planned'`
   - Planned sessions linked to coach now appear in their "Upcoming Observations" section
 
+### Home Button in Header - February 12, 2026
+- [x] Added Home icon button to the left of "My Coaches" in the navigation header
+- [x] Icon-only button (no text) using lucide-react Home icon
+- [x] Navigates to dashboard (root path `/`)
+- [x] Added `data-testid="nav-home-btn"` for testing
+
 ### Offline Sync for Admin Pages - February 12, 2026
 - [x] **MyCoaches page now works offline**
   - Create coach works offline (queued with "Pending Sync" badge)
