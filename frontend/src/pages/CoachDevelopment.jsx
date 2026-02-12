@@ -17,10 +17,16 @@ const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#e
 // Timeframe options
 const TIMEFRAMES = [
   { value: 'all', label: 'All Time' },
-  { value: '30', label: 'Last 30 Days' },
-  { value: '90', label: 'Last 3 Months' },
-  { value: '180', label: 'Last 6 Months' },
-  { value: '365', label: 'Last Year' }
+  { value: 'month', label: 'This Month' },
+  { value: '180', label: '6 Months' },
+  { value: 'year', label: 'This Year' },
+  { value: 'custom', label: 'Custom Range' }
+];
+
+// View mode options
+const VIEW_MODES = [
+  { value: 'sessions', label: 'By Sessions' },
+  { value: 'parts', label: 'By Parts' }
 ];
 
 export default function CoachDevelopment() {
