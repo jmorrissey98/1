@@ -2202,6 +2202,7 @@ async def list_observation_sessions(request: Request):
             coach_name=coaches_map.get(s.get("coach_id")),
             status=s.get("status", "draft"),
             observation_context=s.get("observation_context", "training"),
+            planned_date=s.get("planned_date"),
             created_at=s.get("created_at", ""),
             updated_at=s.get("updated_at", ""),
             total_duration=s.get("total_duration", 0),
