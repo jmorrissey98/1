@@ -4,27 +4,21 @@ import { useAuth } from '../contexts/AuthContext';
 import { getPendingChangeCount, processOfflineQueue, getSyncStatus, SyncStatus } from '../lib/cloudSessionService';
 import { cn } from '../lib/utils';
 
-// Try to use CloudSyncContext if available, otherwise use direct service
-let useCloudSync;
-try {
-  const cloudSyncModule = require('../contexts/CloudSyncContext');
-  useCloudSync = cloudSyncModule.useCloudSync;
-} catch (e) {
-  useCloudSync = null;
-}
-
 export default function SyncStatusIndicator({ className, showDetails = false }) {
   const { isCoach } = useAuth();
   const isCoachUser = isCoach && isCoach();
   
-  // For coach users, show a simpler indicator that doesn't rely on CloudSyncContext
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [online, setOnline] = useState(navigator.onLine);
+  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [currentSyncStatus, setCurrentSyncStatus] = useState(getSyncStatus());
   
-  // Update pending count periodically
+  // Update pending count and sync status periodically
   useEffect(() => {
-    const updateCount = () => setPendingCount(getPendingChangeCount());
+    const updateCount = () => {
+      setPendingCount(getPendingChangeCount());
+      setCurrentSyncStatus(getSyncStatus());
+    };
     updateCount();
     
     const interval = setInterval(updateCount, 2000);
@@ -44,6 +38,17 @@ export default function SyncStatusIndicator({ className, showDetails = false }) 
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const handleSyncNow = async () => {
+    if (!navigator.onLine || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await processOfflineQueue();
+      setPendingCount(getPendingChangeCount());
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   
   // For coach users, show a simple online/offline indicator
   if (isCoachUser) {
@@ -64,92 +69,30 @@ export default function SyncStatusIndicator({ className, showDetails = false }) 
     );
   }
   
-  // For coach developers, use full CloudSyncContext if available
-  return <CoachDeveloperSyncIndicator className={className} showDetails={showDetails} />;
-}
-
-// Separate component for coach developer sync that uses CloudSyncContext
-function CoachDeveloperSyncIndicator({ className, showDetails }) {
-  // Try to use CloudSyncContext
-  let cloudSyncState = null;
-  
-  try {
-    // This will throw if not within CloudSyncProvider
-    if (useCloudSync) {
-      cloudSyncState = useCloudSync();
-    }
-  } catch (e) {
-    // Not within CloudSyncProvider
-  }
-  
-  const [pendingCount, setPendingCount] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Fallback to direct service state
-  const syncStatus = cloudSyncState?.syncStatus || getSyncStatus();
-  const lastSyncTime = cloudSyncState?.lastSyncTime;
-  const isSyncing = cloudSyncState?.isSyncing || syncStatus === SyncStatus.SYNCING;
-  const isSynced = cloudSyncState?.isSynced || syncStatus === SyncStatus.SYNCED;
-  const isOffline = cloudSyncState?.isOffline || syncStatus === SyncStatus.OFFLINE || !navigator.onLine;
-  const hasError = cloudSyncState?.hasError || syncStatus === SyncStatus.ERROR;
-
-  // Update pending count periodically
-  useEffect(() => {
-    const updateCount = () => setPendingCount(getPendingChangeCount());
-    updateCount();
-    
-    const interval = setInterval(updateCount, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatLastSync = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    
-    return date.toLocaleDateString();
-  };
-
-  const handleSyncNow = async () => {
-    if (!navigator.onLine || isProcessing) return;
-    setIsProcessing(true);
-    try {
-      await processOfflineQueue();
-      setPendingCount(getPendingChangeCount());
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const isConflict = syncStatus === 'conflict';
+  // For coach developers, show full sync status
+  const isSyncing = currentSyncStatus === SyncStatus.SYNCING || isProcessing;
+  const isSynced = currentSyncStatus === SyncStatus.SYNCED;
+  const isOffline = currentSyncStatus === SyncStatus.OFFLINE || !online;
+  const hasError = currentSyncStatus === SyncStatus.ERROR;
+  const isConflict = currentSyncStatus === SyncStatus.CONFLICT;
 
   return (
     <div className={cn("flex items-center gap-1.5 text-xs", className)}>
-      {(isSyncing || isProcessing) && (
+      {isSyncing && (
         <>
           <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
           <span className="text-blue-600">Syncing...</span>
         </>
       )}
       
-      {isSynced && !isSyncing && !isProcessing && (
+      {isSynced && !isSyncing && (
         <>
           <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-          <span className="text-green-600">
-            Saved {lastSyncTime && formatLastSync(lastSyncTime)}
-          </span>
+          <span className="text-green-600">Saved</span>
         </>
       )}
       
-      {isOffline && (
+      {isOffline && !isSyncing && (
         <>
           <CloudOff className="w-3.5 h-3.5 text-amber-500" />
           <span className="text-amber-600">
@@ -158,14 +101,14 @@ function CoachDeveloperSyncIndicator({ className, showDetails }) {
         </>
       )}
       
-      {isConflict && (
+      {isConflict && !isSyncing && (
         <>
           <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
           <span className="text-orange-600">Conflicts resolved</span>
         </>
       )}
       
-      {hasError && !isOffline && (
+      {hasError && !isOffline && !isSyncing && (
         <>
           <AlertCircle className="w-3.5 h-3.5 text-red-500" />
           <span className="text-red-600">
@@ -183,7 +126,7 @@ function CoachDeveloperSyncIndicator({ className, showDetails }) {
         </>
       )}
       
-      {syncStatus === 'idle' && !isSyncing && !isProcessing && (
+      {currentSyncStatus === 'idle' && !isSyncing && (
         <>
           <Cloud className="w-3.5 h-3.5 text-slate-400" />
           <span className="text-slate-500">Cloud</span>
@@ -191,7 +134,7 @@ function CoachDeveloperSyncIndicator({ className, showDetails }) {
       )}
       
       {/* Show pending badge when online with pending changes */}
-      {pendingCount > 0 && navigator.onLine && !isOffline && !isSyncing && !isProcessing && showDetails && (
+      {pendingCount > 0 && navigator.onLine && !isOffline && !isSyncing && showDetails && (
         <button 
           onClick={handleSyncNow}
           className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs hover:bg-amber-200"
