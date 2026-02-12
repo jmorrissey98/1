@@ -299,6 +299,7 @@
   - Reset passwords for any non-admin user
   - Delete users
   - Impersonate users (generates session token to view app as that user)
+  - **Impersonation Banner** - Shows "Viewing as: [User] (role)" with Exit button
 - [x] **Admin API Endpoints**
   - GET /api/admin/organizations - List all clubs
   - GET /api/admin/organizations/{org_id}/users - List users in club
