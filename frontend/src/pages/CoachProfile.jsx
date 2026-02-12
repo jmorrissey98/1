@@ -1060,34 +1060,74 @@ export default function CoachProfile() {
                             Upcoming ({upcomingSessions.length})
                           </h4>
                           <div className="space-y-3">
-                            {upcomingSessions.map(session => (
-                              <div 
-                                key={session.id || session.session_id}
-                                className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer border border-blue-200"
-                                onClick={() => navigate(`/session/${session.id || session.session_id}/setup`)}
-                              >
-                                <div>
-                                  <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
-                                  <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                                    <span>Scheduled: {formatDate(session.plannedDate || session.planned_date || session.createdAt || session.created_at)}</span>
+                            {upcomingSessions.map(session => {
+                              const sessionId = session.id || session.session_id;
+                              return (
+                                <div 
+                                  key={sessionId}
+                                  className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 border border-blue-200"
+                                >
+                                  <div 
+                                    className="flex-1 cursor-pointer"
+                                    onClick={() => navigate(`/session/${sessionId}/setup`)}
+                                  >
+                                    <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
+                                    <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                      <span>Scheduled: {formatDate(session.plannedDate || session.planned_date || session.createdAt || session.created_at)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-blue-500 hover:bg-blue-500">Planned</Badge>
+                                    <Button 
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => navigate(`/session/${sessionId}/setup`)}
+                                      title="Edit"
+                                    >
+                                      <Edit2 className="w-4 h-4 text-slate-500" />
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                          title="Delete"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Planned Session?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This will permanently delete "{session.name || session.title}". This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => handleDeleteSession(sessionId)}
+                                            className="bg-red-600 hover:bg-red-700"
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                    <Button 
+                                      size="sm"
+                                      className="bg-orange-500 hover:bg-orange-600"
+                                      onClick={() => navigate(`/session/${sessionId}/observe`)}
+                                    >
+                                      <Play className="w-4 h-4 mr-1" />
+                                      Start
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="bg-blue-500 hover:bg-blue-500">Planned</Badge>
-                                  <Button 
-                                    size="sm"
-                                    className="bg-orange-500 hover:bg-orange-600"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/session/${session.id || session.session_id}/observe`);
-                                    }}
-                                  >
-                                    <Play className="w-4 h-4 mr-1" />
-                                    Start
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
