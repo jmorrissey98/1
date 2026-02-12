@@ -1343,7 +1343,7 @@ async def login(login_data: LoginRequest, response: Response):
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
-        # Set cookie
+        # Set cookie (for same-domain scenarios)
         response.set_cookie(
             key="session_token",
             value=session_token,
@@ -1354,6 +1354,7 @@ async def login(login_data: LoginRequest, response: Response):
             path="/"
         )
         
+        # Return token in body as well (for cross-domain scenarios where cookies don't work)
         return {
             "user_id": user_id,
             "email": user_doc["email"],
@@ -1361,7 +1362,8 @@ async def login(login_data: LoginRequest, response: Response):
             "picture": user_doc.get("picture"),
             "role": user_doc.get("role", "coach"),
             "linked_coach_id": user_doc.get("linked_coach_id"),
-            "auth_provider": user_doc.get("auth_provider", "email")
+            "auth_provider": user_doc.get("auth_provider", "email"),
+            "token": session_token
         }
         
     except HTTPException:
