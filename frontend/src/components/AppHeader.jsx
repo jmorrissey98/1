@@ -16,6 +16,9 @@ const EXCLUDED_PATHS = [
   // Note: /admin excluded below UNLESS impersonating
 ];
 
+// Root path "/" shows landing page for unauthenticated users, so header is handled by RootRoute
+const isRootPath = (path) => path === '/';
+
 export default function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
