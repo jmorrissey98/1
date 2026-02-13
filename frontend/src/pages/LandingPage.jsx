@@ -256,14 +256,7 @@ export default function LandingPage() {
                 </Button>
               </div>
               <div className="mt-8 flex items-center gap-6 text-sm text-slate-500">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  <span>No credit card required for trial</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  <span>Cancel anytime</span>
-                </div>
+                <span>Cancel anytime</span>
               </div>
             </div>
             <div className="relative">
@@ -272,18 +265,6 @@ export default function LandingPage() {
                   <div className="text-center p-8">
                     <img src="/mcd-logo.png" alt="App Preview" className="w-32 h-32 mx-auto mb-4 opacity-50" />
                     <p className="text-slate-500 text-sm">App Preview Coming Soon</p>
-                  </div>
-                </div>
-              </div>
-              {/* Floating stats card */}
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-lg p-4 border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">500+</p>
-                    <p className="text-xs text-slate-500">Active Coaches</p>
                   </div>
                 </div>
               </div>
