@@ -1047,11 +1047,108 @@ export default function LiveObservation() {
       )}
 
       {/* Intervention Count Badge */}
-      <div className="fixed bottom-4 right-4">
+      <div className="fixed bottom-4 right-4 flex items-center gap-2">
+        {/* Notes Panel Toggle (Phase 4) */}
+        {session.enableObserverNotes !== false && (
+          <Button
+            onClick={() => setShowNotesPanel(!showNotesPanel)}
+            className={cn(
+              "shadow-lg",
+              showNotesPanel ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-500 hover:bg-purple-600"
+            )}
+            data-testid="toggle-notes-panel"
+          >
+            <StickyNote className="w-4 h-4 mr-2" />
+            Notes {observerNotes.length > 0 && `(${observerNotes.length})`}
+          </Button>
+        )}
         <Badge className="bg-slate-900 text-white text-lg px-3 py-1" data-testid="event-count-badge">
           {session.events.length} interventions
         </Badge>
       </div>
+
+      {/* Observer Notes Panel (Phase 4) */}
+      {showNotesPanel && session.enableObserverNotes !== false && (
+        <div className="fixed bottom-20 right-4 w-80 bg-white rounded-lg shadow-xl border border-slate-200 z-20" data-testid="notes-panel">
+          <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-purple-50 rounded-t-lg">
+            <h3 className="font-semibold text-purple-900 flex items-center gap-2">
+              <StickyNote className="w-4 h-4" />
+              Observer Notes
+            </h3>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setShowNotesPanel(false)}
+              className="h-6 w-6"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          {/* Notes list */}
+          <div className="max-h-60 overflow-y-auto p-3 space-y-2">
+            {observerNotes.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">
+                No notes yet. Add private notes below.
+              </p>
+            ) : (
+              observerNotes.map((note) => (
+                <div key={note.id} className="bg-slate-50 rounded-lg p-2 text-sm relative group">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-slate-700">{note.text}</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                        <span>{new Date(note.timestamp).toLocaleTimeString()}</span>
+                        <span>•</span>
+                        <Badge variant="outline" className="text-xs py-0">
+                          {note.partName}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteObserverNote(note.id)}
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Add note input */}
+          <div className="p-3 border-t border-slate-200 bg-slate-50 rounded-b-lg">
+            <div className="flex gap-2">
+              <Textarea
+                value={currentNote}
+                onChange={(e) => setCurrentNote(e.target.value)}
+                placeholder="Add a private note..."
+                className="flex-1 text-sm resize-none h-16"
+                data-testid="observer-note-input"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAddObserverNote();
+                  }
+                }}
+              />
+            </div>
+            <Button
+              onClick={handleAddObserverNote}
+              disabled={!currentNote.trim()}
+              className="w-full mt-2 bg-purple-600 hover:bg-purple-700"
+              size="sm"
+              data-testid="save-observer-note"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Note
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* End Session Confirmation Dialog */}
       <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
