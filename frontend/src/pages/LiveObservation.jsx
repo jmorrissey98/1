@@ -542,9 +542,45 @@ export default function LiveObservation() {
     toast.success('Note added');
   };
 
+  // Observer Notes handlers (Phase 4)
+  const handleAddObserverNote = () => {
+    if (!currentNote.trim()) return;
+    
+    const newNote = {
+      id: generateId('note'),
+      text: currentNote.trim(),
+      timestamp: new Date().toISOString(),
+      partId: session.activePartId,
+      partName: activePart?.name || 'Unknown'
+    };
+    
+    const updatedNotes = [...observerNotes, newNote];
+    setObserverNotes(updatedNotes);
+    setCurrentNote('');
+    
+    // Save notes to session
+    setSession(prev => ({
+      ...prev,
+      observerNotes: updatedNotes
+    }));
+    
+    toast.success('Note saved', { duration: 1500 });
+  };
+
+  const handleDeleteObserverNote = (noteId) => {
+    const updatedNotes = observerNotes.filter(n => n.id !== noteId);
+    setObserverNotes(updatedNotes);
+    
+    setSession(prev => ({
+      ...prev,
+      observerNotes: updatedNotes
+    }));
+  };
+
   if (!session) return null;
 
   const activePart = session.sessionParts.find(p => p.id === session.activePartId);
+  const activeTargets = coachInfo?.targets?.filter(t => t.status === 'active') || [];
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col safe-area-inset">
