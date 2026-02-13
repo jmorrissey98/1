@@ -93,7 +93,8 @@ export function AuthProvider({ children }) {
   };
 
   const isCoachDeveloper = () => {
-    return user?.role === USER_ROLES.COACH_DEVELOPER;
+    // Admin users have coach developer privileges
+    return user?.role === USER_ROLES.COACH_DEVELOPER || user?.role === 'admin';
   };
 
   const isCoach = () => {
