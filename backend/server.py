@@ -4007,6 +4007,247 @@ async def get_payment_transaction(session_id: str):
 # END STRIPE PAYMENT ENDPOINTS
 # ============================================
 
+# ============================================
+# REFLECTION TEMPLATE ENDPOINTS
+# ============================================
+
+@api_router.get("/reflection-templates")
+async def list_reflection_templates(
+    request: Request,
+    target_role: Optional[str] = None
+):
+    """
+    List all reflection templates for the user's organization.
+    Can filter by target_role: 'coach_educator' or 'coach'
+    """
+    user = await require_auth(request)
+    
+    # Build query based on user's organization
+    query = {}
+    
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        # Fallback: show templates created by this user
+        query["created_by"] = user.user_id
+    
+    if target_role:
+        query["target_role"] = target_role
+    
+    templates = await db.reflection_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return templates
+
+@api_router.get("/reflection-templates/{template_id}")
+async def get_reflection_template(template_id: str, request: Request):
+    """Get a specific reflection template"""
+    user = await require_auth(request)
+    
+    template = await db.reflection_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return template
+
+@api_router.post("/reflection-templates")
+async def create_reflection_template(data: ReflectionTemplateCreate, request: Request):
+    """Create a new reflection template"""
+    user = await require_coach_developer(request)
+    
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    template_id = f"reftmpl_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # If setting as default, unset any existing default for the same target_role in the org
+    if data.is_default and org_id:
+        await db.reflection_templates.update_many(
+            {"organization_id": org_id, "target_role": data.target_role, "is_default": True},
+            {"$set": {"is_default": False}}
+        )
+    
+    template_doc = {
+        "template_id": template_id,
+        "name": data.name,
+        "target_role": data.target_role,
+        "description": data.description,
+        "questions": [q.model_dump() for q in data.questions],
+        "is_default": data.is_default,
+        "created_by": user.user_id,
+        "organization_id": org_id,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.reflection_templates.insert_one(template_doc)
+    
+    # Return without MongoDB _id
+    del template_doc["_id"] if "_id" in template_doc else None
+    return template_doc
+
+@api_router.put("/reflection-templates/{template_id}")
+async def update_reflection_template(
+    template_id: str,
+    data: ReflectionTemplateUpdate,
+    request: Request
+):
+    """Update an existing reflection template"""
+    user = await require_coach_developer(request)
+    
+    # Find the template
+    template = await db.reflection_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Verify ownership - only creator can edit
+    if template.get("created_by") != user.user_id:
+        raise HTTPException(status_code=403, detail="You can only edit templates you created")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.questions is not None:
+        update_data["questions"] = [q.model_dump() for q in data.questions]
+    if data.is_default is not None:
+        # If setting as default, unset any existing default for the same target_role
+        if data.is_default:
+            org_id = template.get("organization_id")
+            target_role = template.get("target_role")
+            if org_id:
+                await db.reflection_templates.update_many(
+                    {
+                        "organization_id": org_id,
+                        "target_role": target_role,
+                        "is_default": True,
+                        "template_id": {"$ne": template_id}
+                    },
+                    {"$set": {"is_default": False}}
+                )
+        update_data["is_default"] = data.is_default
+    
+    await db.reflection_templates.update_one(
+        {"template_id": template_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated template
+    updated = await db.reflection_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    return updated
+
+@api_router.delete("/reflection-templates/{template_id}")
+async def delete_reflection_template(template_id: str, request: Request):
+    """Delete a reflection template"""
+    user = await require_coach_developer(request)
+    
+    # Find the template
+    template = await db.reflection_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Verify ownership - only creator can delete
+    if template.get("created_by") != user.user_id:
+        raise HTTPException(status_code=403, detail="You can only delete templates you created")
+    
+    await db.reflection_templates.delete_one({"template_id": template_id})
+    
+    return {"status": "deleted", "template_id": template_id}
+
+@api_router.post("/reflection-templates/{template_id}/set-default")
+async def set_template_as_default(template_id: str, request: Request):
+    """Set a template as the default for its target_role"""
+    user = await require_coach_developer(request)
+    
+    # Find the template
+    template = await db.reflection_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    org_id = template.get("organization_id")
+    target_role = template.get("target_role")
+    
+    # Unset any existing default for the same target_role in the org
+    if org_id:
+        await db.reflection_templates.update_many(
+            {"organization_id": org_id, "target_role": target_role, "is_default": True},
+            {"$set": {"is_default": False}}
+        )
+    
+    # Set this template as default
+    await db.reflection_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {"is_default": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"status": "success", "template_id": template_id, "is_default": True}
+
+@api_router.post("/reflection-templates/{template_id}/unset-default")
+async def unset_template_as_default(template_id: str, request: Request):
+    """Remove default status from a template"""
+    user = await require_coach_developer(request)
+    
+    # Find the template
+    template = await db.reflection_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Unset default
+    await db.reflection_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {"is_default": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"status": "success", "template_id": template_id, "is_default": False}
+
+# ============================================
+# END REFLECTION TEMPLATE ENDPOINTS
+# ============================================
+
 # Add CORS middleware BEFORE including routes (order matters!)
 # Build comprehensive list of allowed origins for CORS with credentials
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
