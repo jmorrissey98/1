@@ -13,7 +13,7 @@ const EXCLUDED_PATHS = [
   '/login',
   '/reset-password',
   '/auth/callback',
-  '/admin',  // Admin pages have their own header
+  // Note: /admin excluded below UNLESS impersonating
 ];
 
 export default function AppHeader() {
@@ -24,19 +24,29 @@ export default function AppHeader() {
   const [impersonating, setImpersonating] = useState(false);
   const [impersonatedUser, setImpersonatedUser] = useState(null);
   
-  // Check if we're in impersonation mode
+  // Check if we're in impersonation mode - run on every render and route change
   useEffect(() => {
-    const isImpersonating = localStorage.getItem('impersonating') === 'true';
-    setImpersonating(isImpersonating);
-    if (isImpersonating) {
-      try {
-        const userData = JSON.parse(localStorage.getItem('impersonated_user') || '{}');
-        setImpersonatedUser(userData);
-      } catch (e) {
-        console.error('Failed to parse impersonated user data');
+    const checkImpersonation = () => {
+      const isImp = localStorage.getItem('impersonating') === 'true';
+      setImpersonating(isImp);
+      if (isImp) {
+        try {
+          const userData = JSON.parse(localStorage.getItem('impersonated_user') || '{}');
+          setImpersonatedUser(userData);
+        } catch (e) {
+          console.error('Failed to parse impersonated user data');
+        }
+      } else {
+        setImpersonatedUser(null);
       }
-    }
-  }, []);
+    };
+    
+    checkImpersonation();
+    
+    // Also listen for storage changes (in case impersonation is set from another component)
+    window.addEventListener('storage', checkImpersonation);
+    return () => window.removeEventListener('storage', checkImpersonation);
+  }, [location.pathname]);
   
   // Exit impersonation mode - clears session and returns to login
   // Note: Admin will need to login again after exiting impersonation
