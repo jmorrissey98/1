@@ -227,6 +227,14 @@ class InviteResponse(BaseModel):
     coach_id: Optional[str] = None
     created_at: str
     email_sent: Optional[bool] = None  # Track if invite email was sent successfully
+    name: Optional[str] = None  # Name from coach profile if exists
+
+class InviteValidationResponse(BaseModel):
+    valid: bool
+    email: Optional[str] = None
+    name: Optional[str] = None
+    role: Optional[str] = None
+    error: Optional[str] = None
 
 class RoleUpdateRequest(BaseModel):
     user_id: str
