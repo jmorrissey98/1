@@ -4104,7 +4104,7 @@ async def create_reflection_template(data: ReflectionTemplateCreate, request: Re
     await db.reflection_templates.insert_one(template_doc)
     
     # Return without MongoDB _id
-    del template_doc["_id"] if "_id" in template_doc else None
+    template_doc.pop("_id", None)
     return template_doc
 
 @api_router.put("/reflection-templates/{template_id}")
