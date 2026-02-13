@@ -62,25 +62,6 @@ const FEATURES = [
   }
 ];
 
-// Testimonials
-const TESTIMONIALS = [
-  {
-    name: 'Sarah Mitchell',
-    role: 'Head of Coach Development, Premier Academy',
-    quote: 'My Coach Developer has transformed how we track and support our coaching staff. The observation tools are intuitive and the analytics provide real insights.'
-  },
-  {
-    name: 'James O\'Connor',
-    role: 'Technical Director, FC United',
-    quote: 'Finally, a platform built specifically for coach developers. The iPad-first approach makes observations during sessions seamless.'
-  },
-  {
-    name: 'Emma Williams',
-    role: 'Coach Education Manager, National FA',
-    quote: 'We\'ve seen significant improvements in coach engagement since implementing MCD across our development programs.'
-  }
-];
-
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
