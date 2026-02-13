@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { safeGet, safePut } from '../lib/safeFetch';
 import { useAuth } from './AuthContext';
 
-const API_URL = '';
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const OrganizationContext = createContext(null);
 
