@@ -2043,7 +2043,9 @@ async def create_invite(invite_data: InviteCreate, request: Request):
             await send_invite_email(
                 email=email_lower,
                 inviter_name=user.name,
-                role=invite_data.role
+                role=invite_data.role,
+                invite_id=invite_id,
+                invitee_name=None  # No name for direct invites (not from coach profile)
             )
             email_sent = True
             logger.info(f"Invite email sent successfully to {email_lower}")
