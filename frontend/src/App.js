@@ -91,6 +91,7 @@ function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/register/:inviteId" element={<InviteRegistration />} />
       
       {/* Root - Landing page or Dashboard based on auth */}
       <Route path="/" element={<RootRoute />} />
