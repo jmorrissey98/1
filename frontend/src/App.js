@@ -91,8 +91,11 @@ function AppRouter() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       
-      {/* Home - role-based redirect */}
-      <Route path="/" element={
+      {/* Root - Landing page or Dashboard based on auth */}
+      <Route path="/" element={<RootRoute />} />
+      
+      {/* Dashboard - for logged-in users */}
+      <Route path="/dashboard" element={
         <ProtectedRoute>
           <HomeRedirect />
         </ProtectedRoute>
