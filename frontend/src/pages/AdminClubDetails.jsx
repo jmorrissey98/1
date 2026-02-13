@@ -142,8 +142,9 @@ export default function AdminClubDetails() {
       toast.success(`Now viewing as ${result.data.user.name}`);
       
       // Navigate based on user role
+      // For coaches, go to coach dashboard; for coach developers, go to home
       if (result.data.user.role === 'coach') {
-        window.location.href = `/coach-view/${result.data.user.linked_coach_id}`;
+        window.location.href = '/coach';
       } else {
         window.location.href = '/';
       }
