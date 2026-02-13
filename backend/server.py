@@ -3580,6 +3580,205 @@ async def admin_delete_organization(org_id: str, request: Request):
 # END ADMIN API ENDPOINTS
 # ============================================
 
+# ============================================
+# STRIPE PAYMENT ENDPOINTS
+# ============================================
+
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+
+# Stripe configuration
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
+
+# Define pricing tiers (amounts in GBP)
+PRICING_TIERS = {
+    "starter": {
+        "name": "Starter",
+        "monthly": 20.00,
+        "annual": 200.00,
+        "coaches": 5,
+        "admins": 1
+    },
+    "pro": {
+        "name": "Pro",
+        "monthly": 35.00,
+        "annual": 350.00,
+        "coaches": 15,
+        "admins": 1
+    },
+    "club_hub": {
+        "name": "Club Hub",
+        "monthly": 50.00,
+        "annual": 500.00,
+        "coaches": 40,
+        "admins": 5
+    }
+}
+
+class CheckoutRequest(BaseModel):
+    tier_id: str
+    billing_period: str  # "monthly" or "annual"
+    origin_url: str
+
+@api_router.post("/payments/checkout")
+async def create_checkout_session(data: CheckoutRequest, request: Request):
+    """Create a Stripe checkout session for subscription"""
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    # Validate tier
+    if data.tier_id not in PRICING_TIERS:
+        raise HTTPException(status_code=400, detail="Invalid pricing tier")
+    
+    # Validate billing period
+    if data.billing_period not in ["monthly", "annual"]:
+        raise HTTPException(status_code=400, detail="Invalid billing period")
+    
+    tier = PRICING_TIERS[data.tier_id]
+    amount = tier["monthly"] if data.billing_period == "monthly" else tier["annual"]
+    
+    # Build success and cancel URLs
+    success_url = f"{data.origin_url}?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}?canceled=true"
+    
+    # Initialize Stripe checkout
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    # Create checkout session with custom amount
+    checkout_request = CheckoutSessionRequest(
+        amount=amount,
+        currency="gbp",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "tier_id": data.tier_id,
+            "tier_name": tier["name"],
+            "billing_period": data.billing_period,
+            "coaches_limit": str(tier["coaches"]),
+            "admins_limit": str(tier["admins"])
+        }
+    )
+    
+    try:
+        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction = {
+            "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
+            "session_id": session.session_id,
+            "tier_id": data.tier_id,
+            "tier_name": tier["name"],
+            "billing_period": data.billing_period,
+            "amount": amount,
+            "currency": "gbp",
+            "payment_status": "pending",
+            "status": "initiated",
+            "metadata": {
+                "coaches_limit": tier["coaches"],
+                "admins_limit": tier["admins"]
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(transaction)
+        
+        return {
+            "url": session.url,
+            "session_id": session.session_id
+        }
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
+
+@api_router.get("/payments/status/{session_id}")
+async def get_payment_status(session_id: str, request: Request):
+    """Get the status of a payment session"""
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    # Initialize Stripe checkout
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update payment transaction in database
+        update_data = {
+            "payment_status": status.payment_status,
+            "status": status.status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": update_data}
+        )
+        
+        return {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount_total": status.amount_total,
+            "currency": status.currency,
+            "metadata": status.metadata
+        }
+    except Exception as e:
+        logger.error(f"Payment status check error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check payment status")
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature")
+        
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        # Update payment transaction based on webhook event
+        if webhook_response.session_id:
+            update_data = {
+                "payment_status": webhook_response.payment_status,
+                "event_type": webhook_response.event_type,
+                "event_id": webhook_response.event_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": update_data}
+            )
+        
+        return {"received": True}
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/payments/transaction/{session_id}")
+async def get_payment_transaction(session_id: str):
+    """Get payment transaction details by session ID"""
+    transaction = await db.payment_transactions.find_one(
+        {"session_id": session_id},
+        {"_id": 0}
+    )
+    
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    return transaction
+
+# ============================================
+# END STRIPE PAYMENT ENDPOINTS
+# ============================================
+
 # Add CORS middleware BEFORE including routes (order matters!)
 # Build comprehensive list of allowed origins for CORS with credentials
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
