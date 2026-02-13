@@ -320,6 +320,29 @@
   - "Exit" button to end impersonation and return to login
   - Visible across all pages while impersonating
 
+### Token-Based Authentication Migration - February 13, 2026
+- [x] **Migrated from session cookies to JWT tokens**
+  - Backend login/signup endpoints now return JWT token in response body
+  - Frontend stores token in localStorage instead of relying on cookies
+  - All API requests use `Authorization: Bearer <token>` header via safeFetch.js
+  - Fixed CORS issues on production deployment (cookie-based auth had cross-domain issues)
+- [x] **Impersonation feature updated for token auth**
+  - Admin impersonation now generates temporary JWT token for target user
+  - Frontend swaps token in localStorage when impersonating
+  - Exit impersonation redirects to login (simplified flow)
+
+### Impersonation Data Loading Fix - February 13, 2026
+- [x] **Fixed broken impersonation view** - UI was showing partial data and non-functional buttons
+  - **Root cause 1**: `/api/auth/me` endpoint was not returning `organization_id` field
+  - **Root cause 2**: `/api/organization` endpoint did not check `user.organization_id` field
+  - Admin-created users have `organization_id` set, but organization endpoint only checked `owner_id` matching
+- [x] **Backend fixes**:
+  - `/api/auth/me` now returns `organization_id` from user document
+  - `/api/organization` now checks `user.organization_id` first, then falls back to owner_id matching
+- [x] **Frontend fixes**:
+  - Removed `requireCoachDeveloper` restriction from `/coach-view/:coachId` route
+  - Impersonating a coach now redirects to `/coach` dashboard instead of `/coach-view`
+
 ## Remaining Work / Backlog
 
 ### P0 - Critical (Next Phase)
