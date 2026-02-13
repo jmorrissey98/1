@@ -1222,6 +1222,15 @@ export default function LiveObservation() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Session Complete Reflection Modal (Phase 4) */}
+      <SessionCompleteReflection
+        isOpen={showReflectionModal}
+        onClose={() => setShowReflectionModal(false)}
+        session={completedSession}
+        onSaveReflection={handleSaveReflection}
+        onSkip={handleSkipReflection}
+      />
     </div>
   );
 }
