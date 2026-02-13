@@ -13,9 +13,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Use relative URL for API calls - this ensures cookies work correctly
-  // since frontend and backend are served from the same domain
-  const API_URL = '';
+  // Use explicit backend URL for API calls
+  const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
   // Check authentication on mount
   useEffect(() => {
