@@ -559,6 +559,73 @@ export default function SessionSetup() {
           </CardContent>
         </Card>
 
+        {/* Reflection & Notes Settings (Phase 4) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-['Manrope'] flex items-center gap-2">
+              <ClipboardList className="w-5 h-5" />
+              Reflection & Notes
+            </CardTitle>
+            <CardDescription>
+              Configure post-observation reflection and notes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Reflection Template Selector */}
+            <div>
+              <Label htmlFor="reflection-template">Reflection Template</Label>
+              <p className="text-sm text-slate-500 mb-2">
+                Select the template to use for your post-observation reflection
+              </p>
+              <Select 
+                value={selectedReflectionTemplateId} 
+                onValueChange={handleReflectionTemplateChange}
+              >
+                <SelectTrigger className="mt-1" data-testid="reflection-template-select">
+                  <SelectValue placeholder="Select a reflection template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">
+                    Use Default Template
+                  </SelectItem>
+                  {reflectionTemplates.map(t => (
+                    <SelectItem key={t.template_id} value={t.template_id}>
+                      {t.name} {t.is_default && '(Default)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {reflectionTemplates.length === 0 && (
+                <p className="text-sm text-slate-500 mt-2">
+                  No reflection templates yet.{' '}
+                  <button 
+                    className="text-blue-600 hover:underline" 
+                    onClick={() => navigate('/templates')}
+                  >
+                    Create one
+                  </button>
+                </p>
+              )}
+            </div>
+
+            {/* Observer Notes Toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+              <div>
+                <Label htmlFor="enable-notes" className="cursor-pointer">Enable Observer Notes</Label>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Take private notes during observation (can be added to summary later)
+                </p>
+              </div>
+              <Switch
+                id="enable-notes"
+                checked={enableObserverNotes}
+                onCheckedChange={handleNotesToggle}
+                data-testid="enable-notes-switch"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Event Types */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
