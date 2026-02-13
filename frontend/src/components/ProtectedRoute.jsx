@@ -50,15 +50,11 @@ export default function ProtectedRoute({
     return <Navigate to="/" replace />;
   }
 
-  // Check coach developer role requirement
-  if (requireCoachDeveloper && !isCoachDeveloper()) {
+  // Check coach developer role requirement (admins also have access)
+  if (requireCoachDeveloper && !isCoachDeveloper() && user.role !== 'admin') {
     // Redirect coaches to their dashboard
     if (user.role === 'coach') {
       return <Navigate to="/coach" replace />;
-    }
-    // Redirect admin to admin dashboard (only if not impersonating)
-    if (user.role === 'admin' && !isImpersonating) {
-      return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/" replace />;
   }
