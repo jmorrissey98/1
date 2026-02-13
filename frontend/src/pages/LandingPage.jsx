@@ -69,6 +69,16 @@ export default function LandingPage() {
   const [loadingTier, setLoadingTier] = useState(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
+  // Handle hash-based navigation (e.g., /#pricing)
+  useEffect(() => {
+    if (location.hash === '#pricing') {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location.hash]);
+
   // Check for returning from Stripe
   useEffect(() => {
     const params = new URLSearchParams(location.search);
