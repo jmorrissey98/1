@@ -426,6 +426,55 @@ class SessionListItem(BaseModel):
 # END OBSERVATION SESSION MODELS
 # ============================================
 
+# ============================================
+# REFLECTION TEMPLATE MODELS
+# ============================================
+
+class ReflectionQuestionBase(BaseModel):
+    """Base question structure for reflection templates"""
+    question_id: str
+    question_text: str
+    question_type: str  # "text", "scale", "dropdown", "checkbox"
+    required: bool = False
+    # For scale type
+    scale_min: Optional[int] = 1
+    scale_max: Optional[int] = 5
+    scale_min_label: Optional[str] = None
+    scale_max_label: Optional[str] = None
+    # For dropdown/checkbox type
+    options: Optional[List[str]] = []
+
+class ReflectionTemplateCreate(BaseModel):
+    """Create a new reflection template"""
+    name: str
+    target_role: str  # "coach_educator" or "coach"
+    description: Optional[str] = None
+    questions: List[ReflectionQuestionBase] = []
+    is_default: bool = False
+
+class ReflectionTemplateUpdate(BaseModel):
+    """Update an existing reflection template"""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    questions: Optional[List[ReflectionQuestionBase]] = None
+    is_default: Optional[bool] = None
+
+class ReflectionTemplateResponse(BaseModel):
+    template_id: str
+    name: str
+    target_role: str
+    description: Optional[str] = None
+    questions: List[Dict[str, Any]] = []
+    is_default: bool = False
+    created_by: str
+    organization_id: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+# ============================================
+# END REFLECTION TEMPLATE MODELS
+# ============================================
+
 # Default session parts
 DEFAULT_SESSION_PARTS = [
     {"part_id": "default_technique", "name": "Develop The Technique", "is_default": True},
