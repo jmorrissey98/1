@@ -130,6 +130,22 @@ export default function SessionSetup() {
     }
   };
 
+  const loadReflectionTemplates = async () => {
+    try {
+      // Load coach educator reflection templates
+      const templates = await fetchReflectionTemplates('coach_educator');
+      setReflectionTemplates(templates);
+      
+      // Set default template if one exists
+      const defaultTemplate = templates.find(t => t.is_default);
+      if (defaultTemplate) {
+        setSelectedReflectionTemplateId(defaultTemplate.template_id);
+      }
+    } catch (err) {
+      console.error('Failed to load reflection templates:', err);
+    }
+  };
+
   const handleTemplateChange = (templateId) => {
     setSelectedTemplate(templateId);
     const template = templates.find(t => t.id === templateId) || getDefaultTemplate();
