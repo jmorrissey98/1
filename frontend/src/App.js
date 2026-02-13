@@ -21,6 +21,7 @@ import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuthCallback from "./pages/AuthCallback";
 import LandingPage from "./pages/LandingPage";
+import InviteRegistration from "./pages/InviteRegistration";
 // Coach Role Pages
 import CoachDashboard from "./pages/CoachDashboard";
 import CoachDevelopment from "./pages/CoachDevelopment";
