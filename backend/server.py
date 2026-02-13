@@ -2131,11 +2131,20 @@ async def resend_invite(invite_id: str, request: Request):
     if not invite:
         raise HTTPException(status_code=404, detail="Invite not found or already used")
     
+    # Get invitee name from coach profile if exists
+    invitee_name = None
+    if invite.get("coach_id"):
+        coach = await db.coaches.find_one({"id": invite["coach_id"]}, {"_id": 0, "name": 1})
+        if coach:
+            invitee_name = coach.get("name")
+    
     try:
         await send_invite_email(
             email=invite["email"],
             inviter_name=user.name,
-            role=invite["role"]
+            role=invite["role"],
+            invite_id=invite_id,
+            invitee_name=invitee_name
         )
         return {"status": "sent", "email": invite["email"]}
     except Exception as e:
