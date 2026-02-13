@@ -226,7 +226,7 @@ export default function LoginPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin" data-testid="signin-tab">Sign In</TabsTrigger>
-              <TabsTrigger value="signup" data-testid="signup-tab">Sign Up</TabsTrigger>
+              <TabsTrigger value="create" data-testid="create-account-tab">Create Account</TabsTrigger>
             </TabsList>
             
             {/* Sign In Tab */}
@@ -296,148 +296,27 @@ export default function LoginPage() {
               </form>
             </TabsContent>
             
-            {/* Sign Up Tab */}
-            <TabsContent value="signup" className="space-y-4 mt-4">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signUpName}
-                      onChange={(e) => setSignUpName(e.target.value)}
-                      className="pl-10"
-                      data-testid="signup-name-input"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={signUpEmail}
-                      onChange={(e) => setSignUpEmail(e.target.value)}
-                      className="pl-10"
-                      data-testid="signup-email-input"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={signUpPassword}
-                      onChange={(e) => setSignUpPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      data-testid="signup-password-input"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Must be at least 8 characters with a letter and number
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="signup-confirm-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={signUpConfirmPassword}
-                      onChange={(e) => setSignUpConfirmPassword(e.target.value)}
-                      className="pl-10"
-                      data-testid="signup-confirm-password-input"
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Password must be at least 8 characters with at least one letter and one number.
-                  </p>
-                </div>
-                
-                {/* Club branding fields - only for first user */}
-                {isFirstUser && (
-                  <div className="space-y-4 pt-4 border-t border-slate-200">
-                    <div className="text-sm text-slate-600 bg-emerald-50 p-3 rounded-lg">
-                      <strong>You're the first user!</strong> Set up your club branding below.
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="club-name">Club Name</Label>
-                      <div className="relative">
-                        <Building2 className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input
-                          id="club-name"
-                          type="text"
-                          placeholder="Your Club Name"
-                          value={clubName}
-                          onChange={(e) => setClubName(e.target.value)}
-                          className="pl-10"
-                          data-testid="signup-club-name-input"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="club-logo">Club Logo URL (optional)</Label>
-                      <div className="relative">
-                        <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input
-                          id="club-logo"
-                          type="url"
-                          placeholder="https://example.com/logo.png"
-                          value={clubLogo}
-                          onChange={(e) => setClubLogo(e.target.value)}
-                          className="pl-10"
-                          data-testid="signup-club-logo-input"
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        You can add or change this later in Settings.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
+            {/* Create Account Tab */}
+            <TabsContent value="create" className="space-y-6 mt-4">
+              <div className="text-center py-4">
+                <p className="text-slate-600 mb-6">
+                  To create an account, please choose a subscription plan first.
+                </p>
                 <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting}
-                  data-testid="signup-submit-btn"
+                  onClick={() => navigate('/#pricing')}
+                  className="bg-slate-900 hover:bg-slate-800"
+                  data-testid="view-plans-btn"
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Create Account
+                  View Plans & Pricing
+                  <ChevronRight className="ml-2 w-4 h-4" />
                 </Button>
-              </form>
+              </div>
               
-              <p className="text-xs text-center text-slate-500 mt-2">
-                Note: You need an invite from a Coach Developer to create an account.
-                <br />
-                The first user to sign up becomes the admin.
-              </p>
+              <div className="border-t border-slate-200 pt-4">
+                <p className="text-xs text-center text-slate-500">
+                  Already have an invite? Check your email for the signup link.
+                </p>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
