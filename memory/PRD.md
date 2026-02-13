@@ -343,6 +343,26 @@
   - Removed `requireCoachDeveloper` restriction from `/coach-view/:coachId` route
   - Impersonating a coach now redirects to `/coach` dashboard instead of `/coach-view`
 
+### Landing Page & Stripe Integration - February 13, 2026
+- [x] **Public Landing Page** at root URL `/`
+  - Hero section with CTA buttons
+  - Features grid (Streamlined Observation, Progress Tracking, Team Management)
+  - Testimonials section with social proof
+  - Three-tier pricing table with Monthly/Annual toggle
+  - Enterprise contact CTA
+  - Footer with links
+- [x] **Auth-Aware Routing**
+  - `/` shows landing page for unauthenticated users
+  - `/` redirects to dashboard for authenticated users (role-based)
+  - `/dashboard` route added for direct dashboard access
+- [x] **Stripe Integration (Test Mode)**
+  - Three pricing tiers: Starter (£20/£200), Pro (£35/£350), Club Hub (£50/£500)
+  - Backend endpoints: `/api/payments/checkout`, `/api/payments/status/{session_id}`, `/api/webhook/stripe`
+  - Payment transactions stored in `payment_transactions` collection
+  - Successful payment redirects to signup flow with session info
+- [x] **Logo Update**
+  - New MCD logo deployed across all assets (favicon, PWA icons, login page, app header)
+
 ## Remaining Work / Backlog
 
 ### P0 - Critical (Next Phase)
