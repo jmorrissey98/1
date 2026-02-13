@@ -280,12 +280,12 @@ export default function LiveObservation() {
       setIsRunning(false);
       setShowEndConfirm(false);
       
-      if (saveResult.success) {
-        toast.success('Session completed and saved!');
-        navigate(`/session/${sessionId}/review`);
-      } else if (saveResult.queued) {
-        toast.success('Session completed! Will sync when online.');
-        navigate(`/session/${sessionId}/review`);
+      if (saveResult.success || saveResult.queued) {
+        toast.success(saveResult.success ? 'Session completed and saved!' : 'Session completed! Will sync when online.');
+        
+        // Store the completed session and show reflection modal (Phase 4)
+        setCompletedSession(finalSession);
+        setShowReflectionModal(true);
       } else {
         // Save failed - ask user what to do
         toast.error('Failed to save to cloud. Please try again or check your connection.');
@@ -299,6 +299,42 @@ export default function LiveObservation() {
       // Don't close dialog or navigate - let user retry
       return;
     }
+  };
+
+  // Handle saving reflection after session completion (Phase 4)
+  const handleSaveReflection = async (reflectionData) => {
+    try {
+      // Update the session with reflection data
+      const sessionWithReflection = {
+        ...completedSession,
+        observerReflection: {
+          templateId: reflectionData.templateId,
+          templateName: reflectionData.templateName,
+          responses: reflectionData.responses,
+          notesIncluded: reflectionData.selectedNotes,
+          notesContent: reflectionData.notesContent,
+          completedAt: new Date().toISOString()
+        },
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save to cloud
+      await cloudSaveSession(sessionWithReflection);
+      setSession(sessionWithReflection);
+      setCurrentSession(sessionWithReflection);
+      
+      // Navigate to review
+      navigate(`/session/${sessionId}/review`);
+    } catch (err) {
+      console.error('Failed to save reflection:', err);
+      throw err;
+    }
+  };
+
+  // Handle skipping reflection (Phase 4)
+  const handleSkipReflection = () => {
+    setShowReflectionModal(false);
+    navigate(`/session/${sessionId}/review`);
   };
 
   const handleEventTap = (eventType) => {
