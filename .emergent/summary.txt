@@ -1,68 +1,69 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build and stabilize a PWA (My Coach Developer) for sports coaching. The initial work focused on fixing a critical user impersonation bug. After resolving that, the scope expanded to include a full UI/UX overhaul starting with a new logo, and building a high-conversion public landing page with a three-tier subscription model integrated with Stripe. The current focus is on fixing a bug in the Stripe checkout flow and refining the new landing page.
+The user's primary goal is to build and stabilize a PWA (My Coach Developer) for sports coaching. The initial scope involved fixing bugs and adding a Stripe-integrated landing page. The scope has now significantly expanded to a multi-phase feature development effort.
 
-PRODUCT REQUIREMENTS:
-1.  **Landing Page:** Build a public landing page at the root URL.
-2.  **Auth Routing:** Unauthenticated users see the landing page. Authenticated users are redirected to their dashboard.
-3.  **Pricing Tiers:** Display a three-tier pricing table (Starter, Pro, Club Hub) with a monthly/annual toggle.
-4.  **Stripe Integration:** Sign Up buttons on the pricing table should lead to a Stripe checkout. The flow should be: pay first, then create an account.
-5.  **Feature Gating (Future):** The app's features will eventually be restricted based on the user's subscription tier, but this is not to be implemented yet.
+PRODUCT REQUIREMENTS (from user message #101):
+
+1.  **User Logic & Invitations (Phase 2 - COMPLETED)**
+    *   **Unified Deletion:** Deleting a coach from settings or my coaches should delete them from both areas.
+    *   **Invitation Logic:** An invite email link should lead to a custom, secure registration page that bypasses payment. The page must pre-populate the user's name/email (read-only) and only require a password and profile photo.
+
+2.  **UI/UX Improvements (Phase 1 - COMPLETED)**
+    *   Remove the tip from the “my coaches” page.
+    *   Add text descriptions under the icons for each coach on the my coaches page.
+    *   Move temporary toast messages to the bottom-left corner and make them smaller.
+    *   Make coach selection mandatory when setting up an observation, with a placeholder like “Add Coach”.
+
+3.  **Template System Expansion (Phase 3 - NEXT)**
+    *   Restructure the Templates page into Observation and Reflection categories using a toggle/tab.
+    *   Under Reflection Templates, create two sub-tabs: Coach Educators and Coaches.
+    *   Implement a template builder for reflections with Text, Scale, Dropdown, and Checkbox question types.
+    *   Implement a Default template system, where only one template can be the default (club-wide) per sub-tab at a time.
+
+4.  **Live Observation & Session Integration (Phase 4 - UPCOMING)**
+    *   Allow changing the reflection template for an individual observation session.
+    *   Display the coach's name and expandable Coaches Targets in the live observation window.
+    *   Add a private Notes feature for the coach educator during live observation, with an on/off switch in the template builder. Notes are collated at the end and can be selectively added to the summary.
+    *   Automatically trigger the default reflection template for the user to fill out when a session is marked Complete.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack PWA with a React frontend, a FastAPI backend, and a MongoDB database. It uses JWT for authentication. A public landing page has been created at the root directory, featuring a hero section, features grid, and a three-tier pricing table with a monthly/annual toggle. A backend endpoint () has been set up to integrate with Stripe, but it is currently non-functional. The critical user impersonation bug from the previous session has been fixed and verified by the user.
+The application is a full-stack PWA (React frontend, FastAPI backend, MongoDB) with JWT authentication. The previous major bugs (Stripe checkout failure, white screen crash) have been fixed. The signup loophole has been closed by replacing the signup form with a link to the pricing page.
+
+The agent has just completed the first two phases of the user's latest feature request:
+- **Phase 1 (UI/UX Fixes):** Toast notifications have been moved to the bottom-left, the My Coaches page has been cleaned up with icon descriptions and no tip, and the session setup form now requires a coach to be selected.
+- **Phase 2 (User Logic & Invitations):** A new, secure registration flow for invited users is fully implemented. It uses a token-based link () that leads to a page with pre-filled, non-editable user details, bypassing the payment flow. The Unified Deletion logic has also been implemented on the backend.
 
 **Last working item**:
-- **Last item agent was working:** The agent was implementing the new landing page with Stripe integration. The user tested the flow by clicking on a pricing tier's Sign Up button and received a Something went wrong error on the Stripe checkout page. The user also requested the removal of the testimonials section from the landing page.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N (Agent did partial self-testing, but the checkout flow is broken)
-- **Which testing method agent to use?** manual testing by curl
-- **User Testing Done:** Y (User found the bug)
+- **Last item agent was working:** The agent completed Phase 1 (UI/UX Fixes) and Phase 2 (User Invitations & Unified Deletion). This involved significant frontend and backend changes, including a new registration page, new API endpoints for invite validation and registration, and updates to the user deletion logic. The work was tested via screenshots and curl commands. The user has just asked the agent to start Phase 3.
+- **Status:** USER VERIFICATION PENDING
+- **Agent Testing Done:** Y
+- **Which testing method agent to use?** The next task (Phase 3) is a large feature. The agent should plan and implement it, then call the  to test the new Template system.
+- **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0):** Stripe checkout fails with a Something went wrong error page.
--   **Issue 2 (P1):** Remove the testimonials section from the new landing page.
--   **Issue 3 (P2):** Sync is failing on the production environment, and sessions disappear upon navigation (carry-over issue).
--   **Issue 4 (P3):** The invite/signup flow causes user confusion due to generic 400 errors (carry-over issue).
--   **Issue 5 (P4):** Body stream already read console error appears intermittently (carry-over issue).
+-   **Issue 1 (P2):** Sync is failing on the production environment, and sessions disappear upon navigation (carry-over issue).
+-   **Issue 2 (P3):** The invite/signup flow causes user confusion due to generic 400 errors (carry-over issue, may be partially mitigated by the new invite flow).
+-   **Issue 3 (P4):** Body stream already read console error appears intermittently (carry-over issue).
 
 **Issues Detail:**
--   **Issue 1: Stripe checkout fails.**
-    -   **Attempted fixes:** The agent created the  endpoint in  and linked it to the Sign Up buttons in .
-    -   **Next debug checklist:**
-        1.  The root cause is that the  component uses hardcoded Stripe Price IDs (e.g., ) that were never created in the Stripe test account.
-        2.  The next agent must write and execute a script (or use  with the Stripe API) to create the 3 Products (Starter, Pro, Club Hub) and their 6 corresponding Prices (monthly and annual for each) in the Stripe test environment.
-        3.  After creating the prices, update the hardcoded Price IDs in  with the new, valid IDs.
-        4.  Verify that the  in  is the correct test key for the account where the products were created.
-    -   **Why fix this issue and what will be achieved with the fix?** This is the core monetization feature for the application. Fixing it will allow users to successfully enter the payment flow.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None.
-
--   **Issue 2: Remove the testimonials section.**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:** Edit  and delete the JSX code block corresponding to the Social Proof or Testimonials section.
-    -   **Why fix this issue and what will be achieved with the fix?** To meet the user's design request for the landing page.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** None.
+- All listed issues are long-standing and have not been attempted in this session. No new bugs are currently in progress.
 
 **In progress Task List**:
--   **Task 1: Complete Phase 1 of Landing Page Implementation**
-    -   **Where to resume:** Resume by fixing the Stripe checkout bug (Issue 1) and removing the testimonials section (Issue 2).
-    -   **What will be achieved with this?** A functional public landing page that meets the user's design requirements and correctly redirects users to a working Stripe checkout page for any selected plan.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None.
+- No tasks are currently in a partial state.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    *   **(P0) Implement Subscription Logic (Phase 2):** After a successful payment, create a user account, link the subscription status to the user model, and handle webhook events from Stripe.
-    *   **(P1) Feature Gating:** Restrict access to application features based on the user's subscription tier.
-    *   **(P2) Add Club Branding to Signup Flow:** The initial signup form needs Club Name and Club Logo fields.
+    *   **(P0) Phase 3: Template System Expansion:** This is the immediate next task as requested by the user.
+        *   **Where to start:** Begin by modifying  to introduce the top-level toggle for Observation and Reflection templates.
+        *   Create new components for the Reflection Templates section, including the sub-tabs for Coach Educators and Coaches.
+        *   Develop the new template builder UI and corresponding backend APIs to save these new template structures.
+        *   Implement the Default template logic on the backend and reflect it in the UI with a Default pill.
+    *   **(P1) Phase 4: Live Observation & Session Integration:**
+        *   Implement the Notes feature (backend model, API, frontend UI).
+        *   Connect session completion to trigger the reflection template flow.
+        *   Update the live observation UI.
+
 -   **Future Tasks:**
     *   Complete My Development page for Coaches.
     *   Implement a session comparison view for coaches.
@@ -70,16 +71,18 @@ The application is a full-stack PWA with a React frontend, a FastAPI backend, an
     *   Add the ability to export sessions as PDF.
 
 **Completed work in this session**
--   **User Impersonation Bug Fix (RESOLVED):**
-    -   Fixed backend logic in  to ensure  returns  and  correctly fetches data for impersonated users.
-    -   Fixed frontend routing in  and  to prevent redirection conflicts.
--   **Platform-Wide Logo Update (DONE):**
-    -   Replaced the main logo ().
-    -   Generated and configured a new  and all required PWA icons.
--   **Landing Page (Phase 1 - In Progress):**
-    -   Created a new  component with a three-tier pricing table.
-    -   Implemented new routing logic (, ) to show the landing page to unauthenticated users and redirect logged-in users to their dashboard.
-    -   Added backend Stripe endpoints () and test API key.
+-   **Stripe Checkout Bug (RESOLVED):** Fixed the broken Stripe checkout flow by addressing frontend UI issues and confirming the backend endpoint was functional.
+-   **Landing Page Overhaul (DONE):** Removed testimonials, simplified pricing tiers, removed free trial and other misleading text as per user request.
+-   **Signup Loophole (CLOSED):** Modified  to remove the free signup form and redirect users to the pricing page.
+-   **White Screen Crash (RESOLVED):** Fixed a  in  by adding the missing icon import.
+-   **Phase 1 UI/UX Fixes (DONE):**
+    -   Removed tip from .
+    -   Added icon descriptions in .
+    -   Moved toast notifications to the bottom-left in .
+    -   Made coach selection mandatory in .
+-   **Phase 2 User Logic & Invitations (DONE):**
+    -   **Unified Deletion:** Updated  () to also delete the associated coach profile.
+    -   **New Invite Flow:** Created a new page  for a secure, payment-bypassed registration. Added backend endpoints  and  in  to support this flow.
 
 **Earlier issues found/mentioned but not fixed**
 -   Unoptimized Database Queries (some were fixed, but a full audit is pending).
@@ -89,25 +92,30 @@ The application is a full-stack PWA with a React frontend, a FastAPI backend, an
 -   Body stream already read console error.
 
 **Known issue recurrence from previous fork**
--   Stale/disappearing data (Production Sync issue).
+-   **Issue recurrence in previous fork:** Stale/disappearing data (Production Sync issue).
+-   **Recurrence count:** 1
+-   **Status:** NOT STARTED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 *   **Token-Based Authentication (JWT):** The app uses stateless JWT tokens stored in .
-*   **User Impersonation:** Admins can view the app as another user via a temporary token.
-*   **Stripe API Integration:** The app uses Stripe's Python SDK on the backend to create Checkout Sessions for subscriptions. The frontend redirects to Stripe's hosted checkout page.
+*   **Stripe API Integration:** Backend creates Checkout Sessions for subscriptions.
+*   **Token-based Invite Flow:** A secure registration flow for invited users using a unique  in the URL to validate and pre-populate user data, bypassing payment.
+*   **Cascading Deletes:** Backend logic now ensures that deleting a user also deletes their associated coach profile to maintain data integrity.
 
 **key DB schema**
--   **users:**  (A  and  field will likely be needed soon).
--   **organizations:** 
+-   **users:** 
+-   **coaches:**  (Now deleted when the corresponding user is deleted).
+-   **invites:**  (Now central to the new registration flow).
 
 **changes in tech stack**
--   **Stripe:** Added for payment processing.
+-   None in this session.
 
 **All files of reference**
 *   
+*    (New)
 *   
 *   
 *   
@@ -115,49 +123,51 @@ The application is a full-stack PWA with a React frontend, a FastAPI backend, an
 *   
 
 **key api endpoints**
-*   ****: **(BUGGY)** Creates a Stripe checkout session. Fails because it's being called with invalid Price IDs.
-*   ****: Checks the status of a Stripe checkout session.
-*   ****: Returns a temporary JWT token for the target user.
-*   ****: Returns current user data, now includes .
-*   ****: Returns organization data, now works for impersonated users.
+*   ****: **(NEW)** Securely checks if an invite is valid and returns pre-populated data (name, email).
+*   ****: **(NEW)** Creates a new user from a valid invite, sets their password, and marks the invite as used. Bypasses payment.
+*   ****: **(MODIFIED)** Now deletes the user's associated coach profile to ensure unified deletion.
+*   ****: **(VERIFIED)** Creates a Stripe checkout session.
 
 **Critical Info for New Agent**
-*   **TOP PRIORITY (P0):** The Stripe checkout is broken. The user gets a Something went wrong error on the Stripe page. This is because the frontend  uses hardcoded Price IDs that do not exist in the Stripe test account. You must first create the required Products and Prices using the Stripe API, then update the IDs in the frontend code.
-*   **SECOND PRIORITY (P1):** The user has requested to remove the Testimonials (or Social Proof) section from .
-*   **Stripe Test Keys:** A test key is present in . All product/price creation must be done in the associated test account.
-*   **Future Work:** Do not implement any feature-gating or subscription logic in the user model yet. The current task is only to fix the landing page and checkout redirection.
+*   **TOP PRIORITY (P0):** The user's immediate request is to **start Phase 3: Template System Expansion**. Refer to the user's detailed plan confirmation in message #105. This is a large feature requiring both frontend and backend work.
+*   **Completed Work:** Phases 1 (UI/UX Fixes) and 2 (User Invitations) are functionally complete but have not been verified by the user. Do not revisit them unless the user reports an issue.
+*   **Plan for Phase 3:** Start by modifying . You will need to build out a new, complex UI for creating reflection templates with various question types and then implement the backend logic to support it.
 
 **documents and test reports created in this job**
--  was updated with the new landing page requirements.
+-    (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST:** User reports a Stripe error via screenshot and asks to remove the testimonials section. (BUG - P0)
-2.  User requests that the landing page not be fully implemented and to proceed with option A for the checkout flow (pay first, then sign up).
-3.  User provides detailed requirements for a three-tier pricing structure (Starter, Pro, Club Hub) with monthly/annual options and feature breakdowns.
-4.  User asks for an assessment of a prompt they wrote to build the landing page.
-5.  User provides a new logo to be used across the platform.
-6.  User confirms the impersonation fix is working.
-7.  User asks if using a new database will affect the impersonation fix. (Agent correctly explained it would not).
+1.  **LATEST (#257):** do phase 3 - Explicit instruction to begin the Template System Expansion. (In Progress)
+2.  **#256:** User specifies the text and behavior for the Create an Account tab on the login page. (Completed)
+3.  **#106:** yes, proceed - User gives the final go-ahead to start the multi-phase implementation plan. (Completed)
+4.  **#105:** Agent provides a detailed breakdown of their understanding of the Reflection Templates feature and asks for confirmation. (Completed)
+5.  **#104:** User clarifies that Coach Educators should be able to create templates for themselves AND for their coaches, and asks for a summary of the agent's understanding before any work is done. (Completed)
+6.  **#102:** Agent organizes the large feature request into phases and asks the user to confirm priorities. (Completed)
+7.  **#101:** User submits a large, multi-part feature request covering User Logic, UI/UX, Templates, and Live Observation. This message defines the current roadmap. (In Progress)
+8.  **#87:** User reports a blank/white screen bug on their deployed version, including a screenshot with console errors. (Completed/Resolved)
+9.  **#56:** User confirms Option 1 for closing the signup loophole, with specific instructions for the Create an account tab. (Completed)
+10. **#50:** User identifies a critical loophole allowing anyone to sign up for free, bypassing the payment flow. (Completed/Resolved)
 
 **Project Health Check:**
 *   **Broken:**
-    *   The Stripe checkout flow is critically broken, preventing the core monetization feature from working.
+    *   The production sync issue, which causes data to disappear, remains unresolved and is a significant risk.
 *   **Mocked:**
-    *   The pricing and features listed on the landing page are just text; no actual feature gating is implemented.
+    *   Feature gating based on subscription tiers is not implemented.
+    *   The entire Template System Expansion (Phase 3 & 4) is not yet built.
 
 **3rd Party Integrations**
-*   **Stripe (Payments):** Integrated for handling subscriptions. Requires a user-provided API key (test key is currently in use).
-*   **Resend (Email API):** Requires a User API Key.
+*   **Stripe (Payments):** Integrated for handling subscriptions.
+*   **Resend (Email API):** Used for sending invite emails. Requires a User API Key.
 *   **recharts (Charting):** Charting library for React.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO (Not for the landing page).
+-   **Testing agent used after significant changes:** NO (Agent self-tested with  and screenshots).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
--   **Known regressions:** None in this session.
+-   **Known regressions:** None identified in this session.
 
 **Credentials to test flow:**
 *   **Admin:**  / 
 
 **What agent forgot to execute**
-The agent correctly set up the backend endpoint and frontend UI for the Stripe integration. However, it made a critical error by using placeholder/hallucinated Stripe Price IDs in the  file without first creating the corresponding Products and Prices in the Stripe test account. This is the direct cause of the checkout failure reported by the user.</analysis>
+The agent has been thorough and has not forgotten any direct requests from the user in this session. All pending work consists of pre-existing, lower-priority issues or the next phases of the user's large feature request.</analysis>
