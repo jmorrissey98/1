@@ -173,52 +173,6 @@ export default function LandingPage() {
     }
   }, [location, navigate]);
 
-  const pollPaymentStatus = async (sessionId, attempts = 0) => {
-    const maxAttempts = 10;
-    const pollInterval = 2000;
-
-    if (attempts >= maxAttempts) {
-      setCheckingPayment(false);
-      toast.error('Payment status check timed out. Please check your email for confirmation.');
-      navigate('/', { replace: true });
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/api/payments/status/${sessionId}`);
-      if (!response.ok) {
-        throw new Error('Failed to check payment status');
-      }
-
-      const data = await response.json();
-
-      if (data.payment_status === 'paid') {
-        setCheckingPayment(false);
-        toast.success('Payment successful! Redirecting to signup...');
-        // Redirect to signup with the session info
-        navigate(`/login?signup=true&payment_session=${sessionId}`, { replace: true });
-        return;
-      } else if (data.status === 'expired') {
-        setCheckingPayment(false);
-        toast.error('Payment session expired. Please try again.');
-        navigate('/', { replace: true });
-        return;
-      }
-
-      // Continue polling
-      setTimeout(() => pollPaymentStatus(sessionId, attempts + 1), pollInterval);
-    } catch (error) {
-      console.error('Error checking payment status:', error);
-      if (attempts < maxAttempts - 1) {
-        setTimeout(() => pollPaymentStatus(sessionId, attempts + 1), pollInterval);
-      } else {
-        setCheckingPayment(false);
-        toast.error('Error checking payment status. Please contact support.');
-        navigate('/', { replace: true });
-      }
-    }
-  };
-
   const handleSelectPlan = async (tier) => {
     setLoadingTier(tier.id);
     
