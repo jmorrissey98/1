@@ -78,10 +78,11 @@ if (config.enableVisualEdits && babelMetadataPlugin) {
 }
 
 webpackConfig.devServer = (devServerConfig) => {
+  // Temporarily skip visual edits to test proxy
   // Apply visual edits dev server setup only if enabled
-  if (config.enableVisualEdits && setupDevServer) {
-    devServerConfig = setupDevServer(devServerConfig);
-  }
+  // if (config.enableVisualEdits && setupDevServer) {
+  //   devServerConfig = setupDevServer(devServerConfig);
+  // }
 
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
