@@ -398,18 +398,18 @@ export default function SessionSetup() {
               Coach
             </CardTitle>
             <CardDescription>
-              Link this observation to a coach profile, or leave as one-off session
+              Select the coach being observed
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={selectedCoachId} onValueChange={handleCoachChange}>
-              <SelectTrigger data-testid="coach-select">
-                <SelectValue placeholder="Select a coach (optional)" />
+              <SelectTrigger data-testid="coach-select" className={selectedCoachId === 'none' ? 'text-slate-400' : ''}>
+                <SelectValue placeholder="Select a coach..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">One-off session (no coach linked)</SelectItem>
+                <SelectItem value="none" className="text-slate-500">No linked coach</SelectItem>
                 {coaches.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}{c.role && ` - ${c.role}`}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.name}{c.role_title && ` - ${c.role_title}`}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
