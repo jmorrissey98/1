@@ -71,9 +71,11 @@ export default function AppHeader() {
   const isImpersonatingUser = localStorage.getItem('impersonating') === 'true';
   
   // Don't show header on excluded pages, admin pages (unless impersonating), or when not logged in
+  // Also hide on root path "/" when user is not logged in (landing page has its own header)
   const shouldHide = !user || 
     EXCLUDED_PATHS.some(path => location.pathname.startsWith(path)) ||
-    (isAdmin && isAdmin() && !isImpersonatingUser);
+    (isAdmin && isAdmin() && !isImpersonatingUser) ||
+    (isRootPath(location.pathname) && !user);
   
   if (shouldHide) return null;
   
