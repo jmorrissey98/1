@@ -228,7 +228,7 @@ function App() {
           </SyncProvider>
         </AuthProvider>
       </BrowserRouter>
-      <Toaster position="top-center" richColors closeButton />
+      <Toaster position="bottom-left" richColors closeButton />
     </div>
   );
 }
