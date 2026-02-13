@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, X, GripVertical, Play, User, Calendar, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, X, GripVertical, Play, User, Calendar, Loader2, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Switch } from '../components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { fetchSessionParts, createSessionPart, toFrontendFormat } from '../lib/sessionPartsApi';
+import { fetchReflectionTemplates } from '../lib/reflectionTemplatesApi';
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
