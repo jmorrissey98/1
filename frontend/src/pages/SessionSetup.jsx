@@ -44,6 +44,11 @@ export default function SessionSetup() {
   const [showCustomPartDialog, setShowCustomPartDialog] = useState(false);
   const [customPartName, setCustomPartName] = useState('');
   const [savingPart, setSavingPart] = useState(false);
+  
+  // Reflection template state (Phase 4)
+  const [reflectionTemplates, setReflectionTemplates] = useState([]);
+  const [selectedReflectionTemplateId, setSelectedReflectionTemplateId] = useState('default');
+  const [enableObserverNotes, setEnableObserverNotes] = useState(true);
 
   useEffect(() => {
     const initSession = async () => {
