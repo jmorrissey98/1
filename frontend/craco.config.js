@@ -79,12 +79,15 @@ if (config.enableVisualEdits && babelMetadataPlugin) {
 
 webpackConfig.devServer = (devServerConfig) => {
   // Add proxy for API calls to backend
-  devServerConfig.proxy = {
-    '/api': {
+  // Note: pathRewrite is NOT used - we want to preserve the /api prefix
+  devServerConfig.proxy = [
+    {
+      context: ['/api'],
       target: 'http://localhost:8001',
       changeOrigin: true,
+      secure: false,
     }
-  };
+  ];
 
   // Apply visual edits dev server setup only if enabled
   if (config.enableVisualEdits && setupDevServer) {
