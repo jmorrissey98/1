@@ -2363,11 +2363,29 @@ async def delete_user(user_id: str, request: Request):
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Get linked coach profile
+    linked_coach_id = target_user.get("linked_coach_id")
+    user_email = target_user.get("email", "").lower()
+    
     # Delete user's sessions
     await db.user_sessions.delete_many({"user_id": user_id})
     
     # Delete user's password reset tokens
     await db.password_resets.delete_many({"email": target_user["email"]})
+    
+    # Delete associated coach profile if exists
+    if linked_coach_id:
+        await db.coaches.delete_one({"id": linked_coach_id})
+        logger.info(f"Deleted coach profile {linked_coach_id} when deleting user {user_id}")
+    
+    # Delete any pending invites for this email
+    if user_email:
+        invite_delete = await db.invites.delete_many({
+            "email": {"$regex": f"^{user_email}$", "$options": "i"},
+            "used": {"$ne": True}
+        })
+        if invite_delete.deleted_count > 0:
+            logger.info(f"Deleted {invite_delete.deleted_count} pending invite(s) for {user_email}")
     
     # Delete the user
     result = await db.users.delete_one({"user_id": user_id})
@@ -2375,7 +2393,7 @@ async def delete_user(user_id: str, request: Request):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return {"status": "deleted", "user_id": user_id}
+    return {"status": "deleted", "user_id": user_id, "coach_deleted": linked_coach_id is not None}
 
 @api_router.post("/users/link-by-email")
 async def link_user_by_email(request: Request):
