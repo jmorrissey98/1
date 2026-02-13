@@ -410,19 +410,23 @@
 
 ## Remaining Work / Backlog
 
-### P0 - Critical (Next Phase)
-- [x] **Admin User System** - COMPLETED
-  - Default admin: hello@mycoachdeveloper.com / _mcDeveloper26!
-  - View all clubs/users
-  - Impersonate Coach Developers
-  - Create clubs with badge upload
-  - Create users, reset passwords
+### P0 - Critical (Next)
+- [ ] **Template System Expansion** - Phase 3
+  - Add Reflection Templates section with tabs
+  - Sub-tabs: Coach Educators / Coaches
+  - Reflection Template Builder (text, scale, dropdown, checkbox questions)
+  - Default template logic (one default per sub-tab, club-wide)
 
 ### P1 - High Priority  
+- [ ] **Live Observation Enhancements** - Phase 4
+  - Notes toggle in Observation Templates editor
+  - Notes button/panel during live observation
+  - Coach name + Targets button in observation window
+  - Reflection template selector per session
+  - Auto-trigger reflection on session completion
 - [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
 - [ ] Investigate "body stream already read" error in safeFetch.js
-- [ ] Improve invite/signup flow error messages (generic 400 errors)
 
 ### P2 - Medium Priority
 - [ ] Session comparison view for coaches
