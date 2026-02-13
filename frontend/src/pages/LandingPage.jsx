@@ -418,7 +418,7 @@ export default function LandingPage() {
             Ready to Transform Your Coach Development?
           </h2>
           <p className="mt-4 text-lg text-slate-300">
-            Join hundreds of coach developers who are already using My Coach Developer to build better coaching teams.
+            Join coach developers who are already using My Coach Developer to build better coaching teams.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -426,7 +426,7 @@ export default function LandingPage() {
               onClick={scrollToPricing}
               className="bg-white text-slate-900 hover:bg-slate-100 text-lg px-8 py-6"
             >
-              Start Your Free Trial
+              Get Started
               <ChevronRight className="ml-2 w-5 h-5" />
             </Button>
             <Button 
