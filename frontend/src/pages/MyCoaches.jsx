@@ -426,26 +426,29 @@ export default function MyCoaches() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-slate-600" title="Completed sessions">
-                              <Calendar className="w-4 h-4" />
-                              <span>{coach.sessionCount || 0}</span>
-                            </div>
-                            {(coach.upcomingCount || 0) > 0 && (
-                              <Badge className="bg-blue-100 text-blue-800 border-blue-200" title="Upcoming planned sessions">
-                                <Clock className="w-3 h-3 mr-1" />
-                                {coach.upcomingCount}
-                              </Badge>
-                            )}
-                            {coach.activeTargets > 0 && (
-                              <Badge variant="outline" className="text-orange-600 border-orange-300">
-                                <Target className="w-3 h-3 mr-1" />
-                                {coach.activeTargets}
-                              </Badge>
-                            )}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex flex-col items-center text-slate-600" title="Completed sessions">
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-xs">{coach.sessionCount || 0}</span>
+                            <span className="text-[10px] text-slate-400">Sessions</span>
                           </div>
+                          {(coach.upcomingCount || 0) > 0 && (
+                            <div className="flex flex-col items-center" title="Upcoming planned sessions">
+                              <Clock className="w-4 h-4 text-blue-600" />
+                              <span className="text-xs text-blue-600">{coach.upcomingCount}</span>
+                              <span className="text-[10px] text-blue-400">Upcoming</span>
+                            </div>
+                          )}
+                          {coach.activeTargets > 0 && (
+                            <div className="flex flex-col items-center text-orange-600" title="Active targets">
+                              <Target className="w-4 h-4" />
+                              <span className="text-xs">{coach.activeTargets}</span>
+                              <span className="text-[10px] text-orange-400">Targets</span>
+                            </div>
+                          )}
                         </div>
+                      </div>
                         <Button
                           variant="ghost"
                           size="icon"
