@@ -57,6 +57,24 @@ function HomeRedirect() {
   return <HomePage />;
 }
 
+// Component to handle root route - show landing page or redirect based on auth
+function RootRoute() {
+  const { user, loading } = useAuth();
+  
+  // Show nothing while loading auth state
+  if (loading) {
+    return null;
+  }
+  
+  // If logged in, redirect to appropriate dashboard
+  if (user) {
+    return <HomeRedirect />;
+  }
+  
+  // If not logged in, show landing page
+  return <LandingPage />;
+}
+
 // Router component that handles session_id detection
 function AppRouter() {
   const location = useLocation();
