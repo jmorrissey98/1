@@ -363,9 +363,9 @@ export default function LandingPage() {
                   )}
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="border-t border-slate-100 pt-6 mb-6">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-600">Admin Users</span>
+                  <div className="border-t border-slate-100 pt-6">
+                    <div className="flex justify-between text-sm mb-3">
+                      <span className="text-slate-600">Coach Developers</span>
                       <span className="font-medium text-slate-900">Up to {tier.admins}</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -373,14 +373,6 @@ export default function LandingPage() {
                       <span className="font-medium text-slate-900">Up to {tier.coaches}</span>
                     </div>
                   </div>
-                  <ul className="space-y-3">
-                    {tier.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                        <span className="text-sm text-slate-600">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </CardContent>
                 <CardFooter>
                   <Button 
