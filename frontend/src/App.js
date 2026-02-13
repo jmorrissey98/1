@@ -153,7 +153,7 @@ function AppRouter() {
         </ProtectedRoute>
       } />
       <Route path="/coach-view/:coachId" element={
-        <ProtectedRoute requireCoachDeveloper>
+        <ProtectedRoute>
           <CoachView />
         </ProtectedRoute>
       } />
