@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Badge } from '../components/ui/badge';
-import { Check, ChevronRight, Users, BarChart3, FileText, Star, Quote, Loader2 } from 'lucide-react';
+import { ChevronRight, Users, BarChart3, FileText, Star, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -19,12 +19,6 @@ const PRICING_TIERS = [
     annualPrice: 200,
     coaches: 5,
     admins: 1,
-    features: [
-      'Core observation tools',
-      'Basic reporting',
-      'Personal resource library',
-      'Email support'
-    ],
     popular: false
   },
   {
@@ -35,13 +29,6 @@ const PRICING_TIERS = [
     annualPrice: 350,
     coaches: 15,
     admins: 1,
-    features: [
-      'Everything in Starter',
-      'Advanced analytics',
-      'Custom feedback templates',
-      'Priority email support',
-      'Progress tracking dashboard'
-    ],
     popular: true
   },
   {
@@ -52,13 +39,6 @@ const PRICING_TIERS = [
     annualPrice: 500,
     coaches: 40,
     admins: 5,
-    features: [
-      'Everything in Pro',
-      'Centralized club dashboard',
-      'Multi-admin collaboration',
-      '1-on-1 onboarding call',
-      'Custom branding options'
-    ],
     popular: false
   }
 ];
