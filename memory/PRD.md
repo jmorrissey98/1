@@ -347,7 +347,6 @@
 - [x] **Public Landing Page** at root URL `/`
   - Hero section with CTA buttons
   - Features grid (Streamlined Observation, Progress Tracking, Team Management)
-  - Testimonials section with social proof
   - Three-tier pricing table with Monthly/Annual toggle
   - Enterprise contact CTA
   - Footer with links
@@ -355,13 +354,21 @@
   - `/` shows landing page for unauthenticated users
   - `/` redirects to dashboard for authenticated users (role-based)
   - `/dashboard` route added for direct dashboard access
-- [x] **Stripe Integration (Test Mode)**
+- [x] **Stripe Integration (Test Mode) - WORKING**
   - Three pricing tiers: Starter (£20/£200), Pro (£35/£350), Club Hub (£50/£500)
   - Backend endpoints: `/api/payments/checkout`, `/api/payments/status/{session_id}`, `/api/webhook/stripe`
   - Payment transactions stored in `payment_transactions` collection
-  - Successful payment redirects to signup flow with session info
+  - Uses emergentintegrations.payments.stripe.checkout for dynamic pricing (no hardcoded Price IDs)
+  - Successful checkout redirects to Stripe's hosted checkout page
 - [x] **Logo Update**
   - New MCD logo deployed across all assets (favicon, PWA icons, login page, app header)
+
+### Landing Page Refinements - February 13, 2026
+- [x] **Removed testimonials section** - Removed from navigation and page body
+- [x] **Simplified pricing cards** - Removed feature lists, now only shows Coach Developers and Coaches counts
+- [x] **Removed free trial mentions** - Changed CTA from "Start Your Free Trial" to "Get Started"
+- [x] **Removed "500+ active users" stat** - Removed floating stats card from hero section
+- [x] **Stripe checkout verified working** - Test redirects correctly to Stripe payment page
 
 ## Remaining Work / Backlog
 
