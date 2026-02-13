@@ -92,6 +92,16 @@ export default function LiveObservation() {
         setCurrentSession(loaded);
         loadAvailableParts();
         
+        // Load coach info if coach is assigned (Phase 4)
+        if (loaded.coachId) {
+          loadCoachInfo(loaded.coachId);
+        }
+        
+        // Load existing observer notes if any
+        if (loaded.observerNotes && Array.isArray(loaded.observerNotes)) {
+          setObserverNotes(loaded.observerNotes);
+        }
+        
         // Resume if session was active
         if (loaded.status === 'active' && loaded.startTime) {
           const elapsed = Math.floor((Date.now() - new Date(loaded.startTime).getTime()) / 1000);
