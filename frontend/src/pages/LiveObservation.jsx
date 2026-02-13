@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Undo2, Square, Circle, MessageSquare, Check, X, Plus, Loader2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Undo2, Square, Circle, MessageSquare, Check, X, Plus, Loader2, ChevronDown, ChevronUp, Target, StickyNote, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
@@ -9,12 +9,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { toast } from 'sonner';
 import { createEvent } from '../lib/storage';
 import { fetchSessionParts, createSessionPart } from '../lib/sessionPartsApi';
 import { formatTime, cn, generateId } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
+import { safeGet } from '../lib/safeFetch';
 import SyncStatusIndicator from '../components/SyncStatusIndicator';
 
 export default function LiveObservation() {
