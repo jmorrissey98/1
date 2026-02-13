@@ -374,6 +374,40 @@
   - "View Plans & Pricing" button links to landing page pricing section
   - Added hash-based scroll to pricing section on landing page
 
+### UI/UX Improvements - February 13, 2026
+- [x] **Toast notifications moved to bottom-left** - No longer covers buttons
+  - Toasts now appear in bottom-left corner with smaller styling
+  - Updated sonner.jsx Toaster component with `position="bottom-left"`
+- [x] **My Coaches page tip removed** - Removed obvious tip banner
+- [x] **Coach icons with descriptions** - Added "Sessions", "Upcoming", "Targets" labels under icons
+- [x] **Coach selection mandatory** - Session setup now requires coach selection
+  - Changed placeholder from "One-off session" to "No linked coach"
+  - Added validation error: "Please select a coach for this observation"
+  - Description updated to "Select the coach being observed"
+
+### Invite Registration System - February 13, 2026
+- [x] **Token-based invite registration** - `/register/{invite_id}` route
+  - Validates invite token against database
+  - Shows invalid/expired error for used or missing invites
+  - Pre-populates name (from coach profile) and email (read-only)
+  - Only requires password and optional profile photo
+  - No payment screens - bypasses Stripe checkout flow
+  - Single-use tokens - marked as "used" after registration
+- [x] **Backend endpoints**
+  - `GET /api/invites/validate/{invite_id}` - Returns email, name, role
+  - `POST /api/auth/register-invite` - Creates user from invite
+- [x] **Updated invite emails** - Now contain direct registration link
+  - Link format: `/register/inv_xxxxx`
+  - Personalized greeting with invitee name from coach profile
+
+### Unified Deletion - February 13, 2026
+- [x] **Delete user also deletes coach profile** - Settings > Users deletion now removes:
+  - User account
+  - Linked coach profile (if exists)
+  - Pending invites for that email
+  - User sessions and password reset tokens
+- [x] **Delete coach with `delete_user=true` already worked** - Deletes both coach and user
+
 ## Remaining Work / Backlog
 
 ### P0 - Critical (Next Phase)
