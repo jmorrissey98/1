@@ -2267,11 +2267,20 @@ async def register_from_invite(data: InviteRegistrationRequest):
     
     logger.info(f"User {email} registered via invite {data.invite_id}")
     
-    # Generate JWT token
-    token = create_jwt_token(user_id, email, name, role)
+    # Generate session token
+    session_token = secrets.token_urlsafe(32)
+    
+    # Create session
+    session = {
+        "user_id": user_id,
+        "email": email,
+        "session_token": session_token,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.user_sessions.insert_one(session)
     
     return {
-        "token": token,
+        "token": session_token,
         "user": {
             "user_id": user_id,
             "email": email,
