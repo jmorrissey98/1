@@ -54,10 +54,13 @@ export default function AppHeader() {
     window.location.href = '/login';
   };
   
-  // Don't show header on excluded pages, admin pages, or when not logged in
+  // Check if impersonating
+  const isImpersonatingUser = localStorage.getItem('impersonating') === 'true';
+  
+  // Don't show header on excluded pages, admin pages (unless impersonating), or when not logged in
   const shouldHide = !user || 
     EXCLUDED_PATHS.some(path => location.pathname.startsWith(path)) ||
-    (isAdmin && isAdmin());
+    (isAdmin && isAdmin() && !isImpersonatingUser);
   
   if (shouldHide) return null;
   
