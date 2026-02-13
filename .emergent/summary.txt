@@ -1,89 +1,92 @@
 <analysis>**original_problem_statement:**
-The user's core objective is to build and stabilize a PWA (My Coach Developer) for sports coaching. The initial goal was to fix bugs after a  to MongoDB migration. The scope expanded to include a full UI/UX overhaul, a system-level Admin user with club management and impersonation capabilities, and resolving persistent production deployment issues. The current focus is on fixing critical bugs that have emerged on the deployed production environment, specifically related to the admin login and user impersonation features.
+The user's primary goal is to build and stabilize a PWA (My Coach Developer) for sports coaching. The initial work focused on fixing a critical user impersonation bug. After resolving that, the scope expanded to include a full UI/UX overhaul starting with a new logo, and building a high-conversion public landing page with a three-tier subscription model integrated with Stripe. The current focus is on fixing a bug in the Stripe checkout flow and refining the new landing page.
+
+PRODUCT REQUIREMENTS:
+1.  **Landing Page:** Build a public landing page at the root URL.
+2.  **Auth Routing:** Unauthenticated users see the landing page. Authenticated users are redirected to their dashboard.
+3.  **Pricing Tiers:** Display a three-tier pricing table (Starter, Pro, Club Hub) with a monthly/annual toggle.
+4.  **Stripe Integration:** Sign Up buttons on the pricing table should lead to a Stripe checkout. The flow should be: pay first, then create an account.
+5.  **Feature Gating (Future):** The app's features will eventually be restricted based on the user's subscription tier, but this is not to be implemented yet.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack PWA with a React frontend and a FastAPI backend using MongoDB. It features three user roles: , , and . A major architectural change was made in this session, migrating the entire authentication system from session cookies to JWT tokens stored in  to resolve a critical cross-domain CORS issue on the production environment.
-
-The Admin system is built but has several critical bugs related to the user impersonation feature. While the main admin login and dashboard now work on production after the auth-system overhaul, the view as user (impersonation) feature results in a broken, non-functional UI.
+The application is a full-stack PWA with a React frontend, a FastAPI backend, and a MongoDB database. It uses JWT for authentication. A public landing page has been created at the root directory, featuring a hero section, features grid, and a three-tier pricing table with a monthly/annual toggle. A backend endpoint () has been set up to integrate with Stripe, but it is currently non-functional. The critical user impersonation bug from the previous session has been fixed and verified by the user.
 
 **Last working item**:
-- **Last item agent was working:** The agent was debugging why the user impersonation view is broken. After an admin clicks to impersonate a user, the app navigates to the user's home page but renders a non-functional UI that is missing the header, navigation, and all user data (like organization details and upcoming sessions). The user also reported that none of the buttons on this broken view work. The agent's last action was to investigate why organization and observation data are not loading for the impersonated user.
+- **Last item agent was working:** The agent was implementing the new landing page with Stripe integration. The user tested the flow by clicking on a pricing tier's Sign Up button and received a Something went wrong error on the Stripe checkout page. The user also requested the removal of the testimonials section from the landing page.
 - **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** frontend testing agent
-- **User Testing Done:** Y
+- **Agent Testing Done:** N (Agent did partial self-testing, but the checkout flow is broken)
+- **Which testing method agent to use?** manual testing by curl
+- **User Testing Done:** Y (User found the bug)
 
 **All Pending/In progress Issue list**:
-- **Issue 1 (P0):** Impersonation view is broken, showing a partial UI with no data and non-functional buttons.
-- **Issue 2 (P1):** Sync is failing on the production environment, and sessions disappear upon navigation (carry-over issue).
-- **Issue 3 (P2):** The favicon (browser tab icon) is not updating to the new logo (carry-over issue, likely browser cache).
-- **Issue 4 (P3):** The invite/signup flow causes user confusion due to generic 400 errors (carry-over issue).
-- **Issue 5 (P4):** Body stream already read console error appears intermittently (carry-over issue).
+-   **Issue 1 (P0):** Stripe checkout fails with a Something went wrong error page.
+-   **Issue 2 (P1):** Remove the testimonials section from the new landing page.
+-   **Issue 3 (P2):** Sync is failing on the production environment, and sessions disappear upon navigation (carry-over issue).
+-   **Issue 4 (P3):** The invite/signup flow causes user confusion due to generic 400 errors (carry-over issue).
+-   **Issue 5 (P4):** Body stream already read console error appears intermittently (carry-over issue).
 
 **Issues Detail:**
-- **Issue 1: Impersonation view is broken.**
-    - **Attempted fixes:** The agent migrated the entire app from cookies to token-based auth to solve a production CORS issue. This required a complete rewrite of the impersonation flow. The new token-based impersonation introduced a series of bugs:
-        1. A redirect loop was fixed by making  and  aware of the impersonation state.
-        2. A complex token-swapping mechanism to restore the admin session upon exit proved too buggy and was replaced with a simpler, more stable flow where exiting impersonation logs the user out and redirects to the login page.
-        The current state is that impersonation leads to a broken UI.
-    - **Next debug checklist:**
-        1.  Start by investigating why essential contexts are not loading data. In , trace the call to . Why does this fail or return no data when using an impersonation token?
-        2.  Check the backend logic for the  endpoint in . Ensure it correctly identifies the user and their  from the impersonation token.
-        3.  The non-functional buttons are a classic symptom of a broken React Context. Fixing the  is the top priority, as other components and contexts likely depend on it.
-        4.  Verify in  that the  function successfully fetches and updates the *entire* user object for the impersonated user (including their ) upon page load after impersonation.
-    - **Why fix this issue and what will be achieved with the fix?** The impersonation feature is a key requirement for the admin role, allowing admins to support and troubleshoot user issues. It's currently unusable.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** None.
+-   **Issue 1: Stripe checkout fails.**
+    -   **Attempted fixes:** The agent created the  endpoint in  and linked it to the Sign Up buttons in .
+    -   **Next debug checklist:**
+        1.  The root cause is that the  component uses hardcoded Stripe Price IDs (e.g., ) that were never created in the Stripe test account.
+        2.  The next agent must write and execute a script (or use  with the Stripe API) to create the 3 Products (Starter, Pro, Club Hub) and their 6 corresponding Prices (monthly and annual for each) in the Stripe test environment.
+        3.  After creating the prices, update the hardcoded Price IDs in  with the new, valid IDs.
+        4.  Verify that the  in  is the correct test key for the account where the products were created.
+    -   **Why fix this issue and what will be achieved with the fix?** This is the core monetization feature for the application. Fixing it will allow users to successfully enter the payment flow.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None.
 
-- **Issue 2: Sync is failing and sessions disappear upon navigation (on production).**
-    - **Status:** NOT STARTED
-    - See previous handoff for details. This remains a high-priority but unaddressed issue.
-
-- **Issue 3: The favicon (browser tab icon) is not updating.**
-    - **Status:** NOT STARTED
-    - This is very likely a browser caching issue.
-
-- **Issue 4: The invite/signup flow has confusing errors.**
-    - **Status:** NOT STARTED
-    - See previous handoff for details.
-
-- **Issue 5: Body stream already read console error.**
-    - **Status:** NOT STARTED
-    - Low-priority console noise.
+-   **Issue 2: Remove the testimonials section.**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:** Edit  and delete the JSX code block corresponding to the Social Proof or Testimonials section.
+    -   **Why fix this issue and what will be achieved with the fix?** To meet the user's design request for the landing page.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None.
 
 **In progress Task List**:
-- None.
+-   **Task 1: Complete Phase 1 of Landing Page Implementation**
+    -   **Where to resume:** Resume by fixing the Stripe checkout bug (Issue 1) and removing the testimonials section (Issue 2).
+    -   **What will be achieved with this?** A functional public landing page that meets the user's design requirements and correctly redirects users to a working Stripe checkout page for any selected plan.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
-*   **Upcoming Tasks:**
-    *   **(P1) Add Club Branding to Signup Flow:** The initial signup form needs Club Name and Club Logo fields.
-    *   **(P2) Complete My Development page for Coaches:** The user requested My sessions to be inside My development. This needs clarification.
-*   **Future Tasks:**
+-   **Upcoming Tasks:**
+    *   **(P0) Implement Subscription Logic (Phase 2):** After a successful payment, create a user account, link the subscription status to the user model, and handle webhook events from Stripe.
+    *   **(P1) Feature Gating:** Restrict access to application features based on the user's subscription tier.
+    *   **(P2) Add Club Branding to Signup Flow:** The initial signup form needs Club Name and Club Logo fields.
+-   **Future Tasks:**
+    *   Complete My Development page for Coaches.
     *   Implement a session comparison view for coaches.
     *   Add UI optimizations for iPad portrait orientation.
     *   Add the ability to export sessions as PDF.
 
 **Completed work in this session**
-- **Authentication System Overhaul (Cookies to Tokens):**
-  - Migrated the entire application from cookie-based sessions to stateless JWT tokens stored in .
-  - Modified the backend () login and signup endpoints to return a JWT token in the response body.
-  - Rewrote the frontend  and  utility to store the token and send it in the  header for all API requests.
-- **Production Deployment Bug Fixes:**
-  - **CORS Resolution:** Fixed a critical production  and CORS error by configuring the FastAPI backend to use a specific list of allowed origins instead of a wildcard (), which is incompatible with credentialed requests.
-  - **Admin Login on Production:** Successfully fixed the admin login flow on the deployed site, which was failing due to the CORS/cookie issue.
-  - **Performance Optimization:** Resolved an N+1 query pattern on the coaches endpoint identified by the deployment agent.
-- **Impersonation Feature Debugging:**
-  - Re-architected the impersonation feature to work with the new token-based auth system.
-  - Fixed a redirect loop that occurred when trying to access admin pages while impersonating.
-  - Implemented a stable Exit Impersonation flow that logs the user out, avoiding complex and buggy token-swapping logic.
+-   **User Impersonation Bug Fix (RESOLVED):**
+    -   Fixed backend logic in  to ensure  returns  and  correctly fetches data for impersonated users.
+    -   Fixed frontend routing in  and  to prevent redirection conflicts.
+-   **Platform-Wide Logo Update (DONE):**
+    -   Replaced the main logo ().
+    -   Generated and configured a new  and all required PWA icons.
+-   **Landing Page (Phase 1 - In Progress):**
+    -   Created a new  component with a three-tier pricing table.
+    -   Implemented new routing logic (, ) to show the landing page to unauthenticated users and redirect logged-in users to their dashboard.
+    -   Added backend Stripe endpoints () and test API key.
 
 **Earlier issues found/mentioned but not fixed**
 -   Unoptimized Database Queries (some were fixed, but a full audit is pending).
 -   Password reset emails not arriving (production).
+-   Production Sync failure and disappearing sessions.
+-   Confusing invite/signup errors.
+-   Body stream already read console error.
 
 **Known issue recurrence from previous fork**
 -   Stale/disappearing data (Production Sync issue).
@@ -92,16 +95,16 @@ The Admin system is built but has several critical bugs related to the user impe
 
 
 **Key Technical Concepts**
-*   **Token-Based Authentication (JWT):** The application was migrated from stateful session cookies to a stateless token-based system. The frontend stores a JWT in  and sends it via the  header on every API request. This was a critical fix for production deployment.
-*   **Cross-Origin Resource Sharing (CORS):** Addressed a key production issue where browsers blocked requests between the frontend domain and the backend API domain. The fix involved moving away from wildcard origins () to a specific allowlist on the backend.
-*   **User Impersonation:** The admin's ability to view as another user is implemented by the backend issuing a temporary token for the target user. The frontend uses this token for the duration of the impersonation session. The exit mechanism now logs the user out for stability.
+*   **Token-Based Authentication (JWT):** The app uses stateless JWT tokens stored in .
+*   **User Impersonation:** Admins can view the app as another user via a temporary token.
+*   **Stripe API Integration:** The app uses Stripe's Python SDK on the backend to create Checkout Sessions for subscriptions. The frontend redirects to Stripe's hosted checkout page.
 
 **key DB schema**
--   **users:** 
+-   **users:**  (A  and  field will likely be needed soon).
 -   **organizations:** 
 
 **changes in tech stack**
--   No new technologies, but a fundamental change in the authentication mechanism from session cookies to JWT tokens.
+-   **Stripe:** Added for payment processing.
 
 **All files of reference**
 *   
@@ -110,57 +113,51 @@ The Admin system is built but has several critical bugs related to the user impe
 *   
 *   
 *   
-*   
-*   
-*   
-
-**Areas that need refactoring**:
--   The data-loading flow during impersonation is broken and needs to be fixed. The dependencies between , , and other data-fetching components should be reviewed to ensure they work correctly with an impersonation token.
 
 **key api endpoints**
-*   ****: Modified to return a JWT  in the response body.
-*   ****: Modified to return a JWT .
-*   ****: Returns a temporary JWT  for the target user.
-*   ****: **(SUSPECTED BUGGY)** This endpoint is likely failing or returning incomplete data when called with an impersonation token, causing the UI to break.
+*   ****: **(BUGGY)** Creates a Stripe checkout session. Fails because it's being called with invalid Price IDs.
+*   ****: Checks the status of a Stripe checkout session.
+*   ****: Returns a temporary JWT token for the target user.
+*   ****: Returns current user data, now includes .
+*   ****: Returns organization data, now works for impersonated users.
 
 **Critical Info for New Agent**
-*   **TOP PRIORITY:** Fix the broken impersonation view. When an admin impersonates a user, the UI is missing the header, navigation, and all data, and buttons are disabled. The root cause is almost certainly a failure to load data from essential contexts like . Start by debugging the  endpoint call when using an impersonation token.
-*   **TOKEN-BASED AUTH:** Remember that the entire app now uses JWT tokens stored in , not cookies. This change fixed production deployment but is the source of the new impersonation bugs. All authentication and session logic must be viewed through this lens.
-*   **PRODUCTION DEPLOYMENT:** The user deploys frequently. Be aware that issues may arise from differences between the preview environment and their production setup (e.g., environment variables, domain names). The previous CORS issue is a prime example of this.
+*   **TOP PRIORITY (P0):** The Stripe checkout is broken. The user gets a Something went wrong error on the Stripe page. This is because the frontend  uses hardcoded Price IDs that do not exist in the Stripe test account. You must first create the required Products and Prices using the Stripe API, then update the IDs in the frontend code.
+*   **SECOND PRIORITY (P1):** The user has requested to remove the Testimonials (or Social Proof) section from .
+*   **Stripe Test Keys:** A test key is present in . All product/price creation must be done in the associated test account.
+*   **Future Work:** Do not implement any feature-gating or subscription logic in the user model yet. The current task is only to fix the landing page and checkout redirection.
 
 **documents and test reports created in this job**
-- PRD has been updated throughout the session.
+-  was updated with the new landing page requirements.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST:** User reports the impersonation view is missing data (organization logo, navigation, observations) and buttons are not working. They provided a screenshot comparing the broken impersonated view to the actual user's view. (BUG - P0)
-2.  none of the buttons are actually working... - User adds detail to the impersonation bug report. (BUG - P0)
-3.  User reports they need to redeploy the latest fixes, as they are testing on production with old code. (USER ACTION)
-4.  User confirms the impersonation view is now loading after a fix, but is missing the header and toolbar. (BUG - P1)
-5.  User reports the impersonation link leads to a blank white screen. (BUG - P1, fixed)
-6.  User reports that after the initial impersonation fix, clicking the eye icon redirects them back to the admin dashboard. (BUG - P1, fixed)
-7.  User confirms they are now able to log in as admin on production. (RESOLVED)
-8.  User reports a 502 Bad Gateway error after deploying the CORS fix. (RESOLVED, was a temporary server startup issue).
-9.  User reports a 401 Not authenticated error after deploying and logging in, providing a console screenshot showing the CORS error. (BUG - P1, fixed by switching to token auth).
-10. User asks if the agent's proposed fix will solve the production login issue. (QUESTION).
+1.  **LATEST:** User reports a Stripe error via screenshot and asks to remove the testimonials section. (BUG - P0)
+2.  User requests that the landing page not be fully implemented and to proceed with option A for the checkout flow (pay first, then sign up).
+3.  User provides detailed requirements for a three-tier pricing structure (Starter, Pro, Club Hub) with monthly/annual options and feature breakdowns.
+4.  User asks for an assessment of a prompt they wrote to build the landing page.
+5.  User provides a new logo to be used across the platform.
+6.  User confirms the impersonation fix is working.
+7.  User asks if using a new database will affect the impersonation fix. (Agent correctly explained it would not).
 
 **Project Health Check:**
 *   **Broken:**
-    *   The user impersonation feature is critically broken, rendering a non-functional, data-less page. This is the top priority.
-    *   The long-standing production data sync issue remains unresolved.
+    *   The Stripe checkout flow is critically broken, preventing the core monetization feature from working.
+*   **Mocked:**
+    *   The pricing and features listed on the landing page are just text; no actual feature gating is implemented.
 
 **3rd Party Integrations**
-*   **Resend (Email API)** - Requires User API Key.
-*   **recharts** - Charting library for React.
+*   **Stripe (Payments):** Integrated for handling subscriptions. Requires a user-provided API key (test key is currently in use).
+*   **Resend (Email API):** Requires a User API Key.
+*   **recharts (Charting):** Charting library for React.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO
+-   **Testing agent used after significant changes:** NO (Not for the landing page).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
--   **Known regressions:** The switch from cookie to token-based authentication broke the impersonation feature in a new way.
+-   **Known regressions:** None in this session.
 
 **Credentials to test flow:**
 *   **Admin:**  / 
-*   **Coach Developer:**  / 
 
 **What agent forgot to execute**
-The agent correctly diagnosed and fixed the critical production CORS issue by switching to token-based authentication. However, it failed to anticipate the full impact this major architectural change would have on the complex, pre-existing impersonation feature. The agent then spent significant time chasing down a series of cascading bugs (redirect loops, session state issues) in the impersonation flow, underestimating the core problem: that data contexts like  were not loading correctly for the impersonated user. A more direct debugging approach on the data layer for the impersonated user would have been more efficient.</analysis>
+The agent correctly set up the backend endpoint and frontend UI for the Stripe integration. However, it made a critical error by using placeholder/hallucinated Stripe Price IDs in the  file without first creating the corresponding Products and Prices in the Stripe test account. This is the direct cause of the checkout failure reported by the user.</analysis>
