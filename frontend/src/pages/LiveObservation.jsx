@@ -46,6 +46,15 @@ export default function LiveObservation() {
   const [addAsDefault, setAddAsDefault] = useState(false);
   const [savingPart, setSavingPart] = useState(false);
   
+  // Coach info state (Phase 4)
+  const [coachInfo, setCoachInfo] = useState(null);
+  const [showCoachInfo, setShowCoachInfo] = useState(false);
+  
+  // Observer notes state (Phase 4)
+  const [observerNotes, setObserverNotes] = useState([]);
+  const [showNotesPanel, setShowNotesPanel] = useState(false);
+  const [currentNote, setCurrentNote] = useState('');
+  
   const timerRef = useRef(null);
   const lastBallStateChange = useRef(null);
   const partStartTime = useRef(null);
