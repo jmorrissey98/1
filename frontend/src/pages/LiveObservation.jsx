@@ -56,6 +56,10 @@ export default function LiveObservation() {
   const [showNotesPanel, setShowNotesPanel] = useState(false);
   const [currentNote, setCurrentNote] = useState('');
   
+  // Reflection modal state (Phase 4)
+  const [showReflectionModal, setShowReflectionModal] = useState(false);
+  const [completedSession, setCompletedSession] = useState(null);
+  
   const timerRef = useRef(null);
   const lastBallStateChange = useRef(null);
   const partStartTime = useRef(null);
