@@ -185,6 +185,16 @@ export default function SessionSetup() {
     });
   };
 
+  const handleReflectionTemplateChange = (templateId) => {
+    setSelectedReflectionTemplateId(templateId);
+    updateSession({ reflectionTemplateId: templateId === 'default' ? null : templateId });
+  };
+
+  const handleNotesToggle = (enabled) => {
+    setEnableObserverNotes(enabled);
+    updateSession({ enableObserverNotes: enabled });
+  };
+
   const updateSession = (updates) => {
     setSession(prev => ({ ...prev, ...updates }));
   };
