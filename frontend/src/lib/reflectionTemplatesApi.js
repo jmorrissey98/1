@@ -17,11 +17,10 @@ export async function fetchReflectionTemplates(targetRole = null) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to fetch reflection templates');
+    throw new Error(response.data?.detail || 'Failed to fetch reflection templates');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
@@ -35,11 +34,10 @@ export async function fetchReflectionTemplate(templateId) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to fetch reflection template');
+    throw new Error(response.data?.detail || 'Failed to fetch reflection template');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
@@ -59,11 +57,10 @@ export async function createReflectionTemplate(templateData) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to create reflection template');
+    throw new Error(response.data?.detail || 'Failed to create reflection template');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
@@ -79,11 +76,10 @@ export async function updateReflectionTemplate(templateId, updateData) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to update reflection template');
+    throw new Error(response.data?.detail || 'Failed to update reflection template');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
@@ -97,11 +93,10 @@ export async function deleteReflectionTemplate(templateId) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to delete reflection template');
+    throw new Error(response.data?.detail || 'Failed to delete reflection template');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
@@ -115,11 +110,10 @@ export async function setTemplateAsDefault(templateId) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to set template as default');
+    throw new Error(response.data?.detail || 'Failed to set template as default');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
@@ -133,11 +127,10 @@ export async function unsetTemplateAsDefault(templateId) {
   });
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to unset template as default');
+    throw new Error(response.data?.detail || 'Failed to unset template as default');
   }
   
-  return response.json();
+  return response.data;
 }
 
 /**
