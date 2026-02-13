@@ -2152,6 +2152,135 @@ async def resend_invite(invite_id: str, request: Request):
         logger.error(f"Failed to resend invite email to {invite['email']}: {error_msg}")
         raise HTTPException(status_code=500, detail=f"Email failed: {error_msg}")
 
+@api_router.get("/invites/validate/{invite_id}", response_model=InviteValidationResponse)
+async def validate_invite(invite_id: str):
+    """
+    Validate an invite token and return pre-populated data.
+    This is a public endpoint (no auth required).
+    """
+    invite = await db.invites.find_one({"invite_id": invite_id}, {"_id": 0})
+    
+    if not invite:
+        return InviteValidationResponse(valid=False, error="Invite not found")
+    
+    if invite.get("used"):
+        return InviteValidationResponse(valid=False, error="This invitation has already been used")
+    
+    # Get invitee name from coach profile if exists
+    invitee_name = None
+    if invite.get("coach_id"):
+        coach = await db.coaches.find_one({"id": invite["coach_id"]}, {"_id": 0, "name": 1})
+        if coach:
+            invitee_name = coach.get("name")
+    
+    return InviteValidationResponse(
+        valid=True,
+        email=invite["email"],
+        name=invitee_name,
+        role=invite.get("role", "coach")
+    )
+
+class InviteRegistrationRequest(BaseModel):
+    invite_id: str
+    password: str
+    photo: Optional[str] = None  # Base64 or URL
+
+@api_router.post("/auth/register-invite")
+async def register_from_invite(data: InviteRegistrationRequest):
+    """
+    Register a new user from an invite link.
+    Bypasses payment - creates account directly with invite role.
+    """
+    invite = await db.invites.find_one({"invite_id": data.invite_id}, {"_id": 0})
+    
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invalid invite")
+    
+    if invite.get("used"):
+        raise HTTPException(status_code=400, detail="This invitation has already been used")
+    
+    email = invite["email"]
+    role = invite.get("role", "coach")
+    coach_id = invite.get("coach_id")
+    invited_by = invite.get("invited_by")
+    
+    # Check if user already exists
+    existing_user = await db.users.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    if existing_user:
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
+    
+    # Get name from coach profile if exists
+    name = email.split("@")[0]  # Default to email prefix
+    if coach_id:
+        coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+        if coach:
+            name = coach.get("name", name)
+    
+    # Validate password
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    
+    # Hash password
+    password_hash = hash_password(data.password)
+    
+    # Create user
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    new_user = {
+        "user_id": user_id,
+        "email": email,
+        "name": name,
+        "password_hash": password_hash,
+        "role": role,
+        "picture": data.photo,
+        "linked_coach_id": coach_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "organization_id": None  # Will be set based on inviter's org
+    }
+    
+    # Get organization from inviter
+    if invited_by:
+        inviter = await db.users.find_one({"user_id": invited_by}, {"_id": 0, "organization_id": 1})
+        if inviter and inviter.get("organization_id"):
+            new_user["organization_id"] = inviter["organization_id"]
+    
+    await db.users.insert_one(new_user)
+    
+    # Update coach profile to link to user
+    if coach_id:
+        await db.coaches.update_one(
+            {"id": coach_id},
+            {"$set": {
+                "user_id": user_id,
+                "photo": data.photo,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Mark invite as used
+    await db.invites.update_one(
+        {"invite_id": data.invite_id},
+        {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logger.info(f"User {email} registered via invite {data.invite_id}")
+    
+    # Generate JWT token
+    token = create_jwt_token(user_id, email, name, role)
+    
+    return {
+        "token": token,
+        "user": {
+            "user_id": user_id,
+            "email": email,
+            "name": name,
+            "role": role,
+            "picture": data.photo
+        }
+    }
+
 # User management endpoints
 @api_router.get("/users", response_model=List[UserResponse])
 async def list_users(request: Request):
