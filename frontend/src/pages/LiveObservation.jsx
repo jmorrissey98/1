@@ -689,6 +689,62 @@ export default function LiveObservation() {
         </div>
       </header>
 
+      {/* Coach Info & Targets (Phase 4) */}
+      {coachInfo && (
+        <Collapsible open={showCoachInfo} onOpenChange={setShowCoachInfo}>
+          <div className="bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200">
+            <CollapsibleTrigger asChild>
+              <button className="w-full px-4 py-2 flex items-center justify-between hover:bg-blue-100/50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-slate-700">{coachInfo.name}</span>
+                  {coachInfo.role_title && (
+                    <Badge variant="secondary" className="text-xs">
+                      {coachInfo.role_title}
+                    </Badge>
+                  )}
+                  {activeTargets.length > 0 && (
+                    <Badge className="bg-orange-100 text-orange-700 text-xs">
+                      <Target className="w-3 h-3 mr-1" />
+                      {activeTargets.length} Active Targets
+                    </Badge>
+                  )}
+                </div>
+                {showCoachInfo ? (
+                  <ChevronUp className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-3 space-y-3">
+                {activeTargets.length > 0 ? (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                      Development Targets
+                    </h4>
+                    <div className="space-y-2">
+                      {activeTargets.map((target, idx) => (
+                        <div 
+                          key={target.id || idx} 
+                          className="bg-white rounded-lg px-3 py-2 border border-orange-200 flex items-start gap-2"
+                        >
+                          <Target className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                          <span className="text-sm text-slate-700">{target.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No active development targets set for this coach.</p>
+                )}
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      )}
+
       {/* Session Parts Tabs */}
       <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6">
         <div className="flex gap-1 overflow-x-auto py-2 items-center tabs-responsive">
