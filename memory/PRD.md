@@ -397,3 +397,4 @@
 ## 3rd Party Integrations
 - **Resend (Email API)** - Requires User API Key
 - **recharts** - Charting library for React
+- **Stripe** - Payment processing (Test Mode: sk_test_emergent)
