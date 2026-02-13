@@ -584,28 +584,30 @@ async def send_password_reset_email(email: str, reset_token: str, user_name: str
     
     return await send_email_with_retry(params, "password reset")
 
-async def send_invite_email(email: str, inviter_name: str, role: str):
+async def send_invite_email(email: str, inviter_name: str, role: str, invite_id: str, invitee_name: str = None):
     """Send invitation email via Resend"""
-    signup_link = f"{APP_URL}/login"
+    # Use the direct registration link with invite token
+    registration_link = f"{APP_URL}/register/{invite_id}"
     role_display = "Coach Developer" if role == "coach_developer" else "Coach"
+    greeting = f"Hi {invitee_name}," if invitee_name else "Hi there,"
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #1e293b;">You're Invited to My Coach Developer</h2>
-        <p>Hi there,</p>
+        <p>{greeting}</p>
         <p><strong>{inviter_name}</strong> has invited you to join My Coach Developer as a <strong>{role_display}</strong>.</p>
         <p>My Coach Developer is a coaching observation app that helps track and analyze coaching sessions.</p>
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{signup_link}" 
+            <a href="{registration_link}" 
                style="background-color: #1e293b; color: white; padding: 12px 24px; 
                       text-decoration: none; border-radius: 6px; display: inline-block;">
-                Create Your Account
+                Complete Your Registration
             </a>
         </div>
         <p>Or copy and paste this link into your browser:</p>
-        <p style="color: #64748b; word-break: break-all;">{signup_link}</p>
+        <p style="color: #64748b; word-break: break-all;">{registration_link}</p>
         <p style="color: #64748b; font-size: 14px; margin-top: 30px;">
-            Use this email address ({email}) when signing up to activate your invitation.
+            This invitation link is unique to you and can only be used once.
         </p>
     </div>
     """
