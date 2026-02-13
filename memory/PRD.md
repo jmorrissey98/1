@@ -369,6 +369,10 @@
 - [x] **Removed free trial mentions** - Changed CTA from "Start Your Free Trial" to "Get Started"
 - [x] **Removed "500+ active users" stat** - Removed floating stats card from hero section
 - [x] **Stripe checkout verified working** - Test redirects correctly to Stripe payment page
+- [x] **Closed signup loophole** - Replaced signup form with "Create Account" tab that redirects to pricing
+  - Users can no longer create accounts without paying
+  - "View Plans & Pricing" button links to landing page pricing section
+  - Added hash-based scroll to pricing section on landing page
 
 ## Remaining Work / Backlog
 
