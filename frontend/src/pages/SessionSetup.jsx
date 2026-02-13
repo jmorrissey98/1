@@ -55,6 +55,7 @@ export default function SessionSetup() {
       setLoading(true);
       loadSessionParts();
       loadCoaches();
+      loadReflectionTemplates();
       setTemplates(storage.getTemplates());
       
       if (isEditing) {
