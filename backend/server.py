@@ -1812,7 +1812,9 @@ async def create_coach_manually(request: Request):
             await send_invite_email(
                 email=email,
                 inviter_name=user.name,
-                role="coach"
+                role="coach",
+                invite_id=invite_id,
+                invitee_name=name  # Pass the coach's name for personalized email
             )
             invite_sent = True
             logger.info(f"Invite sent to {email} for coach profile {coach_id}")
