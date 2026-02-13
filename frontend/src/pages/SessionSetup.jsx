@@ -335,6 +335,12 @@ export default function SessionSetup() {
       return;
     }
     
+    // Validate coach selection
+    if (!selectedCoachId || selectedCoachId === 'none') {
+      toast.error('Please select a coach for this observation');
+      return;
+    }
+    
     const updated = {
       ...session,
       updatedAt: new Date().toISOString(),
