@@ -1126,9 +1126,10 @@ async def get_current_user_info(request: Request):
     """Get current authenticated user"""
     user = await require_auth(request)
     
-    # Get auth_provider from database
+    # Get auth_provider and organization_id from database
     user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
     auth_provider = user_doc.get("auth_provider", "google") if user_doc else "google"
+    organization_id = user_doc.get("organization_id") if user_doc else user.organization_id
     
     return UserResponse(
         user_id=user.user_id,
@@ -1137,6 +1138,7 @@ async def get_current_user_info(request: Request):
         picture=user.picture,
         role=user.role,
         linked_coach_id=user.linked_coach_id,
+        organization_id=organization_id,
         auth_provider=auth_provider
     )
 
@@ -2533,11 +2535,19 @@ async def get_organization(request: Request):
     """Get the organization/club info for the current user"""
     user = await require_auth(request)
     
+    # Get full user doc to check for organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    user_org_id = user_doc.get("organization_id") if user_doc else None
+    
     # Find org by owner (Coach Developer) or by user's linked org
     org = None
     
-    if user.role == "coach_developer":
-        # Coach Developer owns the org
+    # First priority: Check if user has a direct organization_id (admin-created users)
+    if user_org_id:
+        org = await db.organizations.find_one({"org_id": user_org_id}, {"_id": 0})
+    
+    # Second priority: Coach Developer owns the org
+    if not org and user.role == "coach_developer":
         org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
         
         # Create org if doesn't exist
@@ -2550,11 +2560,17 @@ async def get_organization(request: Request):
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
             await db.organizations.insert_one(org)
-    else:
-        # Coach - find org through their linked coach profile
-        if user.linked_coach_id:
-            coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
-            if coach and coach.get("created_by"):
+    
+    # Third priority: Coach - find org through their linked coach profile
+    if not org and user.linked_coach_id:
+        coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0})
+        if coach:
+            # First check if coach has organization_id
+            coach_org_id = coach.get("organization_id")
+            if coach_org_id:
+                org = await db.organizations.find_one({"org_id": coach_org_id}, {"_id": 0})
+            # Fallback to created_by
+            if not org and coach.get("created_by"):
                 org = await db.organizations.find_one({"owner_id": coach["created_by"]}, {"_id": 0})
     
     if not org:
