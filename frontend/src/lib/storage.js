@@ -4,6 +4,7 @@
 const STORAGE_KEYS = {
   SESSIONS: 'mcd_sessions',
   TEMPLATES: 'mcd_templates',
+  REFLECTION_TEMPLATES: 'mcd_reflection_templates',
   ACTIVE_SESSION: 'mcd_active_session',
   SETTINGS: 'mcd_settings',
   COACHES: 'mcd_coaches',
@@ -158,6 +159,33 @@ export const storage = {
     if (templateId === 'default') return; // Don't delete default
     const templates = storage.getTemplates().filter(t => t.id !== templateId);
     localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+  },
+
+  // Reflection Templates
+  getReflectionTemplates: () => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.REFLECTION_TEMPLATES);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveReflectionTemplate: (template) => {
+    const templates = storage.getReflectionTemplates();
+    const index = templates.findIndex(t => t.id === template.id);
+    if (index >= 0) {
+      templates[index] = template;
+    } else {
+      templates.push(template);
+    }
+    localStorage.setItem(STORAGE_KEYS.REFLECTION_TEMPLATES, JSON.stringify(templates));
+    return template;
+  },
+
+  deleteReflectionTemplate: (templateId) => {
+    const templates = storage.getReflectionTemplates().filter(t => t.id !== templateId);
+    localStorage.setItem(STORAGE_KEYS.REFLECTION_TEMPLATES, JSON.stringify(templates));
   },
 
   // Active session (for resuming)
