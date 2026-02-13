@@ -123,6 +123,18 @@ export default function LiveObservation() {
     }
   };
 
+  const loadCoachInfo = async (coachId) => {
+    if (!coachId) return;
+    try {
+      const result = await safeGet(`/api/coaches/${coachId}`);
+      if (result.ok && result.data) {
+        setCoachInfo(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to load coach info:', err);
+    }
+  };
+
   // Timer logic
   useEffect(() => {
     if (isRunning) {
