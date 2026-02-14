@@ -984,9 +984,9 @@ export default function LiveObservation() {
           {/* Column 3: Descriptor Group 2 (Green) */}
           <div className="space-y-2 sm:space-y-3">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
-              {session.descriptorGroup2.name}
+              {session.descriptorGroup2?.name || 'Descriptor Group 2'}
             </div>
-            {session.descriptorGroup2.descriptors.map((desc) => {
+            {(session.descriptorGroup2?.descriptors || []).map((desc) => {
               const isSelected = lastEvent?.descriptors2?.includes(desc.id);
               return (
                 <button
