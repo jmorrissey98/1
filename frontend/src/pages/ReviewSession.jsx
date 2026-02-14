@@ -619,7 +619,7 @@ export default function ReviewSession() {
         <Tabs defaultValue="summary" className="space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
-            <TabsTrigger value="notes" data-testid="tab-notes">Notes & AI</TabsTrigger>
+            <TabsTrigger value="reflections" data-testid="tab-reflections">Reflections</TabsTrigger>
             <TabsTrigger value="timeline" data-testid="tab-timeline">Timeline</TabsTrigger>
             <TabsTrigger value="charts" data-testid="tab-charts">Charts</TabsTrigger>
           </TabsList>
