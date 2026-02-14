@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User, Filter } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User, Filter, Star, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -12,6 +12,8 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { OBSERVATION_CONTEXTS } from '../lib/storage';
@@ -19,6 +21,7 @@ import { formatTime, formatDateTime, calcPercentage, countBy, cn, generateId } f
 import { exportToPDF, exportToCSV } from '../lib/export';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
+import { fetchReflectionTemplates, fetchReflectionTemplate } from '../lib/reflectionTemplatesApi';
 import axios from 'axios';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
