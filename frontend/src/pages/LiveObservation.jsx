@@ -1012,8 +1012,8 @@ export default function LiveObservation() {
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded bg-yellow-400" />
                 <span className="font-medium text-slate-900">{lastEvent.eventTypeName}</span>
-                <span className="text-sm text-slate-500">
-                  {new Date(lastEvent.timestamp).toLocaleTimeString()}
+                <span className="text-sm text-slate-500 font-mono">
+                  {formatRelativeTime(lastEvent.relativeTimestamp || 0)}
                 </span>
                 {lastEvent.descriptors1.length > 0 && (
                   <div className="flex gap-1">
