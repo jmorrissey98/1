@@ -227,14 +227,15 @@
 
 ### P2 - Medium Priority
 - [ ] Session comparison view for coaches
-- [ ] iPad portrait orientation optimizations
 - [ ] Full audit for remaining localStorage usage
+- [ ] Production sync failure causing sessions to disappear (carry-over issue)
 
 ### P3 - Future
 - [ ] Export sessions as PDF reports
 - [ ] Email session summaries to coaches
 - [ ] Video attachment support
 - [ ] Team-level analytics dashboard
+- [ ] Improve invite/signup error messages (generic 400 errors)
 
 ## Credentials (Preview Environment)
 - **Admin:** hello@mycoachdeveloper.com / _mcDeveloper26!
