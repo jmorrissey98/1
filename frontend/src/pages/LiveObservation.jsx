@@ -295,42 +295,6 @@ export default function LiveObservation() {
     }
   };
 
-  // Handle saving reflection after session completion (Phase 4)
-  const handleSaveReflection = async (reflectionData) => {
-    try {
-      // Update the session with reflection data
-      const sessionWithReflection = {
-        ...completedSession,
-        observerReflection: {
-          templateId: reflectionData.templateId,
-          templateName: reflectionData.templateName,
-          responses: reflectionData.responses,
-          notesIncluded: reflectionData.selectedNotes,
-          notesContent: reflectionData.notesContent,
-          completedAt: new Date().toISOString()
-        },
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Save to cloud
-      await cloudSaveSession(sessionWithReflection);
-      setSession(sessionWithReflection);
-      setCurrentSession(sessionWithReflection);
-      
-      // Navigate to review
-      navigate(`/session/${sessionId}/review`);
-    } catch (err) {
-      console.error('Failed to save reflection:', err);
-      throw err;
-    }
-  };
-
-  // Handle skipping reflection (Phase 4)
-  const handleSkipReflection = () => {
-    setShowReflectionModal(false);
-    navigate(`/session/${sessionId}/review`);
-  };
-
   const handleEventTap = (eventType) => {
     if (!isRunning) {
       handleStart();
