@@ -2289,6 +2289,37 @@ async def register_from_invite(data: InviteRegistrationRequest):
     
     # Create user
     user_id = f"user_{uuid.uuid4().hex[:12]}"
+    
+    # Auto-create coach profile if role is coach and no existing coach_id
+    linked_coach_id = coach_id
+    if role == "coach" and not linked_coach_id:
+        # Check if a coach profile already exists for this email
+        existing_coach = await db.coaches.find_one(
+            {"email": {"$regex": f"^{email}$", "$options": "i"}},
+            {"_id": 0}
+        )
+        
+        if existing_coach:
+            linked_coach_id = existing_coach.get("id")
+            logger.info(f"Linking invited user {email} to existing coach profile {linked_coach_id}")
+        else:
+            # Create new coach profile
+            linked_coach_id = f"coach_{uuid.uuid4().hex[:12]}"
+            new_coach = {
+                "id": linked_coach_id,
+                "user_id": user_id,
+                "name": name,
+                "email": email,
+                "photo": data.photo,
+                "role_title": None,
+                "targets": [],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": invited_by
+            }
+            await db.coaches.insert_one(new_coach)
+            logger.info(f"Auto-created coach profile {linked_coach_id} for invited user {email}")
+    
     new_user = {
         "user_id": user_id,
         "email": email,
@@ -2296,7 +2327,7 @@ async def register_from_invite(data: InviteRegistrationRequest):
         "password_hash": password_hash,
         "role": role,
         "picture": data.photo,
-        "linked_coach_id": coach_id,
+        "linked_coach_id": linked_coach_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "organization_id": None  # Will be set based on inviter's org
     }
@@ -2309,8 +2340,8 @@ async def register_from_invite(data: InviteRegistrationRequest):
     
     await db.users.insert_one(new_user)
     
-    # Update coach profile to link to user
-    if coach_id:
+    # Update coach profile to link to user (if coach_id came from invite)
+    if coach_id and coach_id == linked_coach_id:
         await db.coaches.update_one(
             {"id": coach_id},
             {"$set": {
