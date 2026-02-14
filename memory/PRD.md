@@ -173,6 +173,18 @@
 - [x] Backend API for reflection templates CRUD
 - [x] Admin users have access to templates page
 
+### Phase 4: Live Observation & Session Integration (COMPLETED - February 14, 2026)
+- [x] Reflection Template selector in Session Setup page
+- [x] Enable Observer Notes toggle in Session Setup
+- [x] Coach info banner with expandable targets in Live Observation
+- [x] Observer Notes panel (purple button) during Live Observation
+- [x] Add/delete observer notes during observation
+- [x] Session Complete Reflection modal auto-triggered when ending session
+- [x] Reflection modal with support for all question types (text, scale, checkbox)
+- [x] Save reflection data to session
+- [x] Skip reflection option
+- [x] Fixed null pointer bugs in LiveObservation.jsx (sessionParts, descriptorGroups)
+
 ### Previous Work
 - Stripe checkout integration
 - Landing page with pricing
@@ -184,15 +196,8 @@
 
 ## Remaining Work / Backlog
 
-### P0 - Critical (Next)
-- [ ] **Live Observation Enhancements** - Phase 4
-  - Notes toggle in Observation Templates editor
-  - Notes button/panel during live observation
-  - Coach name + Targets button in observation window
-  - Reflection template selector per session
-  - Auto-trigger reflection on session completion
-
 ### P1 - High Priority  
+- [ ] Complete "My Development" page for Coaches
 - [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
 - [ ] Investigate "body stream already read" error in safeFetch.js
