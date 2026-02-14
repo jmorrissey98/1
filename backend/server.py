@@ -2362,11 +2362,13 @@ async def register_from_invite(data: InviteRegistrationRequest):
     # Generate session token
     session_token = secrets.token_urlsafe(32)
     
-    # Create session
+    # Create session with expiry
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     session = {
         "user_id": user_id,
         "email": email,
         "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.user_sessions.insert_one(session)
@@ -2378,7 +2380,8 @@ async def register_from_invite(data: InviteRegistrationRequest):
             "email": email,
             "name": name,
             "role": role,
-            "picture": data.photo
+            "picture": data.photo,
+            "linked_coach_id": linked_coach_id
         }
     }
 
