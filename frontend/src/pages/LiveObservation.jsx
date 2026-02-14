@@ -570,10 +570,15 @@ export default function LiveObservation() {
   const handleAddObserverNote = () => {
     if (!currentNote.trim()) return;
     
+    // Calculate relative timestamp (ms from session start)
+    const currentStartTime = sessionStartTime || session?.sessionStartTimestamp || Date.now();
+    const relativeTimestamp = Date.now() - currentStartTime;
+    
     const newNote = {
       id: generateId('note'),
       text: currentNote.trim(),
       timestamp: new Date().toISOString(),
+      relativeTimestamp: relativeTimestamp, // Store relative time
       partId: session.activePartId,
       partName: activePart?.name || 'Unknown'
     };
