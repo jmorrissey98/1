@@ -199,10 +199,6 @@ export default function ReviewSession() {
       setSavingReflection(false);
     }
   };
-    setSession(updated);
-    setCurrentSession(updated);
-    await cloudSaveSession(updated);
-  };
 
   const getFilteredEvents = () => {
     if (!session) return [];
