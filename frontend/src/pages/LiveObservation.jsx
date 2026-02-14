@@ -620,7 +620,7 @@ export default function LiveObservation() {
 
   if (!session) return null;
 
-  const activePart = session.sessionParts.find(p => p.id === session.activePartId);
+  const activePart = (session.sessionParts || []).find(p => p.id === session.activePartId);
   const activeTargets = coachInfo?.targets?.filter(t => t.status === 'active') || [];
 
   return (
