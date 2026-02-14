@@ -47,6 +47,15 @@ export default function ReviewSession() {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState('');
   
+  // Reflection template state
+  const [reflectionTemplates, setReflectionTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [currentTemplate, setCurrentTemplate] = useState(null);
+  const [templateResponses, setTemplateResponses] = useState({});
+  const [savingReflection, setSavingReflection] = useState(false);
+  const [observerNotesExpanded, setObserverNotesExpanded] = useState(true);
+  
   const isCoachView = user?.role === 'coach';
 
   useEffect(() => {
@@ -61,6 +70,11 @@ export default function ReviewSession() {
         }
         setSession(loaded);
         setCurrentSession(loaded);
+        
+        // Load reflection templates for coach educators
+        if (!isCoachView) {
+          loadReflectionTemplates();
+        }
       } catch (err) {
         console.error('Failed to load session:', err);
         toast.error('Failed to load session');
@@ -70,9 +84,121 @@ export default function ReviewSession() {
       }
     };
     loadSession();
-  }, [sessionId, navigate, getSession, setCurrentSession]);
+  }, [sessionId, navigate, getSession, setCurrentSession, isCoachView]);
 
-  const saveSession = async (updated) => {
+  // Load reflection templates
+  const loadReflectionTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const templates = await fetchReflectionTemplates('coach_educator');
+      setReflectionTemplates(templates);
+      
+      // Auto-select default template or the one saved in session
+      const savedTemplateId = session?.reflectionTemplateId || session?.observerReflection?.templateId;
+      if (savedTemplateId) {
+        setSelectedTemplateId(savedTemplateId);
+        loadTemplateDetails(savedTemplateId);
+      } else {
+        const defaultTemplate = templates.find(t => t.is_default);
+        if (defaultTemplate) {
+          setSelectedTemplateId(defaultTemplate.template_id);
+          loadTemplateDetails(defaultTemplate.template_id);
+        }
+      }
+      
+      // If session already has reflection responses, load them
+      if (session?.observerReflection?.responses) {
+        setTemplateResponses(session.observerReflection.responses);
+      }
+    } catch (err) {
+      console.error('Failed to load reflection templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const loadTemplateDetails = async (templateId) => {
+    if (!templateId) return;
+    try {
+      const template = await fetchReflectionTemplate(templateId);
+      setCurrentTemplate(template);
+      
+      // Initialize empty responses if not already set
+      if (Object.keys(templateResponses).length === 0) {
+        const initialResponses = {};
+        template.questions?.forEach(q => {
+          if (q.question_type === 'checkbox') {
+            initialResponses[q.question_id] = [];
+          } else {
+            initialResponses[q.question_id] = '';
+          }
+        });
+        setTemplateResponses(initialResponses);
+      }
+    } catch (err) {
+      console.error('Failed to load template:', err);
+    }
+  };
+
+  const handleTemplateChange = (templateId) => {
+    setSelectedTemplateId(templateId);
+    setTemplateResponses({}); // Reset responses when template changes
+    loadTemplateDetails(templateId);
+  };
+
+  const handleResponseChange = (questionId, value) => {
+    setTemplateResponses(prev => ({
+      ...prev,
+      [questionId]: value
+    }));
+  };
+
+  const handleCheckboxChange = (questionId, option, checked) => {
+    setTemplateResponses(prev => {
+      const current = prev[questionId] || [];
+      if (checked) {
+        return { ...prev, [questionId]: [...current, option] };
+      } else {
+        return { ...prev, [questionId]: current.filter(o => o !== option) };
+      }
+    });
+  };
+
+  const handleSaveTemplateReflection = async () => {
+    if (!currentTemplate) return;
+    
+    // Validate required questions
+    for (const q of currentTemplate.questions || []) {
+      if (q.required) {
+        const response = templateResponses[q.question_id];
+        if (!response || (Array.isArray(response) && response.length === 0)) {
+          toast.error(`Please answer: ${q.question_text}`);
+          return;
+        }
+      }
+    }
+
+    setSavingReflection(true);
+    try {
+      const updated = {
+        ...session,
+        observerReflection: {
+          templateId: currentTemplate.template_id,
+          templateName: currentTemplate.name,
+          responses: templateResponses,
+          completedAt: new Date().toISOString()
+        },
+        updatedAt: new Date().toISOString()
+      };
+      
+      await saveSession(updated);
+      toast.success('Reflection saved!');
+    } catch (err) {
+      toast.error('Failed to save reflection');
+    } finally {
+      setSavingReflection(false);
+    }
+  };
     setSession(updated);
     setCurrentSession(updated);
     await cloudSaveSession(updated);
