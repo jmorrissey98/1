@@ -9,10 +9,12 @@ import {
   initCloudSync
 } from '../lib/cloudSessionService';
 import { storage as localStorage } from '../lib/storage';
+import { useAuth } from './AuthContext';
 
 const CloudSyncContext = createContext(null);
 
 export function CloudSyncProvider({ children }) {
+  const { user, isCoachDeveloper, isAdmin } = useAuth();
   const [syncStatus, setSyncStatus] = useState(SyncStatus.IDLE);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -38,10 +40,16 @@ export function CloudSyncProvider({ children }) {
     return () => window.removeEventListener('cloudSyncStatusChange', handleStatusChange);
   }, []);
 
-  // Load sessions on mount
+  // Load sessions on mount - only for coach developers/admins
   useEffect(() => {
-    loadSessions();
-  }, []);
+    // Only load observation sessions for coach developers and admins
+    // Coaches use a different endpoint (/api/coach/sessions)
+    if (user && (isCoachDeveloper() || isAdmin())) {
+      loadSessions();
+    } else {
+      setLoading(false);
+    }
+  }, [user, isCoachDeveloper, isAdmin]);
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
