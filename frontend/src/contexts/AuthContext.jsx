@@ -80,6 +80,10 @@ export function AuthProvider({ children }) {
       }
 
       setUser(result.data);
+      // Identify user in analytics
+      if (result.data?.user_id) {
+        identifyUser(result.data.user_id);
+      }
       return result.data;
     } catch (err) {
       setError(err.message || 'Authentication failed');
