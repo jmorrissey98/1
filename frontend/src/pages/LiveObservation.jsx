@@ -283,9 +283,8 @@ export default function LiveObservation() {
       if (saveResult.success || saveResult.queued) {
         toast.success(saveResult.success ? 'Session completed and saved!' : 'Session completed! Will sync when online.');
         
-        // Store the completed session and show reflection modal (Phase 4)
-        setCompletedSession(finalSession);
-        setShowReflectionModal(true);
+        // Navigate directly to review page (reflection is now in Reflections tab)
+        navigate(`/session/${sessionId}/review`);
       } else {
         // Save failed - ask user what to do
         toast.error('Failed to save to cloud. Please try again or check your connection.');
