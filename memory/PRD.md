@@ -16,7 +16,7 @@
 - Create and manage observation sessions
 - View and manage coaches ("My Coaches")
 - Customize observation templates
-- **Manage Reflection Templates (NEW - Phase 3)**
+- **Manage Reflection Templates (Phase 3 - COMPLETE)**
 - Schedule future observations
 - View upcoming observations on dashboard
 - Set club/organization branding (name + logo)
@@ -30,6 +30,7 @@
 - Add reflections to sessions
 - Edit profile information
 - Permanent navigation bar (Dashboard, My Sessions, My Profile)
+- **Can access their own coach profile without 403 errors (FIX)**
 
 ### Cloud Sync
 - **MongoDB Cloud Database** - All sessions stored in cloud
@@ -37,6 +38,12 @@
 - **Multi-device access** - Sessions accessible from any device
 - **Offline support** - Falls back to localStorage when offline
 - **Auto-sync** - Sessions automatically sync every 5 seconds during observation
+
+### Analytics Integration (NEW - Feb 14, 2026)
+- **Google Analytics 4 (GA4)** - Measurement ID: G-713PP3YYYZ
+- Production-only (disabled in dev/localhost)
+- Tracks page views, feature usage, view duration
+- User identification on login/logout
 
 ### Data Model
 
