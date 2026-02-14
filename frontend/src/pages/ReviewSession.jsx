@@ -28,6 +28,15 @@ const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
 const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
 
+// Format relative time (milliseconds to MM:SS)
+const formatRelativeTime = (ms) => {
+  if (ms === undefined || ms === null) return '--:--';
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 export default function ReviewSession() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
