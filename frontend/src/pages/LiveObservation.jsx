@@ -391,15 +391,16 @@ export default function LiveObservation() {
   };
 
   const handleUndo = () => {
-    if (session.events.length === 0) return;
+    const events = session.events || [];
+    if (events.length === 0) return;
     
-    const removed = session.events[session.events.length - 1];
+    const removed = events[events.length - 1];
     setSession(prev => ({
       ...prev,
-      events: prev.events.slice(0, -1)
+      events: (prev.events || []).slice(0, -1)
     }));
     
-    setLastEvent(session.events.length > 1 ? session.events[session.events.length - 2] : null);
+    setLastEvent(events.length > 1 ? events[events.length - 2] : null);
     toast.info(`Undid: ${removed.eventTypeName}`);
   };
 
