@@ -413,13 +413,13 @@ export default function LiveObservation() {
       setSession(prev => ({
         ...prev,
         [ballTimeKey]: prev[ballTimeKey] + duration,
-        sessionParts: prev.sessionParts.map(p => 
+        sessionParts: (prev.sessionParts || []).map(p => 
           p.id === prev.activePartId 
             ? { ...p, [ballTimeKey]: p[ballTimeKey] + duration }
             : p
         ),
         ballRolling: !prev.ballRolling,
-        ballRollingLog: [...prev.ballRollingLog, {
+        ballRollingLog: [...(prev.ballRollingLog || []), {
           timestamp: new Date().toISOString(),
           state: !prev.ballRolling,
           partId: prev.activePartId
