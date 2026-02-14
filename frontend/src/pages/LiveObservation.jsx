@@ -606,6 +606,9 @@ export default function LiveObservation() {
       observerNotes: updatedNotes
     }));
     
+    // Minimize the notes panel after saving
+    setShowNotesPanel(false);
+    
     toast.success('Note saved', { duration: 1500 });
   };
 
