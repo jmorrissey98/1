@@ -1,13 +1,37 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <!-- Google tag (gtag.js) -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-713PP3YYYZ"></script>
+        <!-- Google Analytics 4 (GA4) - Only loads in production -->
         <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-713PP3YYYZ');
+            (function() {
+                // Only load GA in production (not localhost)
+                var hostname = window.location.hostname;
+                var isProduction = hostname !== 'localhost' && 
+                                   hostname !== '127.0.0.1' && 
+                                   !hostname.includes('localhost');
+                
+                if (isProduction) {
+                    // Load gtag.js asynchronously
+                    var script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-713PP3YYYZ';
+                    document.head.appendChild(script);
+                    
+                    // Initialize dataLayer and gtag
+                    window.dataLayer = window.dataLayer || [];
+                    window.gtag = function(){dataLayer.push(arguments);};
+                    gtag('js', new Date());
+                    gtag('config', 'G-713PP3YYYZ', {
+                        send_page_view: false  // Disable automatic page views - we handle SPA routing manually
+                    });
+                } else {
+                    // Stub gtag in development to prevent errors
+                    window.dataLayer = [];
+                    window.gtag = function() {
+                        console.debug('[GA Dev]', arguments);
+                    };
+                }
+            })();
         </script>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
