@@ -1367,8 +1367,10 @@ export default function ReviewSession() {
                               <div className="flex items-start justify-between">
                                 <div>
                                   <span className="font-semibold text-slate-900">{event.eventTypeName}</span>
-                                  <span className="text-sm text-slate-500 ml-2">
-                                    {new Date(event.timestamp).toLocaleTimeString()}
+                                  <span className="text-sm text-slate-500 ml-2 font-mono">
+                                    {event.relativeTimestamp !== undefined 
+                                      ? formatRelativeTime(event.relativeTimestamp)
+                                      : new Date(event.timestamp).toLocaleTimeString()}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
