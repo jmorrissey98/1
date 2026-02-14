@@ -18,7 +18,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
 import { safeGet } from '../lib/safeFetch';
 import SyncStatusIndicator from '../components/SyncStatusIndicator';
-import SessionCompleteReflection from '../components/SessionCompleteReflection';
 
 export default function LiveObservation() {
   const navigate = useNavigate();
