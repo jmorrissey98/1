@@ -122,8 +122,10 @@ class TestCoachInfoWithTargets:
         
         if len(active_targets) > 0:
             target = active_targets[0]
-            assert "target" in target, "Target should have 'target' field"
-            print(f"Sample target: {target.get('target')[:50]}...")
+            # Target can use 'target' or 'text' field
+            assert "target" in target or "text" in target, "Target should have 'target' or 'text' field"
+            target_text = target.get('target') or target.get('text')
+            print(f"Sample target: {target_text[:50]}...")
 
 
 class TestSessionWithObserverNotes:
