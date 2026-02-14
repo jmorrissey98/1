@@ -110,6 +110,14 @@ export default function LiveObservation() {
           const elapsed = Math.floor((Date.now() - new Date(loaded.startTime).getTime()) / 1000);
           setElapsedTime(elapsed);
           setIsRunning(true);
+          
+          // Restore session start timestamp for relative timing
+          if (loaded.sessionStartTimestamp) {
+            setSessionStartTime(loaded.sessionStartTimestamp);
+          } else {
+            // Calculate from startTime if not stored
+            setSessionStartTime(new Date(loaded.startTime).getTime());
+          }
         } else if (loaded.totalDuration > 0) {
           setElapsedTime(loaded.totalDuration);
         }
