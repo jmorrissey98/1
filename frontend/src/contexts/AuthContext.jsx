@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { safeGet, safePost, setAuthToken, clearAuthToken, getAuthToken } from '../lib/safeFetch';
+import { identifyUser, clearUserIdentity } from '../lib/analytics';
 
 const AuthContext = createContext(null);
 
