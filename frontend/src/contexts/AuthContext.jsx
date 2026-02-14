@@ -98,6 +98,7 @@ export function AuthProvider({ children }) {
       console.error('Logout error:', err);
     }
     clearAuthToken();
+    clearUserIdentity(); // Clear analytics user identity
     setUser(null);
   };
 
