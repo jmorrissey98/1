@@ -184,13 +184,29 @@
 - [x] Reflection Template selector in Session Setup page
 - [x] Enable Observer Notes toggle in Session Setup
 - [x] Coach info banner with expandable targets in Live Observation
-- [x] Observer Notes panel (purple button) during Live Observation
+- [x] Observer Notes panel during Live Observation
 - [x] Add/delete observer notes during observation
 - [x] Session Complete Reflection modal auto-triggered when ending session
 - [x] Reflection modal with support for all question types (text, scale, checkbox)
 - [x] Save reflection data to session
 - [x] Skip reflection option
 - [x] Fixed null pointer bugs in LiveObservation.jsx (sessionParts, descriptorGroups)
+
+### Phase 5: UI/UX Refinements (COMPLETED - February 14, 2026)
+- [x] Observer Notes UI - Removed purple theme, now uses neutral slate/gray colors
+- [x] Observer Notes panel collapsed by default (not expanded on page load)
+- [x] Relative timing (MM:SS) for events instead of wall-clock time
+  - Events logged during Live Observation now store `relativeTimestamp`
+  - Last event panel shows relative time format
+  - Observer notes timestamps show relative time
+  - Review Timeline displays MM:SS for sessions with relativeTimestamp
+  - Backward compatible: Old sessions fall back to wall-clock time display
+- [x] iPad portrait mode optimizations
+  - CSS media queries for portrait orientation (768px-1024px)
+  - Touch targets minimum 44px height
+  - Scrollable tabs for session parts
+  - Proper spacing and layout adjustments
+  - No horizontal overflow in portrait mode
 
 ### Previous Work
 - Stripe checkout integration
