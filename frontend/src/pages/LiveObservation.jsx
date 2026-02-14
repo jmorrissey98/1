@@ -52,8 +52,11 @@ export default function LiveObservation() {
   
   // Observer notes state (Phase 4)
   const [observerNotes, setObserverNotes] = useState([]);
-  const [showNotesPanel, setShowNotesPanel] = useState(false);
+  const [showNotesPanel, setShowNotesPanel] = useState(false); // Collapsed by default
   const [currentNote, setCurrentNote] = useState('');
+  
+  // Session start time for relative timing (Phase 5)
+  const [sessionStartTime, setSessionStartTime] = useState(null);
   
   const timerRef = useRef(null);
   const lastBallStateChange = useRef(null);
@@ -190,17 +193,23 @@ export default function LiveObservation() {
   const handleStart = () => {
     if (!isRunning) {
       const now = new Date().toISOString();
+      const startTimestamp = Date.now();
+      
+      // Set session start time for relative timing
+      setSessionStartTime(startTimestamp);
+      
       setSession(prev => ({
         ...prev,
         status: 'active',
         startTime: prev.startTime || now,
+        sessionStartTimestamp: prev.sessionStartTimestamp || startTimestamp, // Store for relative timing
         sessionParts: (prev.sessionParts || []).map(p => 
           p.id === prev.activePartId ? { ...p, startTime: now, used: true } : p
         )
       }));
       setIsRunning(true);
-      lastBallStateChange.current = Date.now();
-      partStartTime.current = Date.now();
+      lastBallStateChange.current = startTimestamp;
+      partStartTime.current = startTimestamp;
       toast.success('Observation started');
     }
   };
@@ -295,10 +304,22 @@ export default function LiveObservation() {
     }
   };
 
+  // Format relative time (milliseconds to MM:SS)
+  const formatRelativeTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const handleEventTap = (eventType) => {
     if (!isRunning) {
       handleStart();
     }
+    
+    // Calculate relative timestamp (ms from session start)
+    const currentStartTime = sessionStartTime || session?.sessionStartTimestamp || Date.now();
+    const relativeTimestamp = Date.now() - currentStartTime;
     
     const event = createEvent(
       eventType.id,
@@ -306,6 +327,9 @@ export default function LiveObservation() {
       session.activePartId,
       session.ballRolling
     );
+    
+    // Add relative timestamp to the event
+    event.relativeTimestamp = relativeTimestamp;
     
     setSession(prev => ({
       ...prev,
