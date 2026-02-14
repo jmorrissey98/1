@@ -7,6 +7,7 @@ import { CloudSyncProvider } from "./contexts/CloudSyncContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
 import AppHeader from "./components/AppHeader";
+import { AnalyticsTracker } from "./hooks/useAnalytics";
 import HomePage from "./pages/HomePage";
 import SessionSetup from "./pages/SessionSetup";
 import LiveObservation from "./pages/LiveObservation";
