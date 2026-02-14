@@ -158,6 +158,185 @@ code {
   }
 }
 
+/* ==========================================
+   iPad Portrait Mode Optimizations
+   Target: iPad portrait (768px-1024px, portrait)
+   ========================================== */
+
+/* iPad Portrait - Base Adjustments */
+@media (max-width: 1024px) and (orientation: portrait) {
+  /* Ensure touch targets are large enough */
+  button, [role="button"], .touch-action-manipulation {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Adjust tabs for portrait */
+  .tabs-responsive {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .tabs-responsive::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Stack grids vertically in portrait */
+  .portrait-stack {
+    flex-direction: column !important;
+  }
+  
+  /* Full width cards in portrait */
+  .portrait-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* iPad Portrait - Live Observation Page */
+@media (max-width: 1024px) and (orientation: portrait) {
+  /* Make intervention grid 2 columns in portrait */
+  .live-observation-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Larger touch targets for observation buttons */
+  .observation-btn {
+    min-height: 72px;
+    font-size: 1rem;
+  }
+  
+  /* Timer should be prominent */
+  .timer-display {
+    font-size: 2rem !important;
+  }
+  
+  /* Session parts tabs scrollable */
+  .session-parts-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  
+  /* Notes panel adjustment for portrait */
+  .notes-panel-portrait {
+    width: 320px;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+/* iPad Portrait - Dashboard Adjustments */
+@media (max-width: 1024px) and (orientation: portrait) {
+  /* Stack dashboard cards */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Upcoming sessions list full width */
+  .upcoming-sessions-list {
+    width: 100%;
+  }
+  
+  /* Stats cards 2 columns */
+  .stats-grid-portrait {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* iPad Portrait - Session Review Adjustments */
+@media (max-width: 1024px) and (orientation: portrait) {
+  /* Make tabs more touch friendly */
+  .review-tabs button {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+  
+  /* Charts responsive height */
+  .chart-container-portrait {
+    height: 250px !important;
+  }
+  
+  /* Timeline events full width */
+  .timeline-event {
+    padding: 12px;
+  }
+  
+  /* Metrics grid 2 columns */
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* iPad Portrait - Forms and Modals */
+@media (max-width: 1024px) and (orientation: portrait) {
+  /* Form inputs larger touch targets */
+  input, textarea, select {
+    min-height: 48px;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  /* Modals/Dialogs full width with padding */
+  .dialog-content-portrait {
+    width: calc(100vw - 32px) !important;
+    max-width: 500px;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+  }
+  
+  /* Buttons in modals */
+  .dialog-footer button {
+    min-height: 48px;
+    flex: 1;
+  }
+}
+
+/* iPad Portrait - Navigation */
+@media (max-width: 1024px) and (orientation: portrait) {
+  /* Bottom nav adjustments */
+  .bottom-nav {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  
+  /* Header adjustments */
+  .header-portrait {
+    padding: 12px 16px;
+  }
+  
+  .header-portrait h1 {
+    font-size: 1.125rem;
+  }
+}
+
+/* iPad Mini Portrait Specific (smaller iPad) */
+@media (max-width: 768px) and (orientation: portrait) {
+  .timer-display {
+    font-size: 1.5rem !important;
+  }
+  
+  .observation-btn {
+    min-height: 64px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Utility class for portrait mode stacking */
+@media (orientation: portrait) {
+  .portrait-col {
+    flex-direction: column;
+  }
+  
+  .portrait-gap-4 {
+    gap: 1rem;
+  }
+  
+  .portrait-p-4 {
+    padding: 1rem;
+  }
+}
+
 /* Responsive grid for observation */
 .observation-grid {
   display: grid;
