@@ -219,6 +219,7 @@ function App() {
   return (
     <div className="App min-h-screen bg-slate-50">
       <BrowserRouter>
+        <AnalyticsTracker />
         <AuthProvider>
           <SyncProvider>
             <OrganizationProvider>
