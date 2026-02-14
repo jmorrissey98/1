@@ -200,6 +200,12 @@ export default function ReviewSession() {
     }
   };
 
+  const saveSession = async (updated) => {
+    setSession(updated);
+    setCurrentSession(updated);
+    await cloudSaveSession(updated);
+  };
+
   const getFilteredEvents = () => {
     if (!session) return [];
     if (viewMode === 'whole') return session.events || [];
