@@ -1892,8 +1892,8 @@ async def get_coach_detail(coach_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Coach not found")
     
     # Check access: either coach developer OR coach accessing their own profile
-    is_coach_developer = user.get("role") in ["coach_developer", "admin"]
-    is_own_profile = user.get("linked_coach_id") == coach_id
+    is_coach_developer = user.role in ["coach_developer", "admin"]
+    is_own_profile = getattr(user, 'linked_coach_id', None) == coach_id
     
     if not is_coach_developer and not is_own_profile:
         raise HTTPException(status_code=403, detail="Access denied")
