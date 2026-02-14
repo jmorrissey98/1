@@ -1882,20 +1882,28 @@ async def create_coach_manually(request: Request):
 async def get_coach_detail(coach_id: str, request: Request):
     """
     Get detailed coach profile.
-    Coach Developer only.
+    Coach Developer can access any coach in their org.
+    Coach can access their own linked coach profile.
     """
-    await require_coach_developer(request)
+    user = await get_current_user(request)
     
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
     if not coach:
         raise HTTPException(status_code=404, detail="Coach not found")
     
+    # Check access: either coach developer OR coach accessing their own profile
+    is_coach_developer = user.get("role") in ["coach_developer", "admin"]
+    is_own_profile = user.get("linked_coach_id") == coach_id
+    
+    if not is_coach_developer and not is_own_profile:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     # Get linked user info
     user_id = coach.get("user_id")
     has_account = False
     if user_id:
-        user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-        has_account = user is not None
+        linked_user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        has_account = linked_user is not None
     
     return {
         **coach,
