@@ -1887,6 +1887,10 @@ async def get_coach_detail(coach_id: str, request: Request):
     """
     user = await get_current_user(request)
     
+    # Require authentication
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
     if not coach:
         raise HTTPException(status_code=404, detail="Coach not found")
