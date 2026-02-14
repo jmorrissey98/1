@@ -43,6 +43,10 @@ export function AuthProvider({ children }) {
         }
       } else {
         setUser(result.data);
+        // Identify user in analytics
+        if (result.data?.user_id) {
+          identifyUser(result.data.user_id);
+        }
       }
     } catch (err) {
       console.error('Auth check failed:', err);
