@@ -1080,13 +1080,14 @@ export default function LiveObservation() {
 
       {/* Intervention Count Badge */}
       <div className="fixed bottom-4 right-4 flex items-center gap-2">
-        {/* Notes Panel Toggle (Phase 4) */}
+        {/* Notes Panel Toggle (Phase 4) - neutral theme */}
         {session.enableObserverNotes !== false && (
           <Button
             onClick={() => setShowNotesPanel(!showNotesPanel)}
+            variant={showNotesPanel ? "default" : "outline"}
             className={cn(
               "shadow-lg",
-              showNotesPanel ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-500 hover:bg-purple-600"
+              showNotesPanel ? "bg-slate-700 hover:bg-slate-800" : "bg-white hover:bg-slate-50 border-slate-300"
             )}
             data-testid="toggle-notes-panel"
           >
