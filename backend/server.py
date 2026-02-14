@@ -960,14 +960,15 @@ async def get_current_user(request: Request) -> Optional[User]:
     if not session_doc:
         return None
     
-    # Check expiry
+    # Check expiry - if no expires_at, treat as valid (legacy sessions)
     expires_at = session_doc.get("expires_at")
-    if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at)
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at < datetime.now(timezone.utc):
-        return None
+    if expires_at:
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            return None
     
     # Get user
     user_doc = await db.users.find_one(
