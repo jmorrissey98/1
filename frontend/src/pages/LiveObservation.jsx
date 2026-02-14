@@ -1100,11 +1100,11 @@ export default function LiveObservation() {
         </Badge>
       </div>
 
-      {/* Observer Notes Panel (Phase 4) */}
+      {/* Observer Notes Panel (Phase 4) - neutral theme */}
       {showNotesPanel && session.enableObserverNotes !== false && (
         <div className="fixed bottom-20 right-4 w-80 bg-white rounded-lg shadow-xl border border-slate-200 z-20" data-testid="notes-panel">
-          <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-purple-50 rounded-t-lg">
-            <h3 className="font-semibold text-purple-900 flex items-center gap-2">
+          <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-lg">
+            <h3 className="font-semibold text-slate-700 flex items-center gap-2">
               <StickyNote className="w-4 h-4" />
               Observer Notes
             </h3>
@@ -1131,7 +1131,7 @@ export default function LiveObservation() {
                     <div className="flex-1">
                       <p className="text-slate-700">{note.text}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
-                        <span>{new Date(note.timestamp).toLocaleTimeString()}</span>
+                        <span className="font-mono">{formatRelativeTime(note.relativeTimestamp || 0)}</span>
                         <span>•</span>
                         <Badge variant="outline" className="text-xs py-0">
                           {note.partName}
@@ -1172,7 +1172,7 @@ export default function LiveObservation() {
             <Button
               onClick={handleAddObserverNote}
               disabled={!currentNote.trim()}
-              className="w-full mt-2 bg-purple-600 hover:bg-purple-700"
+              className="w-full mt-2"
               size="sm"
               data-testid="save-observer-note"
             >
