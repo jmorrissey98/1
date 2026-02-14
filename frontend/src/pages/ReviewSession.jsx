@@ -782,17 +782,238 @@ export default function ReviewSession() {
             </div>
           </TabsContent>
 
-          {/* Reflections & AI Tab - Updated */}
-          <TabsContent value="notes" className="space-y-6">
-            {/* Observer Reflections */}
+          {/* Reflections Tab - Restructured */}
+          <TabsContent value="reflections" className="space-y-6">
+            {/* Observer Notes Card - Collapsible */}
+            {!isCoachView && (session.observerNotes || []).length > 0 && (
+              <Collapsible open={observerNotesExpanded} onOpenChange={setObserverNotesExpanded}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                          <StickyNote className="w-5 h-5 text-purple-600" />
+                          Observer Notes
+                          <Badge variant="secondary" className="ml-2">
+                            {session.observerNotes.length}
+                          </Badge>
+                        </CardTitle>
+                        {observerNotesExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-slate-400" />
+                        )}
+                      </div>
+                      <CardDescription>
+                        Private notes taken during the observation session.
+                      </CardDescription>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-3 pt-0">
+                      {session.observerNotes.map(note => {
+                        const part = (session.sessionParts || []).find(p => p.id === note.partId);
+                        return (
+                          <div key={note.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                            <p className="text-slate-700">{note.text}</p>
+                            <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
+                              <span>{formatDateTime(note.timestamp)}</span>
+                              {part && (
+                                <>
+                                  <span>•</span>
+                                  <Badge variant="outline" className="text-xs">{part.name}</Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            )}
+
+            {/* Observer Reflection Template Form */}
+            {!isCoachView && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <ClipboardList className="w-5 h-5 text-blue-600" />
+                    Observer Reflection
+                  </CardTitle>
+                  <CardDescription>
+                    Complete your structured reflection using a template.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Template Selector */}
+                  <div className="space-y-2">
+                    <Label>Reflection Template</Label>
+                    <Select 
+                      value={selectedTemplateId} 
+                      onValueChange={handleTemplateChange}
+                      disabled={loadingTemplates}
+                    >
+                      <SelectTrigger data-testid="reflection-template-select">
+                        <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {reflectionTemplates.map(t => (
+                          <SelectItem key={t.template_id} value={t.template_id}>
+                            {t.name} {t.is_default && <span className="text-blue-600">(Default)</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {reflectionTemplates.length === 0 && !loadingTemplates && (
+                      <p className="text-sm text-slate-500">
+                        No reflection templates available. Create one in Templates.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Template Questions */}
+                  {currentTemplate && (
+                    <div className="space-y-6 mt-4 pt-4 border-t">
+                      {currentTemplate.questions?.map((question, qIndex) => (
+                        <div key={question.question_id} className="space-y-2">
+                          <Label className="flex items-center gap-1">
+                            {question.question_text}
+                            {question.required && <span className="text-red-500">*</span>}
+                          </Label>
+
+                          {/* Text Input */}
+                          {question.question_type === 'text' && (
+                            <Textarea
+                              value={templateResponses[question.question_id] || ''}
+                              onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
+                              placeholder="Enter your response..."
+                              className="min-h-[100px]"
+                              data-testid={`reflection-q-${qIndex}`}
+                            />
+                          )}
+
+                          {/* Scale Input */}
+                          {question.question_type === 'scale' && (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-xs text-slate-500">
+                                <span>{question.scale_min_label || question.scale_min}</span>
+                                <span>{question.scale_max_label || question.scale_max}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                {Array.from(
+                                  { length: (question.scale_max || 5) - (question.scale_min || 1) + 1 },
+                                  (_, i) => (question.scale_min || 1) + i
+                                ).map(value => (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => handleResponseChange(question.question_id, value)}
+                                    className={cn(
+                                      "w-10 h-10 rounded-lg font-medium transition-all",
+                                      templateResponses[question.question_id] === value
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    )}
+                                    data-testid={`reflection-q-${qIndex}-scale-${value}`}
+                                  >
+                                    {value}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Dropdown Input */}
+                          {question.question_type === 'dropdown' && (
+                            <Select
+                              value={templateResponses[question.question_id] || ''}
+                              onValueChange={(value) => handleResponseChange(question.question_id, value)}
+                            >
+                              <SelectTrigger data-testid={`reflection-q-${qIndex}`}>
+                                <SelectValue placeholder="Select an option" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(question.options || []).map((option, oIndex) => (
+                                  <SelectItem key={oIndex} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+
+                          {/* Checkbox Input */}
+                          {question.question_type === 'checkbox' && (
+                            <div className="space-y-2">
+                              {(question.options || []).map((option, oIndex) => (
+                                <div key={oIndex} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`${question.question_id}-${oIndex}`}
+                                    checked={(templateResponses[question.question_id] || []).includes(option)}
+                                    onCheckedChange={(checked) => handleCheckboxChange(question.question_id, option, checked)}
+                                    data-testid={`reflection-q-${qIndex}-cb-${oIndex}`}
+                                  />
+                                  <Label htmlFor={`${question.question_id}-${oIndex}`} className="font-normal">
+                                    {option}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Save Button */}
+                      <div className="pt-4">
+                        <Button 
+                          onClick={handleSaveTemplateReflection}
+                          disabled={savingReflection}
+                          className="w-full sm:w-auto"
+                          data-testid="save-reflection-btn"
+                        >
+                          {savingReflection ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4 mr-2" />
+                          )}
+                          Save Reflection
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show saved reflection if exists */}
+                  {session.observerReflection?.completedAt && (
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span className="font-medium text-green-700">Reflection completed</span>
+                        <span className="text-sm text-green-600">
+                          {formatDateTime(session.observerReflection.completedAt)}
+                        </span>
+                      </div>
+                      {session.observerReflection.templateName && (
+                        <p className="text-sm text-slate-600">
+                          Template: {session.observerReflection.templateName}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Free-form Observer Reflections */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  Observer Reflections
+                  Additional Notes
                 </CardTitle>
                 <CardDescription>
-                  Add your observations and reflections on this session.
+                  Add free-form observations and notes about this session.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -825,7 +1046,7 @@ export default function ReviewSession() {
                   <Textarea
                     value={newReflection}
                     onChange={(e) => setNewReflection(e.target.value)}
-                    placeholder="Add a reflection..."
+                    placeholder="Add a note..."
                     className="min-h-[80px] resize-y flex-1"
                     data-testid="observer-reflection-textarea"
                   />
@@ -837,7 +1058,7 @@ export default function ReviewSession() {
                   data-testid="add-observer-reflection-btn"
                 >
                   <Check className="w-4 h-4 mr-2" />
-                  Add Reflection
+                  Add Note
                 </Button>
               </CardContent>
             </Card>
@@ -1010,14 +1231,14 @@ export default function ReviewSession() {
               </CardContent>
             </Card>
 
-            {/* Session Summary - Collapsible by default */}
+            {/* AI Summary - Collapsible */}
             <Collapsible open={aiSummaryExpanded} onOpenChange={setAiSummaryExpanded}>
               <Card>
                 <CardHeader className="cursor-pointer" onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}>
                   <div className="flex items-center justify-between">
                     <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      Session Summary
+                      <Sparkles className="w-5 h-5 text-amber-500" />
+                      AI Summary
                       {session.aiSummary && (
                         <Badge variant="secondary" className="ml-2">Generated</Badge>
                       )}
