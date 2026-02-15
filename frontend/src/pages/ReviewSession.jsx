@@ -1347,45 +1347,196 @@ export default function ReviewSession() {
             </Collapsible>
           </TabsContent>
 
-          {/* Timeline Tab */}
-          <TabsContent value="timeline">
+          {/* Session Activity Tab - Density Visualization */}
+          <TabsContent value="activity">
             <Card>
               <CardHeader>
-                <CardTitle className="font-['Manrope']">Event Timeline</CardTitle>
+                <CardTitle className="font-['Manrope']">Session Activity Density</CardTitle>
+                <CardDescription>Visual representation of when interventions occurred during the session</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
                 {events.length === 0 ? (
                   <div className="text-center py-8 text-slate-500">
-                    No events recorded in this view
+                    No events recorded in this session
                   </div>
                 ) : (
-                  <ScrollArea className="h-[500px] pr-4">
-                    <div className="space-y-3">
-                      {events.map((event, index) => {
-                        const part = (session.sessionParts || []).find(p => p.id === event.sessionPartId);
-                        const isEditing = editingEvent === event.id;
+                  <>
+                    {/* Session Density Visualization */}
+                    <div className="space-y-4">
+                      {/* Main density bar */}
+                      <div className="relative">
+                        <div className="text-sm font-medium text-slate-700 mb-2">Intervention Timeline</div>
                         
-                        return (
-                          <div 
-                            key={event.id} 
-                            className="flex gap-4 p-3 bg-slate-50 rounded-lg group"
-                            data-testid={`event-row-${event.id}`}
-                          >
-                            <div className="flex flex-col items-center">
-                              <div className="w-3 h-3 rounded bg-yellow-400" />
-                              {index < events.length - 1 && (
-                                <div className="w-0.5 h-full bg-slate-200 mt-1" />
-                              )}
+                        {/* Time axis labels */}
+                        <div className="flex justify-between text-xs text-slate-500 mb-1">
+                          <span>00:00</span>
+                          <span>{formatRelativeTime(session.totalDuration || Math.max(...events.map(e => e.relativeTimestamp || 0)))}</span>
+                        </div>
+                        
+                        {/* Density bar container */}
+                        <div 
+                          className="relative h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
+                          data-testid="density-bar"
+                        >
+                          {/* Ball rolling segments background */}
+                          {(session.ballRollingLog || []).map((segment, idx) => {
+                            const totalDuration = session.totalDuration || 1;
+                            const startPct = ((segment.start || 0) / totalDuration) * 100;
+                            const widthPct = ((segment.duration || 0) / totalDuration) * 100;
+                            return (
+                              <div
+                                key={`ball-${idx}`}
+                                className={cn(
+                                  "absolute top-0 h-full opacity-20",
+                                  segment.rolling ? "bg-green-400" : "bg-red-300"
+                                )}
+                                style={{
+                                  left: `${startPct}%`,
+                                  width: `${widthPct}%`
+                                }}
+                              />
+                            );
+                          })}
+                          
+                          {/* Event markers */}
+                          {events.map((event, index) => {
+                            const totalDuration = session.totalDuration || Math.max(...events.map(e => e.relativeTimestamp || 0)) || 1;
+                            const position = ((event.relativeTimestamp || 0) / totalDuration) * 100;
+                            
+                            // Color based on event type
+                            const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
+                            const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
+                            
+                            return (
+                              <div
+                                key={event.id}
+                                className="absolute top-0 h-full group cursor-pointer"
+                                style={{
+                                  left: `${Math.min(position, 98)}%`,
+                                  width: '2px'
+                                }}
+                                data-testid={`density-marker-${event.id}`}
+                              >
+                                <div 
+                                  className="w-full h-full transition-all group-hover:w-2"
+                                  style={{ backgroundColor: color }}
+                                />
+                                {/* Tooltip on hover */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                  <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                    <div className="font-medium">{event.eventTypeName}</div>
+                                    <div className="text-slate-300">{formatRelativeTime(event.relativeTimestamp)}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Legend */}
+                        <div className="flex flex-wrap gap-3 mt-3 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 bg-green-400 rounded opacity-40" />
+                            <span className="text-slate-600">Ball Rolling</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 bg-red-300 rounded opacity-40" />
+                            <span className="text-slate-600">Ball Stopped</span>
+                          </div>
+                          <span className="text-slate-400">|</span>
+                          {(session.interventionTypes || []).slice(0, 5).map((type, idx) => (
+                            <div key={type.id} className="flex items-center gap-1.5">
+                              <div 
+                                className="w-3 h-3 rounded" 
+                                style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                              />
+                              <span className="text-slate-600">{type.name}</span>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <span className="font-semibold text-slate-900">{event.eventTypeName}</span>
-                                  <span className="text-sm text-slate-500 ml-2 font-mono">
-                                    {event.relativeTimestamp !== undefined 
-                                      ? formatRelativeTime(event.relativeTimestamp)
-                                      : new Date(event.timestamp).toLocaleTimeString()}
-                                  </span>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Density summary stats */}
+                      <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-slate-900">{events.length}</div>
+                          <div className="text-xs text-slate-500">Total Interventions</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-slate-900">
+                            {(() => {
+                              // Calculate average gap between interventions
+                              if (events.length < 2) return '--';
+                              const sortedEvents = [...events].sort((a, b) => (a.relativeTimestamp || 0) - (b.relativeTimestamp || 0));
+                              let totalGap = 0;
+                              for (let i = 1; i < sortedEvents.length; i++) {
+                                totalGap += (sortedEvents[i].relativeTimestamp || 0) - (sortedEvents[i-1].relativeTimestamp || 0);
+                              }
+                              return formatRelativeTime(totalGap / (sortedEvents.length - 1));
+                            })()}
+                          </div>
+                          <div className="text-xs text-slate-500">Avg Gap Between</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-slate-900">
+                            {(() => {
+                              // Find busiest minute
+                              if (events.length === 0) return '--';
+                              const minuteBuckets = {};
+                              events.forEach(e => {
+                                const minute = Math.floor((e.relativeTimestamp || 0) / 60000);
+                                minuteBuckets[minute] = (minuteBuckets[minute] || 0) + 1;
+                              });
+                              return Math.max(...Object.values(minuteBuckets));
+                            })()}
+                          </div>
+                          <div className="text-xs text-slate-500">Peak Per Minute</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Event List - Condensed */}
+                    <div className="pt-4 border-t">
+                      <div className="text-sm font-medium text-slate-700 mb-3">Event Details</div>
+                      <ScrollArea className="h-[300px] pr-4">
+                        <div className="space-y-2">
+                          {events.map((event, index) => {
+                            const part = (session.sessionParts || []).find(p => p.id === event.sessionPartId);
+                            const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
+                            const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
+                            
+                            return (
+                              <div 
+                                key={event.id} 
+                                className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors group"
+                                data-testid={`event-row-${event.id}`}
+                              >
+                                <div 
+                                  className="w-1 h-10 rounded-full flex-shrink-0" 
+                                  style={{ backgroundColor: color }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-slate-900 text-sm">{event.eventTypeName}</span>
+                                    <span className="text-xs text-slate-500 font-mono">
+                                      {formatRelativeTime(event.relativeTimestamp)}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {part && (
+                                      <Badge variant="outline" className="text-xs py-0">
+                                        {part.name}
+                                      </Badge>
+                                    )}
+                                    {(event.descriptors1 || []).slice(0, 2).map(d => {
+                                      const desc = session.descriptorGroup1?.descriptors?.find(x => x.id === d);
+                                      return desc && (
+                                        <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100 text-xs py-0">
+                                          {desc.name}
+                                        </Badge>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
@@ -1427,71 +1578,12 @@ export default function ReviewSession() {
                                   </AlertDialog>
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                <Badge variant="outline" className="text-xs">
-                                  {part?.name || 'Unknown Part'}
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className={cn(
-                                    "text-xs",
-                                    event.ballRolling ? "border-orange-300 text-orange-600" : "border-slate-300 text-slate-500"
-                                  )}
-                                >
-                                  {event.ballRolling ? 'Ball Rolling' : 'Ball Stopped'}
-                                </Badge>
-                                {(event.descriptors1 || []).map(d => {
-                                  const desc = session.descriptorGroup1?.descriptors?.find(x => x.id === d);
-                                  return desc && (
-                                    <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100 text-xs">
-                                      {desc.name}
-                                    </Badge>
-                                  );
-                                })}
-                                {(event.descriptors2 || []).map(d => {
-                                  const desc = session.descriptorGroup2?.descriptors?.find(x => x.id === d);
-                                  return desc && (
-                                    <Badge key={d} className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
-                                      {desc.name}
-                                    </Badge>
-                                  );
-                                })}
-                              </div>
-                              {isEditing ? (
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Input
-                                    value={editNote}
-                                    onChange={(e) => setEditNote(e.target.value)}
-                                    placeholder="Add note..."
-                                    className="flex-1 h-8 text-sm"
-                                    data-testid={`edit-note-input-${event.id}`}
-                                  />
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    onClick={() => handleSaveEdit(event.id)}
-                                  >
-                                    <Check className="w-4 h-4 text-green-600" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    onClick={() => setEditingEvent(null)}
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              ) : event.note && (
-                                <p className="text-sm text-slate-600 mt-1 italic">"{event.note}"</p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
                     </div>
-                  </ScrollArea>
+                  </>
                 )}
               </CardContent>
             </Card>
