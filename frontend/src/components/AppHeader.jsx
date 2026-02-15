@@ -84,8 +84,8 @@ export default function AppHeader() {
   
   // Get home path based on user role
   const getHomePath = () => {
-    if (isCoachUser && user?.linked_coach_id) {
-      return `/coach-view/${user.linked_coach_id}`;
+    if (isCoachUser) {
+      return '/coach/development';
     }
     return '/';
   };
