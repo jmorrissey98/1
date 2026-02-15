@@ -210,7 +210,11 @@ export default function CoachMyProfile() {
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={photoUrl || profile?.photo} />
+                  <AvatarImage 
+                    src={(photoUrl || profile?.photo) && !(photoUrl || profile?.photo || '').includes('undefined') 
+                      ? (photoUrl || profile?.photo) 
+                      : undefined} 
+                  />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700 text-2xl">
                     {profile?.name?.charAt(0) || user?.name?.charAt(0) || 'C'}
                   </AvatarFallback>
