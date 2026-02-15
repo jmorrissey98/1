@@ -1591,6 +1591,14 @@ export default function ReviewSession() {
 
           {/* Charts Tab */}
           <TabsContent value="charts" className="space-y-6">
+            {/* Multi-Dimensional Analytics Module */}
+            <InterventionAnalyticsModule 
+              events={events}
+              interventionTypes={session.interventionTypes || []}
+              descriptorGroup1={session.descriptorGroup1}
+              descriptorGroup2={session.descriptorGroup2}
+            />
+            
             {/* Events Bar Chart */}
             <Card>
               <CardHeader>
