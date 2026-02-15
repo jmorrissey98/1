@@ -124,7 +124,10 @@ export default function CoachProfileEdit() {
           <CardContent>
             <div className="flex items-center gap-6">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={profile?.photo} alt={profile?.name} />
+                <AvatarImage 
+                  src={profile?.photo && !profile.photo.includes('undefined') ? profile.photo : undefined} 
+                  alt={profile?.name} 
+                />
                 <AvatarFallback className="bg-slate-200 text-slate-600 text-2xl">
                   {profile?.name?.charAt(0) || 'C'}
                 </AvatarFallback>
