@@ -99,25 +99,39 @@ export default function ReviewSession() {
   const loadReflectionTemplates = async () => {
     setLoadingTemplates(true);
     try {
-      const templates = await fetchReflectionTemplates('coach_educator');
-      setReflectionTemplates(templates);
+      // First, check if session has an assigned template
+      const savedTemplateId = session?.reflectionTemplateId || session?.reflection_template_id || session?.observerReflection?.templateId;
       
-      // Auto-select default template or the one saved in session
-      const savedTemplateId = session?.reflectionTemplateId || session?.observerReflection?.templateId;
       if (savedTemplateId) {
+        // Load the assigned template directly (works for both coach and coach educator)
         setSelectedTemplateId(savedTemplateId);
-        loadTemplateDetails(savedTemplateId);
+        await loadTemplateDetails(savedTemplateId);
+        
+        // If session already has reflection responses, load them
+        if (session?.observerReflection?.responses) {
+          setTemplateResponses(session.observerReflection.responses);
+        }
+        
+        // Also load the templates list for reference (if user is coach educator)
+        if (!isCoachView) {
+          const templates = await fetchReflectionTemplates('coach_educator');
+          setReflectionTemplates(templates);
+        }
       } else {
+        // No assigned template - load list and select default
+        const templates = await fetchReflectionTemplates('coach_educator');
+        setReflectionTemplates(templates);
+        
         const defaultTemplate = templates.find(t => t.is_default);
         if (defaultTemplate) {
           setSelectedTemplateId(defaultTemplate.template_id);
-          loadTemplateDetails(defaultTemplate.template_id);
+          await loadTemplateDetails(defaultTemplate.template_id);
         }
-      }
-      
-      // If session already has reflection responses, load them
-      if (session?.observerReflection?.responses) {
-        setTemplateResponses(session.observerReflection.responses);
+        
+        // If session already has reflection responses, load them
+        if (session?.observerReflection?.responses) {
+          setTemplateResponses(session.observerReflection.responses);
+        }
       }
     } catch (err) {
       console.error('Failed to load reflection templates:', err);
