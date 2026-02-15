@@ -645,7 +645,7 @@ export default function ReviewSession() {
           <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
             <TabsTrigger value="reflections" data-testid="tab-reflections">Reflections</TabsTrigger>
-            <TabsTrigger value="timeline" data-testid="tab-timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="activity" data-testid="tab-activity">Activity</TabsTrigger>
             <TabsTrigger value="charts" data-testid="tab-charts">Charts</TabsTrigger>
           </TabsList>
 
