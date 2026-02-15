@@ -184,6 +184,13 @@ function AppRouter() {
         </ProtectedRoute>
       } />
       
+      {/* Coach Calendar */}
+      <Route path="/coach/calendar" element={
+        <ProtectedRoute>
+          <CoachCalendar />
+        </ProtectedRoute>
+      } />
+      
       {/* Data Recovery - Admin Only */}
       <Route path="/data-recovery" element={
         <ProtectedRoute>
