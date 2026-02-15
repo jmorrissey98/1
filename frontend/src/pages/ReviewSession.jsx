@@ -284,8 +284,8 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
         )}
         
         {/* Stacked Bar Chart */}
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-72 min-h-[288px]">
+          <ResponsiveContainer width="100%" height="100%" minHeight={288}>
             <BarChart data={stackedData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} />
