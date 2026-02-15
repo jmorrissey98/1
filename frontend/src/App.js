@@ -179,9 +179,10 @@ function AppRouter() {
           <UserSettings />
         </ProtectedRoute>
       } />
+      {/* Redirect old coach-view URL to new path */}
       <Route path="/coach-view/:coachId" element={
         <ProtectedRoute>
-          <CoachView />
+          <Navigate to="/coach/development" replace />
         </ProtectedRoute>
       } />
       
