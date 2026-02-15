@@ -52,9 +52,9 @@ function HomeRedirect() {
     return <Navigate to="/admin" replace />;
   }
   
-  // Coach role goes to coach dashboard
+  // Coach role goes to My Development page (the new merged dashboard)
   if (user?.role === 'coach') {
-    return <Navigate to="/coach" replace />;
+    return <Navigate to="/coach/development" replace />;
   }
   
   // Coach Developer (or impersonating user) goes to main home page
