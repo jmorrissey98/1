@@ -112,7 +112,10 @@ export default function CoachDashboard() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <Avatar className="w-16 h-16">
-                <AvatarImage src={profile?.photo} alt={profile?.name} />
+                <AvatarImage 
+                  src={profile?.photo && !profile.photo.includes('undefined') ? profile.photo : undefined} 
+                  alt={profile?.name} 
+                />
                 <AvatarFallback className="bg-slate-200 text-slate-600 text-lg">
                   {profile?.name?.charAt(0) || 'C'}
                 </AvatarFallback>
