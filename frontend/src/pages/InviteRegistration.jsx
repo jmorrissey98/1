@@ -117,11 +117,10 @@ export default function InviteRegistration() {
         setAuthToken(result.data.token);
       }
       
-      toast.success('Account created successfully!');
-      await checkAuth();
+      toast.success('Account created successfully! Please sign in.');
       
-      // Navigate to dashboard
-      navigate('/');
+      // Navigate to login page (clearer UX than auto-login to landing page)
+      navigate('/login');
       
     } catch (err) {
       toast.error('Registration failed. Please try again.');
