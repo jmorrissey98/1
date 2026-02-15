@@ -126,7 +126,8 @@ export default function CoachMyProfile() {
       }
 
       const data = await response.json();
-      const newPhotoUrl = `${API_URL}/api/files/${data.file_id}`;
+      // Use the url returned from the upload endpoint (includes filename with extension)
+      const newPhotoUrl = `${API_URL}${data.url}`;
       setPhotoUrl(newPhotoUrl);
       
       // Update the profile with the new photo
