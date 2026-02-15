@@ -3204,6 +3204,68 @@ async def get_coach_sessions(request: Request):
     
     return result
 
+@api_router.get("/coach/calendar")
+async def get_coach_calendar_sessions(request: Request):
+    """
+    Get all sessions for the authenticated coach in calendar format.
+    Returns both scheduled (upcoming) and historic observations for the coach.
+    """
+    user = await require_coach(request)
+    coach_id = user.linked_coach_id
+    
+    # Get all observation sessions where this coach was observed
+    sessions_cursor = db.sessions.find(
+        {"coach_id": coach_id},
+        {"_id": 0}
+    ).sort("created_at", -1)
+    
+    sessions = await sessions_cursor.to_list(200)
+    
+    # Also get scheduled observations for this coach
+    scheduled_obs = await db.scheduled_observations.find(
+        {"coach_id": coach_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    result = []
+    
+    # Add historic/completed sessions
+    for session in sessions:
+        result.append({
+            "id": session.get("session_id"),
+            "name": session.get("name") or session.get("title", "Untitled Session"),
+            "coachId": session.get("coach_id"),
+            "coachName": user.name,
+            "status": session.get("status", "completed"),
+            "observationContext": session.get("observation_context"),
+            "createdAt": session.get("created_at") or session.get("createdAt"),
+            "updatedAt": session.get("updated_at") or session.get("updatedAt"),
+            "plannedDate": session.get("planned_date"),
+            "totalDuration": session.get("total_duration", 0),
+            "events": session.get("events", [])
+        })
+    
+    # Add scheduled observations as planned sessions
+    for obs in scheduled_obs:
+        # Check if this scheduled observation is already in sessions
+        existing = any(s["id"] == obs.get("id") for s in result)
+        if not existing and obs.get("status") == "scheduled":
+            result.append({
+                "id": obs.get("id") or f"sched_{obs.get('_id', '')}",
+                "name": obs.get("title", "Scheduled Observation"),
+                "coachId": obs.get("coach_id"),
+                "coachName": user.name,
+                "status": "planned",
+                "observationContext": obs.get("observation_context"),
+                "createdAt": obs.get("created_at"),
+                "updatedAt": obs.get("updated_at"),
+                "plannedDate": obs.get("scheduled_date"),
+                "totalDuration": 0,
+                "events": []
+            })
+    
+    return result
+
 @api_router.get("/coach/session/{session_id}")
 async def get_coach_session_detail(session_id: str, request: Request):
     """
