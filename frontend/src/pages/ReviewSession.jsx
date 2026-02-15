@@ -37,6 +37,347 @@ const formatRelativeTime = (ms) => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
+// Multi-Dimensional Intervention Analytics Module
+const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGroup1, descriptorGroup2 }) => {
+  const [groupBy, setGroupBy] = useState('intervention');
+  const [filterBy, setFilterBy] = useState('all');
+  const [selectedDimension, setSelectedDimension] = useState(null);
+  
+  // Build cross-tabulation data
+  const buildCrossTab = () => {
+    if (!events || events.length === 0) return { rows: [], cols: [], data: {} };
+    
+    const rows = [];
+    const cols = [];
+    const data = {};
+    
+    if (groupBy === 'intervention') {
+      // Group by intervention type, show descriptor breakdown
+      interventionTypes.forEach(type => {
+        rows.push({ id: type.id, name: type.name });
+      });
+      
+      if (descriptorGroup1?.descriptors) {
+        descriptorGroup1.descriptors.forEach(d => {
+          cols.push({ id: d.id, name: d.name, group: 1 });
+        });
+      }
+    } else if (groupBy === 'content') {
+      // Group by descriptor group 1 (content focus)
+      if (descriptorGroup1?.descriptors) {
+        descriptorGroup1.descriptors.forEach(d => {
+          rows.push({ id: d.id, name: d.name });
+        });
+      }
+      
+      interventionTypes.forEach(type => {
+        cols.push({ id: type.id, name: type.name });
+      });
+    } else if (groupBy === 'delivery') {
+      // Group by descriptor group 2 (delivery method)
+      if (descriptorGroup2?.descriptors) {
+        descriptorGroup2.descriptors.forEach(d => {
+          rows.push({ id: d.id, name: d.name });
+        });
+      }
+      
+      interventionTypes.forEach(type => {
+        cols.push({ id: type.id, name: type.name });
+      });
+    }
+    
+    // Calculate counts
+    events.forEach(event => {
+      if (groupBy === 'intervention') {
+        const rowId = event.eventTypeId;
+        (event.descriptors1 || []).forEach(colId => {
+          const key = `${rowId}-${colId}`;
+          data[key] = (data[key] || 0) + 1;
+        });
+      } else if (groupBy === 'content') {
+        (event.descriptors1 || []).forEach(rowId => {
+          const colId = event.eventTypeId;
+          const key = `${rowId}-${colId}`;
+          data[key] = (data[key] || 0) + 1;
+        });
+      } else if (groupBy === 'delivery') {
+        (event.descriptors2 || []).forEach(rowId => {
+          const colId = event.eventTypeId;
+          const key = `${rowId}-${colId}`;
+          data[key] = (data[key] || 0) + 1;
+        });
+      }
+    });
+    
+    return { rows, cols, data };
+  };
+  
+  const crossTab = buildCrossTab();
+  
+  // Build stacked bar chart data
+  const buildStackedData = () => {
+    const stackedData = [];
+    
+    if (groupBy === 'intervention') {
+      interventionTypes.forEach(type => {
+        const row = { name: type.name };
+        let total = 0;
+        
+        if (descriptorGroup1?.descriptors) {
+          descriptorGroup1.descriptors.forEach(d => {
+            const count = crossTab.data[`${type.id}-${d.id}`] || 0;
+            row[d.name] = count;
+            total += count;
+          });
+        }
+        row.total = total;
+        if (total > 0) stackedData.push(row);
+      });
+    } else if (groupBy === 'content' && descriptorGroup1?.descriptors) {
+      descriptorGroup1.descriptors.forEach(d => {
+        const row = { name: d.name };
+        let total = 0;
+        
+        interventionTypes.forEach(type => {
+          const count = crossTab.data[`${d.id}-${type.id}`] || 0;
+          row[type.name] = count;
+          total += count;
+        });
+        row.total = total;
+        if (total > 0) stackedData.push(row);
+      });
+    } else if (groupBy === 'delivery' && descriptorGroup2?.descriptors) {
+      descriptorGroup2.descriptors.forEach(d => {
+        const row = { name: d.name };
+        let total = 0;
+        
+        interventionTypes.forEach(type => {
+          const count = crossTab.data[`${d.id}-${type.id}`] || 0;
+          row[type.name] = count;
+          total += count;
+        });
+        row.total = total;
+        if (total > 0) stackedData.push(row);
+      });
+    }
+    
+    return stackedData.sort((a, b) => b.total - a.total);
+  };
+  
+  const stackedData = buildStackedData();
+  
+  // Get dimension labels for legend
+  const getDimensionKeys = () => {
+    if (groupBy === 'intervention') {
+      return (descriptorGroup1?.descriptors || []).map(d => d.name);
+    }
+    return interventionTypes.map(t => t.name);
+  };
+  
+  const dimensionKeys = getDimensionKeys();
+  
+  // Calculate pattern insights
+  const getInsights = () => {
+    const insights = [];
+    
+    if (events.length === 0) return insights;
+    
+    // Most common intervention-content combination
+    let maxCombo = { key: '', count: 0 };
+    Object.entries(crossTab.data).forEach(([key, count]) => {
+      if (count > maxCombo.count) {
+        maxCombo = { key, count };
+      }
+    });
+    
+    if (maxCombo.count > 0) {
+      const [rowId, colId] = maxCombo.key.split('-');
+      let rowName, colName;
+      
+      if (groupBy === 'intervention') {
+        rowName = interventionTypes.find(t => t.id === rowId)?.name || 'Unknown';
+        colName = descriptorGroup1?.descriptors?.find(d => d.id === colId)?.name || 'Unknown';
+        insights.push({
+          type: 'pattern',
+          text: `Most common pattern: "${rowName}" with "${colName}" (${maxCombo.count} times)`
+        });
+      }
+    }
+    
+    // Intervention variety
+    const usedTypes = new Set(events.map(e => e.eventTypeId));
+    const varietyPercent = Math.round((usedTypes.size / interventionTypes.length) * 100);
+    insights.push({
+      type: 'variety',
+      text: `Intervention variety: ${usedTypes.size}/${interventionTypes.length} types used (${varietyPercent}%)`
+    });
+    
+    return insights;
+  };
+  
+  const insights = getInsights();
+  
+  if (!events || events.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-['Manrope'] flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Intervention Patterns
+          </CardTitle>
+          <CardDescription>Analyze relationships between intervention types and descriptors</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-slate-500">
+            No event data available for analysis
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="font-['Manrope'] flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              Intervention Patterns
+            </CardTitle>
+            <CardDescription>Analyze relationships between intervention types and descriptors</CardDescription>
+          </div>
+          
+          {/* Grouping Controls */}
+          <div className="flex gap-2">
+            <Select value={groupBy} onValueChange={setGroupBy}>
+              <SelectTrigger className="w-40" data-testid="analytics-group-select">
+                <SelectValue placeholder="Group by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="intervention">By Intervention</SelectItem>
+                {descriptorGroup1 && <SelectItem value="content">By {descriptorGroup1.name || 'Content'}</SelectItem>}
+                {descriptorGroup2 && <SelectItem value="delivery">By {descriptorGroup2.name || 'Delivery'}</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Insights */}
+        {insights.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {insights.map((insight, idx) => (
+              <Badge 
+                key={idx} 
+                variant="outline" 
+                className={cn(
+                  "text-xs py-1",
+                  insight.type === 'pattern' ? "border-yellow-300 bg-yellow-50 text-yellow-800" : 
+                  insight.type === 'variety' ? "border-blue-300 bg-blue-50 text-blue-800" : ""
+                )}
+              >
+                {insight.text}
+              </Badge>
+            ))}
+          </div>
+        )}
+        
+        {/* Stacked Bar Chart */}
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stackedData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} />
+              <YAxis 
+                dataKey="name" 
+                type="category" 
+                width={100} 
+                tick={{ fill: '#64748b', fontSize: 11 }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '11px' }} />
+              {dimensionKeys.map((key, idx) => (
+                <Bar 
+                  key={key} 
+                  dataKey={key} 
+                  stackId="a" 
+                  fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                  radius={idx === dimensionKeys.length - 1 ? [0, 4, 4, 0] : [0, 0, 0, 0]}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* Cross-tabulation Table */}
+        <div>
+          <h4 className="text-sm font-medium text-slate-700 mb-3">Detailed Breakdown</h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2 font-medium text-slate-700">
+                    {groupBy === 'intervention' ? 'Intervention' : 
+                     groupBy === 'content' ? (descriptorGroup1?.name || 'Content') : 
+                     (descriptorGroup2?.name || 'Delivery')}
+                  </th>
+                  {crossTab.cols.slice(0, 6).map(col => (
+                    <th key={col.id} className="text-center py-2 px-2 font-medium text-slate-700 min-w-[60px]">
+                      {col.name}
+                    </th>
+                  ))}
+                  <th className="text-center py-2 px-2 font-medium text-slate-700">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {crossTab.rows.slice(0, 8).map(row => {
+                  const rowTotal = crossTab.cols.reduce((sum, col) => {
+                    return sum + (crossTab.data[`${row.id}-${col.id}`] || 0);
+                  }, 0);
+                  
+                  return (
+                    <tr key={row.id} className="border-b hover:bg-slate-50">
+                      <td className="py-2 px-2 text-slate-700">{row.name}</td>
+                      {crossTab.cols.slice(0, 6).map(col => {
+                        const count = crossTab.data[`${row.id}-${col.id}`] || 0;
+                        return (
+                          <td key={col.id} className="text-center py-2 px-2">
+                            {count > 0 ? (
+                              <span className={cn(
+                                "inline-flex items-center justify-center w-6 h-6 rounded text-xs font-medium",
+                                count >= 5 ? "bg-green-100 text-green-800" :
+                                count >= 3 ? "bg-yellow-100 text-yellow-800" :
+                                "bg-slate-100 text-slate-600"
+                              )}>
+                                {count}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="text-center py-2 px-2 font-medium text-slate-800">{rowTotal}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function ReviewSession() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
