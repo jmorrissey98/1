@@ -26,6 +26,7 @@ import InviteRegistration from "./pages/InviteRegistration";
 // Coach Role Pages
 import CoachDashboard from "./pages/CoachDashboard";
 import CoachDevelopment from "./pages/CoachDevelopment";
+import CoachMyDevelopment from "./pages/CoachMyDevelopment";
 import CoachSessions from "./pages/CoachSessions";
 import CoachSessionDetail from "./pages/CoachSessionDetail";
 import CoachMyProfile from "./pages/CoachMyProfile";
