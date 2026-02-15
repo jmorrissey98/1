@@ -390,7 +390,10 @@ export default function MyCoaches() {
                         onClick={() => !coach._pending && navigate(`/coaches/${coach.id}`)}
                       >
                         <Avatar className="w-12 h-12">
-                          <AvatarImage src={coach.photo} alt={coach.name} />
+                          <AvatarImage 
+                            src={coach.photo && !coach.photo.includes('undefined') ? coach.photo : undefined} 
+                            alt={coach.name} 
+                          />
                           <AvatarFallback className="bg-slate-200 text-slate-600">
                             {coach.name?.charAt(0) || 'C'}
                           </AvatarFallback>
