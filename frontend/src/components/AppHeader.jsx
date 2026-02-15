@@ -186,7 +186,7 @@ export default function AppHeader() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/calendar')}
+            onClick={() => navigate(isCoachUser ? '/coach/calendar' : '/calendar')}
             data-testid="nav-calendar-btn"
           >
             <Calendar className="w-4 h-4 mr-1.5" />
