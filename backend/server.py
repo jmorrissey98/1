@@ -527,7 +527,7 @@ async def require_coach(request: Request) -> "User":
         # Check if a coach profile exists with this user's email
         existing_coach = await db.coaches.find_one({"email": user.email}, {"_id": 0})
         
-        if existing_coach:
+        if existing_coach and existing_coach.get("id"):
             # Link user to existing coach profile
             linked_coach_id = existing_coach.get("id")
             await db.users.update_one(
@@ -535,27 +535,43 @@ async def require_coach(request: Request) -> "User":
                 {"$set": {"linked_coach_id": linked_coach_id}}
             )
             user.linked_coach_id = linked_coach_id
+            logger.info(f"Linked user {user.email} to existing coach profile {linked_coach_id}")
         else:
-            # Create new coach profile for this user
+            # Create new coach profile for this user (or fix broken one)
             coach_id = f"coach_{uuid.uuid4().hex[:12]}"
-            new_coach = {
-                "id": coach_id,
-                "name": user.name,
-                "email": user.email,
-                "photo": user.picture,
-                "targets": [],
-                "createdAt": datetime.now(timezone.utc).isoformat(),
-                "updatedAt": datetime.now(timezone.utc).isoformat()
-            }
-            await db.coaches.insert_one(new_coach)
             
-            # Link user to new coach profile
+            if existing_coach:
+                # Fix existing coach profile that has no id
+                await db.coaches.update_one(
+                    {"email": user.email},
+                    {"$set": {
+                        "id": coach_id,
+                        "user_id": user.user_id,
+                        "updatedAt": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                logger.info(f"Fixed coach profile for {user.email} with id {coach_id}")
+            else:
+                # Create brand new coach profile
+                new_coach = {
+                    "id": coach_id,
+                    "user_id": user.user_id,
+                    "name": user.name,
+                    "email": user.email,
+                    "photo": user.picture,
+                    "targets": [],
+                    "createdAt": datetime.now(timezone.utc).isoformat(),
+                    "updatedAt": datetime.now(timezone.utc).isoformat()
+                }
+                await db.coaches.insert_one(new_coach)
+                logger.info(f"Created new coach profile {coach_id} for user {user.email}")
+            
+            # Link user to coach profile
             await db.users.update_one(
                 {"user_id": user.user_id},
                 {"$set": {"linked_coach_id": coach_id}}
             )
             user.linked_coach_id = coach_id
-            logger.info(f"Auto-created coach profile {coach_id} for user {user.email}")
     
     return user
 
