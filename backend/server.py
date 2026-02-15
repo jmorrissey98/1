@@ -3447,6 +3447,83 @@ async def get_coach_targets(request: Request):
     
     return {"targets": targets}
 
+@api_router.post("/coach/targets")
+async def add_coach_target(request: Request, target_data: dict):
+    """Add a new target for the authenticated coach"""
+    user = await require_coach(request)
+    
+    target_text = target_data.get("text", "").strip()
+    if not target_text:
+        raise HTTPException(status_code=400, detail="Target text is required")
+    
+    target_id = f"target_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    new_target = {
+        "id": target_id,
+        "text": target_text,
+        "status": "active",
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.coaches.update_one(
+        {"id": user.linked_coach_id},
+        {"$push": {"targets": new_target}}
+    )
+    
+    logger.info(f"Target {target_id} added for coach {user.linked_coach_id}")
+    return new_target
+
+@api_router.put("/coach/targets/{target_id}")
+async def update_coach_target(target_id: str, request: Request, target_data: dict):
+    """Update a target for the authenticated coach"""
+    user = await require_coach(request)
+    
+    # Find the coach and target
+    coach = await db.coaches.find_one({"id": user.linked_coach_id}, {"_id": 0, "targets": 1})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    targets = coach.get("targets", [])
+    target_index = next((i for i, t in enumerate(targets) if t.get("id") == target_id), None)
+    
+    if target_index is None:
+        raise HTTPException(status_code=404, detail="Target not found")
+    
+    # Update target fields
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if "text" in target_data:
+        targets[target_index]["text"] = target_data["text"].strip()
+    if "status" in target_data:
+        targets[target_index]["status"] = target_data["status"]
+    targets[target_index]["updated_at"] = now
+    
+    await db.coaches.update_one(
+        {"id": user.linked_coach_id},
+        {"$set": {"targets": targets}}
+    )
+    
+    logger.info(f"Target {target_id} updated for coach {user.linked_coach_id}")
+    return targets[target_index]
+
+@api_router.delete("/coach/targets/{target_id}")
+async def delete_coach_target(target_id: str, request: Request):
+    """Delete a target for the authenticated coach"""
+    user = await require_coach(request)
+    
+    result = await db.coaches.update_one(
+        {"id": user.linked_coach_id},
+        {"$pull": {"targets": {"id": target_id}}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Target not found")
+    
+    logger.info(f"Target {target_id} deleted for coach {user.linked_coach_id}")
+    return {"success": True}
+
 # Scheduled Observations - for Coach Developers to schedule, Coaches to view
 @api_router.post("/scheduled-observations", response_model=ScheduledObservationResponse)
 async def create_scheduled_observation(obs_data: ScheduledObservationCreate, request: Request):
