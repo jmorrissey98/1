@@ -1,96 +1,113 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build and stabilize a PWA (My Coach Developer) for sports coaching. The project has moved through several phases of development, including bug fixes, UI/UX improvements, a user invitation system, and a comprehensive template builder.
+The user has provided a comprehensive list of new features and fixes. The primary goal is to overhaul the coach user's experience by improving the calendar, fixing a reflection template bug, redesigning the coach's landing page into a My Development hub, and introducing advanced session analytics.
 
 PRODUCT REQUIREMENTS:
 
-1.  **Phase 1-3 (COMPLETED):** UI fixes, secure user invitation flow, and a template builder for Observation and Reflection templates.
-2.  **Phase 4 (COMPLETED):** Live observation and session integration, including a reflection template selector, observer notes, and a post-session reflection trigger.
-3.  **Google Analytics (COMPLETED):** A comprehensive GA4 integration to track page views, feature usage, time spent per view, and user identification, running only in production.
-4.  **UI/UX Fixes (COMPLETED):**
-    *   Fixed a 403 error preventing coaches from accessing their own profiles.
-    *   The live observation notes panel now auto-minimizes after saving a note.
-    *   The session reflection process was moved from a pop-up modal to an inline form within a dedicated Reflections tab in the session review screen.
-5.  **New Requirements (PENDING):**
-    *   Remove the purple theme from observer notes and make them collapsed by default.
-    *   Change all timing logic in the live observation window to be relative (MM:SS) from the session start time.
-    *   Add UI optimizations for iPad portrait orientation.
+1.  **Coach Calendar View Fix (Phase A - COMPLETED):** The coach's calendar must function like the coach educator's, showing only their own upcoming and historic observations.
+2.  **Reflection Template Assignment Bug (Phase A - COMPLETED):** Default reflection templates assigned by a coach educator must correctly appear for the coach user during a session review.
+3.  **Remove Unnamed Landing Page and Merge Into “My Development” (Phase B - IN PROGRESS):**
+    *   Remove the redundant  page.
+    *   Create a new My Development page as the coach's primary landing page.
+    *   This page must have three tabs:
+        *   **Overview:** Display aggregated session data and analytics.
+        *   **My Sessions:** A searchable/filterable list of all the coach's observed sessions.
+        *   **My Targets:** Show and allow editing of active targets, with an archive for old ones.
+4.  **Replace Timeline Tab With Density Visualisation (Phase C - NOT STARTED):** On session review pages, replace the Timeline tab with a session density visualization to show when interventions occurred.
+5.  **Multi-Dimensional Intervention Analytics Module (Phase D - NOT STARTED):** Build a dynamic, reusable analytics module to analyze relationships between Intervention Type, Content Focus, and Delivery Method. This module should allow for dynamic filtering and grouping to uncover coaching patterns. It should be located in the charts area of the session review page.
+6.  **Recurring Bugs:**
+    *   A 401 Unauthorized error on  for a newly created coach user after the original was deleted and re-invited.
+    *   When a user creates an account from an invite link, they are taken to the main landing page instead of the login page. (FIXED)
+    *   A 401 error on  when a coach logs in. (FIXED, but root cause of photo not showing may persist).
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack PWA (React frontend, FastAPI backend, MongoDB) with JWT authentication. All major feature phases (1-4) are now complete and tested. A comprehensive Google Analytics (GA4) integration has been implemented, tracking page views, feature usage, and user identity. Recent work also addressed several user-reported bugs and UI/UX requests, including fixing a critical backend permission error for coach users and significantly refactoring the post-session reflection workflow to be more integrated into the session review page.
+The application is a full-stack PWA with a React frontend, FastAPI backend, and MongoDB database. It supports different user roles (Admin, Coach Developer, Coach) with JWT authentication. Major features like user invites, a template builder, live observation, and GA4 tracking are implemented.
+
+The agent has just completed Phase A of the new requirements, which involved fixing the coach's calendar view and a bug with reflection template assignments. Work has begun on Phase B, which involves restructuring the coach's dashboard into a new My Development page. The basic structure for this page and the necessary redirects are in place, but the functionality within its tabs is not yet implemented. The agent also addressed several critical authentication and data-loading bugs reported by the user throughout the session.
 
 **Last working item**:
--   **Last item agent was working:** The agent had just received a new set of tasks from the user (observer notes UI, relative timing, iPad optimization) and was about to begin planning their implementation.
--   **Status:** NOT STARTED
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** A combination of methods will be needed: the screenshot tool for the observer notes UI change, both frontend and backend testing for the relative timing logic, and the frontend testing agent for the iPad optimization.
+-   **Last item agent was working:** The agent was implementing the final fix for a recurring 401 error for new coach users. The bug was traced to a missing uid=0(root) gid=0(root) groups=0(root) field in the coach's profile upon creation, which prevented the  dependency from finding and linking the profile correctly. The agent implemented a fix in  to ensure a  is always generated and assigned.
+-   **Status:** USER VERIFICATION PENDING
+-   **Agent Testing Done:** Y (Tested locally with curl commands)
+-   **Which testing method agent to use?** Manual testing by the user on the deployed version is required to confirm the fix. If it fails, the backend testing agent should be used to create a test case that replicates the user deletion and re-creation flow.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0):** Observer notes UI needs to be changed (remove purple theme, collapse by default).
--   **Issue 2 (P0):** Live observation timing logic needs to be changed from wall-clock time to relative session time (MM:SS).
--   **Issue 3 (P1):** The application needs to be optimized for iPad portrait orientation.
--   **Issue 4 (P2):** Production environment sync is failing, causing sessions to disappear (carry-over issue).
--   **Issue 5 (P3):** The invite/signup flow returns generic 400 errors, causing user confusion (carry-over issue).
--   **Issue 6 (P4):** A Body stream already read console error appears intermittently (carry-over issue).
+-   **Issue 1 (P0):** 401 error for re-invited coach.
+-   **Issue 2 (P1):** Profile photo upload does not display the image.
+-   **Issue 3 (P2):** Body stream already read console error.
+-   **Issue 4 (P3):** Production environment sync failure.
+-   **Issue 5 (P4):** Generic 400 errors during invite/signup flow.
 
 **Issues Detail:**
--   **Issue 1: Observer Notes UI Change**
+-   **Issue 1: 401 error for re-invited coach**
+    -   **Attempted fixes:** Multiple fixes have been implemented, including ensuring  is set on session creation and ensuring a coach profile is created upon invite registration. The last fix addressed the auto-generation of a coach's uid=0(root) gid=0(root) groups=0(root) if it's missing. The user reported this issue persists on the deployed version after they manually deleted and re-created a coach.
     -   **Next debug checklist:**
-        -   In , locate the observer notes panel component.
-        -   Remove the CSS classes or styles responsible for the purple background.
-        -   Set the default state of the collapsible component to  to make it collapsed by default.
-    -   **Why fix this issue?** To align with the user's explicit UI/UX preference.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend.
--   **Issue 2: Implement Relative Timing**
+        -   Ask the user to re-test the full flow on the deployed version with the latest fixes.
+        -   If it fails, check the production logs for the  endpoint to see the exact state of the  and  objects within the  dependency.
+        -   Verify that deleting a user from the application correctly cleans up all related documents (user, coach profile, sessions) to prevent orphaned data from causing issues on re-registration.
+    -   **Why fix this issue?** It's a critical blocker preventing coaches from using the application.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** Backend
+    -   **Blocked on other issue:** None
+
+-   **Issue 2: Profile photo upload does not display the image**
+    -   **Attempted fixes:** The agent fixed a downstream error () by adding frontend guards. However, the root cause—why the photo successfully uploads (200 OK) but doesn't get linked to the profile and displayed—was not resolved.
     -   **Next debug checklist:**
-        -   In , on Start button click, capture and store a  timestamp ().
-        -   Use  to create a running timer that calculates  and updates the UI display in  format.
-        -   Modify the event handler for logging interventions/descriptors to save  (in milliseconds) to the backend instead of an absolute time.
-        -   In , ensure the saved relative timestamps are correctly formatted and displayed.
-    -   **Why fix this issue?** It is a core functional requirement for performance analysis.
+        -   In , trace the  function.
+        -   Check the response from the  endpoint. The agent previously identified a mismatch where the frontend expected  but the backend returned . This fix needs to be verified.
+        -   Inspect the  call to ensure the correct photo URL is being saved to the coach's profile in the database.
+    -   **Why fix this issue?** It's a broken core feature that impacts user experience.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Blocked on other issue:** None
+
+-   **Issue 3: Body stream already read console error**
     -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both.
--   **Issue 3: iPad Portrait Optimization**
-    -   **Next debug checklist:**
-        -   Use CSS media queries ( and ) in relevant component stylesheets.
-        -   Focus on key pages: , , and .
-        -   Adjust flexbox/grid layouts to stack elements vertically and ensure no content overflows.
-    -   **Why fix this issue?** To improve application usability on a key target device for coaches.
+    -   **Is recurring issue?** Y
+-   **Issue 4: Production environment sync failure**
     -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend.
--   **Issue 4, 5, 6 (Carry-over issues):**
-    -   **Status:** NOT STARTED. These are lower-priority known issues that have not been addressed. The production sync failure (Issue 4) remains the most critical of these.
+    -   **Is recurring issue?** Y
+-   **Issue 5: Generic 400 errors during invite/signup flow**
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
 
 **In progress Task List**:
--   None.
+-   **Task 1: Complete My Development Page (Phase B)**
+    -   **Where to resume:** The component  exists with a tab structure. The next step is to implement the content for each of the three tabs:
+        1.  **Overview Tab:** Fetch and display aggregated data and intervention trends.
+        2.  **My Sessions Tab:** Implement the session list with search and filtering functionality.
+        3.  **My Targets Tab:** Implement the CRUD functionality for coach targets using the newly created backend endpoints.
+    -   **What will be achieved with this?** It will complete the user's requirement to restructure the coach's main dashboard into a functional hub.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    *   (P0) Implement relative timing logic for sessions.
-    *   (P0) Update the observer notes UI theme and behavior.
-    *   (P1) Add iPad portrait mode optimizations.
+    *   **(P0) Phase C: Replace Timeline Tab With Density Visualisation:** In session review pages, remove the Timeline tab and implement a session density chart to visualize when interventions occurred.
+    *   **(P1) Phase D: Multi-Dimensional Intervention Analytics Module:** Build the dynamic, reusable analytics component with filtering and grouping for the session review page.
 -   **Future Tasks:**
-    *   (P1) Complete My Development page for Coaches.
     *   (P2) Implement a session comparison view for coaches.
     *   (P3) Add the ability to export sessions as PDF.
 
 **Completed work in this session**
--   **Phase 4: Live Observation & Session Integration (DONE & TESTED)**
-    -   Successfully tested the entire Phase 4 feature set using the .
-    -   The testing agent identified and fixed null pointer exceptions in .
--   **Google Analytics (GA4) Integration (DONE & TESTED)**
-    -   Implemented a full GA4 solution with a centralized utility () and a custom React hook () for tracking page views, feature usage, view duration, and user identity.
-    -   Configured the app to load the GA script conditionally only in production environments.
--   **Bug Fixes & UX Refinements (DONE & TESTED)**
-    -   **Backend:** Patched the  endpoint in  to correctly handle authorization, fixing a 403/520 error for coaches viewing their own profile.
-    -   **Frontend:** Refactored the session reflection flow by removing the pop-up modal from  and integrating the form directly into a newly renamed Reflections tab in .
-    -   **Frontend:** Modified the observer notes panel in  to automatically minimize after a note is saved.
+-   **New Features (from previous fork):**
+    -   Observer Notes UI updated (theme removed, collapsed by default).
+    -   Live observation timing changed to relative MM:SS.
+    -   Added initial CSS optimizations for iPad portrait orientation.
+-   **Phase A: Core Fixes (New Requirement):**
+    -   **Coach Calendar:** Created a dedicated endpoint () and frontend component () to show only the logged-in coach's sessions.
+    -   **Reflection Template Bug:** Fixed logic in  to correctly load the reflection template assigned to a session for coach users.
+-   **Critical Bug Fixes:**
+    -   Fixed multiple authentication/authorization bugs causing 401 and 500 errors for coach users, primarily related to session token creation (), coach profile auto-creation on registration, and role-based data fetching.
+    -   Fixed  crash in .
+    -   Prevented  from making unauthorized API calls for 'coach' roles.
+    -   Fixed post-signup redirect to navigate to the  page.
+    -   Guarded against  errors in multiple frontend components.
 
 **Earlier issues found/mentioned but not fixed**
 -   Unoptimized Database Queries.
@@ -100,83 +117,95 @@ The application is a full-stack PWA (React frontend, FastAPI backend, MongoDB) w
 -   Body stream already read console error.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:** Stale/disappearing data (Production Sync issue).
--   **Recurrence count:** 1
+-   **Issue recurrence in previous fork:** Production Sync issue causing disappearing data.
+-   **Recurrence count:** 2+
 -   **Status:** NOT STARTED
+-   **Note:** The 401 Unauthorized error for coach login is also a recurring theme. While specific causes are fixed, the general problem reappears in different forms on the production environment, suggesting a potential fragility in the auth/registration flow.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-*   **Google Analytics for SPAs:** Implemented a robust GA4 tracking solution for a React single-page application using custom hooks and utility modules to track page views, feature usage, and session duration.
-*   **Conditional Script Loading:** Used environment variables within  to ensure the GA4 script only loads in the production environment.
-*   **UI/State Refactoring:** Migrated a major piece of functionality (session reflection) from a modal-based flow triggered in one component to an inline form within another, involving significant state management and component composition changes.
-*   **Backend Authorization Fix:** Resolved a permission issue by correcting the logic that checks a user's role against their requested resource, ensuring users can access their own data.
+-   **Role-Based Data Fetching:** Conditionally fetching data based on user roles (e.g.,  now checks the user's role before fetching all sessions).
+-   **Backend Auth Flow & Dependency Injection:** Extensive debugging of FastAPI's dependency injection system (, ) to fix bugs related to session tokens, , and automatic creation of related user profiles.
+-   **Page Restructuring & Redirects:** Deprecating an old page () and consolidating its functionality into a new, tabbed component () while managing routing and redirects in .
+-   **Dynamic API Endpoints:** Creation of new, role-specific endpoints like  to provide scoped data to users.
 
 **key DB schema**
--   No changes to the database schema in this session.
+-   **user_sessions:** The  field was identified as critical for session validity and was added to the session creation logic in the  endpoint.
+-   **coaches:** The uid=0(root) gid=0(root) groups=0(root) field (the coach's unique ID, e.g., ) was found to be missing on some creation paths. Logic was added to ensure it's always generated and present.
+-   **users:** The  field is crucial for linking a user account to a coach profile.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
-*   
-*   
-*   
-*   
-*   
-*   
-*   
-*   
+-   
+-   
+-   
+-    (New)
+-    (New)
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
-*   The  file has grown very large (over 1000 lines) due to the recent refactoring. It should be broken down into smaller, more manageable child components, especially for the content of each tab.
+-    is now over 3000 lines long. It should be broken down into multiple files by API resource (e.g., , , ) using FastAPI's .
+-    remains a very large component that could be broken down further.
 
 **key api endpoints**
-*   : The authorization logic was fixed to allow a coach to access their own details, resolving a 403 error.
+-   : (NEW) Fetches calendar events for the logged-in coach.
+-   : (NEW) Creates a new target for a coach.
+-   : (NEW) Updates an existing target.
+-   : (MODIFIED) Now ensures  is set in the session and that a coach profile is created if the role is 'coach'.
+-   : (DEBUGGED) The target of a recurring 401 error. The authentication flow () has been modified multiple times to fix issues.
+-   : The endpoint for uploading files, including profile photos.
 
 **Critical Info for New Agent**
-*   **Top Priority:** The user's three most recent requests are the top priority: observer notes UI, relative timing, and iPad optimization. Start with these.
-*   **Major Refactoring:** Be aware that the session reflection process has been completely changed. It no longer uses a pop-up modal from . Instead, it is now an inline form located within the Reflections tab on the  page.
-*   **GA4 Implemented:** The Google Analytics code is in place but will only send data in a production environment (). Debug messages will appear in the console in development.
-*   **Production Bugs:** Several critical production-only bugs (especially the data sync/loss issue) are still pending and should be highlighted to the user as important future work after the current requests are completed.
+-   **Top Priority:** The user has laid out a multi-phase plan (Phases A-D). Phase A is done and Phase B is in progress. You must continue with implementing the tabs in the My Development page, followed by Phases C and D.
+-   **Recurring Auth Bug:** Be extremely cautious with the coach authentication flow. The user has repeatedly reported a 401 error on  after deleting and re-inviting a coach on production. While many underlying causes have been fixed, the problem may persist. Verify the user's latest report before moving on to new features.
+-   **Profile Photo Bug:** The issue where uploaded profile photos don't display is only partially fixed. The root cause needs to be investigated and solved.
+-   **Backend Refactoring:** The  file is critically oversized. Propose a refactoring task to split it into smaller routers to improve maintainability.
 
 **documents and test reports created in this job**
-*    (updated)
-*   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST (#250):** User requested three new changes: 1) Remove purple theme from observer notes and collapse by default. 2) Change session timing to be relative (MM:SS). 3) Optimize UI for iPad portrait mode. (Pending)
-2.  **#249:** User acknowledged completion of previous tasks. (Completed)
-3.  **#133:** User reported a 403 error for coaches and requested significant UI changes for the notes and reflection process. (Completed)
-4.  **#131:** User acknowledged the GA implementation and provided a summary. (Completed)
-5.  **#92:** User provided detailed product requirements for a comprehensive Google Analytics 4 integration. (Completed)
-6.  **#84:** User provided a screenshot and asked for help adding a Google Tag Manager tag. (Completed)
-7.  **#78:** Agent confirmed Phase 4 testing was complete and successful. (Completed)
-8.  **#60:** Agent confirmed the testing agent ran and fixed null pointer bugs in . (Completed)
-9.  **#56:** Agent confirmed data was set up and called the testing agent to begin Phase 4 E2E testing. (Completed)
-10. **#5:** User gave the go-ahead to proceed with the agent's plan at the beginning of the session. (Completed)
+1.  **LATEST (#331):** User confirms the agent's plan and answers clarifying questions about the analytics module and density visualization. (Completed)
+2.  **#329:** Agent asked for clarification on the new, large set of requirements. (Completed)
+3.  **#328:** User provided a comprehensive list of 5 new features/fixes to be implemented, organized into logical phases. (Pending)
+4.  **#291:** User asked if the profile photo not showing could be related to the  error. (Pending - root cause not fixed)
+5.  **#288:** User reported that login works, but they are still seeing a 401 error for . (Addressed)
+6.  **#251:** User reported two issues: 1) A 401 error on  after deleting and re-creating a coach. 2) The redirect after signup goes to the landing page, not the login page. (Issue 1 is recurring, Issue 2 is fixed).
+7.  **#222:** User reported the same 401 error on  for a new coach user. (Addressed, but recurred).
+8.  **#183:** User reported a new coach can see the toolbar but gets a failed to load dashboard message and a 401 error on . (Addressed).
+9.  **#97:** User reported a new coach user gets a blank page after logging in, with multiple console errors (500, 401, ). (Addressed).
+10. **#68:** User reported getting a 401 error and a Body stream already read console error when trying to log in as a coach. (Addressed, but body stream issue persists).
 
 **Project Health Check:**
-*   **Broken:**
-    *   The production sync issue, which causes data to disappear, remains a critical unresolved risk to data integrity.
-*   **Mocked:**
-    *   None.
+-   **Broken:**
+    -   The authentication flow for newly registered coaches is fragile and has failed multiple times on the production environment.
+    -   Profile photo uploads do not result in the photo being displayed for the user.
+    -   A critical production data sync issue that causes data loss remains unresolved from a previous session.
+-   **Mocked:**
+    -   None.
 
 **3rd Party Integrations**
-*   **Google Analytics (GA4):** Newly added. Tracks page views, custom events, and user timing. Requires Measurement ID ().
-*   **Stripe (Payments):** Existing integration for handling subscriptions.
-*   **Resend (Email API):** Existing integration for sending invite emails. Requires a User API Key.
-*   **recharts (Charting):** Existing charting library for React.
+-   **Google Analytics (GA4):** Tracks page views, custom events, and user identity.
+-   **Stripe (Payments):** Handles subscriptions.
+-   **Resend (Email API):** Sends invite emails.
+-   **recharts (Charting):** Charting library for React.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (for Phase 4 verification).
+-   **Testing agent used after significant changes:** YES, but only at the beginning of the session for the initial tasks.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
--   **Known regressions:** None identified.
+-   **Known regressions:** The 401 error for new coach users is a recurring regression.
 
 **Credentials to test flow:**
-*   **Admin/Coach Developer:**  / 
+-   **Admin/Coach Developer:**  / 
 
 **What agent forgot to execute**
-The agent successfully addressed all user requests presented during the session. No tasks were forgotten or overlooked.</analysis>
+-   The agent did not fully resolve the profile photo not displaying bug. It fixed a downstream console error () but did not circle back to fix the root cause of why the photo URL wasn't being correctly saved and retrieved after upload.
+-   The agent has been fixing symptoms of the recurring 401 error for new coaches but has not yet proposed a holistic review or test of the entire user deletion/re-creation/re-authentication lifecycle, which seems to be the core of the problem.</analysis>
