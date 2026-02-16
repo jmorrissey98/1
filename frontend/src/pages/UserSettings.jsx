@@ -264,9 +264,54 @@ export default function UserSettings() {
               <div className="flex-1">
                 <p className="font-semibold text-lg">{user?.name}</p>
                 <p className="text-slate-500">{user?.email}</p>
-                <Badge className={user?.role === 'coach_developer' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
-                  {user?.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
-                </Badge>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={user?.role === 'coach_developer' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
+                    {user?.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
+                  </Badge>
+                  
+                  {/* Subscription Tier Badge (Coach Developer only) */}
+                  {isCoachDeveloper() && subscriptionTier && (
+                    <div className="relative">
+                      <Badge 
+                        className={`cursor-pointer transition-all ${
+                          subscriptionTier === 'club' 
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
+                            : subscriptionTier === 'developer'
+                            ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                            : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                        }`}
+                        onClick={() => subscriptionTier !== 'club' && setShowUpgradeTooltip(!showUpgradeTooltip)}
+                        data-testid="subscription-badge"
+                      >
+                        {subscriptionTier === 'club' ? 'Club Plan' : 
+                         subscriptionTier === 'developer' ? 'Developer Plan' : 
+                         'Individual Plan'}
+                      </Badge>
+                      
+                      {/* Upgrade Tooltip */}
+                      {showUpgradeTooltip && subscriptionTier !== 'club' && (
+                        <div className="absolute top-full left-0 mt-2 z-10 bg-white border border-slate-200 rounded-lg shadow-lg p-3 min-w-[180px]">
+                          <p className="text-sm text-slate-600 mb-2">
+                            {subscriptionTier === 'individual' 
+                              ? 'Upgrade for more coaches and features'
+                              : 'Upgrade to Club for unlimited access'}
+                          </p>
+                          <Button 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => {
+                              setShowUpgradeTooltip(false);
+                              window.location.href = 'https://mycoachdeveloper.com/#pricing';
+                            }}
+                            data-testid="upgrade-btn"
+                          >
+                            Upgrade Plan
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
