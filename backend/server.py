@@ -2918,6 +2918,52 @@ async def update_organization(data: OrganizationUpdate, request: Request):
         created_at=updated_org.get("created_at")
     )
 
+@api_router.get("/organization/subscription")
+async def get_organization_subscription(request: Request):
+    """Get organization subscription tier (Coach Developer only)"""
+    user = await require_coach_developer(request)
+    
+    # Find organization
+    org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+    
+    if not org:
+        # Check if user belongs to an org
+        if user.organization_id:
+            org = await db.organizations.find_one({"org_id": user.organization_id}, {"_id": 0})
+    
+    # Check for bootstrapped status (QPR Academy or specific org)
+    bootstrapped_orgs = ["org_4b76a7344640"]  # QPR Academy org_id
+    
+    if org and org.get("org_id") in bootstrapped_orgs:
+        return {
+            "tier": "club",
+            "is_bootstrapped": True,
+            "coaches_limit": 999,
+            "admins_limit": 999
+        }
+    
+    # Get subscription from database or default to individual
+    subscription = None
+    if org:
+        subscription = await db.subscriptions.find_one({"org_id": org.get("org_id")}, {"_id": 0})
+    
+    if subscription:
+        return {
+            "tier": subscription.get("tier", "individual"),
+            "is_bootstrapped": False,
+            "coaches_limit": subscription.get("coaches_limit", 5),
+            "admins_limit": subscription.get("admins_limit", 1),
+            "expires_at": subscription.get("expires_at")
+        }
+    
+    # Default to individual tier
+    return {
+        "tier": "individual",
+        "is_bootstrapped": False,
+        "coaches_limit": 5,
+        "admins_limit": 1
+    }
+
 # Session Parts endpoints
 @api_router.get("/session-parts", response_model=List[SessionPartResponse])
 async def get_session_parts(request: Request):
