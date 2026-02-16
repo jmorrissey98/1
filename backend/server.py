@@ -3973,6 +3973,85 @@ async def admin_delete_user(user_id: str, request: Request):
     
     return {"message": "User deleted successfully", "user_id": user_id}
 
+@api_router.post("/admin/organizations/{org_id}/add-coach-developer")
+async def admin_add_coach_developer(org_id: str, request: Request):
+    """Add a coach developer to an organization (Admin only)"""
+    await require_admin(request)
+    
+    body = await request.json()
+    email = body.get("email", "").strip().lower()
+    name = body.get("name", "").strip()
+    
+    if not email or not name:
+        raise HTTPException(status_code=400, detail="Email and name are required")
+    
+    # Check if organization exists
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="A user with this email already exists")
+    
+    # Create invite
+    invite_id = f"inv_{generate_id()}"
+    invite = {
+        "invite_id": invite_id,
+        "email": email,
+        "name": name,
+        "role": "coach_developer",
+        "organization_id": org_id,
+        "invited_by": "admin",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "pending"
+    }
+    
+    await db.invites.insert_one({**invite, "_id": invite_id})
+    
+    # Try to send invite email
+    try:
+        resend_api_key = os.environ.get("RESEND_API_KEY")
+        if resend_api_key:
+            register_url = f"{os.environ.get('FRONTEND_URL', 'https://mycoachdeveloper.com')}/register/{invite_id}"
+            
+            html_content = f"""
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #1e293b;">You're Invited to My Coach Developer</h2>
+              <p>Hello {name},</p>
+              <p>You have been invited to join <strong>{org.get('club_name', 'an organization')}</strong> as a <strong>Coach Developer</strong>.</p>
+              <p>Click the link below to create your account:</p>
+              <p style="margin: 24px 0;">
+                <a href="{register_url}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                  Accept Invitation
+                </a>
+              </p>
+              <p style="color: #64748b; font-size: 14px;">This invitation was sent by the system administrator.</p>
+            </div>
+            """
+            
+            email_result = await send_email_via_resend(
+                resend_api_key,
+                email,
+                "You're invited to My Coach Developer",
+                html_content
+            )
+            
+            if email_result.get("success"):
+                invite["email_sent"] = True
+                await db.invites.update_one({"invite_id": invite_id}, {"$set": {"email_sent": True}})
+    except Exception as e:
+        logger.error(f"Failed to send invite email: {e}")
+    
+    return {
+        "message": "Coach developer invite created",
+        "invite_id": invite_id,
+        "email": email,
+        "name": name,
+        "organization_id": org_id
+    }
+
 @api_router.delete("/admin/organizations/{org_id}")
 async def admin_delete_organization(org_id: str, request: Request):
     """Delete an organization and all its users (Admin only)"""
