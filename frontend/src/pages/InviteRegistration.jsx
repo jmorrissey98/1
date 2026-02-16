@@ -294,10 +294,64 @@ export default function InviteRegistration() {
               </div>
             </div>
             
+            {/* Terms & Conditions */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={setAcceptedTerms}
+                  data-testid="terms-checkbox"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="terms"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    I agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Terms & Conditions
+                    </button>
+                    {' '}and{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Privacy Policy
+                    </button>
+                    .
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="marketing"
+                  checked={marketingOptIn}
+                  onCheckedChange={setMarketingOptIn}
+                  data-testid="marketing-checkbox"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="marketing"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Email me product updates, coaching resources, and the MyCoachDeveloper newsletter. (optional)
+                  </label>
+                  <p className="text-xs text-slate-500">Unsubscribe anytime.</p>
+                </div>
+              </div>
+            </div>
+            
             <Button 
               type="submit" 
               className="w-full"
-              disabled={submitting}
+              disabled={submitting || !acceptedTerms}
               data-testid="submit-registration"
             >
               {submitting ? (
@@ -308,6 +362,71 @@ export default function InviteRegistration() {
           </form>
         </CardContent>
       </Card>
+      
+      {/* Terms & Conditions Modal */}
+      <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Terms & Conditions and Privacy Policy</DialogTitle>
+            <DialogDescription>
+              Please review our terms before continuing
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[50vh] pr-4">
+            <div className="space-y-6 text-sm text-slate-700">
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">1. Terms of Service</h3>
+                <p className="mb-2">
+                  Welcome to My Coach Developer. By using our service, you agree to be bound by these terms and conditions.
+                </p>
+                <p className="mb-2">
+                  Our platform provides tools for coach development, observation tracking, and progress monitoring. You are responsible for maintaining the confidentiality of your account and password.
+                </p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">2. User Responsibilities</h3>
+                <p className="mb-2">
+                  You agree to use the service only for lawful purposes and in accordance with these terms. You are responsible for all content you upload or share through the platform.
+                </p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">3. Privacy Policy</h3>
+                <p className="mb-2">
+                  We collect and process personal data in accordance with applicable data protection laws. Your data is used to provide and improve our services.
+                </p>
+                <p className="mb-2">
+                  We may collect information such as your name, email address, usage data, and coaching observations. This data is stored securely and is not shared with third parties except as necessary to provide our services.
+                </p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">4. Data Retention</h3>
+                <p className="mb-2">
+                  We retain your personal data for as long as your account is active or as needed to provide you services. You may request deletion of your data at any time by contacting us.
+                </p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">5. Contact</h3>
+                <p className="mb-2">
+                  For questions about these terms or our privacy practices, please contact us at hello@mycoachdeveloper.com.
+                </p>
+              </section>
+              
+              <p className="text-xs text-slate-500 pt-4 border-t">
+                Last updated: February 2026
+              </p>
+            </div>
+          </ScrollArea>
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setShowTermsModal(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
