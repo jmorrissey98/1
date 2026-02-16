@@ -65,7 +65,7 @@ const FEATURES = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(false);
   const [loadingTier, setLoadingTier] = useState(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
