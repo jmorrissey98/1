@@ -2262,6 +2262,7 @@ class InviteRegistrationRequest(BaseModel):
     invite_id: str
     password: str
     photo: Optional[str] = None  # Base64 or URL
+    marketing_opt_in: Optional[bool] = False
 
 @api_router.post("/auth/register-invite")
 async def register_from_invite(data: InviteRegistrationRequest):
