@@ -25,6 +25,8 @@ export default function UserSettings() {
   const [invites, setInvites] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subscriptionTier, setSubscriptionTier] = useState(null);
+  const [showUpgradeTooltip, setShowUpgradeTooltip] = useState(false);
   
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState('');
