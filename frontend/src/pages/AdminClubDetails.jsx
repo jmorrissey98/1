@@ -31,6 +31,16 @@ export default function AdminClubDetails() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // Delete club dialog state
+  const [deleteClubDialogOpen, setDeleteClubDialogOpen] = useState(false);
+  const [deletingClub, setDeletingClub] = useState(false);
+  
+  // Add coach developer dialog state
+  const [addCoachDevDialogOpen, setAddCoachDevDialogOpen] = useState(false);
+  const [newCoachDevEmail, setNewCoachDevEmail] = useState('');
+  const [newCoachDevName, setNewCoachDevName] = useState('');
+  const [addingCoachDev, setAddingCoachDev] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
