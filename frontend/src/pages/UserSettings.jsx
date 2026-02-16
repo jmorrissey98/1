@@ -54,6 +54,16 @@ export default function UserSettings() {
     setLoading(true);
     try {
       if (isCoachDeveloper()) {
+        // Load subscription tier
+        try {
+          const subResult = await safeGet(`${API_URL}/api/organization/subscription`);
+          if (subResult.ok && subResult.data) {
+            setSubscriptionTier(subResult.data.tier || 'individual');
+          }
+        } catch (e) {
+          console.error('Failed to load subscription:', e);
+        }
+        
         // Load coaches from API (not localStorage)
         try {
           const coachesResult = await safeGet(`${API_URL}/api/coaches`);
