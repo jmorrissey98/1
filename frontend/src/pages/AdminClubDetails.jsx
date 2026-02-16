@@ -458,6 +458,81 @@ export default function AdminClubDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Club Dialog */}
+      <Dialog open={deleteClubDialogOpen} onOpenChange={setDeleteClubDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Club</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{organization?.club_name}</strong>? 
+              This will also delete all users and coaches in this club. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteClubDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteClub} 
+              disabled={deletingClub}
+              data-testid="confirm-delete-club-btn"
+            >
+              {deletingClub && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete Club
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Coach Developer Dialog */}
+      <Dialog open={addCoachDevDialogOpen} onOpenChange={setAddCoachDevDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Coach Developer</DialogTitle>
+            <DialogDescription>
+              Add a new coach developer to {organization?.club_name}. They will receive an invite email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="coach-dev-name">Name</Label>
+              <Input
+                id="coach-dev-name"
+                value={newCoachDevName}
+                onChange={(e) => setNewCoachDevName(e.target.value)}
+                placeholder="Enter name"
+                data-testid="coach-dev-name-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="coach-dev-email">Email</Label>
+              <Input
+                id="coach-dev-email"
+                type="email"
+                value={newCoachDevEmail}
+                onChange={(e) => setNewCoachDevEmail(e.target.value)}
+                placeholder="Enter email address"
+                data-testid="coach-dev-email-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddCoachDevDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddCoachDeveloper} 
+              disabled={addingCoachDev || !newCoachDevEmail || !newCoachDevName}
+              data-testid="confirm-add-coach-dev-btn"
+            >
+              {addingCoachDev && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Add Coach Developer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
