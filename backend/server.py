@@ -3996,7 +3996,7 @@ async def admin_add_coach_developer(org_id: str, request: Request):
         raise HTTPException(status_code=400, detail="A user with this email already exists")
     
     # Create invite
-    invite_id = f"inv_{generate_id()}"
+    invite_id = f"inv_{uuid.uuid4().hex[:12]}"
     invite = {
         "invite_id": invite_id,
         "email": email,
@@ -4031,15 +4031,17 @@ async def admin_add_coach_developer(org_id: str, request: Request):
             </div>
             """
             
-            email_result = await send_email_via_resend(
-                resend_api_key,
-                email,
-                "You're invited to My Coach Developer",
-                html_content
-            )
+            # Use the existing email sending mechanism
+            email_params = {
+                "from": "My Coach Developer <noreply@mycoachdeveloper.com>",
+                "to": [email],
+                "subject": "You're invited to My Coach Developer",
+                "html": html_content
+            }
+            
+            email_result = await send_email_with_retry(email_params, "invite")
             
             if email_result.get("success"):
-                invite["email_sent"] = True
                 await db.invites.update_one({"invite_id": invite_id}, {"$set": {"email_sent": True}})
     except Exception as e:
         logger.error(f"Failed to send invite email: {e}")
