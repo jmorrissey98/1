@@ -120,6 +120,54 @@ export default function AdminClubDetails() {
     }
   };
 
+  const handleDeleteClub = async () => {
+    setDeletingClub(true);
+    try {
+      const result = await safeDelete(`${API_URL}/api/admin/organizations/${orgId}`);
+      
+      if (!result.ok) {
+        throw new Error(result.data?.detail || result.error || 'Failed to delete club');
+      }
+      
+      toast.success('Club deleted successfully');
+      navigate('/admin');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete club');
+    } finally {
+      setDeletingClub(false);
+      setDeleteClubDialogOpen(false);
+    }
+  };
+
+  const handleAddCoachDeveloper = async () => {
+    if (!newCoachDevEmail || !newCoachDevName) {
+      toast.error('Please enter both name and email');
+      return;
+    }
+    
+    setAddingCoachDev(true);
+    try {
+      const result = await safePost(`${API_URL}/api/admin/organizations/${orgId}/add-coach-developer`, {
+        email: newCoachDevEmail,
+        name: newCoachDevName
+      });
+      
+      if (!result.ok) {
+        throw new Error(result.data?.detail || result.error || 'Failed to add coach developer');
+      }
+      
+      toast.success('Coach Developer added successfully');
+      setAddCoachDevDialogOpen(false);
+      setNewCoachDevEmail('');
+      setNewCoachDevName('');
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to add coach developer');
+    } finally {
+      setAddingCoachDev(false);
+    }
+  };
+
   const handleImpersonate = async (user) => {
     try {
       // Save the admin's current token before impersonating
