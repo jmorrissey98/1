@@ -105,13 +105,20 @@ export default function InviteRegistration() {
       return;
     }
     
+    // Check T&C acceptance
+    if (!acceptedTerms) {
+      toast.error('Please accept the Terms & Conditions to continue');
+      return;
+    }
+    
     setSubmitting(true);
     
     try {
       const result = await safePost(`${API_URL}/api/auth/register-invite`, {
         invite_id: inviteId,
         password: password,
-        photo: photo
+        photo: photo,
+        marketing_opt_in: marketingOptIn
       });
       
       if (!result.ok) {
