@@ -47,18 +47,18 @@ const PRICING_TIERS = [
 const FEATURES = [
   {
     icon: FileText,
-    title: 'Streamlined Observation',
-    description: 'Capture coaching moments in real-time with our intuitive observation tools designed for iPad.'
-  },
-  {
-    icon: BarChart3,
-    title: 'Progress Tracking',
-    description: 'Monitor coach development over time with comprehensive analytics and visual progress reports.'
+    title: 'Observe Sessions',
+    description: 'Capture coaching moments in real time using simple observation tools that you can customise to your framework.'
   },
   {
     icon: Users,
-    title: 'Team Management',
-    description: 'Manage your coaching team efficiently with role-based access and centralized dashboards.'
+    title: 'Build Coach Portfolios',
+    description: 'Bring together observations, notes, evidence, and data in one portfolio for every coach.'
+  },
+  {
+    icon: BarChart3,
+    title: 'Support Development',
+    description: 'Turn observations into clear development plans and track progress over time.'
   }
 ];
 
