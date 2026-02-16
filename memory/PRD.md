@@ -3,14 +3,31 @@
 ## Overview
 "My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
+**Production Domain:** mycoachdeveloper.com
+
 ## Core Features
 
 ### Authentication
 - **Email/Password Authentication** - Primary login method
-- **Role-based access control** - Coach Developer and Coach roles
+- **Role-based access control** - Admin, Coach Developer and Coach roles
 - **Invite system** - Coach Developers can invite new users
 - **Password reset via email**
+- **Terms & Conditions** - Required acceptance on registration (Feb 16, 2026)
+- **Marketing opt-in** - Optional newsletter subscription with consent tracking
 - ~~Google OAuth~~ - **REMOVED** (caused deployment issues)
+
+### Landing Page (Updated Feb 16, 2026)
+- **Hero:** "Develop Your Coaches. Simple." (Simple in blue)
+- **Body text:** "Keep your focus where it matters: developing your coaches. Observe sessions, build portfolios, and support progress with ease."
+- **Features:**
+  - Observe Sessions - Capture coaching moments in real time
+  - Build Coach Portfolios - Bring together observations, notes, evidence
+  - Support Development - Turn observations into development plans
+- **Pricing tiers:**
+  - Individual: £20/month, 5 coaches, 1 admin
+  - Developer: £35/month, 15 coaches, 1 admin (Most Popular)
+  - Club: £50/month, 50 coaches, 10 admins
+- **Billing:** Monthly default, Annual shows "2 months free" badge
 
 ### Coach Developer (Admin) Features
 - Create and manage observation sessions
@@ -22,6 +39,7 @@
 - Set club/organization branding (name + logo)
 - Invite and manage users
 - Access data recovery tools
+- **Subscription badge in Settings** - Shows current plan with upgrade option
 
 ### Coach Features
 - View personal dashboard with assigned sessions
@@ -31,6 +49,12 @@
 - Edit profile information
 - Permanent navigation bar (Dashboard, My Sessions, My Profile)
 - **Can access their own coach profile without 403 errors (FIX)**
+
+### Admin Features (Feb 16, 2026)
+- Delete clubs/organizations
+- Add coach developers to clubs directly
+- View all clubs and users
+- Impersonate users for debugging
 
 ### Cloud Sync
 - **MongoDB Cloud Database** - All sessions stored in cloud
