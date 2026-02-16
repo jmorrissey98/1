@@ -265,8 +265,14 @@ export default function UserSettings() {
                 <p className="font-semibold text-lg">{user?.name}</p>
                 <p className="text-slate-500">{user?.email}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge className={user?.role === 'coach_developer' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
-                    {user?.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
+                  <Badge className={
+                    user?.role === 'admin' 
+                      ? 'bg-green-100 text-green-800' 
+                      : user?.role === 'coach_developer' 
+                        ? 'bg-purple-100 text-purple-800' 
+                        : 'bg-blue-100 text-blue-800'
+                  }>
+                    {user?.role === 'admin' ? 'Admin' : user?.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
                   </Badge>
                   
                   {/* Subscription Tier Badge (Coach Developer only) */}
