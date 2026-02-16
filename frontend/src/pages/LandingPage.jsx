@@ -12,8 +12,8 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 // Pricing tiers configuration
 const PRICING_TIERS = [
   {
-    id: 'starter',
-    name: 'Starter',
+    id: 'individual',
+    name: 'Individual',
     subtitle: 'The Solo Developer',
     monthlyPrice: 20,
     annualPrice: 200,
@@ -22,8 +22,8 @@ const PRICING_TIERS = [
     popular: false
   },
   {
-    id: 'pro',
-    name: 'Pro',
+    id: 'developer',
+    name: 'Developer',
     subtitle: 'The Growth Specialist',
     monthlyPrice: 35,
     annualPrice: 350,
@@ -32,13 +32,13 @@ const PRICING_TIERS = [
     popular: true
   },
   {
-    id: 'club_hub',
-    name: 'Club Hub',
+    id: 'club',
+    name: 'Club',
     subtitle: 'The Organization',
     monthlyPrice: 50,
     annualPrice: 500,
-    coaches: 40,
-    admins: 5,
+    coaches: 50,
+    admins: 10,
     popular: false
   }
 ];
