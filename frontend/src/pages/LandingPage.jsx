@@ -336,11 +336,9 @@ export default function LandingPage() {
               <span className={`text-sm font-medium ${isAnnual ? 'text-slate-900' : 'text-slate-500'}`}>
                 Annual
               </span>
-              {isAnnual && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 ml-2">
-                  Save 2 months
-                </Badge>
-              )}
+              <Badge variant="secondary" className="bg-green-100 text-green-700 ml-2">
+                2 months free
+              </Badge>
             </div>
           </div>
 
