@@ -239,11 +239,12 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight">
-                Empower Your <span className="text-blue-600">Coaching Team</span> to Excel
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                <span className="text-slate-900">Develop Your Coaches.</span>{' '}
+                <span className="text-blue-600">Simple.</span>
               </h1>
               <p className="mt-6 text-lg text-slate-600 leading-relaxed">
-                The all-in-one platform for coach developers. Observe sessions, track progress, and develop your coaching staff with powerful iPad-first tools designed for the modern training ground.
+                Keep your focus where it matters: developing your coaches. Observe sessions, build portfolios, and support progress with ease.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Button 
