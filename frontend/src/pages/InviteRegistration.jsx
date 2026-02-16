@@ -5,6 +5,9 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Checkbox } from '../components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { ScrollArea } from '../components/ui/scroll-area';
 import { Loader2, Lock, Eye, EyeOff, Camera, AlertCircle, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
@@ -29,6 +32,11 @@ export default function InviteRegistration() {
   const [showPassword, setShowPassword] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  
+  // T&C and Marketing state
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Validate invite on mount
   useEffect(() => {
