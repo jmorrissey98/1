@@ -259,6 +259,28 @@ export default function AdminClubDetails() {
               <p className="text-sm text-slate-400">{orgId}</p>
             </div>
           </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setAddCoachDevDialogOpen(true)}
+              className="bg-transparent border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+              data-testid="add-coach-dev-btn"
+            >
+              <UserPlus className="w-4 h-4 mr-1" />
+              Add Coach Developer
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setDeleteClubDialogOpen(true)}
+              className="bg-transparent border-red-600 text-red-400 hover:text-white hover:bg-red-600"
+              data-testid="delete-club-btn"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete Club
+            </Button>
+          </div>
         </div>
       </header>
 
