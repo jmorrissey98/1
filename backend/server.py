@@ -2347,7 +2347,10 @@ async def register_from_invite(data: InviteRegistrationRequest):
         "picture": data.photo,
         "linked_coach_id": linked_coach_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "organization_id": None  # Will be set based on inviter's org
+        "organization_id": None,  # Will be set based on inviter's org
+        "marketing_opt_in": data.marketing_opt_in,
+        "marketing_opt_in_at": datetime.now(timezone.utc).isoformat() if data.marketing_opt_in else None,
+        "terms_accepted_at": datetime.now(timezone.utc).isoformat()
     }
     
     # Get organization from inviter
