@@ -1,3 +1,30 @@
+"""
+My Coach Developer - Backend Server
+====================================
+A coaching observation and development platform.
+
+Architecture Notes:
+- This file contains all API routes for the application
+- Shared modules are in separate files:
+  - database.py: MongoDB connection and configuration
+  - models.py: Pydantic models for request/response validation
+  - dependencies.py: Auth middleware and helpers
+  - utils.py: Utility functions (password hashing, email sending)
+  - routes/: Modular route files (for future migration)
+
+Route Groups:
+- /api/auth/* - Authentication (login, signup, password reset)
+- /api/coaches/* - Coach management (CRUD)
+- /api/users/* - User management
+- /api/invites/* - Invitation system
+- /api/observations/* - Session observations
+- /api/organization/* - Organization settings
+- /api/coach/* - Coach portal endpoints
+- /api/admin/* - Admin dashboard
+- /api/payments/* - Stripe integration
+- /api/reflection-templates/* - Reflection templates
+"""
+
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, Request, Response, Depends
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
