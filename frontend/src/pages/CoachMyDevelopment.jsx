@@ -483,8 +483,8 @@ export default function CoachMyDevelopment() {
               </CardContent>
             </Card>
 
-            {/* Key Metrics Row - Only 2 metrics now, no Total Interventions */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Key Metrics Row - 3 metrics in one row */}
+            <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
                   <p className="text-3xl font-bold text-slate-900">{analytics.total_sessions || filteredSessions.length}</p>
@@ -497,15 +497,13 @@ export default function CoachMyDevelopment() {
                   <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
                 </CardContent>
               </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-blue-600">{Math.round(analytics.avg_per_session || 0)}</p>
+                  <p className="text-sm text-slate-500 mt-1">Avg Interventions</p>
+                </CardContent>
+              </Card>
             </div>
-
-            {/* Second row - Avg Interventions (whole number) */}
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-3xl font-bold text-blue-600">{Math.round(analytics.avg_per_session || 0)}</p>
-                <p className="text-sm text-slate-500 mt-1">Avg Interventions per Session</p>
-              </CardContent>
-            </Card>
 
             {/* Intervention Distribution - Details collapsible */}
             <Card>
