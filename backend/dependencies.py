@@ -17,7 +17,7 @@ async def get_current_user(request: Request) -> Optional[User]:
     if not session_token:
         return None
     
-    session = await db.sessions_auth.find_one({"session_token": session_token})
+    session = await db.user_sessions.find_one({"session_token": session_token})
     
     if not session:
         return None
