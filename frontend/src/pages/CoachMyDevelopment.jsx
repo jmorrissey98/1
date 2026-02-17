@@ -347,6 +347,17 @@ export default function CoachMyDevelopment() {
   const activeTargets = targets.filter(t => t.status === 'active' || t.status === 'in_progress');
   const has_pending_reflection = dashboard?.has_pending_reflection || false;
   const pending_reflection_session_id = dashboard?.pending_reflection_session_id;
+  
+  // Use API analytics if available, otherwise use defaults
+  const analytics = analyticsData || {
+    total_sessions: filteredSessions.length,
+    total_interventions: 0,
+    avg_per_session: 0,
+    avg_ball_rolling: 0,
+    intervention_chart_data: [],
+    variety_percentage: 0,
+    most_common_pattern: null
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
