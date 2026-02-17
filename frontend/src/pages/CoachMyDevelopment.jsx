@@ -49,6 +49,7 @@ export default function CoachMyDevelopment() {
   const [sessions, setSessions] = useState([]);
   const [targets, setTargets] = useState([]);
   const [archivedTargets, setArchivedTargets] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState(null);
   
   // Filter/search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,6 +82,12 @@ export default function CoachMyDevelopment() {
       const sessionsResult = await fetchCoachSessions();
       if (sessionsResult.ok) {
         setSessions(sessionsResult.data || []);
+      }
+      
+      // Load analytics
+      const analyticsResult = await safeGet(`${API_URL}/api/coach/analytics`);
+      if (analyticsResult.ok) {
+        setAnalyticsData(analyticsResult.data);
       }
     } catch (err) {
       console.error('Failed to load data:', err);
