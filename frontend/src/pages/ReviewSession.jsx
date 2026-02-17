@@ -42,6 +42,7 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
   const [groupBy, setGroupBy] = useState('intervention');
   const [filterBy, setFilterBy] = useState('all');
   const [selectedDimension, setSelectedDimension] = useState(null);
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
   
   // Build cross-tabulation data
   const buildCrossTab = () => {
