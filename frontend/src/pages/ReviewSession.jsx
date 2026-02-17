@@ -318,61 +318,69 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
           </ResponsiveContainer>
         </div>
         
-        {/* Cross-tabulation Table */}
-        <div>
-          <h4 className="text-sm font-medium text-slate-700 mb-3">Detailed Breakdown</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2 font-medium text-slate-700">
-                    {groupBy === 'intervention' ? 'Intervention' : 
-                     groupBy === 'content' ? (descriptorGroup1?.name || 'Content') : 
-                     (descriptorGroup2?.name || 'Delivery')}
-                  </th>
-                  {crossTab.cols.slice(0, 6).map(col => (
-                    <th key={col.id} className="text-center py-2 px-2 font-medium text-slate-700 min-w-[60px]">
-                      {col.name}
+        {/* Cross-tabulation Table - Collapsible */}
+        <div className="border-t pt-4">
+          <button 
+            onClick={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
+            className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+          >
+            <ChevronDown className={cn("w-4 h-4 transition-transform", showDetailedBreakdown && "rotate-180")} />
+            Detailed Breakdown
+          </button>
+          {showDetailedBreakdown && (
+            <div className="overflow-x-auto mt-3">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2 font-medium text-slate-700">
+                      {groupBy === 'intervention' ? 'Intervention' : 
+                       groupBy === 'content' ? (descriptorGroup1?.name || 'Content') : 
+                       (descriptorGroup2?.name || 'Delivery')}
                     </th>
-                  ))}
-                  <th className="text-center py-2 px-2 font-medium text-slate-700">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {crossTab.rows.slice(0, 8).map(row => {
-                  const rowTotal = crossTab.cols.reduce((sum, col) => {
-                    return sum + (crossTab.data[`${row.id}-${col.id}`] || 0);
-                  }, 0);
-                  
-                  return (
-                    <tr key={row.id} className="border-b hover:bg-slate-50">
-                      <td className="py-2 px-2 text-slate-700">{row.name}</td>
-                      {crossTab.cols.slice(0, 6).map(col => {
-                        const count = crossTab.data[`${row.id}-${col.id}`] || 0;
-                        return (
-                          <td key={col.id} className="text-center py-2 px-2">
-                            {count > 0 ? (
-                              <span className={cn(
-                                "inline-flex items-center justify-center w-6 h-6 rounded text-xs font-medium",
-                                count >= 5 ? "bg-green-100 text-green-800" :
-                                count >= 3 ? "bg-yellow-100 text-yellow-800" :
-                                "bg-slate-100 text-slate-600"
-                              )}>
-                                {count}
-                              </span>
-                            ) : (
-                              <span className="text-slate-300">-</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="text-center py-2 px-2 font-medium text-slate-800">{rowTotal}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    {crossTab.cols.slice(0, 6).map(col => (
+                      <th key={col.id} className="text-center py-2 px-2 font-medium text-slate-700 min-w-[60px]">
+                        {col.name}
+                      </th>
+                    ))}
+                    <th className="text-center py-2 px-2 font-medium text-slate-700">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {crossTab.rows.slice(0, 8).map(row => {
+                    const rowTotal = crossTab.cols.reduce((sum, col) => {
+                      return sum + (crossTab.data[`${row.id}-${col.id}`] || 0);
+                    }, 0);
+                    
+                    return (
+                      <tr key={row.id} className="border-b hover:bg-slate-50">
+                        <td className="py-2 px-2 text-slate-700">{row.name}</td>
+                        {crossTab.cols.slice(0, 6).map(col => {
+                          const count = crossTab.data[`${row.id}-${col.id}`] || 0;
+                          return (
+                            <td key={col.id} className="text-center py-2 px-2">
+                              {count > 0 ? (
+                                <span className={cn(
+                                  "inline-flex items-center justify-center w-6 h-6 rounded text-xs font-medium",
+                                  count >= 5 ? "bg-green-100 text-green-800" :
+                                  count >= 3 ? "bg-yellow-100 text-yellow-800" :
+                                  "bg-slate-100 text-slate-600"
+                                )}>
+                                  {count}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="text-center py-2 px-2 font-medium text-slate-800">{rowTotal}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
