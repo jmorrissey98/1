@@ -351,7 +351,7 @@ export default function CoachMyDevelopment() {
             <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900">{analytics.totalSessions}</p>
+                  <p className="text-3xl font-bold text-slate-900">{analytics.total_sessions || filteredSessions.length}</p>
                   <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
                 </CardContent>
               </Card>
@@ -367,19 +367,19 @@ export default function CoachMyDevelopment() {
             <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-green-600">{analytics.avgBallRolling}%</p>
+                  <p className="text-3xl font-bold text-green-600">{analytics.avg_ball_rolling || 0}%</p>
                   <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-blue-600">{analytics.avgPerSession}</p>
+                  <p className="text-3xl font-bold text-blue-600">{analytics.avg_per_session || 0}</p>
                   <p className="text-sm text-slate-500 mt-1">Avg Interventions/Session</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900">{analytics.totalInterventions}</p>
+                  <p className="text-3xl font-bold text-slate-900">{analytics.total_interventions || 0}</p>
                   <p className="text-sm text-slate-500 mt-1">Total Interventions</p>
                 </CardContent>
               </Card>
@@ -395,11 +395,11 @@ export default function CoachMyDevelopment() {
                 <CardDescription>Breakdown of your intervention types across all sessions</CardDescription>
               </CardHeader>
               <CardContent>
-                {analytics.interventionChartData.length > 0 ? (
+                {(analytics.intervention_chart_data || []).length > 0 ? (
                   <div className="space-y-4">
                     <div className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.interventionChartData} layout="vertical">
+                        <BarChart data={analytics.intervention_chart_data} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
                           <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#64748b', fontSize: 12 }} />
@@ -418,7 +418,7 @@ export default function CoachMyDevelopment() {
                     
                     {/* Percentage breakdown */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {analytics.interventionChartData.map((item, idx) => (
+                      {(analytics.intervention_chart_data || []).map((item, idx) => (
                         <div key={item.name} className="p-3 bg-slate-50 rounded-lg text-center">
                           <p className="text-lg font-bold" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
                             {item.percentage}%
@@ -446,17 +446,17 @@ export default function CoachMyDevelopment() {
                 <CardDescription>Insights into your coaching intervention habits</CardDescription>
               </CardHeader>
               <CardContent>
-                {analytics.totalInterventions > 0 ? (
+                {(analytics.total_interventions || 0) > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Most Common Intervention */}
                     <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
                       <p className="text-sm text-purple-700 font-medium">Most Used</p>
                       <p className="text-xl font-bold text-purple-900 mt-1">
-                        {analytics.mostCommonPattern?.pattern || 'N/A'}
+                        {analytics.most_common_pattern?.pattern || 'N/A'}
                       </p>
-                      {analytics.mostCommonPattern && (
+                      {analytics.most_common_pattern && (
                         <p className="text-sm text-purple-600 mt-1">
-                          {analytics.mostCommonPattern.count} times ({Math.round((analytics.mostCommonPattern.count / analytics.totalInterventions) * 100)}%)
+                          {analytics.most_common_pattern.count} times ({Math.round((analytics.most_common_pattern.count / analytics.total_interventions) * 100)}%)
                         </p>
                       )}
                     </div>
@@ -465,10 +465,10 @@ export default function CoachMyDevelopment() {
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                       <p className="text-sm text-blue-700 font-medium">Variety Score</p>
                       <p className="text-xl font-bold text-blue-900 mt-1">
-                        {analytics.varietyPercentage}%
+                        {analytics.variety_percentage || 0}%
                       </p>
                       <p className="text-sm text-blue-600 mt-1">
-                        {analytics.varietyPercentage > 50 ? 'High variety in approaches' : 'Consistent patterns'}
+                        {(analytics.variety_percentage || 0) > 50 ? 'High variety in approaches' : 'Consistent patterns'}
                       </p>
                     </div>
                     
@@ -479,14 +479,14 @@ export default function CoachMyDevelopment() {
                         <div className="flex-1 bg-green-200 rounded-full h-3 overflow-hidden">
                           <div 
                             className="bg-green-500 h-full rounded-full" 
-                            style={{ width: `${analytics.avgBallRolling}%` }}
+                            style={{ width: `${analytics.avg_ball_rolling || 0}%` }}
                           />
                         </div>
-                        <span className="text-sm font-bold text-green-900">{analytics.avgBallRolling}%</span>
+                        <span className="text-sm font-bold text-green-900">{analytics.avg_ball_rolling || 0}%</span>
                       </div>
                       <p className="text-sm text-green-600 mt-2">
-                        {analytics.avgBallRolling >= 60 ? 'Great activity flow!' : 
-                         analytics.avgBallRolling >= 40 ? 'Balanced approach' : 'More ball time could help'}
+                        {(analytics.avg_ball_rolling || 0) >= 60 ? 'Great activity flow!' : 
+                         (analytics.avg_ball_rolling || 0) >= 40 ? 'Balanced approach' : 'More ball time could help'}
                       </p>
                     </div>
                   </div>
