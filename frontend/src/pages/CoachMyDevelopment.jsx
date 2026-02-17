@@ -66,6 +66,8 @@ export default function CoachMyDevelopment() {
   // UI states
   const [interventionDetailsExpanded, setInterventionDetailsExpanded] = useState(false);
   const [reflectionPromptDismissed, setReflectionPromptDismissed] = useState(false);
+  const [archivedTargetsExpanded, setArchivedTargetsExpanded] = useState(false);
+  const [interventionFilters, setInterventionFilters] = useState({}); // { interventionName: true/false }
 
   useEffect(() => {
     loadAllData();
