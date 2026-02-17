@@ -758,6 +758,21 @@ async def send_email_with_retry(params: dict, email_type: str, max_retries: int 
     # All retries exhausted
     raise last_error
 
+# ============================================
+# ROUTE MODULES (Modular Architecture)
+# ============================================
+# Import modular route files
+# Note: These routes are being gradually migrated from this monolithic file.
+# The routes below in server.py will be removed once migration is complete.
+
+try:
+    from routes.auth import router as auth_router
+    # Include auth routes - these will override the inline auth routes below
+    api_router.include_router(auth_router)
+    logger.info("Auth routes loaded from routes/auth.py")
+except Exception as e:
+    logger.warning(f"Could not load modular auth routes: {e}. Using inline routes.")
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
