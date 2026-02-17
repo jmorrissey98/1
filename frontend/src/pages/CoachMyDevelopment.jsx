@@ -298,8 +298,9 @@ export default function CoachMyDevelopment() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-xl grid-cols-4">
             <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+            <TabsTrigger value="coaching" data-testid="tab-coaching">My Coaching</TabsTrigger>
             <TabsTrigger value="sessions" data-testid="tab-sessions">My Sessions</TabsTrigger>
             <TabsTrigger value="targets" data-testid="tab-targets">My Targets</TabsTrigger>
           </TabsList>
