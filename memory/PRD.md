@@ -306,9 +306,21 @@
 - [x] Created `models.py` - All Pydantic models (~400 lines extracted)
 - [x] Created `dependencies.py` - Auth middleware (require_auth, require_admin, etc.)
 - [x] Created `utils.py` - Utility functions (password hashing, email sending)
-- [x] Created `routes/auth.py` - Authentication routes (ready for integration)
+- [x] Created `routes/auth.py` - Authentication routes ✅ INTEGRATED
+- [x] Created `routes/coaches.py` - Coach CRUD routes ✅ INTEGRATED
 - [x] Created `REFACTORING.md` - Documentation for ongoing migration
-- [ ] Migrate remaining route groups (coaches, users, observations, etc.)
+- [ ] Migrate remaining route groups (users, observations, invites, etc.)
+- [ ] Remove duplicate inline routes from server.py (after migration complete)
+
+### Phase 10: Coach Dashboard UI/UX Enhancements (COMPLETED - February 17, 2026)
+- [x] Redesigned reflection prompt to be smaller and closable
+- [x] Added notification dot on "My Sessions" tab for sessions needing reflection
+- [x] Added notification dots on individual sessions needing reflection
+- [x] Integrated "Active Targets" count into "My Profile" card
+- [x] Moved "Intervention Patterns" card after "My Profile"
+- [x] Made "Intervention Distribution" details collapsible (collapsed by default)
+- [x] Removed "Total Interventions" metric
+- [x] Rounded "Avg Interventions per Session" to whole number
 
 ## Remaining Work / Backlog
 
