@@ -973,33 +973,59 @@ export default function CoachMyDevelopment() {
               </CardContent>
             </Card>
 
-            {/* Archived Targets */}
+            {/* Archived Targets - Collapsible by default */}
             {archivedTargets.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-['Manrope'] flex items-center gap-2 text-slate-500">
-                    <Archive className="w-5 h-5" />
-                    Archived Targets ({archivedTargets.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {archivedTargets.map(target => (
-                      <div key={target.id} className="p-3 bg-slate-100 rounded-lg flex items-center justify-between">
-                        <p className="text-slate-500">{target.text}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRestoreTarget(target.id)}
-                          data-testid={`restore-target-${target.id}`}
-                        >
-                          Restore
+              <Collapsible open={archivedTargetsExpanded} onOpenChange={setArchivedTargetsExpanded}>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer">
+                        <CardTitle className="font-['Manrope'] flex items-center gap-2 text-slate-500">
+                          <Archive className="w-5 h-5" />
+                          Archived Targets ({archivedTargets.length})
+                        </CardTitle>
+                        <Button variant="ghost" size="sm" className="text-slate-400">
+                          {archivedTargetsExpanded ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CollapsibleTrigger>
+                  </CardHeader>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2">
+                        {archivedTargets.map(target => (
+                          <div key={target.id} className="p-3 bg-slate-100 rounded-lg flex items-center justify-between">
+                            <p className="text-slate-500">{target.text}</p>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRestoreTarget(target.id)}
+                                data-testid={`restore-target-${target.id}`}
+                              >
+                                Restore
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => handleDeleteArchivedTarget(target.id)}
+                                data-testid={`delete-target-${target.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             )}
           </TabsContent>
         </Tabs>
