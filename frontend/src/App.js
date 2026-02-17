@@ -38,6 +38,11 @@ import AdminCreateUser from "./pages/AdminCreateUser";
 import AdminClubDetails from "./pages/AdminClubDetails";
 // Admin Tools
 import DataRecovery from "./pages/DataRecovery";
+// Legal Pages
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CommercialTerms from "./pages/CommercialTerms";
+import DataProcessing from "./pages/DataProcessing";
 import "./App.css";
 
 // Role-based home redirect component
