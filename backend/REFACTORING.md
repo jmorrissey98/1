@@ -12,8 +12,31 @@ The `server.py` file has grown to ~4700 lines and contains all API routes. While
 4. **`utils.py`** - Utility functions (password hashing, email helpers)
 5. **`routes/auth.py`** - Authentication routes ✅ INTEGRATED
 6. **`routes/coaches.py`** - Coach CRUD routes ✅ INTEGRATED
+7. **`routes/invites.py`** - Invite management routes ✅ INTEGRATED
+8. **`routes/users.py`** - User management routes ✅ INTEGRATED
+9. **`routes/observations.py`** - Observation session CRUD ✅ INTEGRATED
+10. **`routes/organization.py`** - Organization/Club management ✅ INTEGRATED
 
-## Remaining Work
+## Remaining Work (Phase 2)
+
+### Routes Still in server.py (To Be Extracted)
+- Session Parts routes (`/session-parts/*`)
+- Coach Dashboard routes (`/coach/dashboard`, `/coach/sessions`, `/coach/analytics`, etc.)
+- Admin routes (`/admin/*`)
+- Stripe/Payment routes (`/create-checkout-session`, etc.)
+- Template routes (`/templates/*`, `/reflection-templates/*`)
+- AI generation routes (`/generate-summary`, `/generate-coach-trends`)
+- Utility routes (`/upload`, `/files/*`, `/status`)
+
+### Clean Up Tasks
+- Remove duplicate inline routes from server.py (routes that are now in modular files)
+- The modular routes take precedence (registered first), but the duplicate code bloats server.py
+
+## Migration Notes
+- Routes are gradually moved to keep the system stable
+- FastAPI loads the first matching route, so modular routes take precedence
+- Old inline routes can be removed once modular routes are verified working
+- Maintain backward compatibility throughout migration
 
 ### Route Groups to Extract
 Each should be moved to `routes/<name>.py`:
