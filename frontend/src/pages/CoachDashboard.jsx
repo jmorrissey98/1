@@ -135,26 +135,25 @@ export default function CoachDashboard() {
           </CardContent>
         </Card>
 
-        {/* Reflection Prompt - Softer blue styling instead of amber alert */}
+        {/* Reflection Prompt - Action-focused blue styling */}
         {has_pending_reflection && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-4 h-4 text-blue-600" />
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-medium text-blue-800">Session available for reflection</p>
-                  <p className="text-blue-600 text-sm mt-0.5">
-                    Take a moment to reflect on your recent session.
+                  <p className="font-semibold text-blue-900 text-lg">Complete Your Reflection</p>
+                  <p className="text-blue-700 mt-1">
+                    Your recent session has been observed. Take a moment to reflect on your coaching.
                   </p>
                 </div>
               </div>
               <Button 
-                size="sm" 
-                variant="outline"
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                onClick={() => navigate(`/coach/session/${pending_reflection_session_id}`)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                onClick={() => navigate(`/session/${pending_reflection_session_id}/review`)}
+                data-testid="add-reflection-prompt-btn"
               >
                 Add Reflection
               </Button>
