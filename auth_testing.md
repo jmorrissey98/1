@@ -31,17 +31,17 @@ print('User ID: ' + userId);
 
 ```bash
 # Test auth endpoint
-curl -X GET "https://my-development.preview.emergentagent.com/api/auth/me" \
+curl -X GET "https://session-analysis-hub.preview.emergentagent.com/api/auth/me" \
   -H "Authorization: Bearer YOUR_SESSION_TOKEN"
 
 # Test invites (Coach Developer only)
-curl -X POST "https://my-development.preview.emergentagent.com/api/invites" \
+curl -X POST "https://session-analysis-hub.preview.emergentagent.com/api/invites" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
   -d '{"email": "coach@example.com", "role": "coach"}'
 
 # List users
-curl -X GET "https://my-development.preview.emergentagent.com/api/users" \
+curl -X GET "https://session-analysis-hub.preview.emergentagent.com/api/users" \
   -H "Authorization: Bearer YOUR_SESSION_TOKEN"
 ```
 
@@ -58,7 +58,7 @@ await page.context.add_cookies([{
     "secure": true,
     "sameSite": "None"
 }]);
-await page.goto("https://my-development.preview.emergentagent.com");
+await page.goto("https://session-analysis-hub.preview.emergentagent.com");
 ```
 
 ## Quick Debug
