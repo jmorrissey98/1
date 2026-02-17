@@ -457,10 +457,12 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <img src="/mcd-logo.png" alt="My Coach Developer" className="h-8 w-auto invert" />
             </div>
-            <div className="flex items-center gap-6 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm text-slate-400">
               <a href="mailto:hello@mycoachdeveloper.com" className="hover:text-white transition-colors">Contact</a>
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+              <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+              <a href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</a>
+              <a href="/commercial-terms" className="hover:text-white transition-colors">Commercial Terms</a>
+              <a href="/data-processing" className="hover:text-white transition-colors">Data Processing</a>
             </div>
             <p className="text-sm text-slate-500">
               © {new Date().getFullYear()} My Coach Developer. All rights reserved.
