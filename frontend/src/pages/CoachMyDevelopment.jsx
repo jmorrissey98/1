@@ -355,105 +355,6 @@ export default function CoachMyDevelopment() {
             <TabsTrigger value="targets" data-testid="tab-targets">My Targets</TabsTrigger>
           </TabsList>
 
-          {/* ==================== OVERVIEW TAB ==================== */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900">{analytics.totalSessions}</p>
-                  <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900">{analytics.totalInterventions}</p>
-                  <p className="text-sm text-slate-500 mt-1">Total Interventions</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-green-600">{analytics.avgPerSession}</p>
-                  <p className="text-sm text-slate-500 mt-1">Avg per Session</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Development Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <Target className="w-5 h-5 text-orange-500" />
-                  Development Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span>{achievedTargets.length} of {targets.length} targets achieved</span>
-                    <span className="font-medium">
-                      {targets.length > 0 ? Math.round((achievedTargets.length / targets.length) * 100) : 0}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={targets.length > 0 ? (achievedTargets.length / targets.length) * 100 : 0} 
-                    className="h-3"
-                  />
-                </div>
-
-                {activeTargets.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-2">Current Focus Areas:</h4>
-                    <ul className="space-y-1">
-                      {activeTargets.slice(0, 3).map(t => (
-                        <li key={t.id} className="text-sm text-slate-600 flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                          {t.text}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Sessions Over Time Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                  Sessions Over Time
-                </CardTitle>
-                <CardDescription>Your observation sessions by month</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {analytics.monthlyChartData.length > 0 ? (
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={analytics.monthlyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'white', 
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Bar dataKey="sessions" fill="#10b981" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-slate-400">
-                    No session data available yet
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* ==================== MY COACHING TAB ==================== */}
           <TabsContent value="coaching" className="space-y-6">
             {/* Profile Card */}
@@ -486,8 +387,8 @@ export default function CoachMyDevelopment() {
               </CardContent>
             </Card>
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Stats Overview - Sessions and Active Targets only */}
+            <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
                   <p className="text-3xl font-bold text-slate-900">{analytics.totalSessions}</p>
@@ -500,38 +401,138 @@ export default function CoachMyDevelopment() {
                   <p className="text-sm text-slate-500 mt-1">Active Targets</p>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Key Metrics Row */}
+            <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-green-600">{achievedTargets.length}</p>
-                  <p className="text-sm text-slate-500 mt-1">Targets Achieved</p>
+                  <p className="text-3xl font-bold text-green-600">{analytics.avgBallRolling}%</p>
+                  <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-blue-600">{analytics.avgPerSession}</p>
+                  <p className="text-sm text-slate-500 mt-1">Avg Interventions/Session</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-slate-900">{analytics.totalInterventions}</p>
+                  <p className="text-sm text-slate-500 mt-1">Total Interventions</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Sessions Chart */}
+            {/* Intervention Distribution */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
-                  Session Activity
+                  <BarChart3 className="w-5 h-5 text-yellow-500" />
+                  Intervention Distribution
                 </CardTitle>
+                <CardDescription>Breakdown of your intervention types across all sessions</CardDescription>
               </CardHeader>
               <CardContent>
-                {analytics.monthlyChartData.length > 0 ? (
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={analytics.monthlyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <Tooltip />
-                        <Bar dataKey="sessions" fill="#10b981" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {analytics.interventionChartData.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analytics.interventionChartData} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <Tooltip 
+                            formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Count']}
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                          <Bar dataKey="count" fill="#FACC15" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    
+                    {/* Percentage breakdown */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {analytics.interventionChartData.map((item, idx) => (
+                        <div key={item.name} className="p-3 bg-slate-50 rounded-lg text-center">
+                          <p className="text-lg font-bold" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
+                            {item.percentage}%
+                          </p>
+                          <p className="text-xs text-slate-500">{item.name}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="h-48 flex items-center justify-center text-slate-400">
-                    No session data available yet
+                    No intervention data available yet
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Intervention Patterns */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-purple-500" />
+                  Intervention Patterns
+                </CardTitle>
+                <CardDescription>Insights into your coaching intervention habits</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analytics.totalInterventions > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Most Common Intervention */}
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                      <p className="text-sm text-purple-700 font-medium">Most Used</p>
+                      <p className="text-xl font-bold text-purple-900 mt-1">
+                        {analytics.mostCommonPattern?.pattern || 'N/A'}
+                      </p>
+                      {analytics.mostCommonPattern && (
+                        <p className="text-sm text-purple-600 mt-1">
+                          {analytics.mostCommonPattern.count} times ({Math.round((analytics.mostCommonPattern.count / analytics.totalInterventions) * 100)}%)
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Variety */}
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-sm text-blue-700 font-medium">Variety Score</p>
+                      <p className="text-xl font-bold text-blue-900 mt-1">
+                        {analytics.varietyPercentage}%
+                      </p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        {analytics.varietyPercentage > 50 ? 'High variety in approaches' : 'Consistent patterns'}
+                      </p>
+                    </div>
+                    
+                    {/* Ball Rolling Insight */}
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                      <p className="text-sm text-green-700 font-medium">Ball Rolling Balance</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 bg-green-200 rounded-full h-3 overflow-hidden">
+                          <div 
+                            className="bg-green-500 h-full rounded-full" 
+                            style={{ width: `${analytics.avgBallRolling}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-bold text-green-900">{analytics.avgBallRolling}%</span>
+                      </div>
+                      <p className="text-sm text-green-600 mt-2">
+                        {analytics.avgBallRolling >= 60 ? 'Great activity flow!' : 
+                         analytics.avgBallRolling >= 40 ? 'Balanced approach' : 'More ball time could help'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    Complete some observation sessions to see your intervention patterns
                   </div>
                 )}
               </CardContent>
@@ -578,6 +579,16 @@ export default function CoachMyDevelopment() {
                       className="w-full"
                       onClick={() => {
                         const tabsList = document.querySelector('[data-testid="tab-sessions"]');
+                        if (tabsList) tabsList.click();
+                      }}
+                    >
+                      View All Sessions
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
                         if (tabsList) tabsList.click();
                       }}
                     >
