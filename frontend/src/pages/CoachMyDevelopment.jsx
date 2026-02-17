@@ -134,26 +134,48 @@ export default function CoachMyDevelopment() {
     return result.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [sessions, searchQuery, dateFilter, timeframe]);
 
-  // Calculate analytics from filtered sessions
+  // Calculate analytics from filtered sessions - including intervention patterns
   const analytics = useMemo(() => {
     const totalSessions = filteredSessions.length;
     let totalInterventions = 0;
-    const interventionTypes = {};
+    let totalBallRollingTime = 0;
+    let totalBallStoppedTime = 0;
+    let totalDuration = 0;
+    const interventionTypeCount = {};
     const monthlyData = {};
     
+    // For intervention patterns
+    const interventionCombinations = {};
+    
     filteredSessions.forEach(session => {
-      // Count interventions
-      const interventionCount = session.intervention_count || session.events?.length || 0;
-      totalInterventions += interventionCount;
+      // Count interventions from events
+      const events = session.events || [];
+      totalInterventions += events.length;
+      
+      // Ball rolling stats
+      totalBallRollingTime += session.ball_rolling_time || 0;
+      totalBallStoppedTime += session.ball_not_rolling_time || 0;
+      totalDuration += session.total_duration || 0;
       
       // Aggregate by month
       const monthKey = format(new Date(session.date), 'yyyy-MM');
       monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
       
-      // TODO: Aggregate intervention types when data is available
+      // Count intervention types
+      events.forEach(event => {
+        const typeName = event.eventTypeName || event.eventTypeId || 'Unknown';
+        interventionTypeCount[typeName] = (interventionTypeCount[typeName] || 0) + 1;
+        
+        // Track combinations for pattern analysis
+        const desc1 = (event.descriptors1 || []).join(', ') || 'None';
+        const desc2 = (event.descriptors2 || []).join(', ') || 'None';
+        const combo = `${typeName}|${desc1}|${desc2}`;
+        interventionCombinations[combo] = (interventionCombinations[combo] || 0) + 1;
+      });
     });
     
-    const avgPerSession = totalSessions > 0 ? Math.round(totalInterventions / totalSessions) : 0;
+    const avgPerSession = totalSessions > 0 ? Math.round(totalInterventions / totalSessions * 10) / 10 : 0;
+    const avgBallRolling = totalDuration > 0 ? Math.round((totalBallRollingTime / totalDuration) * 100) : 0;
     
     // Convert monthly data to chart format
     const monthlyChartData = Object.entries(monthlyData)
@@ -164,11 +186,40 @@ export default function CoachMyDevelopment() {
         sessions: count
       }));
     
+    // Convert intervention types to chart format
+    const interventionChartData = Object.entries(interventionTypeCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: totalInterventions > 0 ? Math.round((count / totalInterventions) * 100) : 0
+      }));
+    
+    // Calculate variety percentage (unique combinations / total interventions)
+    const uniqueCombinations = Object.keys(interventionCombinations).length;
+    const varietyPercentage = totalInterventions > 0 
+      ? Math.round((uniqueCombinations / totalInterventions) * 100) 
+      : 0;
+    
+    // Get most common intervention pattern
+    const sortedCombos = Object.entries(interventionCombinations)
+      .sort((a, b) => b[1] - a[1]);
+    const mostCommonPattern = sortedCombos[0] 
+      ? { pattern: sortedCombos[0][0].split('|')[0], count: sortedCombos[0][1] }
+      : null;
+    
     return {
       totalSessions,
       totalInterventions,
       avgPerSession,
-      monthlyChartData
+      avgBallRolling,
+      totalBallRollingTime,
+      totalBallStoppedTime,
+      monthlyChartData,
+      interventionChartData,
+      varietyPercentage,
+      mostCommonPattern,
+      interventionCombinations
     };
   }, [filteredSessions]);
 
