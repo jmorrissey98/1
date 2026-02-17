@@ -101,6 +101,12 @@ function AppRouter() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/register/:inviteId" element={<InviteRegistration />} />
       
+      {/* Legal Pages - Public */}
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/commercial-terms" element={<CommercialTerms />} />
+      <Route path="/data-processing" element={<DataProcessing />} />
+      
       {/* Root - Landing page or Dashboard based on auth */}
       <Route path="/" element={<RootRoute />} />
       
