@@ -310,6 +310,17 @@
 - [x] Created `routes/coaches.py` - Coach CRUD routes ✅ INTEGRATED
 - [x] Created `REFACTORING.md` - Documentation for ongoing migration
 - [ ] Migrate remaining route groups (users, observations, invites, etc.)
+- [ ] Remove duplicate inline routes from server.py
+
+### Phase 10: Coach Dashboard UI/UX Refinements (COMPLETED - February 17, 2026)
+- [x] Home button now navigates to Coach Dashboard (/coach/dashboard) not My Development
+- [x] Changed notification dot color from blue to GREEN on My Sessions tab
+- [x] 3-column metrics row: Sessions Observed, Avg Ball Rolling, Avg Interventions (same row)
+- [x] Intervention Distribution filter toggles (checkboxes to show/hide interventions in chart)
+- [x] Archived targets section collapsed by default with expand/collapse toggle
+- [x] Added delete button for archived targets (in addition to restore)
+- [x] Created `REFACTORING.md` - Documentation for ongoing migration
+- [ ] Migrate remaining route groups (users, observations, invites, etc.)
 - [ ] Remove duplicate inline routes from server.py (after migration complete)
 
 ### Phase 10: Coach Dashboard UI/UX Enhancements (COMPLETED - February 17, 2026)
