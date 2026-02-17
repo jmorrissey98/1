@@ -109,7 +109,12 @@ function AppRouter() {
       {/* Coach Role Routes */}
       <Route path="/coach" element={
         <ProtectedRoute requireCoach>
-          <Navigate to="/coach/development" replace />
+          <Navigate to="/coach/dashboard" replace />
+        </ProtectedRoute>
+      } />
+      <Route path="/coach/dashboard" element={
+        <ProtectedRoute requireCoach>
+          <CoachDashboard />
         </ProtectedRoute>
       } />
       <Route path="/coach/development" element={
