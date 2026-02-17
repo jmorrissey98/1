@@ -150,7 +150,7 @@ function AppRouter() {
         </ProtectedRoute>
       } />
       <Route path="/session/:sessionId/review" element={
-        <ProtectedRoute requireCoachDeveloper>
+        <ProtectedRoute>
           <ReviewSession />
         </ProtectedRoute>
       } />
