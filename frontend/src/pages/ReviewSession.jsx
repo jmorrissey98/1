@@ -1711,7 +1711,14 @@ export default function ReviewSession() {
                         {/* Time axis labels */}
                         <div className="flex justify-between text-xs text-slate-500 mb-1">
                           <span>00:00</span>
-                          <span>{formatRelativeTime(session.totalDuration || Math.max(...events.map(e => e.relativeTimestamp || 0)))}</span>
+                          <span>{(() => {
+                            const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                            const sessionDuration = session.totalDuration || session.total_duration || 0;
+                            const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                              ? sessionDuration 
+                              : maxEventTime;
+                            return formatRelativeTime(totalDuration);
+                          })()}</span>
                         </div>
                         
                         {/* Density bar container */}
