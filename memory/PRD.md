@@ -301,7 +301,7 @@
 - Admin dashboard with impersonation
 - Token-based authentication
 
-### Phase 9: Backend Refactoring (IN PROGRESS - February 17, 2026)
+### Phase 9: Backend Refactoring (COMPLETED - February 17, 2026)
 - [x] Created `database.py` - Database connection and configuration
 - [x] Created `models.py` - All Pydantic models (~400 lines extracted)
 - [x] Created `dependencies.py` - Auth middleware (require_auth, require_admin, etc.)
@@ -309,8 +309,12 @@
 - [x] Created `routes/auth.py` - Authentication routes ✅ INTEGRATED
 - [x] Created `routes/coaches.py` - Coach CRUD routes ✅ INTEGRATED
 - [x] Created `REFACTORING.md` - Documentation for ongoing migration
-- [ ] Migrate remaining route groups (users, observations, invites, etc.)
-- [ ] Remove duplicate inline routes from server.py
+- [x] Created `routes/invites.py` - Invite management routes ✅ INTEGRATED
+- [x] Created `routes/users.py` - User management routes ✅ INTEGRATED
+- [x] Created `routes/observations.py` - Observation session CRUD ✅ INTEGRATED
+- [x] Created `routes/organization.py` - Organization/Club management ✅ INTEGRATED
+- [x] Removed duplicate inline routes from server.py
+- **Result**: server.py reduced from ~4800 lines to ~2900 lines (39% reduction)
 
 ### Phase 10: Coach Dashboard UI/UX Refinements (COMPLETED - February 17, 2026)
 - [x] Home button now navigates to Coach Dashboard (/coach/dashboard) not My Development
