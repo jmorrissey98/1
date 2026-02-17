@@ -990,8 +990,7 @@ export default function ReviewSession() {
           <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
             <TabsTrigger value="reflections" data-testid="tab-reflections">Reflections</TabsTrigger>
-            <TabsTrigger value="activity" data-testid="tab-activity">Activity</TabsTrigger>
-            <TabsTrigger value="charts" data-testid="tab-charts">Charts</TabsTrigger>
+            <TabsTrigger value="analysis" data-testid="tab-analysis">Session Analysis</TabsTrigger>
           </TabsList>
 
           {/* Summary Tab */}
