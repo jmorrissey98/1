@@ -917,19 +917,23 @@ export default function ReviewSession() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <span>{formatDateTime(session.createdAt)}</span>
-                {session.coachName && (
-                  <>
+              {session.coachName ? (
+                <>
+                  <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.coachName}</h1>
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <span>{session.name}</span>
                     <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <User className="w-3.5 h-3.5" />
-                      {session.coachName}
-                    </span>
-                  </>
-                )}
-              </div>
+                    <span>{formatDateTime(session.createdAt)}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.name}</h1>
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <span>{formatDateTime(session.createdAt)}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
