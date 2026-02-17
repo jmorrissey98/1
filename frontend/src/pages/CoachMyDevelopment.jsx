@@ -378,7 +378,7 @@ export default function CoachMyDevelopment() {
             <TabsTrigger value="sessions" data-testid="tab-sessions" className="relative">
               My Sessions
               {sessionsNeedingReflection > 0 && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full" data-testid="sessions-notification-dot" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full" data-testid="sessions-notification-dot" />
               )}
             </TabsTrigger>
             <TabsTrigger value="targets" data-testid="tab-targets">My Targets</TabsTrigger>
