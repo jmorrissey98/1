@@ -416,6 +416,8 @@ export default function ReviewSession() {
   const [observerNotesExpanded, setObserverNotesExpanded] = useState(true);
   
   const isCoachView = user?.role === 'coach';
+  // Coaches can view everything but only edit their own reflections
+  const canEditObserverContent = !isCoachView;
 
   useEffect(() => {
     const loadSession = async () => {
@@ -430,10 +432,9 @@ export default function ReviewSession() {
         setSession(loaded);
         setCurrentSession(loaded);
         
-        // Load reflection templates for coach educators
-        if (!isCoachView) {
-          loadReflectionTemplates();
-        }
+        // Load reflection templates for both coach developers and coaches
+        // Coaches need to see their assigned template
+        loadReflectionTemplates();
       } catch (err) {
         console.error('Failed to load session:', err);
         toast.error('Failed to load session');
@@ -443,7 +444,7 @@ export default function ReviewSession() {
       }
     };
     loadSession();
-  }, [sessionId, navigate, getSession, setCurrentSession, isCoachView]);
+  }, [sessionId, navigate, getSession, setCurrentSession]);
 
   // Load reflection templates
   const loadReflectionTemplates = async () => {
