@@ -10,7 +10,8 @@ The `server.py` file has grown to ~4700 lines and contains all API routes. While
 2. **`models.py`** - All Pydantic models (~400 lines)
 3. **`dependencies.py`** - Auth middleware (`require_auth`, `require_admin`, `require_coach`, etc.)
 4. **`utils.py`** - Utility functions (password hashing, email helpers)
-5. **`routes/auth.py`** - Authentication routes (ready but not yet integrated)
+5. **`routes/auth.py`** - Authentication routes ✅ INTEGRATED
+6. **`routes/coaches.py`** - Coach CRUD routes ✅ INTEGRATED
 
 ## Remaining Work
 
