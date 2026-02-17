@@ -996,7 +996,7 @@ export default function ReviewSession() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-6">
         <Tabs defaultValue="summary" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
             <TabsTrigger value="reflections" data-testid="tab-reflections">Reflections</TabsTrigger>
             <TabsTrigger value="analysis" data-testid="tab-analysis">Session Analysis</TabsTrigger>
