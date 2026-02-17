@@ -767,7 +767,6 @@ async def send_email_with_retry(params: dict, email_type: str, max_retries: int 
 
 try:
     from routes.auth import router as auth_router
-    # Include auth routes - these will override the inline auth routes below
     api_router.include_router(auth_router)
     logger.info("Auth routes loaded from routes/auth.py")
 except Exception as e:
@@ -775,11 +774,38 @@ except Exception as e:
 
 try:
     from routes.coaches import router as coaches_router
-    # Include coaches routes
     api_router.include_router(coaches_router)
     logger.info("Coaches routes loaded from routes/coaches.py")
 except Exception as e:
     logger.warning(f"Could not load modular coaches routes: {e}. Using inline routes.")
+
+try:
+    from routes.invites import router as invites_router
+    api_router.include_router(invites_router)
+    logger.info("Invites routes loaded from routes/invites.py")
+except Exception as e:
+    logger.warning(f"Could not load modular invites routes: {e}. Using inline routes.")
+
+try:
+    from routes.users import router as users_router
+    api_router.include_router(users_router)
+    logger.info("Users routes loaded from routes/users.py")
+except Exception as e:
+    logger.warning(f"Could not load modular users routes: {e}. Using inline routes.")
+
+try:
+    from routes.observations import router as observations_router
+    api_router.include_router(observations_router)
+    logger.info("Observations routes loaded from routes/observations.py")
+except Exception as e:
+    logger.warning(f"Could not load modular observations routes: {e}. Using inline routes.")
+
+try:
+    from routes.organization import router as organization_router
+    api_router.include_router(organization_router)
+    logger.info("Organization routes loaded from routes/organization.py")
+except Exception as e:
+    logger.warning(f"Could not load modular organization routes: {e}. Using inline routes.")
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
