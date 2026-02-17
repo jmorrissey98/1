@@ -287,28 +287,37 @@ export default function CoachMyDevelopment() {
           <p className="text-sm text-slate-500">Track your coaching journey and progress</p>
         </div>
 
-        {/* Reflection Prompt - Action-focused blue styling */}
-        {has_pending_reflection && pending_reflection_session_id && (
-          <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-5 shadow-sm mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-white" />
+        {/* Reflection Prompt - Smaller, closable design */}
+        {has_pending_reflection && pending_reflection_session_id && !reflectionPromptDismissed && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-4 h-4 text-white" />
                 </div>
-                <div>
-                  <p className="font-semibold text-blue-900 text-lg">Complete Your Reflection</p>
-                  <p className="text-blue-700 mt-1">
-                    Your recent session has been observed. Take a moment to reflect on your coaching.
-                  </p>
-                </div>
+                <p className="text-sm text-blue-800 truncate">
+                  You have a session awaiting reflection
+                </p>
               </div>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-                onClick={() => navigate(`/session/${pending_reflection_session_id}/review`)}
-                data-testid="add-reflection-prompt-btn"
-              >
-                Add Reflection
-              </Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button 
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 h-7"
+                  onClick={() => navigate(`/session/${pending_reflection_session_id}/review`)}
+                  data-testid="add-reflection-prompt-btn"
+                >
+                  Add Reflection
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                  onClick={() => setReflectionPromptDismissed(true)}
+                  data-testid="dismiss-reflection-prompt-btn"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         )}
