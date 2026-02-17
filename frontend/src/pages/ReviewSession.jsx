@@ -1712,18 +1712,18 @@ export default function ReviewSession() {
                       <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-green-500 rounded-full" 
-                          style={{ width: `${ballRollingTime && (ballRollingTime + ballNotRollingTime) > 0 ? Math.round((ballRollingTime / (ballRollingTime + ballNotRollingTime)) * 100) : 0}%` }}
+                          style={{ width: `${stats.ballRollingTime && (stats.ballRollingTime + stats.ballNotRollingTime) > 0 ? Math.round((stats.ballRollingTime / (stats.ballRollingTime + stats.ballNotRollingTime)) * 100) : 0}%` }}
                         />
                       </div>
                       <span className="text-lg font-bold text-green-600">
-                        {ballRollingTime && (ballRollingTime + ballNotRollingTime) > 0 
-                          ? Math.round((ballRollingTime / (ballRollingTime + ballNotRollingTime)) * 100) 
+                        {stats.ballRollingTime && (stats.ballRollingTime + stats.ballNotRollingTime) > 0 
+                          ? Math.round((stats.ballRollingTime / (stats.ballRollingTime + stats.ballNotRollingTime)) * 100) 
                           : 0}%
                       </span>
                     </div>
                   </div>
                   <div className="text-xs text-slate-500">
-                    {formatTime(ballRollingTime || 0)} rolling / {formatTime(ballNotRollingTime || 0)} stopped
+                    {formatTime(stats.ballRollingTime || 0)} rolling / {formatTime(stats.ballNotRollingTime || 0)} stopped
                   </div>
                 </div>
               </CardContent>
