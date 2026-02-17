@@ -322,7 +322,7 @@ export default function CoachMyDevelopment() {
 
           {/* ==================== MY COACHING TAB ==================== */}
           <TabsContent value="coaching" className="space-y-6">
-            {/* Profile Card */}
+            {/* Profile Card with Active Targets inside */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope']">My Profile</CardTitle>
@@ -348,100 +348,16 @@ export default function CoachMyDevelopment() {
                       <p className="text-sm text-slate-600 mt-2">{profile.bio}</p>
                     )}
                   </div>
+                  {/* Active Targets mini card */}
+                  <div className="flex-shrink-0 p-3 bg-orange-50 rounded-lg border border-orange-200 text-center min-w-[100px]">
+                    <p className="text-2xl font-bold text-orange-600">{activeTargets.length}</p>
+                    <p className="text-xs text-orange-700">Active Targets</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Stats Overview - Sessions and Active Targets only */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900">{analytics.total_sessions || filteredSessions.length}</p>
-                  <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-orange-600">{activeTargets.length}</p>
-                  <p className="text-sm text-slate-500 mt-1">Active Targets</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Key Metrics Row */}
-            <div className="grid grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-green-600">{analytics.avg_ball_rolling || 0}%</p>
-                  <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-blue-600">{analytics.avg_per_session || 0}</p>
-                  <p className="text-sm text-slate-500 mt-1">Avg Interventions/Session</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900">{analytics.total_interventions || 0}</p>
-                  <p className="text-sm text-slate-500 mt-1">Total Interventions</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Intervention Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-yellow-500" />
-                  Intervention Distribution
-                </CardTitle>
-                <CardDescription>Breakdown of your intervention types across all sessions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {(analytics.intervention_chart_data || []).length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="h-48">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.intervention_chart_data} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
-                          <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#64748b', fontSize: 12 }} />
-                          <Tooltip 
-                            formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Count']}
-                            contentStyle={{ 
-                              backgroundColor: 'white', 
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '8px'
-                            }} 
-                          />
-                          <Bar dataKey="count" fill="#FACC15" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    
-                    {/* Percentage breakdown */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {(analytics.intervention_chart_data || []).map((item, idx) => (
-                        <div key={item.name} className="p-3 bg-slate-50 rounded-lg text-center">
-                          <p className="text-lg font-bold" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
-                            {item.percentage}%
-                          </p>
-                          <p className="text-xs text-slate-500">{item.name}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-48 flex items-center justify-center text-slate-400">
-                    No intervention data available yet
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Intervention Patterns */}
+            {/* Intervention Patterns - Moved up, right after profile */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
@@ -498,6 +414,100 @@ export default function CoachMyDevelopment() {
                 ) : (
                   <div className="py-8 text-center text-slate-400">
                     Complete some observation sessions to see your intervention patterns
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Key Metrics Row - Only 2 metrics now, no Total Interventions */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-slate-900">{analytics.total_sessions || filteredSessions.length}</p>
+                  <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-green-600">{analytics.avg_ball_rolling || 0}%</p>
+                  <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Second row - Avg Interventions (whole number) */}
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold text-blue-600">{Math.round(analytics.avg_per_session || 0)}</p>
+                <p className="text-sm text-slate-500 mt-1">Avg Interventions per Session</p>
+              </CardContent>
+            </Card>
+
+            {/* Intervention Distribution - Details collapsible */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-yellow-500" />
+                  Intervention Distribution
+                </CardTitle>
+                <CardDescription>Breakdown of your intervention types across all sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(analytics.intervention_chart_data || []).length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analytics.intervention_chart_data} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <Tooltip 
+                            formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Count']}
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                          <Bar dataKey="count" fill="#FACC15" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    
+                    {/* Collapsible percentage breakdown */}
+                    <Collapsible open={interventionDetailsExpanded} onOpenChange={setInterventionDetailsExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-full text-slate-500 hover:text-slate-700">
+                          {interventionDetailsExpanded ? (
+                            <>
+                              <ChevronUp className="w-4 h-4 mr-2" />
+                              Hide Details
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-4 h-4 mr-2" />
+                              Show Details
+                            </>
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                          {(analytics.intervention_chart_data || []).map((item, idx) => (
+                            <div key={item.name} className="p-3 bg-slate-50 rounded-lg text-center">
+                              <p className="text-lg font-bold" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
+                                {item.percentage}%
+                              </p>
+                              <p className="text-xs text-slate-500">{item.name}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-slate-400">
+                    No intervention data available yet
                   </div>
                 )}
               </CardContent>
