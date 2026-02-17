@@ -297,9 +297,8 @@ export default function CoachMyDevelopment() {
           <p className="text-sm text-slate-500">Track your coaching journey and progress</p>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-xl grid-cols-4">
-            <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+        <Tabs defaultValue="coaching" className="space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="coaching" data-testid="tab-coaching">My Coaching</TabsTrigger>
             <TabsTrigger value="sessions" data-testid="tab-sessions">My Sessions</TabsTrigger>
             <TabsTrigger value="targets" data-testid="tab-targets">My Targets</TabsTrigger>
