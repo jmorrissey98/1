@@ -327,7 +327,8 @@
 ### P1 - High Priority  
 - [x] Complete "My Development" page for Coaches (DONE)
 - [x] Backend refactoring - Phase 1 complete (modules extracted)
-- [ ] Backend refactoring - Phase 2 (migrate route groups)
+- [x] Backend refactoring - Phase 2 partial (auth + coaches routes integrated)
+- [ ] Backend refactoring - Phase 3 (migrate remaining route groups: users, observations, invites, organization, admin, payments, templates)
 - [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
 - [ ] Investigate "body stream already read" error in safeFetch.js
