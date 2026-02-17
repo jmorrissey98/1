@@ -605,7 +605,7 @@ export default function CoachMyDevelopment() {
                 <CardTitle className="font-['Manrope']">
                   Sessions ({filteredSessions.length})
                 </CardTitle>
-                <CardDescription>Click a session to view full details</CardDescription>
+                <CardDescription>Click a session to view full details. Sessions needing reflection appear first.</CardDescription>
               </CardHeader>
               <CardContent>
                 {filteredSessions.length === 0 ? (
@@ -616,56 +616,94 @@ export default function CoachMyDevelopment() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredSessions.map(session => (
-                      <div
-                        key={session.session_id}
-                        className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors border border-slate-100"
-                        onClick={() => navigate(`/session/${session.session_id}/review?view=coach`)}
-                        data-testid={`session-item-${session.session_id}`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-slate-900">
-                              {session.title || session.session_name || 'Untitled Session'}
-                            </h4>
-                            <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(session.date)}
-                              </span>
-                              {session.observer_name && (
-                                <>
-                                  <span>•</span>
-                                  <span>Observer: {session.observer_name}</span>
-                                </>
-                              )}
+                    {/* Sort: sessions needing reflection first, then by date */}
+                    {[...filteredSessions]
+                      .sort((a, b) => {
+                        // First sort by needs reflection
+                        const aNeedsReflection = a.has_observation && !a.has_reflection;
+                        const bNeedsReflection = b.has_observation && !b.has_reflection;
+                        if (aNeedsReflection && !bNeedsReflection) return -1;
+                        if (!aNeedsReflection && bNeedsReflection) return 1;
+                        // Then by date descending
+                        return new Date(b.date) - new Date(a.date);
+                      })
+                      .map(session => {
+                        const needsReflection = session.has_observation && !session.has_reflection;
+                        return (
+                          <div
+                            key={session.session_id}
+                            className={`p-4 rounded-lg cursor-pointer transition-colors border ${
+                              needsReflection 
+                                ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' 
+                                : 'bg-slate-50 hover:bg-slate-100 border-slate-100'
+                            }`}
+                            onClick={() => navigate(`/session/${session.session_id}/review`)}
+                            data-testid={`session-item-${session.session_id}`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-slate-900">
+                                  {session.title || session.session_name || 'Untitled Session'}
+                                </h4>
+                                <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {formatDate(session.date)}
+                                  </span>
+                                  {session.observer_name && (
+                                    <>
+                                      <span>•</span>
+                                      <span>Observer: {session.observer_name}</span>
+                                    </>
+                                  )}
+                                </div>
+                                
+                                {/* Session indicators */}
+                                <div className="flex gap-2 mt-2">
+                                  {session.has_observation && (
+                                    <Badge variant="outline" className="text-xs border-green-300 text-green-700">
+                                      Has Observation
+                                    </Badge>
+                                  )}
+                                  {session.has_reflection ? (
+                                    <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
+                                      Has Reflection
+                                    </Badge>
+                                  ) : needsReflection && (
+                                    <Badge className="text-xs bg-blue-600 hover:bg-blue-700">
+                                      Needs Reflection
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                {/* Summary preview */}
+                                {session.summary_preview && (
+                                  <p className="text-sm text-slate-600 mt-2 line-clamp-2">
+                                    {session.summary_preview}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                {needsReflection ? (
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/session/${session.session_id}/review`);
+                                    }}
+                                    data-testid={`add-reflection-btn-${session.session_id}`}
+                                  >
+                                    Add Reflection
+                                  </Button>
+                                ) : (
+                                  <Eye className="w-5 h-5 text-slate-400" />
+                                )}
+                              </div>
                             </div>
-                            
-                            {/* Session indicators */}
-                            <div className="flex gap-2 mt-2">
-                              {session.has_observation && (
-                                <Badge variant="outline" className="text-xs border-green-300 text-green-700">
-                                  Has Observation
-                                </Badge>
-                              )}
-                              {session.has_reflection && (
-                                <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
-                                  Has Reflection
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            {/* Summary preview */}
-                            {session.summary_preview && (
-                              <p className="text-sm text-slate-600 mt-2 line-clamp-2">
-                                {session.summary_preview}
-                              </p>
-                            )}
                           </div>
-                          <Eye className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
                   </div>
                 )}
               </CardContent>
