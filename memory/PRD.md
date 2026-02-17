@@ -276,10 +276,21 @@
 - Admin dashboard with impersonation
 - Token-based authentication
 
+### Phase 8: Backend Refactoring (IN PROGRESS - February 17, 2026)
+- [x] Created `database.py` - Database connection and configuration
+- [x] Created `models.py` - All Pydantic models (~400 lines extracted)
+- [x] Created `dependencies.py` - Auth middleware (require_auth, require_admin, etc.)
+- [x] Created `utils.py` - Utility functions (password hashing, email sending)
+- [x] Created `routes/auth.py` - Authentication routes (ready for integration)
+- [x] Created `REFACTORING.md` - Documentation for ongoing migration
+- [ ] Migrate remaining route groups (coaches, users, observations, etc.)
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
 - [x] Complete "My Development" page for Coaches (DONE)
+- [x] Backend refactoring - Phase 1 complete (modules extracted)
+- [ ] Backend refactoring - Phase 2 (migrate route groups)
 - [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Ensure offline-to-online sync handles conflicts properly
 - [ ] Investigate "body stream already read" error in safeFetch.js
