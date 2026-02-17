@@ -1700,335 +1700,204 @@ export default function ReviewSession() {
             </Collapsible>
           </TabsContent>
 
-          {/* Session Activity Tab - Density Visualization */}
-          <TabsContent value="activity">
+          {/* Session Analysis Tab - Combines Activity and Charts */}
+          <TabsContent value="analysis" className="space-y-6">
+            {/* Ball Rolling % - Compact at top */}
             <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope']">Session Activity Density</CardTitle>
-                <CardDescription>Visual representation of when interventions occurred during the session</CardDescription>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm font-medium text-slate-700">Ball Rolling %</div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-green-500 rounded-full" 
+                          style={{ width: `${ballRollingTime && (ballRollingTime + ballNotRollingTime) > 0 ? Math.round((ballRollingTime / (ballRollingTime + ballNotRollingTime)) * 100) : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-lg font-bold text-green-600">
+                        {ballRollingTime && (ballRollingTime + ballNotRollingTime) > 0 
+                          ? Math.round((ballRollingTime / (ballRollingTime + ballNotRollingTime)) * 100) 
+                          : 0}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {formatTime(ballRollingTime || 0)} rolling / {formatTime(ballNotRollingTime || 0)} stopped
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Session Activity Density */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-['Manrope']">Session Activity</CardTitle>
+                <CardDescription>Visual representation of when interventions occurred</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4">
                 {events.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
+                  <div className="text-center py-4 text-slate-500 text-sm">
                     No events recorded in this session
                   </div>
                 ) : (
                   <>
-                    {/* Session Density Visualization */}
-                    <div className="space-y-4">
-                      {/* Main density bar */}
-                      <div className="relative">
-                        <div className="text-sm font-medium text-slate-700 mb-2">Intervention Timeline</div>
-                        
-                        {/* Time axis labels */}
-                        <div className="flex justify-between text-xs text-slate-500 mb-1">
-                          <span>00:00</span>
-                          <span>{(() => {
-                            const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                            const sessionDuration = session.totalDuration || session.total_duration || 0;
-                            const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                              ? sessionDuration 
-                              : maxEventTime;
-                            return formatRelativeTime(totalDuration);
-                          })()}</span>
-                        </div>
-                        
-                        {/* Density bar container */}
-                        <div 
-                          className="relative h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
-                          data-testid="density-bar"
-                        >
-                          {/* Ball rolling segments background */}
-                          {(session.ballRollingLog || []).map((segment, idx) => {
-                            const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                            const sessionDuration = session.totalDuration || session.total_duration || 0;
-                            const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                              ? sessionDuration 
-                              : (maxEventTime || 1);
-                            const startPct = ((segment.start || 0) / totalDuration) * 100;
-                            const widthPct = ((segment.duration || 0) / totalDuration) * 100;
-                            return (
-                              <div
-                                key={`ball-${idx}`}
-                                className={cn(
-                                  "absolute top-0 h-full opacity-20",
-                                  segment.rolling ? "bg-green-400" : "bg-red-300"
-                                )}
-                                style={{
-                                  left: `${startPct}%`,
-                                  width: `${widthPct}%`
-                                }}
-                              />
-                            );
-                          })}
-                          
-                          {/* Event markers */}
-                          {events.map((event, index) => {
-                            // Calculate total duration - use max event timestamp if session duration seems wrong
-                            const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                            const sessionDuration = session.totalDuration || session.total_duration || 0;
-                            // If session duration is less than max event time, use max event time instead
-                            const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                              ? sessionDuration 
-                              : (maxEventTime || 1);
-                            const position = ((event.relativeTimestamp || 0) / totalDuration) * 100;
-                            
-                            // Color based on event type
-                            const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
-                            const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
-                            
-                            return (
-                              <div
-                                key={event.id}
-                                className="absolute top-0 h-full group cursor-pointer"
-                                style={{
-                                  left: `${Math.min(position, 98)}%`,
-                                  width: '2px'
-                                }}
-                                data-testid={`density-marker-${event.id}`}
-                              >
-                                <div 
-                                  className="w-full h-full transition-all group-hover:w-2"
-                                  style={{ backgroundColor: color }}
-                                />
-                                {/* Tooltip on hover */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                  <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-                                    <div className="font-medium">{event.eventTypeName}</div>
-                                    <div className="text-slate-300">{formatRelativeTime(event.relativeTimestamp)}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        
-                        {/* Legend */}
-                        <div className="flex flex-wrap gap-3 mt-3 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 bg-green-400 rounded opacity-40" />
-                            <span className="text-slate-600">Ball Rolling</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 bg-red-300 rounded opacity-40" />
-                            <span className="text-slate-600">Ball Stopped</span>
-                          </div>
-                          <span className="text-slate-400">|</span>
-                          {(session.interventionTypes || []).slice(0, 5).map((type, idx) => (
-                            <div key={type.id} className="flex items-center gap-1.5">
-                              <div 
-                                className="w-3 h-3 rounded" 
-                                style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
-                              />
-                              <span className="text-slate-600">{type.name}</span>
-                            </div>
-                          ))}
-                        </div>
+                    {/* Density bar */}
+                    <div className="relative">
+                      <div className="flex justify-between text-xs text-slate-500 mb-1">
+                        <span>00:00</span>
+                        <span>{(() => {
+                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                          const sessionDuration = session.totalDuration || session.total_duration || 0;
+                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                            ? sessionDuration 
+                            : maxEventTime;
+                          return formatRelativeTime(totalDuration);
+                        })()}</span>
                       </div>
                       
-                      {/* Density summary stats */}
-                      <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-slate-900">{events.length}</div>
-                          <div className="text-xs text-slate-500">Total Interventions</div>
+                      <div 
+                        className="relative h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
+                        data-testid="density-bar"
+                      >
+                        {/* Ball rolling segments */}
+                        {(session.ballRollingLog || []).map((segment, idx) => {
+                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                          const sessionDuration = session.totalDuration || session.total_duration || 0;
+                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                            ? sessionDuration 
+                            : (maxEventTime || 1);
+                          const startPct = ((segment.start || 0) / totalDuration) * 100;
+                          const widthPct = ((segment.duration || 0) / totalDuration) * 100;
+                          return (
+                            <div
+                              key={`ball-${idx}`}
+                              className={cn(
+                                "absolute top-0 h-full opacity-20",
+                                segment.rolling ? "bg-green-400" : "bg-red-300"
+                              )}
+                              style={{
+                                left: `${startPct}%`,
+                                width: `${widthPct}%`
+                              }}
+                            />
+                          );
+                        })}
+                        
+                        {/* Event markers */}
+                        {events.map((event, index) => {
+                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                          const sessionDuration = session.totalDuration || session.total_duration || 0;
+                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                            ? sessionDuration 
+                            : (maxEventTime || 1);
+                          const position = ((event.relativeTimestamp || 0) / totalDuration) * 100;
+                          const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
+                          const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
+                          
+                          return (
+                            <div
+                              key={event.id}
+                              className="absolute top-0 h-full group cursor-pointer"
+                              style={{
+                                left: `${Math.min(position, 98)}%`,
+                                width: '2px'
+                              }}
+                            >
+                              <div 
+                                className="w-full h-full transition-all group-hover:w-2"
+                                style={{ backgroundColor: color }}
+                              />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                  <div className="font-medium">{event.eventTypeName}</div>
+                                  <div className="text-slate-300">{formatRelativeTime(event.relativeTimestamp)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Legend */}
+                      <div className="flex flex-wrap gap-3 mt-2 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 bg-green-400 rounded opacity-40" />
+                          <span className="text-slate-600">Rolling</span>
                         </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-slate-900">
-                            {(() => {
-                              // Calculate average gap between interventions
-                              if (events.length < 2) return '--';
-                              const sortedEvents = [...events].sort((a, b) => (a.relativeTimestamp || 0) - (b.relativeTimestamp || 0));
-                              let totalGap = 0;
-                              for (let i = 1; i < sortedEvents.length; i++) {
-                                totalGap += (sortedEvents[i].relativeTimestamp || 0) - (sortedEvents[i-1].relativeTimestamp || 0);
-                              }
-                              return formatRelativeTime(totalGap / (sortedEvents.length - 1));
-                            })()}
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 bg-red-300 rounded opacity-40" />
+                          <span className="text-slate-600">Stopped</span>
+                        </div>
+                        {(session.interventionTypes || []).slice(0, 4).map((type, idx) => (
+                          <div key={type.id} className="flex items-center gap-1.5">
+                            <div 
+                              className="w-3 h-3 rounded" 
+                              style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                            />
+                            <span className="text-slate-600">{type.name}</span>
                           </div>
-                          <div className="text-xs text-slate-500">Avg Gap Between</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-slate-900">
-                            {(() => {
-                              // Find busiest minute
-                              if (events.length === 0) return '--';
-                              const minuteBuckets = {};
-                              events.forEach(e => {
-                                const minute = Math.floor((e.relativeTimestamp || 0) / 60000);
-                                minuteBuckets[minute] = (minuteBuckets[minute] || 0) + 1;
-                              });
-                              return Math.max(...Object.values(minuteBuckets));
-                            })()}
-                          </div>
-                          <div className="text-xs text-slate-500">Peak Per Minute</div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                     
-                    {/* Event List - Condensed */}
-                    <div className="pt-4 border-t">
-                      <div className="text-sm font-medium text-slate-700 mb-3">Event Details</div>
-                      <ScrollArea className="h-[300px] pr-4">
-                        <div className="space-y-2">
-                          {events.map((event, index) => {
-                            const part = (session.sessionParts || []).find(p => p.id === event.sessionPartId);
-                            const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
-                            const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
-                            
-                            return (
-                              <div 
-                                key={event.id} 
-                                className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors group"
-                                data-testid={`event-row-${event.id}`}
-                              >
-                                <div 
-                                  className="w-1 h-10 rounded-full flex-shrink-0" 
-                                  style={{ backgroundColor: color }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium text-slate-900 text-sm">{event.eventTypeName}</span>
-                                    <span className="text-xs text-slate-500 font-mono">
-                                      {formatRelativeTime(event.relativeTimestamp)}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {part && (
-                                      <Badge variant="outline" className="text-xs py-0">
-                                        {part.name}
-                                      </Badge>
-                                    )}
-                                    {(event.descriptors1 || []).slice(0, 2).map(d => {
-                                      const desc = session.descriptorGroup1?.descriptors?.find(x => x.id === d);
-                                      return desc && (
-                                        <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100 text-xs py-0">
-                                          {desc.name}
-                                        </Badge>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7"
-                                    onClick={() => handleEditEvent(event)}
-                                    data-testid={`edit-event-${event.id}`}
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-7 w-7 text-red-600"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete Event?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently remove this event from the session.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleDeleteEvent(event.id)}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </div>
-                            );
-                          })}
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-slate-900">{events.length}</div>
+                        <div className="text-xs text-slate-500">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-slate-900">
+                          {(() => {
+                            if (events.length < 2) return '--';
+                            const sortedEvents = [...events].sort((a, b) => (a.relativeTimestamp || 0) - (b.relativeTimestamp || 0));
+                            let totalGap = 0;
+                            for (let i = 1; i < sortedEvents.length; i++) {
+                              totalGap += (sortedEvents[i].relativeTimestamp || 0) - (sortedEvents[i-1].relativeTimestamp || 0);
+                            }
+                            return formatRelativeTime(totalGap / (sortedEvents.length - 1));
+                          })()}
                         </div>
-                      </ScrollArea>
+                        <div className="text-xs text-slate-500">Avg Gap</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-slate-900">
+                          {(() => {
+                            if (events.length === 0) return '--';
+                            const minuteBuckets = {};
+                            events.forEach(e => {
+                              const minute = Math.floor((e.relativeTimestamp || 0) / 60000);
+                              minuteBuckets[minute] = (minuteBuckets[minute] || 0) + 1;
+                            });
+                            return Math.max(...Object.values(minuteBuckets));
+                          })()}
+                        </div>
+                        <div className="text-xs text-slate-500">Peak/Min</div>
+                      </div>
                     </div>
                   </>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Charts Tab */}
-          <TabsContent value="charts" className="space-y-6">
-            {/* Multi-Dimensional Analytics Module */}
+            
+            {/* Intervention Patterns Analytics */}
             <InterventionAnalyticsModule 
               events={events}
               interventionTypes={session.interventionTypes || []}
               descriptorGroup1={session.descriptorGroup1}
               descriptorGroup2={session.descriptorGroup2}
             />
-            
-            {/* Events Bar Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope']">Events Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={eventChartData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={120} />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#FACC15" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Ball Rolling Pie Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope']">Ball Rolling vs Stopped</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={ballRollingData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {ballRollingData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatTime(value)} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Descriptor Charts */}
             <div className="grid md:grid-cols-2 gap-4">
               {session.descriptorGroup1 && (
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup1.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-48">
+                  <div className="h-40">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
                         data={(session.descriptorGroup1.descriptors || []).map(d => ({
@@ -2037,7 +1906,7 @@ export default function ReviewSession() {
                         }))}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                         <YAxis />
                         <Tooltip />
                         <Bar dataKey="count" fill="#38BDF8" radius={[4, 4, 0, 0]} />
@@ -2050,11 +1919,11 @@ export default function ReviewSession() {
 
               {session.descriptorGroup2 && (
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup2.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-48">
+                  <div className="h-40">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
                         data={(session.descriptorGroup2.descriptors || []).map(d => ({
@@ -2063,7 +1932,7 @@ export default function ReviewSession() {
                         }))}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                         <YAxis />
                         <Tooltip />
                         <Bar dataKey="count" fill="#4ADE80" radius={[4, 4, 0, 0]} />
