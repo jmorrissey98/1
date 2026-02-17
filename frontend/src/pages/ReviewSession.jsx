@@ -1385,20 +1385,21 @@ export default function ReviewSession() {
               </Card>
             )}
 
-            {/* Free-form Observer Reflections - Visible to all, editable by coach developers only */}
+            {/* Free-form Observer Reflections - Only visible to coach developers */}
+            {canEditObserverContent && (
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  {isCoachView ? "Observer's Notes" : "Additional Notes"}
+                  Additional Notes
                 </CardTitle>
                 <CardDescription>
-                  {isCoachView ? "Notes and observations from the coach developer." : "Add free-form observations and notes about this session."}
+                  Add free-form observations and notes about this session.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Existing reflections - visible to all */}
-                {(session.observerReflections || []).length > 0 ? (
+                {/* Existing reflections */}
+                {(session.observerReflections || []).length > 0 && (
                   <div className="space-y-3 mb-4">
                     {session.observerReflections.map(r => (
                       <div key={r.id} className="p-3 bg-slate-50 rounded-lg">
@@ -1407,50 +1408,42 @@ export default function ReviewSession() {
                             <p className="text-slate-700">{r.text}</p>
                             <p className="text-xs text-slate-400 mt-1">{formatDateTime(r.timestamp)}</p>
                           </div>
-                          {/* Only coach developers can delete observer reflections */}
-                          {canEditObserverContent && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 text-slate-400 hover:text-red-600"
-                              onClick={() => handleDeleteReflection('observer', r.id)}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-slate-400 hover:text-red-600"
+                            onClick={() => handleDeleteReflection('observer', r.id)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-slate-400 italic text-sm">No observer notes yet</p>
                 )}
                 
-                {/* Add new reflection - only for coach developers */}
-                {canEditObserverContent && (
-                  <>
-                    <div className="flex gap-2">
-                      <Textarea
-                        value={newReflection}
-                        onChange={(e) => setNewReflection(e.target.value)}
-                        placeholder="Add a note..."
-                        className="min-h-[80px] resize-y flex-1"
-                        data-testid="observer-reflection-textarea"
-                      />
-                    </div>
-                    <Button 
-                      onClick={() => handleAddReflection('observer')} 
-                      variant="outline" 
-                      disabled={!newReflection.trim()}
-                      data-testid="add-observer-reflection-btn"
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      Add Note
-                    </Button>
-                  </>
-                )}
+                {/* Add new reflection */}
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newReflection}
+                    onChange={(e) => setNewReflection(e.target.value)}
+                    placeholder="Add a note..."
+                    className="min-h-[80px] resize-y flex-1"
+                    data-testid="observer-reflection-textarea"
+                  />
+                </div>
+                <Button 
+                  onClick={() => handleAddReflection('observer')} 
+                  variant="outline" 
+                  disabled={!newReflection.trim()}
+                  data-testid="add-observer-reflection-btn"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Add Note
+                </Button>
               </CardContent>
             </Card>
+            )}
 
             {/* Coach Reflections */}
             <Card>
