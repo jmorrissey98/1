@@ -215,6 +215,51 @@ export default function CoachMyDevelopment() {
     }
   };
 
+  const handleDeleteArchivedTarget = async (targetId) => {
+    try {
+      const result = await safePut(`${API_URL}/api/coach/targets/${targetId}`, {
+        status: 'deleted'
+      });
+      
+      if (result.ok) {
+        setArchivedTargets(prev => prev.filter(t => t.id !== targetId));
+        toast.success('Target deleted');
+      }
+    } catch (err) {
+      toast.error('Failed to delete target');
+    }
+  };
+
+  const toggleInterventionFilter = (interventionName) => {
+    setInterventionFilters(prev => ({
+      ...prev,
+      [interventionName]: !prev[interventionName]
+    }));
+  };
+
+  // Initialize intervention filters when analytics data loads
+  useEffect(() => {
+    if (analyticsData?.intervention_chart_data) {
+      const initialFilters = {};
+      analyticsData.intervention_chart_data.forEach(item => {
+        if (interventionFilters[item.name] === undefined) {
+          initialFilters[item.name] = true; // All checked by default
+        }
+      });
+      if (Object.keys(initialFilters).length > 0) {
+        setInterventionFilters(prev => ({ ...initialFilters, ...prev }));
+      }
+    }
+  }, [analyticsData]);
+
+  // Filter intervention data based on selected filters
+  const filteredInterventionData = useMemo(() => {
+    if (!analyticsData?.intervention_chart_data) return [];
+    return analyticsData.intervention_chart_data.filter(item => 
+      interventionFilters[item.name] !== false
+    );
+  }, [analyticsData, interventionFilters]);
+
   const handleAddTarget = async () => {
     if (!newTargetText.trim()) return;
     
