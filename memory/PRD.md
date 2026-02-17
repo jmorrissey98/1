@@ -273,18 +273,24 @@
   - Updated /api/observations/{session_id} endpoint to allow coaches to fetch their assigned sessions
   - Coaches see full observation data: summary, events, interventions, charts, analytics
   - Same UI as coach developer view but permission-limited
-- [x] **Reflection Permissions**
-  - Coaches can view Observer's Notes (read-only)
-  - Coaches can add their own reflections
-  - Coaches cannot edit/delete observer content (edit buttons hidden)
-- [x] **My Coaching Tab** in My Development page
-  - New tab that mirrors the coach profile view a coach developer sees
-  - Shows: My Profile card, Stats (Sessions/Targets/Achieved), Session Activity chart, Recent Sessions
+- [x] **Reflection Permissions (Updated)**
+  - Observer's Notes and Additional Notes now HIDDEN from coaches (only formal reflections visible)
+  - Coaches can add their own reflections via Coach Reflections section
+  - Coaches cannot see/edit/delete observer content
+- [x] **My Coaching Tab Redesigned**
+  - Removed Overview tab completely - now 3 tabs: My Coaching, My Sessions, My Targets
+  - My Coaching shows: Profile, Sessions Observed, Active Targets (removed Targets Achieved)
+  - Added new analytics metrics:
+    - Avg Ball Rolling percentage
+    - Avg Interventions per Session
+    - Total Interventions
+    - Intervention Distribution horizontal bar chart
+    - Intervention Patterns card (Most Used, Variety Score, Ball Rolling Balance)
+  - New /api/coach/analytics endpoint for aggregated analytics data
 - [x] **Post-Observation Reflection Flow**
-  - Action-focused prompt on dashboard when reflection pending
+  - Action-focused prompt on My Development page when reflection pending
   - Sessions needing reflection appear first in My Sessions (blue styling)
   - "Add Reflection" button visible for sessions without coach reflection
-  - Proper template loading for coach reflections
 
 ### Previous Work
 - Stripe checkout integration
