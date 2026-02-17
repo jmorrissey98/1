@@ -328,7 +328,12 @@ export default function CoachMyDevelopment() {
         <Tabs defaultValue="coaching" className="space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="coaching" data-testid="tab-coaching">My Coaching</TabsTrigger>
-            <TabsTrigger value="sessions" data-testid="tab-sessions">My Sessions</TabsTrigger>
+            <TabsTrigger value="sessions" data-testid="tab-sessions" className="relative">
+              My Sessions
+              {sessionsNeedingReflection > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full" data-testid="sessions-notification-dot" />
+              )}
+            </TabsTrigger>
             <TabsTrigger value="targets" data-testid="tab-targets">My Targets</TabsTrigger>
           </TabsList>
 
