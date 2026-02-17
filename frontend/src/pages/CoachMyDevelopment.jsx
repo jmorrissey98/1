@@ -506,7 +506,7 @@ export default function CoachMyDevelopment() {
               </Card>
             </div>
 
-            {/* Intervention Distribution - Details collapsible */}
+            {/* Intervention Distribution - Details collapsible with filter toggles */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
@@ -518,9 +518,27 @@ export default function CoachMyDevelopment() {
               <CardContent>
                 {(analytics.intervention_chart_data || []).length > 0 ? (
                   <div className="space-y-4">
+                    {/* Filter toggles */}
+                    <div className="flex flex-wrap gap-3 pb-3 border-b border-slate-100">
+                      {(analytics.intervention_chart_data || []).map((item, idx) => (
+                        <label 
+                          key={item.name} 
+                          className="flex items-center gap-2 cursor-pointer select-none"
+                        >
+                          <Checkbox
+                            checked={interventionFilters[item.name] !== false}
+                            onCheckedChange={() => toggleInterventionFilter(item.name)}
+                            data-testid={`filter-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                          />
+                          <span className="text-sm text-slate-600">{item.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    
+                    {/* Chart with filtered data */}
                     <div className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.intervention_chart_data} layout="vertical">
+                        <BarChart data={filteredInterventionData} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
                           <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#64748b', fontSize: 12 }} />
