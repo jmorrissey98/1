@@ -1164,8 +1164,8 @@ export default function ReviewSession() {
 
           {/* Reflections Tab - Restructured */}
           <TabsContent value="reflections" className="space-y-6">
-            {/* Observer Notes Card - Collapsible */}
-            {!isCoachView && (session.observerNotes || []).length > 0 && (
+            {/* Observer Notes Card - Visible to both but only editable by coach developers */}
+            {(session.observerNotes || []).length > 0 && (
               <Collapsible open={observerNotesExpanded} onOpenChange={setObserverNotesExpanded}>
                 <Card>
                   <CollapsibleTrigger asChild>
@@ -1185,7 +1185,7 @@ export default function ReviewSession() {
                         )}
                       </div>
                       <CardDescription>
-                        Private notes taken during the observation session.
+                        {isCoachView ? 'Notes taken by the observer during your session.' : 'Private notes taken during the observation session.'}
                       </CardDescription>
                     </CardHeader>
                   </CollapsibleTrigger>
@@ -1214,8 +1214,8 @@ export default function ReviewSession() {
               </Collapsible>
             )}
 
-            {/* Observer Reflection Template Form */}
-            {!isCoachView && (
+            {/* Observer Reflection Template Form - Only for coach developers to edit */}
+            {canEditObserverContent && (
               <Card>
                 <CardHeader>
                   <CardTitle className="font-['Manrope'] flex items-center gap-2">
