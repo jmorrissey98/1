@@ -2610,13 +2610,22 @@ async def list_observation_sessions(request: Request):
 
 @api_router.get("/observations/{session_id}")
 async def get_observation_session(session_id: str, request: Request):
-    """Get a specific observation session"""
-    user = await require_coach_developer(request)
+    """Get a specific observation session - accessible by both coach developers and coaches"""
+    user = await require_auth(request)
     
-    session = await db.observation_sessions.find_one(
-        {"session_id": session_id, "observer_id": user.user_id},
-        {"_id": 0}
-    )
+    # Build query based on user role
+    if user.role == 'coach':
+        # Coaches can only access sessions where they are the assigned coach
+        session = await db.observation_sessions.find_one(
+            {"session_id": session_id, "coach_id": user.linked_coach_id},
+            {"_id": 0}
+        )
+    else:
+        # Coach developers can access their own observed sessions
+        session = await db.observation_sessions.find_one(
+            {"session_id": session_id, "observer_id": user.user_id},
+            {"_id": 0}
+        )
     
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
