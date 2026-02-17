@@ -404,6 +404,141 @@ export default function CoachMyDevelopment() {
             </Card>
           </TabsContent>
 
+          {/* ==================== MY COACHING TAB ==================== */}
+          <TabsContent value="coaching" className="space-y-6">
+            {/* Profile Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope']">My Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                    {profile.photo ? (
+                      <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-medium text-slate-500">{profile.name?.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-slate-900">{profile.name}</h3>
+                    {profile.role_title && <p className="text-slate-600">{profile.role_title}</p>}
+                    {(profile.age_group || profile.department) && (
+                      <p className="text-sm text-slate-500">
+                        {[profile.age_group, profile.department].filter(Boolean).join(' • ')}
+                      </p>
+                    )}
+                    {profile.bio && (
+                      <p className="text-sm text-slate-600 mt-2">{profile.bio}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-slate-900">{analytics.totalSessions}</p>
+                  <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-orange-600">{activeTargets.length}</p>
+                  <p className="text-sm text-slate-500 mt-1">Active Targets</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-green-600">{achievedTargets.length}</p>
+                  <p className="text-sm text-slate-500 mt-1">Targets Achieved</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sessions Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  Session Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analytics.monthlyChartData.length > 0 ? (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analytics.monthlyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <Tooltip />
+                        <Bar dataKey="sessions" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-slate-400">
+                    No session data available yet
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Sessions Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope']">Recent Sessions</CardTitle>
+                <CardDescription>Click to view full session details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {filteredSessions.length === 0 ? (
+                  <p className="text-slate-400 italic text-center py-8">No sessions recorded yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredSessions.slice(0, 5).map(session => (
+                      <div
+                        key={session.session_id}
+                        className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors border border-slate-100"
+                        onClick={() => navigate(`/session/${session.session_id}/review`)}
+                        data-testid={`coaching-session-${session.session_id}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-slate-900">
+                              {session.title || session.session_name || 'Untitled Session'}
+                            </h4>
+                            <p className="text-sm text-slate-500 mt-1">
+                              {formatDate(session.date)}
+                              {session.observer_name && ` • Observer: ${session.observer_name}`}
+                            </p>
+                          </div>
+                          <Eye className="w-5 h-5 text-slate-400" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {filteredSessions.length > 5 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        const tabsList = document.querySelector('[data-testid="tab-sessions"]');
+                        if (tabsList) tabsList.click();
+                      }}
+                    >
+                      View All Sessions
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* ==================== MY SESSIONS TAB ==================== */}
           <TabsContent value="sessions" className="space-y-6">
             {/* Search and Filters */}
