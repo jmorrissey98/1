@@ -267,6 +267,9 @@ export default function CoachMyDevelopment() {
   const has_pending_reflection = dashboard?.has_pending_reflection || false;
   const pending_reflection_session_id = dashboard?.pending_reflection_session_id;
   
+  // Count sessions needing reflection for notification indicator
+  const sessionsNeedingReflection = sessions.filter(s => s.has_observation && !s.has_reflection).length;
+  
   // Use API analytics if available, otherwise use defaults
   const analytics = analyticsData || {
     total_sessions: filteredSessions.length,
