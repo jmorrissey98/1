@@ -773,6 +773,14 @@ try:
 except Exception as e:
     logger.warning(f"Could not load modular auth routes: {e}. Using inline routes.")
 
+try:
+    from routes.coaches import router as coaches_router
+    # Include coaches routes
+    api_router.include_router(coaches_router)
+    logger.info("Coaches routes loaded from routes/coaches.py")
+except Exception as e:
+    logger.warning(f"Could not load modular coaches routes: {e}. Using inline routes.")
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
