@@ -267,6 +267,25 @@
 - [x] Updated page header to show coach's name more prominently
 - [x] Fixed tab grid layout (3 tabs now: Summary, Reflections, Session Analysis)
 
+### Phase 8: Coach Experience Enhancements (COMPLETED - February 17, 2026)
+- [x] **Full Session Access for Coaches**
+  - Updated /session/:sessionId/review route to allow coaches (not just coach developers)
+  - Updated /api/observations/{session_id} endpoint to allow coaches to fetch their assigned sessions
+  - Coaches see full observation data: summary, events, interventions, charts, analytics
+  - Same UI as coach developer view but permission-limited
+- [x] **Reflection Permissions**
+  - Coaches can view Observer's Notes (read-only)
+  - Coaches can add their own reflections
+  - Coaches cannot edit/delete observer content (edit buttons hidden)
+- [x] **My Coaching Tab** in My Development page
+  - New tab that mirrors the coach profile view a coach developer sees
+  - Shows: My Profile card, Stats (Sessions/Targets/Achieved), Session Activity chart, Recent Sessions
+- [x] **Post-Observation Reflection Flow**
+  - Action-focused prompt on dashboard when reflection pending
+  - Sessions needing reflection appear first in My Sessions (blue styling)
+  - "Add Reflection" button visible for sessions without coach reflection
+  - Proper template loading for coach reflections
+
 ### Previous Work
 - Stripe checkout integration
 - Landing page with pricing
