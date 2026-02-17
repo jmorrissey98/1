@@ -1741,7 +1741,13 @@ export default function ReviewSession() {
                           
                           {/* Event markers */}
                           {events.map((event, index) => {
-                            const totalDuration = session.totalDuration || Math.max(...events.map(e => e.relativeTimestamp || 0)) || 1;
+                            // Calculate total duration - use max event timestamp if session duration seems wrong
+                            const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                            const sessionDuration = session.totalDuration || session.total_duration || 0;
+                            // If session duration is less than max event time, use max event time instead
+                            const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                              ? sessionDuration 
+                              : (maxEventTime || 1);
                             const position = ((event.relativeTimestamp || 0) / totalDuration) * 100;
                             
                             // Color based on event type
