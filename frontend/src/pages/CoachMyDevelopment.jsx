@@ -62,6 +62,10 @@ export default function CoachMyDevelopment() {
   const [editingTargetText, setEditingTargetText] = useState('');
   const [newTargetText, setNewTargetText] = useState('');
   const [showAddTarget, setShowAddTarget] = useState(false);
+  
+  // UI states
+  const [interventionDetailsExpanded, setInterventionDetailsExpanded] = useState(false);
+  const [reflectionPromptDismissed, setReflectionPromptDismissed] = useState(false);
 
   useEffect(() => {
     loadAllData();
