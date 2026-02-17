@@ -1728,7 +1728,11 @@ export default function ReviewSession() {
                         >
                           {/* Ball rolling segments background */}
                           {(session.ballRollingLog || []).map((segment, idx) => {
-                            const totalDuration = session.totalDuration || 1;
+                            const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                            const sessionDuration = session.totalDuration || session.total_duration || 0;
+                            const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                              ? sessionDuration 
+                              : (maxEventTime || 1);
                             const startPct = ((segment.start || 0) / totalDuration) * 100;
                             const widthPct = ((segment.duration || 0) / totalDuration) * 100;
                             return (
