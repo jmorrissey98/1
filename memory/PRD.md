@@ -323,19 +323,13 @@
 - [x] Intervention Distribution filter toggles (checkboxes to show/hide interventions in chart)
 - [x] Archived targets section collapsed by default with expand/collapse toggle
 - [x] Added delete button for archived targets (in addition to restore)
-- [x] Created `REFACTORING.md` - Documentation for ongoing migration
-- [ ] Migrate remaining route groups (users, observations, invites, etc.)
-- [ ] Remove duplicate inline routes from server.py (after migration complete)
 
-### Phase 10: Coach Dashboard UI/UX Enhancements (COMPLETED - February 17, 2026)
-- [x] Redesigned reflection prompt to be smaller and closable
-- [x] Added notification dot on "My Sessions" tab for sessions needing reflection
-- [x] Added notification dots on individual sessions needing reflection
-- [x] Integrated "Active Targets" count into "My Profile" card
-- [x] Moved "Intervention Patterns" card after "My Profile"
-- [x] Made "Intervention Distribution" details collapsible (collapsed by default)
-- [x] Removed "Total Interventions" metric
-- [x] Rounded "Avg Interventions per Session" to whole number
+### Phase 11: Legal Pages (COMPLETED - February 17, 2026)
+- [x] Created Terms of Service page (`/terms-of-service`)
+- [x] Created Privacy Policy page (`/privacy-policy`)
+- [x] Created Commercial Terms page (`/commercial-terms`)
+- [x] Created Data Processing Summary page (`/data-processing`)
+- [x] Added links to all 4 legal pages in the landing page footer
 
 ## Remaining Work / Backlog
 
