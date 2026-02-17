@@ -589,16 +589,6 @@ export default function CoachMyDevelopment() {
               </CardContent>
             </Card>
           </TabsContent>
-                        if (tabsList) tabsList.click();
-                      }}
-                    >
-                      View All Sessions
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* ==================== MY SESSIONS TAB ==================== */}
           <TabsContent value="sessions" className="space-y-6">
