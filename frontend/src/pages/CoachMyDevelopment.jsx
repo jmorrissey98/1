@@ -685,9 +685,14 @@ export default function CoachMyDevelopment() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <h4 className="font-medium text-slate-900">
-                                  {session.title || session.session_name || 'Untitled Session'}
-                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium text-slate-900">
+                                    {session.title || session.session_name || 'Untitled Session'}
+                                  </h4>
+                                  {needsReflection && (
+                                    <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" data-testid={`session-notification-dot-${session.session_id}`} />
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
