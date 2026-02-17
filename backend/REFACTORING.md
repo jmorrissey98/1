@@ -1,25 +1,33 @@
 # Server Refactoring Plan
 
 ## Current State (February 2026)
-The `server.py` file has grown to ~4700 lines and contains all API routes. While functional, this makes maintenance difficult.
+The `server.py` file has been successfully refactored from ~4800 lines to ~2900 lines.
 
-## Completed Refactoring
+## Completed Refactoring ✅
 
-### Extracted Modules
-1. **`database.py`** - Database connection, logger, configuration constants
-2. **`models.py`** - All Pydantic models (~400 lines)
-3. **`dependencies.py`** - Auth middleware (`require_auth`, `require_admin`, `require_coach`, etc.)
-4. **`utils.py`** - Utility functions (password hashing, email helpers)
-5. **`routes/auth.py`** - Authentication routes ✅ INTEGRATED
-6. **`routes/coaches.py`** - Coach CRUD routes ✅ INTEGRATED
-7. **`routes/invites.py`** - Invite management routes ✅ INTEGRATED
-8. **`routes/users.py`** - User management routes ✅ INTEGRATED
-9. **`routes/observations.py`** - Observation session CRUD ✅ INTEGRATED
-10. **`routes/organization.py`** - Organization/Club management ✅ INTEGRATED
+### Phase 1: Extract Shared Modules
+1. **`database.py`** - Database connection, logger, configuration constants ✅
+2. **`models.py`** - All Pydantic models (~400 lines) ✅
+3. **`dependencies.py`** - Auth middleware (`require_auth`, `require_admin`, `require_coach`, etc.) ✅
+4. **`utils.py`** - Utility functions (password hashing, email helpers) ✅
 
-## Remaining Work (Phase 2)
+### Phase 2: Migrate Routes to Modular Files
+5. **`routes/auth.py`** - Authentication routes ✅ INTEGRATED & CLEANED
+6. **`routes/coaches.py`** - Coach CRUD routes ✅ INTEGRATED & CLEANED
+7. **`routes/invites.py`** - Invite management routes ✅ INTEGRATED & CLEANED
+8. **`routes/users.py`** - User management routes ✅ INTEGRATED & CLEANED
+9. **`routes/observations.py`** - Observation session CRUD ✅ INTEGRATED & CLEANED
+10. **`routes/organization.py`** - Organization/Club management ✅ INTEGRATED & CLEANED
 
-### Routes Still in server.py (To Be Extracted)
+### Results
+- **Before**: ~4800 lines in server.py
+- **After**: ~2900 lines in server.py
+- **Reduction**: ~1900 lines (39% smaller!)
+- **Duplicate code removed**: All migrated routes now exist only in their modular files
+
+## Remaining Routes in server.py (Future Work)
+
+### Routes Still in server.py
 - Session Parts routes (`/session-parts/*`)
 - Coach Dashboard routes (`/coach/dashboard`, `/coach/sessions`, `/coach/analytics`, etc.)
 - Admin routes (`/admin/*`)
@@ -28,15 +36,11 @@ The `server.py` file has grown to ~4700 lines and contains all API routes. While
 - AI generation routes (`/generate-summary`, `/generate-coach-trends`)
 - Utility routes (`/upload`, `/files/*`, `/status`)
 
-### Clean Up Tasks
-- Remove duplicate inline routes from server.py (routes that are now in modular files)
-- The modular routes take precedence (registered first), but the duplicate code bloats server.py
-
 ## Migration Notes
-- Routes are gradually moved to keep the system stable
-- FastAPI loads the first matching route, so modular routes take precedence
-- Old inline routes can be removed once modular routes are verified working
-- Maintain backward compatibility throughout migration
+- All routes use the shared `database.py`, `dependencies.py`, and `utils.py` modules
+- FastAPI registers modular routes first (they take precedence)
+- Each route module has its own request/response models to minimize imports
+- Backward compatibility maintained throughout migration
 
 ### Route Groups to Extract
 Each should be moved to `routes/<name>.py`:
