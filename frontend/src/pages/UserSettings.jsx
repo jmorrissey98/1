@@ -163,6 +163,7 @@ export default function UserSettings() {
       setInviteEmail('');
       setInviteCoachId('');
       await loadData();
+      await loadLimits(); // Refresh limits after sending invite
     } catch (err) {
       console.error('Invite error:', err);
       toast.error('An unexpected error occurred');
