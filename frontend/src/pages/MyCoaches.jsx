@@ -104,6 +104,12 @@ export default function MyCoaches() {
   };
 
   const handleCreateCoach = async () => {
+    // Check subscription limit first
+    if (limits && !limits.coaches.can_add) {
+      toast.error(`Coach limit reached (${limits.coaches.current}/${limits.coaches.limit}). Please upgrade your subscription.`);
+      return;
+    }
+    
     if (!newCoachName.trim()) {
       toast.error('Please enter a coach name');
       return;
@@ -131,6 +137,12 @@ export default function MyCoaches() {
       });
       
       if (!result.ok) {
+        // Check if it's a limit error
+        if (result.error?.includes('limit reached') || result.status === 403) {
+          toast.error(result.error || 'Coach limit reached. Please upgrade your subscription.');
+          loadLimits(); // Refresh limits
+          return;
+        }
         throw new Error(result.error || 'Failed to create coach');
       }
       
@@ -150,6 +162,7 @@ export default function MyCoaches() {
       setNewCoachEmail('');
       setNewCoachRole('');
       await loadCoaches();
+      await loadLimits(); // Refresh limits after adding
     } catch (err) {
       toast.error(err.message || 'Failed to create coach');
     } finally {
