@@ -390,6 +390,61 @@ export default function UserSettings() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Subscription Limits Summary */}
+                  {limits && (
+                    <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                      <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Subscription Usage
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Coaches Usage */}
+                        <div className={`p-3 rounded-lg ${limits.coaches.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600">Coaches</span>
+                            <span className={`font-semibold ${limits.coaches.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
+                              {limits.coaches.current}/{limits.coaches.limit}
+                            </span>
+                          </div>
+                          {!limits.coaches.can_add && (
+                            <p className="text-xs text-amber-600 mt-1">Limit reached</p>
+                          )}
+                        </div>
+                        
+                        {/* Admins Usage */}
+                        <div className={`p-3 rounded-lg ${limits.admins.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600">Coach Developers</span>
+                            <span className={`font-semibold ${limits.admins.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
+                              {limits.admins.current}/{limits.admins.limit}
+                            </span>
+                          </div>
+                          {!limits.admins.can_add && (
+                            <p className="text-xs text-amber-600 mt-1">Limit reached</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Upgrade prompt if any limit reached */}
+                      {(!limits.coaches.can_add || !limits.admins.can_add) && (
+                        <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
+                          <p className="text-sm text-slate-600">
+                            Need more slots?
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => window.location.href = 'https://mycoachdeveloper.com/#pricing'}
+                            data-testid="upgrade-limits-btn"
+                          >
+                            <Crown className="w-3 h-3 mr-1" />
+                            Upgrade Plan
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <form onSubmit={handleCreateInvite} className="space-y-4">
                     <div>
                       <Label htmlFor="invite-email">Email Address</Label>
@@ -406,15 +461,54 @@ export default function UserSettings() {
                     
                     <div>
                       <Label htmlFor="invite-role">Role</Label>
-                      <Select value={inviteRole} onValueChange={setInviteRole}>
+                      <Select 
+                        value={inviteRole} 
+                        onValueChange={(val) => {
+                          // Prevent selecting coach_developer if limit reached
+                          if (val === 'coach_developer' && limits && !limits.admins.can_add) {
+                            toast.error(`Admin limit reached (${limits.admins.current}/${limits.admins.limit}). Please upgrade your subscription.`);
+                            return;
+                          }
+                          // Prevent selecting coach if limit reached
+                          if (val === 'coach' && limits && !limits.coaches.can_add) {
+                            toast.error(`Coach limit reached (${limits.coaches.current}/${limits.coaches.limit}). Please upgrade your subscription.`);
+                            return;
+                          }
+                          setInviteRole(val);
+                        }}
+                      >
                         <SelectTrigger className="mt-1" data-testid="invite-role-select">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="coach">Coach</SelectItem>
-                          <SelectItem value="coach_developer">Coach Developer</SelectItem>
+                          <SelectItem 
+                            value="coach" 
+                            disabled={limits && !limits.coaches.can_add}
+                          >
+                            Coach {limits && !limits.coaches.can_add && '(Limit reached)'}
+                          </SelectItem>
+                          <SelectItem 
+                            value="coach_developer"
+                            disabled={limits && !limits.admins.can_add}
+                          >
+                            Coach Developer {limits && !limits.admins.can_add && '(Limit reached)'}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
+                      
+                      {/* Warning if selected role limit is reached */}
+                      {limits && inviteRole === 'coach' && !limits.coaches.can_add && (
+                        <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Coach limit reached. Upgrade to invite more coaches.</span>
+                        </div>
+                      )}
+                      {limits && inviteRole === 'coach_developer' && !limits.admins.can_add && (
+                        <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Admin limit reached. Upgrade to invite more admins.</span>
+                        </div>
+                      )}
                     </div>
 
                     {inviteRole === 'coach' && coaches.length > 0 && (
