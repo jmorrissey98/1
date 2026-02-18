@@ -260,54 +260,100 @@ export default function MyCoaches() {
             </div>
           </div>
           
-          {/* Add Coach Dialog */}
-          <Dialog open={showAddCoach} onOpenChange={setShowAddCoach}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-coach-btn">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Coach
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Coach</DialogTitle>
-                <DialogDescription>
-                  Create a coach profile. An invite will be sent automatically if they don't have an account.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="coach-name">Name *</Label>
-                  <Input
-                    id="coach-name"
-                    value={newCoachName}
-                    onChange={(e) => setNewCoachName(e.target.value)}
-                    placeholder="Enter coach name"
-                    className="mt-1"
-                    data-testid="coach-name-input"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="coach-email">Email *</Label>
-                  <Input
-                    id="coach-email"
-                    type="email"
-                    value={newCoachEmail}
-                    onChange={(e) => setNewCoachEmail(e.target.value)}
-                    placeholder="coach@example.com"
-                    className="mt-1"
-                    data-testid="coach-email-input"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    An invite will be sent to this email if they don't have an account
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="coach-role">Role / Title</Label>
-                  <Input
-                    id="coach-role"
-                    value={newCoachRole}
-                    onChange={(e) => setNewCoachRole(e.target.value)}
+          <div className="flex items-center gap-3">
+            {/* Subscription Limit Indicator */}
+            {limits && (
+              <div className="hidden sm:flex items-center gap-2 text-sm">
+                <span className="text-slate-500">Coaches:</span>
+                <span className={`font-medium ${limits.coaches.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
+                  {limits.coaches.current}/{limits.coaches.limit}
+                </span>
+                {!limits.coaches.can_add && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-amber-600 hover:text-amber-700 h-7 px-2"
+                    onClick={() => navigate('/#pricing')}
+                  >
+                    <Crown className="w-3 h-3 mr-1" />
+                    Upgrade
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* Add Coach Dialog */}
+            <Dialog open={showAddCoach} onOpenChange={setShowAddCoach}>
+              <DialogTrigger asChild>
+                <Button 
+                  data-testid="add-coach-btn"
+                  disabled={limits && !limits.coaches.can_add}
+                  title={limits && !limits.coaches.can_add ? `Coach limit reached (${limits.coaches.current}/${limits.coaches.limit})` : undefined}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Coach
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Coach</DialogTitle>
+                  <DialogDescription>
+                    Create a coach profile. An invite will be sent automatically if they don't have an account.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {/* Limit warning in dialog */}
+                {limits && (
+                  <div className={`flex items-center justify-between p-3 rounded-lg ${limits.coaches.can_add ? 'bg-slate-50' : 'bg-amber-50 border border-amber-200'}`}>
+                    <div className="flex items-center gap-2">
+                      <User className={`w-4 h-4 ${limits.coaches.can_add ? 'text-slate-500' : 'text-amber-600'}`} />
+                      <span className="text-sm">
+                        Coach slots: <span className="font-medium">{limits.coaches.current}/{limits.coaches.limit}</span>
+                      </span>
+                    </div>
+                    {!limits.coaches.can_add && (
+                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">
+                        Limit reached
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label htmlFor="coach-name">Name *</Label>
+                    <Input
+                      id="coach-name"
+                      value={newCoachName}
+                      onChange={(e) => setNewCoachName(e.target.value)}
+                      placeholder="Enter coach name"
+                      className="mt-1"
+                      data-testid="coach-name-input"
+                      disabled={limits && !limits.coaches.can_add}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="coach-email">Email *</Label>
+                    <Input
+                      id="coach-email"
+                      type="email"
+                      value={newCoachEmail}
+                      onChange={(e) => setNewCoachEmail(e.target.value)}
+                      placeholder="coach@example.com"
+                      className="mt-1"
+                      data-testid="coach-email-input"
+                      disabled={limits && !limits.coaches.can_add}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      An invite will be sent to this email if they don't have an account
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="coach-role">Role / Title</Label>
+                    <Input
+                      id="coach-role"
+                      value={newCoachRole}
+                      onChange={(e) => setNewCoachRole(e.target.value)}
                     placeholder="e.g., Head Coach U16s"
                     className="mt-1"
                     data-testid="coach-role-input"
