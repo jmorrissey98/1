@@ -380,7 +380,8 @@ export default function MyCoaches() {
             </DialogContent>
           </Dialog>
         </div>
-      </header>
+      </div>
+    </header>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!coachToDelete} onOpenChange={(open) => { if (!open) { setCoachToDelete(null); setDeleteUserToo(false); } }}>
