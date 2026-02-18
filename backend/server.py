@@ -2516,23 +2516,24 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str, request: Request):
     """Get the status of a payment session"""
-    if not STRIPE_API_KEY:
+    if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Payment system not configured")
     
-    # Initialize Stripe checkout
-    host_url = str(request.base_url)
-    webhook_url = f"{host_url}api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
     try:
-        status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+        # Retrieve the checkout session from Stripe
+        session = stripe.checkout.Session.retrieve(session_id)
         
         # Update payment transaction in database
         update_data = {
-            "payment_status": status.payment_status,
-            "status": status.status,
+            "payment_status": session.payment_status,
+            "status": session.status,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+        
+        if session.subscription:
+            update_data["subscription_id"] = session.subscription
+        if session.customer:
+            update_data["customer_id"] = session.customer
         
         await db.payment_transactions.update_one(
             {"session_id": session_id},
@@ -2540,12 +2541,17 @@ async def get_payment_status(session_id: str, request: Request):
         )
         
         return {
-            "status": status.status,
-            "payment_status": status.payment_status,
-            "amount_total": status.amount_total,
-            "currency": status.currency,
-            "metadata": status.metadata
+            "status": session.status,
+            "payment_status": session.payment_status,
+            "amount_total": session.amount_total,
+            "currency": session.currency,
+            "subscription_id": session.subscription,
+            "customer_id": session.customer,
+            "metadata": dict(session.metadata) if session.metadata else {}
         }
+    except stripe.error.StripeError as e:
+        logger.error(f"Payment status check error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check payment status: {str(e)}")
     except Exception as e:
         logger.error(f"Payment status check error: {e}")
         raise HTTPException(status_code=500, detail="Failed to check payment status")
@@ -2553,34 +2559,90 @@ async def get_payment_status(session_id: str, request: Request):
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events"""
-    if not STRIPE_API_KEY:
+    if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Payment system not configured")
-    
-    host_url = str(request.base_url)
-    webhook_url = f"{host_url}api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
     
     try:
         body = await request.body()
-        signature = request.headers.get("Stripe-Signature")
+        event = stripe.Event.construct_from(
+            json.loads(body), stripe.api_key
+        )
         
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
-        
-        # Update payment transaction based on webhook event
-        if webhook_response.session_id:
+        # Handle specific event types
+        if event.type == "checkout.session.completed":
+            session = event.data.object
+            
+            # Update payment transaction
             update_data = {
-                "payment_status": webhook_response.payment_status,
-                "event_type": webhook_response.event_type,
-                "event_id": webhook_response.event_id,
+                "payment_status": session.get("payment_status"),
+                "status": "completed",
+                "event_type": event.type,
+                "event_id": event.id,
+                "subscription_id": session.get("subscription"),
+                "customer_id": session.get("customer"),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
             
             await db.payment_transactions.update_one(
-                {"session_id": webhook_response.session_id},
+                {"session_id": session.get("id")},
                 {"$set": update_data}
+            )
+            
+            # Create or update subscription record
+            if session.get("subscription"):
+                subscription = stripe.Subscription.retrieve(session.get("subscription"))
+                metadata = dict(session.get("metadata", {}))
+                
+                sub_record = {
+                    "subscription_id": session.get("subscription"),
+                    "customer_id": session.get("customer"),
+                    "status": subscription.status,
+                    "tier_id": metadata.get("tier_id"),
+                    "tier_name": metadata.get("tier_name"),
+                    "coaches_limit": int(metadata.get("coaches_limit", 5)),
+                    "admins_limit": int(metadata.get("admins_limit", 1)),
+                    "current_period_start": datetime.fromtimestamp(subscription.current_period_start, timezone.utc).isoformat(),
+                    "current_period_end": datetime.fromtimestamp(subscription.current_period_end, timezone.utc).isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                
+                await db.subscriptions.update_one(
+                    {"subscription_id": session.get("subscription")},
+                    {"$set": sub_record},
+                    upsert=True
+                )
+                
+                logger.info(f"Subscription created: {session.get('subscription')} for tier {metadata.get('tier_id')}")
+        
+        elif event.type == "customer.subscription.updated":
+            subscription = event.data.object
+            
+            await db.subscriptions.update_one(
+                {"subscription_id": subscription.id},
+                {"$set": {
+                    "status": subscription.status,
+                    "current_period_start": datetime.fromtimestamp(subscription.current_period_start, timezone.utc).isoformat(),
+                    "current_period_end": datetime.fromtimestamp(subscription.current_period_end, timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+        elif event.type == "customer.subscription.deleted":
+            subscription = event.data.object
+            
+            await db.subscriptions.update_one(
+                {"subscription_id": subscription.id},
+                {"$set": {
+                    "status": "canceled",
+                    "canceled_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
             )
         
         return {"received": True}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
