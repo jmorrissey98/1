@@ -87,10 +87,6 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
     Get current coach and admin counts for a user's organization.
     Returns: (current_coaches, current_admins)
     """
-    # Count coaches created by this user (as org owner)
-    coaches_count = await db.coaches.count_documents({"created_by": user_id})
-    
-    # Also count coaches where the user is linked to the org
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     org_id = None
     
@@ -98,27 +94,32 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
         org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
         if org:
             org_id = org.get("org_id")
+        elif user_doc.get("organization_id"):
+            org_id = user_doc.get("organization_id")
     
-    # If we have an org_id, also count coaches in that org
+    # Count all coaches in the system for this organization
+    # For now, count all coaches since we don't have strict org separation
     if org_id:
-        org_coaches = await db.coaches.count_documents({"organization_id": org_id})
-        if org_coaches > coaches_count:
-            coaches_count = org_coaches
+        coaches_count = await db.coaches.count_documents({"organization_id": org_id})
+    else:
+        # Count all coaches (for org owner, all coaches belong to them)
+        coaches_count = await db.coaches.count_documents({})
     
     # Count admin users (coach_developer role) in the organization
-    admins_count = 1  # Start with the owner
     if org_id:
         admins_count = await db.users.count_documents({
-            "organization_id": org_id,
-            "role": {"$in": ["coach_developer", "admin"]}
+            "$or": [
+                {"organization_id": org_id, "role": {"$in": ["coach_developer", "admin"]}},
+                {"user_id": user_id}  # Include the owner
+            ]
         })
     else:
-        # Count users with coach_developer role that were invited by this user
+        # Count users with coach_developer role
         admins_count = await db.users.count_documents({
             "role": {"$in": ["coach_developer", "admin"]}
         })
     
-    return coaches_count, admins_count
+    return coaches_count, max(1, admins_count)
 
 
 async def check_coach_limit(user_id: str) -> Dict[str, Any]:
