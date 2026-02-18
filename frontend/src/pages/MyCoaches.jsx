@@ -535,7 +535,6 @@ export default function MyCoaches() {
                             </div>
                           )}
                         </div>
-                      </div>
                         <Button
                           variant="ghost"
                           size="icon"
