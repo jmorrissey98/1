@@ -45,6 +45,22 @@ async def create_invite(invite_data: InviteCreate, request: Request):
     try:
         user = await require_coach_developer(request)
         
+        # Check subscription limits based on the role being invited
+        if invite_data.role == "coach":
+            limit_check = await check_coach_limit(user.user_id)
+            if not limit_check["can_add"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Coach limit reached ({limit_check['current']}/{limit_check['limit']}). Please upgrade your subscription to invite more coaches."
+                )
+        elif invite_data.role in ["coach_developer", "admin"]:
+            limit_check = await check_admin_limit(user.user_id)
+            if not limit_check["can_add"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Admin limit reached ({limit_check['current']}/{limit_check['limit']}). Please upgrade your subscription to invite more admins."
+                )
+        
         # Normalize email to lowercase
         email_lower = invite_data.email.lower().strip()
         
