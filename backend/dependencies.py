@@ -27,6 +27,10 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     if not user_doc:
         return DEFAULT_COACHES_LIMIT, DEFAULT_ADMINS_LIMIT, "free"
     
+    # Admin users bypass all limits
+    if user_doc.get("role") == "admin":
+        return 999, 999, "admin"
+    
     # Get organization
     org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
     if not org:
