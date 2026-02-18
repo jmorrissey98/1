@@ -342,6 +342,31 @@
 - [x] Webhook handling for subscription events (created, updated, canceled)
 - [x] Subscription records stored in database with tier limits
 
+### Phase 13: Subscription Limit Enforcement (COMPLETED - February 18, 2026)
+- [x] **Backend Subscription Checks**
+  - Added `check_coach_limit()` and `check_admin_limit()` helper functions in `dependencies.py`
+  - Protected `POST /api/coaches` with coach limit check (returns 403 if exceeded)
+  - Protected `POST /api/invites` with role-based limit check (403 if coach/admin limit exceeded)
+  - New endpoint: `GET /api/organization/limits` - Returns current usage and limits
+  - Quick check endpoints: `GET /api/organization/can-add-coach` and `GET /api/organization/can-add-admin`
+- [x] **Frontend Coach Limits (MyCoaches.jsx)**
+  - Header shows "Coaches: X/Y" with usage count
+  - Amber color when limit reached
+  - Upgrade button with crown icon when limit exceeded
+  - Add Coach button disabled when limit reached
+  - Dialog shows slot usage and "Limit reached" badge
+- [x] **Frontend Admin Limits (UserSettings.jsx)**
+  - New "Subscription Usage" section in Invites tab
+  - Shows both Coach (X/Y) and Coach Developer (X/Y) usage
+  - Role dropdown shows "(Limit reached)" for unavailable roles
+  - Warning messages when selecting a role at limit
+  - Send Invite button disabled when selected role's limit reached
+  - Upgrade Plan button when any limit exceeded
+- [x] **Comprehensive Test Suite**
+  - Created `/app/backend/tests/test_subscription_limits.py`
+  - Tests for all backend limit endpoints
+  - Tests for 403 responses when limits exceeded
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
