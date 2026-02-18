@@ -28,6 +28,10 @@ export default function UserSettings() {
   const [subscriptionTier, setSubscriptionTier] = useState(null);
   const [showUpgradeTooltip, setShowUpgradeTooltip] = useState(false);
   
+  // Subscription limits state
+  const [limits, setLimits] = useState(null);
+  const [limitsLoading, setLimitsLoading] = useState(true);
+  
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('coach');
