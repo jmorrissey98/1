@@ -199,6 +199,7 @@ export default function MyCoaches() {
       setCoachToDelete(null);
       setDeleteUserToo(false);
       await loadCoaches();
+      await loadLimits(); // Refresh limits after deleting
     } catch (err) {
       toast.error(err.message || 'Failed to delete coach');
     } finally {
