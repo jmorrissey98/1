@@ -533,7 +533,15 @@ export default function UserSettings() {
                       </div>
                     )}
 
-                    <Button type="submit" disabled={inviting} data-testid="send-invite-btn">
+                    <Button 
+                      type="submit" 
+                      disabled={
+                        inviting || 
+                        (limits && inviteRole === 'coach' && !limits.coaches.can_add) ||
+                        (limits && inviteRole === 'coach_developer' && !limits.admins.can_add)
+                      } 
+                      data-testid="send-invite-btn"
+                    >
                       {inviting ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
