@@ -2,12 +2,195 @@
 Authentication and authorization dependencies.
 """
 from fastapi import Request, HTTPException
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from datetime import datetime, timezone
 import uuid
 
 from database import db, logger
 from models import User
+
+# Default limits for free tier / no subscription
+DEFAULT_COACHES_LIMIT = 5
+DEFAULT_ADMINS_LIMIT = 1
+
+# Bootstrapped organizations that bypass limits
+BOOTSTRAPPED_ORG_IDS = ["org_4b76a7344640"]  # QPR Academy
+
+
+async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
+    """
+    Get subscription limits for a user's organization.
+    Returns: (coaches_limit, admins_limit, tier_name)
+    """
+    # Find user's organization
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user_doc:
+        return DEFAULT_COACHES_LIMIT, DEFAULT_ADMINS_LIMIT, "free"
+    
+    # Get organization
+    org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
+    if not org:
+        # Check if user belongs to an org
+        org_id = user_doc.get("organization_id")
+        if org_id:
+            org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    
+    if not org:
+        return DEFAULT_COACHES_LIMIT, DEFAULT_ADMINS_LIMIT, "free"
+    
+    org_id = org.get("org_id")
+    
+    # Check if bootstrapped (unlimited)
+    if org_id in BOOTSTRAPPED_ORG_IDS:
+        return 999, 999, "bootstrapped"
+    
+    # Find active subscription for this org
+    subscription = await db.subscriptions.find_one(
+        {"org_id": org_id, "status": {"$in": ["active", "trialing"]}},
+        {"_id": 0}
+    )
+    
+    # Also check by owner's customer_id
+    if not subscription:
+        # Look up subscription by owner
+        subscription = await db.subscriptions.find_one(
+            {"status": {"$in": ["active", "trialing"]}},
+            {"_id": 0},
+            sort=[("created_at", -1)]
+        )
+        
+        # Try to match by examining payment transactions
+        if not subscription:
+            txn = await db.payment_transactions.find_one(
+                {"status": "completed"},
+                {"_id": 0},
+                sort=[("created_at", -1)]
+            )
+            if txn and txn.get("subscription_id"):
+                subscription = await db.subscriptions.find_one(
+                    {"subscription_id": txn.get("subscription_id")},
+                    {"_id": 0}
+                )
+    
+    if subscription:
+        return (
+            subscription.get("coaches_limit", DEFAULT_COACHES_LIMIT),
+            subscription.get("admins_limit", DEFAULT_ADMINS_LIMIT),
+            subscription.get("tier_id", "unknown")
+        )
+    
+    return DEFAULT_COACHES_LIMIT, DEFAULT_ADMINS_LIMIT, "free"
+
+
+async def get_current_counts(user_id: str) -> Tuple[int, int]:
+    """
+    Get current coach and admin counts for a user's organization.
+    Returns: (current_coaches, current_admins)
+    """
+    # Count coaches created by this user (as org owner)
+    coaches_count = await db.coaches.count_documents({"created_by": user_id})
+    
+    # Also count coaches where the user is linked to the org
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    org_id = None
+    
+    if user_doc:
+        org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # If we have an org_id, also count coaches in that org
+    if org_id:
+        org_coaches = await db.coaches.count_documents({"organization_id": org_id})
+        if org_coaches > coaches_count:
+            coaches_count = org_coaches
+    
+    # Count admin users (coach_developer role) in the organization
+    admins_count = 1  # Start with the owner
+    if org_id:
+        admins_count = await db.users.count_documents({
+            "organization_id": org_id,
+            "role": {"$in": ["coach_developer", "admin"]}
+        })
+    else:
+        # Count users with coach_developer role that were invited by this user
+        admins_count = await db.users.count_documents({
+            "role": {"$in": ["coach_developer", "admin"]}
+        })
+    
+    return coaches_count, admins_count
+
+
+async def check_coach_limit(user_id: str) -> Dict[str, Any]:
+    """
+    Check if the user can add more coaches.
+    Returns: {"can_add": bool, "current": int, "limit": int, "tier": str, "message": str}
+    """
+    coaches_limit, _, tier = await get_subscription_limits(user_id)
+    current_coaches, _ = await get_current_counts(user_id)
+    
+    can_add = current_coaches < coaches_limit
+    
+    return {
+        "can_add": can_add,
+        "current": current_coaches,
+        "limit": coaches_limit,
+        "tier": tier,
+        "message": f"Coach limit reached ({current_coaches}/{coaches_limit}). Please upgrade your subscription." if not can_add else None
+    }
+
+
+async def check_admin_limit(user_id: str) -> Dict[str, Any]:
+    """
+    Check if the user can add more admins/coach developers.
+    Returns: {"can_add": bool, "current": int, "limit": int, "tier": str, "message": str}
+    """
+    _, admins_limit, tier = await get_subscription_limits(user_id)
+    _, current_admins = await get_current_counts(user_id)
+    
+    can_add = current_admins < admins_limit
+    
+    return {
+        "can_add": can_add,
+        "current": current_admins,
+        "limit": admins_limit,
+        "tier": tier,
+        "message": f"Admin limit reached ({current_admins}/{admins_limit}). Please upgrade your subscription." if not can_add else None
+    }
+
+
+async def require_coach_slot(request: Request) -> None:
+    """
+    Dependency that checks if user can add a coach.
+    Raises HTTPException if limit reached.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    result = await check_coach_limit(user.user_id)
+    if not result["can_add"]:
+        raise HTTPException(
+            status_code=403, 
+            detail=result["message"]
+        )
+
+
+async def require_admin_slot(request: Request) -> None:
+    """
+    Dependency that checks if user can add an admin.
+    Raises HTTPException if limit reached.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    result = await check_admin_limit(user.user_id)
+    if not result["can_add"]:
+        raise HTTPException(
+            status_code=403, 
+            detail=result["message"]
+        )
 
 
 async def get_current_user(request: Request) -> Optional[User]:
