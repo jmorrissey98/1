@@ -355,13 +355,14 @@ export default function MyCoaches() {
                       id="coach-role"
                       value={newCoachRole}
                       onChange={(e) => setNewCoachRole(e.target.value)}
-                    placeholder="e.g., Head Coach U16s"
-                    className="mt-1"
-                    data-testid="coach-role-input"
-                  />
+                      placeholder="e.g., Head Coach U16s"
+                      className="mt-1"
+                      data-testid="coach-role-input"
+                      disabled={limits && !limits.coaches.can_add}
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
+                <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddCoach(false)}>
                   Cancel
                 </Button>
