@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus, Trash2, AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
+import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus, Trash2, AlertCircle, RefreshCw, WifiOff, Crown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -9,9 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Progress } from '../components/ui/progress';
 import { toast } from 'sonner';
 import { fetchCoaches, createCoach, deleteCoach } from '../lib/offlineApi';
 import { isOnline, getPendingSyncCount } from '../lib/offlineSync';
+import { safeGet } from '../lib/safeFetch';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export default function MyCoaches() {
   const navigate = useNavigate();
@@ -21,6 +25,10 @@ export default function MyCoaches() {
   const [online, setOnline] = useState(isOnline());
   const [pendingSync, setPendingSync] = useState(0);
   const [fromCache, setFromCache] = useState(false);
+  
+  // Subscription limits state
+  const [limits, setLimits] = useState(null);
+  const [limitsLoading, setLimitsLoading] = useState(true);
   
   // Add Coach dialog state
   const [showAddCoach, setShowAddCoach] = useState(false);
@@ -45,12 +53,27 @@ export default function MyCoaches() {
     setPendingSync(getPendingSyncCount());
     
     loadCoaches();
+    loadLimits();
     
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const loadLimits = async () => {
+    setLimitsLoading(true);
+    try {
+      const result = await safeGet(`${API_URL}/api/organization/limits`);
+      if (result.ok) {
+        setLimits(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to load limits:', err);
+    } finally {
+      setLimitsLoading(false);
+    }
+  };
 
   const loadCoaches = async () => {
     setLoading(true);
