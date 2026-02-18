@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, '/app/backend')
 
 from database import db, logger
-from dependencies import require_coach_developer
+from dependencies import require_coach_developer, check_coach_limit, check_admin_limit
 from utils import send_invite_email
 
 router = APIRouter(prefix="/invites", tags=["Invites"])
