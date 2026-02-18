@@ -126,6 +126,18 @@ export default function UserSettings() {
       toast.error('Please enter an email address');
       return;
     }
+    
+    // Check subscription limits before sending
+    if (limits) {
+      if (inviteRole === 'coach' && !limits.coaches.can_add) {
+        toast.error(`Coach limit reached (${limits.coaches.current}/${limits.coaches.limit}). Please upgrade your subscription.`);
+        return;
+      }
+      if (inviteRole === 'coach_developer' && !limits.admins.can_add) {
+        toast.error(`Admin limit reached (${limits.admins.current}/${limits.admins.limit}). Please upgrade your subscription.`);
+        return;
+      }
+    }
 
     setInviting(true);
     try {
