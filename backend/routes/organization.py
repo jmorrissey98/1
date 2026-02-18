@@ -169,3 +169,50 @@ async def get_organization_subscription(request: Request):
         "coaches_limit": 5,
         "admins_limit": 1
     }
+
+
+@router.get("/limits")
+async def get_subscription_limits_endpoint(request: Request):
+    """Get subscription limits and current usage for the organization"""
+    user = await require_coach_developer(request)
+    
+    # Get limits
+    coaches_limit, admins_limit, tier = await get_subscription_limits(user.user_id)
+    
+    # Get current counts
+    current_coaches, current_admins = await get_current_counts(user.user_id)
+    
+    # Get detailed check results
+    coach_check = await check_coach_limit(user.user_id)
+    admin_check = await check_admin_limit(user.user_id)
+    
+    return {
+        "tier": tier,
+        "coaches": {
+            "current": current_coaches,
+            "limit": coaches_limit,
+            "can_add": coach_check["can_add"],
+            "remaining": max(0, coaches_limit - current_coaches)
+        },
+        "admins": {
+            "current": current_admins,
+            "limit": admins_limit,
+            "can_add": admin_check["can_add"],
+            "remaining": max(0, admins_limit - current_admins)
+        }
+    }
+
+
+@router.get("/can-add-coach")
+async def can_add_coach(request: Request):
+    """Quick check if user can add another coach"""
+    user = await require_coach_developer(request)
+    return await check_coach_limit(user.user_id)
+
+
+@router.get("/can-add-admin")
+async def can_add_admin(request: Request):
+    """Quick check if user can add another admin"""
+    user = await require_coach_developer(request)
+    return await check_admin_limit(user.user_id)
+
