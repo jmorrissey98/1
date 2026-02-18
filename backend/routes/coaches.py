@@ -164,6 +164,15 @@ async def create_coach_manually(request: Request):
     Email is required to ensure proper linking.
     """
     user = await require_coach_developer(request)
+    
+    # Check subscription limit before creating coach
+    limit_check = await check_coach_limit(user.user_id)
+    if not limit_check["can_add"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Coach limit reached ({limit_check['current']}/{limit_check['limit']}). Please upgrade your subscription to add more coaches."
+        )
+    
     body = await request.json()
     
     name = body.get("name", "").strip()
