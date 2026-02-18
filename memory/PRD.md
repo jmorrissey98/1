@@ -370,18 +370,16 @@
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
-- [x] Complete "My Development" page for Coaches (DONE)
-- [x] Backend refactoring - Phase 1 complete (modules extracted)
-- [x] Backend refactoring - Phase 2 partial (auth + coaches routes integrated)
-- [ ] Backend refactoring - Phase 3 (migrate remaining route groups: users, observations, invites, organization, admin, payments, templates)
+- [ ] Session comparison view for coaches (compare two sessions side-by-side)
 - [ ] Test full end-to-end cloud sync flow on production environment
-- [ ] Ensure offline-to-online sync handles conflicts properly
 - [ ] Investigate "body stream already read" error in safeFetch.js
+- [ ] Production login failure (needs REACT_APP_BACKEND_URL verification in deployment)
+- [ ] Production password reset email delays (needs Resend account/DNS verification)
 
 ### P2 - Medium Priority
-- [ ] Session comparison view for coaches
+- [ ] Production sync failure causing sessions to disappear (critical data loss bug)
 - [ ] Full audit for remaining localStorage usage
-- [ ] Production sync failure causing sessions to disappear (carry-over issue)
+- [ ] Ensure offline-to-online sync handles conflicts properly
 
 ### P3 - Future
 - [ ] Export sessions as PDF reports
@@ -389,6 +387,7 @@
 - [ ] Video attachment support
 - [ ] Team-level analytics dashboard
 - [ ] Improve invite/signup error messages (generic 400 errors)
+- [ ] Unoptimized database queries cleanup
 
 ## Credentials (Preview Environment)
 - **Admin:** hello@mycoachdeveloper.com / _mcDeveloper26!
