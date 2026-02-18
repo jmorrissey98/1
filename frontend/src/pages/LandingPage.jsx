@@ -271,11 +271,12 @@ export default function LandingPage() {
             </div>
             <div className="relative">
               <div className="bg-slate-100 rounded-2xl p-4 shadow-2xl">
-                <div className="aspect-[4/3] bg-slate-200 rounded-lg flex items-center justify-center">
-                  <div className="text-center p-8">
-                    <img src="/mcd-logo.png" alt="App Preview" className="w-32 h-32 mx-auto mb-4 opacity-50" />
-                    <p className="text-slate-500 text-sm">App Preview Coming Soon</p>
-                  </div>
+                <div className="rounded-lg overflow-hidden">
+                  <img 
+                    src="https://customer-assets.emergentagent.com/job_3c0b22aa-eec3-42a1-b973-8917ba8e6518/artifacts/oxj8poyp_for%20landing%20page.png" 
+                    alt="My Coach Developer - Coach Development Dashboard" 
+                    className="w-full h-auto"
+                  />
                 </div>
               </div>
             </div>
