@@ -45,7 +45,22 @@ export default function UserSettings() {
 
   useEffect(() => {
     loadData();
+    loadLimits();
   }, []);
+  
+  const loadLimits = async () => {
+    setLimitsLoading(true);
+    try {
+      const result = await safeGet(`${API_URL}/api/organization/limits`);
+      if (result.ok) {
+        setLimits(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to load limits:', err);
+    } finally {
+      setLimitsLoading(false);
+    }
+  };
   
   useEffect(() => {
     if (organization) {
