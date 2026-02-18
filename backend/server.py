@@ -2387,33 +2387,31 @@ async def admin_delete_organization(org_id: str, request: Request):
 # STRIPE PAYMENT ENDPOINTS
 # ============================================
 
-from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+import stripe
 
 # Stripe configuration
-STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+stripe.api_key = STRIPE_SECRET_KEY
 
-# Define pricing tiers (amounts in GBP)
-PRICING_TIERS = {
-    "starter": {
-        "name": "Starter",
-        "monthly": 20.00,
-        "annual": 200.00,
+# Product and Price IDs from Stripe Dashboard
+STRIPE_PRODUCTS = {
+    "individual": {
+        "product_id": "prod_TzxFEJM4rt7UyV",
+        "name": "Individual",
         "coaches": 5,
         "admins": 1
     },
-    "pro": {
-        "name": "Pro",
-        "monthly": 35.00,
-        "annual": 350.00,
+    "developer": {
+        "product_id": "prod_TzxEC0P2ychhee",
+        "name": "Developer",
         "coaches": 15,
         "admins": 1
     },
-    "club_hub": {
-        "name": "Club Hub",
-        "monthly": 50.00,
-        "annual": 500.00,
-        "coaches": 40,
-        "admins": 5
+    "club": {
+        "product_id": "prod_TzxE3SVtpPojK3",
+        "name": "Club",
+        "coaches": 50,
+        "admins": 10
     }
 }
 
@@ -2425,61 +2423,80 @@ class CheckoutRequest(BaseModel):
 @api_router.post("/payments/checkout")
 async def create_checkout_session(data: CheckoutRequest, request: Request):
     """Create a Stripe checkout session for subscription"""
-    if not STRIPE_API_KEY:
+    if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Payment system not configured")
     
     # Validate tier
-    if data.tier_id not in PRICING_TIERS:
+    if data.tier_id not in STRIPE_PRODUCTS:
         raise HTTPException(status_code=400, detail="Invalid pricing tier")
     
     # Validate billing period
     if data.billing_period not in ["monthly", "annual"]:
         raise HTTPException(status_code=400, detail="Invalid billing period")
     
-    tier = PRICING_TIERS[data.tier_id]
-    amount = tier["monthly"] if data.billing_period == "monthly" else tier["annual"]
+    product = STRIPE_PRODUCTS[data.tier_id]
     
     # Build success and cancel URLs
-    success_url = f"{data.origin_url}?session_id={{CHECKOUT_SESSION_ID}}"
+    success_url = f"{data.origin_url}?session_id={{CHECKOUT_SESSION_ID}}&success=true"
     cancel_url = f"{data.origin_url}?canceled=true"
     
-    # Initialize Stripe checkout
-    host_url = str(request.base_url)
-    webhook_url = f"{host_url}api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
-    # Create checkout session with custom amount
-    checkout_request = CheckoutSessionRequest(
-        amount=amount,
-        currency="gbp",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "tier_id": data.tier_id,
-            "tier_name": tier["name"],
-            "billing_period": data.billing_period,
-            "coaches_limit": str(tier["coaches"]),
-            "admins_limit": str(tier["admins"])
-        }
-    )
-    
     try:
-        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+        # Get prices for this product from Stripe
+        prices = stripe.Price.list(product=product["product_id"], active=True)
+        
+        # Find the right price based on billing period
+        price_id = None
+        for price in prices.data:
+            if data.billing_period == "monthly" and price.recurring and price.recurring.interval == "month":
+                price_id = price.id
+                break
+            elif data.billing_period == "annual" and price.recurring and price.recurring.interval == "year":
+                price_id = price.id
+                break
+        
+        if not price_id:
+            raise HTTPException(status_code=400, detail=f"No {data.billing_period} price found for this product")
+        
+        # Create Stripe Checkout Session
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            payment_method_types=["card"],
+            line_items=[{
+                "price": price_id,
+                "quantity": 1,
+            }],
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "tier_id": data.tier_id,
+                "tier_name": product["name"],
+                "billing_period": data.billing_period,
+                "coaches_limit": str(product["coaches"]),
+                "admins_limit": str(product["admins"])
+            },
+            subscription_data={
+                "metadata": {
+                    "tier_id": data.tier_id,
+                    "coaches_limit": str(product["coaches"]),
+                    "admins_limit": str(product["admins"])
+                }
+            }
+        )
         
         # Create payment transaction record
         transaction = {
             "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
-            "session_id": session.session_id,
+            "session_id": session.id,
             "tier_id": data.tier_id,
-            "tier_name": tier["name"],
+            "tier_name": product["name"],
             "billing_period": data.billing_period,
-            "amount": amount,
+            "price_id": price_id,
             "currency": "gbp",
             "payment_status": "pending",
             "status": "initiated",
             "metadata": {
-                "coaches_limit": tier["coaches"],
-                "admins_limit": tier["admins"]
+                "coaches_limit": product["coaches"],
+                "admins_limit": product["admins"]
             },
             "created_at": datetime.now(timezone.utc).isoformat()
         }
@@ -2487,10 +2504,13 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
         
         return {
             "url": session.url,
-            "session_id": session.session_id
+            "session_id": session.id
         }
-    except Exception as e:
+    except stripe.error.StripeError as e:
         logger.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
+    except Exception as e:
+        logger.error(f"Checkout error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create checkout session")
 
 @api_router.get("/payments/status/{session_id}")
