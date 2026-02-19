@@ -1488,7 +1488,7 @@ async def get_coach_session_detail(session_id: str, request: Request):
     # Verify coach owns this session
     session = await verify_coach_owns_session(user, session_id)
     
-    # Get reflection if exists
+    # Get coach's own reflection if exists
     reflection = await db.reflections.find_one({
         "session_id": session_id,
         "coach_id": user.linked_coach_id
@@ -1500,10 +1500,14 @@ async def get_coach_session_detail(session_id: str, request: Request):
         observer = await db.users.find_one({"user_id": session.get("observer_id")}, {"_id": 0, "name": 1})
         observer_name = observer.get("name") if observer else None
     
+    # Get observer reflections from the session (these are stored in the session document)
+    observer_reflections = session.get("observer_reflections", [])
+    
     return {
         "session": session,
         "reflection": reflection,
         "observer_name": observer_name,
+        "observer_reflections": observer_reflections,
         "can_add_reflection": reflection is None
     }
 
