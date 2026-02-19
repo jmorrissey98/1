@@ -1860,6 +1860,15 @@ export default function ReviewSession() {
                             <span className="text-slate-600">{type.name}</span>
                           </div>
                         ))}
+                        {/* Notes legend item */}
+                        {events.some(e => e.note && e.note.trim()) && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center">
+                              <StickyNote className="w-2 h-2 text-white" />
+                            </div>
+                            <span className="text-slate-600">Has Note</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
