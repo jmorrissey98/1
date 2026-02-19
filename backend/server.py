@@ -617,7 +617,7 @@ async def verify_coach_owns_session(user: "User", session_id: str) -> Dict[str, 
     Verify a coach has access to a specific session.
     Returns the session if authorized, raises 403 if not.
     """
-    session = await db.sessions.find_one({"session_id": session_id}, {"_id": 0})
+    session = await db.observation_sessions.find_one({"session_id": session_id}, {"_id": 0})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
