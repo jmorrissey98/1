@@ -73,9 +73,9 @@ class ObservationSessionResponse(BaseModel):
     session_parts: List[Any] = []
     start_time: Optional[str] = None
     end_time: Optional[str] = None
-    total_duration: int = 0
-    ball_rolling_time: int = 0
-    ball_not_rolling_time: int = 0
+    total_duration: float = 0
+    ball_rolling_time: float = 0
+    ball_not_rolling_time: float = 0
     events: List[Any] = []
     ball_rolling_log: List[Any] = []
     observer_reflections: List[Any] = []
