@@ -155,7 +155,7 @@ export default function CoachSessionDetail() {
     );
   }
 
-  const { session, reflection, observer_name, can_add_reflection } = sessionData || {};
+  const { session, reflection, observer_name, observer_reflections, can_add_reflection } = sessionData || {};
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -178,10 +178,14 @@ export default function CoachSessionDetail() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="overview">
               <FileText className="w-4 h-4 mr-2" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="observer">
+              <User className="w-4 h-4 mr-2" />
+              Observer Notes
             </TabsTrigger>
             <TabsTrigger value="reflection">
               <Edit3 className="w-4 h-4 mr-2" />
