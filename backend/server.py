@@ -1274,8 +1274,8 @@ async def get_coach_dashboard(request: Request):
         updated_at=coach.get("updatedAt")
     )
     
-    # Get active targets
-    targets = [t for t in coach.get("targets", []) if t.get("status") != "achieved"]
+    # Get active targets - filter out achieved and targets without text
+    targets = [t for t in coach.get("targets", []) if t.get("status") != "achieved" and t.get("text")]
     
     # Get upcoming scheduled observations for this coach
     # Check both scheduled_observations collection AND observation_sessions with status='planned'
