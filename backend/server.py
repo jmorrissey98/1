@@ -2424,6 +2424,7 @@ class CheckoutRequest(BaseModel):
     tier_id: str
     billing_period: str  # "monthly" or "annual"
     origin_url: str
+    coupon_code: Optional[str] = None  # Optional discount/promotion code
 
 @api_router.post("/payments/checkout")
 async def create_checkout_session(data: CheckoutRequest, request: Request):
@@ -2462,31 +2463,51 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
         if not price_id:
             raise HTTPException(status_code=400, detail=f"No {data.billing_period} price found for this product")
         
-        # Create Stripe Checkout Session
-        session = stripe.checkout.Session.create(
-            mode="subscription",
-            payment_method_types=["card"],
-            line_items=[{
+        # Build checkout session params
+        checkout_params = {
+            "mode": "subscription",
+            "payment_method_types": ["card"],
+            "line_items": [{
                 "price": price_id,
                 "quantity": 1,
             }],
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "allow_promotion_codes": True,  # Always allow promotion codes in UI
+            "metadata": {
                 "tier_id": data.tier_id,
                 "tier_name": product["name"],
                 "billing_period": data.billing_period,
                 "coaches_limit": str(product["coaches"]),
                 "admins_limit": str(product["admins"])
             },
-            subscription_data={
+            "subscription_data": {
                 "metadata": {
                     "tier_id": data.tier_id,
                     "coaches_limit": str(product["coaches"]),
                     "admins_limit": str(product["admins"])
                 }
             }
-        )
+        }
+        
+        # If a specific coupon code was provided, apply it as a discount
+        if data.coupon_code:
+            try:
+                # Try to find the promotion code in Stripe
+                promo_codes = stripe.PromotionCode.list(code=data.coupon_code, active=True, limit=1)
+                if promo_codes.data:
+                    checkout_params["discounts"] = [{"promotion_code": promo_codes.data[0].id}]
+                    # When using discounts, we can't also allow_promotion_codes
+                    checkout_params.pop("allow_promotion_codes", None)
+                else:
+                    # Code not found - don't fail, just log and continue without it
+                    logger.warning(f"Promotion code not found: {data.coupon_code}")
+            except stripe.error.StripeError as promo_err:
+                logger.warning(f"Error looking up promotion code: {promo_err}")
+                # Continue without the discount code
+        
+        # Create Stripe Checkout Session
+        session = stripe.checkout.Session.create(**checkout_params)
         
         # Create payment transaction record
         transaction = {
