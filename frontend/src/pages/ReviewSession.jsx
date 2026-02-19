@@ -1798,6 +1798,7 @@ export default function ReviewSession() {
                           const position = ((event.relativeTimestamp || 0) / totalDuration) * 100;
                           const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
                           const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
+                          const hasNote = event.note && event.note.trim().length > 0;
                           
                           return (
                             <div
@@ -1812,10 +1813,27 @@ export default function ReviewSession() {
                                 className="w-full h-full transition-all group-hover:w-2"
                                 style={{ backgroundColor: color }}
                               />
+                              {/* Note indicator icon - only visible if event has a note */}
+                              {hasNote && (
+                                <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                                  <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors">
+                                    <StickyNote className="w-2.5 h-2.5 text-white" />
+                                  </div>
+                                </div>
+                              )}
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap max-w-xs">
                                   <div className="font-medium">{event.eventTypeName}</div>
                                   <div className="text-slate-300">{formatRelativeTime(event.relativeTimestamp)}</div>
+                                  {hasNote && (
+                                    <div className="mt-1 pt-1 border-t border-slate-700">
+                                      <div className="flex items-center gap-1 text-purple-300 mb-0.5">
+                                        <StickyNote className="w-3 h-3" />
+                                        <span className="text-[10px]">Note</span>
+                                      </div>
+                                      <p className="text-slate-200 text-[10px] break-words">{event.note}</p>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
