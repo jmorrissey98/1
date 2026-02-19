@@ -110,27 +110,38 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
         elif user_doc.get("organization_id"):
             org_id = user_doc.get("organization_id")
     
-    # Count coaches - check both organization_id and created_by fields
+    # Count coaches - try multiple strategies
     if org_id:
-        # Coaches can be linked by organization_id OR created_by the org owner
-        coaches_count = await db.coaches.count_documents({
-            "$or": [
-                {"organization_id": org_id},
-                {"created_by": user_id}
-            ]
-        })
+        # First try: count by organization_id
+        coaches_count = await db.coaches.count_documents({"organization_id": org_id})
+        
+        # If no coaches found with org_id, try created_by
+        if coaches_count == 0:
+            coaches_count = await db.coaches.count_documents({"created_by": user_id})
+        
+        # If still no coaches, for bootstrapped orgs count all coaches in the system
+        # This is a fallback for legacy data without proper org linking
+        if coaches_count == 0 and org_id in BOOTSTRAPPED_ORG_IDS:
+            coaches_count = await db.coaches.count_documents({})
     else:
         # Fallback: count coaches created by this user
         coaches_count = await db.coaches.count_documents({"created_by": user_id})
     
     # Count admin users (coach_developer role) in the organization
     if org_id:
+        # First try: by organization_id
         admins_count = await db.users.count_documents({
             "$or": [
                 {"organization_id": org_id, "role": {"$in": ["coach_developer", "admin"]}},
                 {"user_id": user_id}  # Include the owner
             ]
         })
+        
+        # For bootstrapped orgs, if only the owner was found, count all coach_developers
+        if admins_count <= 1 and org_id in BOOTSTRAPPED_ORG_IDS:
+            admins_count = await db.users.count_documents({
+                "role": {"$in": ["coach_developer", "admin"]}
+            })
     else:
         # Count the user themselves plus any users they've invited
         admins_count = await db.users.count_documents({
