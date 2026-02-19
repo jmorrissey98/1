@@ -95,19 +95,33 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
     org_id = None
     
     if user_doc:
+        # Admin users see all counts
+        if user_doc.get("role") == "admin":
+            coaches_count = await db.coaches.count_documents({})
+            admins_count = await db.users.count_documents({
+                "role": {"$in": ["coach_developer", "admin"]}
+            })
+            return coaches_count, max(1, admins_count)
+        
+        # For coach_developer, find their org
         org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
         if org:
             org_id = org.get("org_id")
         elif user_doc.get("organization_id"):
             org_id = user_doc.get("organization_id")
     
-    # Count all coaches in the system for this organization
-    # For now, count all coaches since we don't have strict org separation
+    # Count coaches - check both organization_id and created_by fields
     if org_id:
-        coaches_count = await db.coaches.count_documents({"organization_id": org_id})
+        # Coaches can be linked by organization_id OR created_by the org owner
+        coaches_count = await db.coaches.count_documents({
+            "$or": [
+                {"organization_id": org_id},
+                {"created_by": user_id}
+            ]
+        })
     else:
-        # Count all coaches (for org owner, all coaches belong to them)
-        coaches_count = await db.coaches.count_documents({})
+        # Fallback: count coaches created by this user
+        coaches_count = await db.coaches.count_documents({"created_by": user_id})
     
     # Count admin users (coach_developer role) in the organization
     if org_id:
@@ -118,9 +132,12 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
             ]
         })
     else:
-        # Count users with coach_developer role
+        # Count the user themselves plus any users they've invited
         admins_count = await db.users.count_documents({
-            "role": {"$in": ["coach_developer", "admin"]}
+            "$or": [
+                {"user_id": user_id},
+                {"invited_by": user_id, "role": {"$in": ["coach_developer", "admin"]}}
+            ]
         })
     
     return coaches_count, max(1, admins_count)
