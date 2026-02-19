@@ -42,9 +42,9 @@ class ObservationSessionCreate(BaseModel):
     session_parts: Optional[List[Any]] = []
     start_time: Optional[str] = None
     end_time: Optional[str] = None
-    total_duration: int = 0
-    ball_rolling_time: int = 0
-    ball_not_rolling_time: int = 0
+    total_duration: float = 0
+    ball_rolling_time: float = 0
+    ball_not_rolling_time: float = 0
     ball_rolling: Optional[bool] = None
     active_part_id: Optional[str] = None
     events: Optional[List[Any]] = []
