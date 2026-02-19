@@ -278,6 +278,63 @@ export default function CoachSessionDetail() {
             )}
           </TabsContent>
 
+          {/* Observer Notes Tab */}
+          <TabsContent value="observer" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Observer Reflections
+                </CardTitle>
+                <CardDescription>
+                  Notes and feedback from {observer_name || 'your observer'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {observer_reflections && observer_reflections.length > 0 ? (
+                  <div className="space-y-4">
+                    {observer_reflections.map((ref, index) => (
+                      <div 
+                        key={ref.id || index} 
+                        className="p-4 bg-slate-50 rounded-lg border border-slate-200"
+                      >
+                        <p className="text-slate-700 whitespace-pre-wrap">{ref.content || ref.text}</p>
+                        {ref.timestamp && (
+                          <p className="text-xs text-slate-400 mt-2">
+                            Added: {formatDate(ref.timestamp)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                    <p className="text-slate-500">No observer reflections yet</p>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Your observer hasn't added any notes for this session
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Session Notes from Observer */}
+            {session?.session_notes && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Session Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-700 whitespace-pre-wrap">{session.session_notes}</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* Reflection Tab */}
           <TabsContent value="reflection" className="space-y-6">
             <Card>
