@@ -1875,6 +1875,10 @@ export default function ReviewSession() {
                                 left: `${Math.min(position, 98)}%`,
                                 width: '2px'
                               }}
+                              onClick={() => {
+                                setSelectedNote({ ...note, relativeMs: noteRelativeMs });
+                                setNoteDialogOpen(true);
+                              }}
                             >
                               {/* Note marker line - dashed purple */}
                               <div 
@@ -1882,21 +1886,14 @@ export default function ReviewSession() {
                               />
                               {/* Note indicator at top */}
                               <div className="absolute -top-5 left-1/2 -translate-x-1/2">
-                                <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors shadow-sm">
+                                <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors shadow-sm hover:scale-110">
                                   <StickyNote className="w-3 h-3 text-white" />
                                 </div>
                               </div>
-                              {/* Tooltip on hover */}
+                              {/* Quick tooltip hint on hover */}
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-7 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                                <div className="bg-purple-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap max-w-xs shadow-lg">
-                                  <div className="flex items-center gap-1 text-purple-200 mb-1">
-                                    <StickyNote className="w-3 h-3" />
-                                    <span className="font-medium">Observer Note</span>
-                                  </div>
-                                  <p className="text-white text-[11px] break-words max-w-[200px]">{note.text}</p>
-                                  <div className="text-purple-300 text-[10px] mt-1">
-                                    {formatRelativeTime(noteRelativeMs)} into session
-                                  </div>
+                                <div className="bg-purple-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                                  <span className="text-purple-200">Click to view note</span>
                                 </div>
                               </div>
                             </div>
