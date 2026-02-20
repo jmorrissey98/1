@@ -2037,6 +2037,28 @@ export default function ReviewSession() {
           </TabsContent>
         </Tabs>
       </main>
+      
+      {/* Note Dialog - shows when clicking a note on timeline */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="w-5 h-5 text-purple-500" />
+              Observer Note
+            </DialogTitle>
+            <DialogDescription>
+              {selectedNote?.relativeMs !== undefined && (
+                <span className="text-purple-600 font-medium">
+                  {formatRelativeTime(selectedNote.relativeMs)} into session
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <p className="text-slate-700 whitespace-pre-wrap">{selectedNote?.text}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
