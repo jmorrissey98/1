@@ -367,9 +367,23 @@
   - Tests for all backend limit endpoints
   - Tests for 403 responses when limits exceeded
 
+### Phase 14: Coach Development Tab Overhaul (COMPLETED - February 20, 2026)
+- [x] **Removed "Overview" tab** from CoachProfile.jsx (for coach developer viewing a coach)
+- [x] **Coach Development is now default/first tab** with 4 tabs: Coach Development, Profile, Sessions, Reports
+- [x] **New backend endpoint:** `GET /api/coaches/{coach_id}/analytics` - Returns analytics data for any coach by ID
+- [x] **Coach Profile Card** - Shows coach photo/initials, name, role, and Active Targets count
+- [x] **Intervention Patterns Card** - Shows Most Used intervention, Variety Score, Ball Rolling Balance
+- [x] **Three Key Metrics Cards** - Sessions Observed, Avg Ball Rolling %, Avg Interventions
+- [x] **Intervention Distribution Chart** - Horizontal bar chart with filter checkboxes and collapsible details
+- [x] **Development Targets Section** - Add input field, active/achieved targets list
+- [x] **Development Trends Section** - AI-generated trends with Generate button
+- [x] Layout now matches coach's "My Development" page (CoachMyDevelopment.jsx)
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
+- [ ] **Admin impersonation exit flow** - Currently logs admin out completely (workaround); needs proper fix to restore admin session
+- [ ] **Note position on session timeline** - Notes should be positioned based on time relative to session start
 - [ ] Session comparison view for coaches (compare two sessions side-by-side)
 - [ ] Test full end-to-end cloud sync flow on production environment
 - [ ] Investigate "body stream already read" error in safeFetch.js
@@ -377,7 +391,7 @@
 - [ ] Production password reset email delays (needs Resend account/DNS verification)
 
 ### P2 - Medium Priority
-- [ ] Production sync failure causing sessions to disappear (critical data loss bug)
+- [ ] **Production sync failure** causing sessions to disappear (critical data loss bug)
 - [ ] Full audit for remaining localStorage usage
 - [ ] Ensure offline-to-online sync handles conflicts properly
 
