@@ -921,8 +921,8 @@ export default function CoachProfile() {
             </Card>
           </TabsContent>
 
-          {/* Targets Tab */}
-          <TabsContent value="targets" className="space-y-6">
+          {/* Coach Development Tab (formerly Targets) */}
+          <TabsContent value="development" className="space-y-6">
             {/* Add Target */}
             <Card>
               <CardHeader>
@@ -1005,6 +1005,81 @@ export default function CoachProfile() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Coaching Analytics Section - Same view as coach sees in "My Coaching" */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                  Coaching Insights
+                </CardTitle>
+                <CardDescription>Analytics and patterns from this coach's sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {sessions.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Key Metrics */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-4 bg-slate-50 rounded-lg border text-center">
+                        <p className="text-3xl font-bold text-slate-900">{sessions.length}</p>
+                        <p className="text-sm text-slate-500">Total Sessions</p>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
+                        <p className="text-3xl font-bold text-green-600">
+                          {Math.round(sessions.reduce((sum, s) => sum + (s.ball_rolling_time || 0), 0) / 
+                            Math.max(sessions.reduce((sum, s) => sum + (s.total_duration || 1), 0), 1) * 100)}%
+                        </p>
+                        <p className="text-sm text-slate-500">Avg Ball Rolling</p>
+                      </div>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
+                        <p className="text-3xl font-bold text-blue-600">
+                          {sessions.reduce((sum, s) => sum + (s.events?.length || 0), 0)}
+                        </p>
+                        <p className="text-sm text-slate-500">Total Interventions</p>
+                      </div>
+                    </div>
+                    
+                    {/* Intervention Breakdown */}
+                    {(() => {
+                      const interventionCounts = {};
+                      sessions.forEach(s => {
+                        (s.events || []).forEach(e => {
+                          const name = e.eventTypeName || 'Other';
+                          interventionCounts[name] = (interventionCounts[name] || 0) + 1;
+                        });
+                      });
+                      const sorted = Object.entries(interventionCounts).sort((a, b) => b[1] - a[1]);
+                      
+                      if (sorted.length === 0) return null;
+                      
+                      return (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-slate-700">Intervention Usage</h4>
+                          <div className="space-y-2">
+                            {sorted.slice(0, 5).map(([name, count]) => (
+                              <div key={name} className="flex items-center gap-3">
+                                <span className="text-sm text-slate-600 w-32 truncate">{name}</span>
+                                <div className="flex-1 bg-slate-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-purple-500 h-2 rounded-full" 
+                                    style={{ width: `${(count / sorted[0][1]) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 w-10 text-right">{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    No sessions recorded yet. Complete observation sessions to see coaching insights.
                   </div>
                 )}
               </CardContent>
