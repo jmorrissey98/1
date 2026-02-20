@@ -16,18 +16,33 @@ export default function ProtectedRoute({
   // Check if user is in impersonation mode
   const isImpersonating = localStorage.getItem('impersonating') === 'true';
   
-  // Check if we just exited impersonation (token restored but user not re-fetched yet)
+  // Check if we just exited impersonation - if so, force a refresh
+  const justExitedImpersonation = localStorage.getItem('exiting_impersonation') === 'true';
+
+  // Handle re-authentication after exiting impersonation
   useEffect(() => {
-    const justExitedImpersonation = localStorage.getItem('exiting_impersonation') === 'true';
     if (justExitedImpersonation && requireAdmin) {
-      // Clear the flag and revalidate auth
+      // Clear the flag
       localStorage.removeItem('exiting_impersonation');
+      // Force re-authentication
       setRevalidating(true);
-      checkAuth().then(() => {
+      checkAuth().finally(() => {
         setRevalidating(false);
       });
     }
-  }, [requireAdmin, checkAuth]);
+  }, [justExitedImpersonation, requireAdmin, checkAuth]);
+
+  // If we're exiting impersonation, show loading and don't check roles yet
+  if (justExitedImpersonation && requireAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-500">Returning to admin...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user was passed from AuthCallback
   if (location.state?.user) {
