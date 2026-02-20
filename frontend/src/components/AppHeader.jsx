@@ -52,7 +52,7 @@ export default function AppHeader() {
   }, [location.pathname]);
   
   // Exit impersonation mode - restores admin session and returns to admin dashboard
-  const handleExitImpersonation = async () => {
+  const handleExitImpersonation = () => {
     // Restore admin token if we have a backup
     const adminTokenBackup = localStorage.getItem('admin_token_backup');
     
@@ -65,21 +65,16 @@ export default function AppHeader() {
       // Restore admin token
       localStorage.setItem('auth_token', adminTokenBackup);
       localStorage.removeItem('admin_token_backup');
-      setAuthToken(adminTokenBackup);
       
-      toast.success('Returning to admin view...');
+      toast.success('Returning to admin dashboard...');
       
-      // Force a full page reload to clear React state and redirect
-      setTimeout(() => {
-        window.location.replace('/admin');
-      }, 100);
+      // Use direct navigation to admin page
+      window.location.href = '/admin';
     } else {
       // No backup token - clear everything and go to login
       localStorage.removeItem('auth_token');
       toast.success('Session expired. Please login again.');
-      setTimeout(() => {
-        window.location.replace('/login');
-      }, 100);
+      window.location.href = '/login';
     }
   };
   
