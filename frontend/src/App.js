@@ -222,6 +222,7 @@ function AppRouter() {
           <AdminDashboard />
         </ProtectedRoute>
       } />
+      <Route path="/admin/exit-impersonation" element={<ExitImpersonationHandler />} />
       <Route path="/admin/clubs/new" element={
         <ProtectedRoute requireAdmin>
           <AdminCreateClub />
@@ -238,6 +239,35 @@ function AppRouter() {
         </ProtectedRoute>
       } />
     </Routes>
+  );
+}
+
+// Handler for exiting impersonation - waits for reauth then redirects to admin
+function ExitImpersonationHandler() {
+  const { checkAuth } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Clear the exit flag
+    localStorage.removeItem('exiting_impersonation');
+    
+    // Force re-authentication with the restored admin token
+    checkAuth().then(() => {
+      // After auth refreshes, navigate to admin dashboard
+      navigate('/admin', { replace: true });
+    }).catch(() => {
+      // If auth fails, go to login
+      navigate('/login', { replace: true });
+    });
+  }, [checkAuth, navigate]);
+  
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-600 mx-auto mb-2" />
+        <p className="text-sm text-slate-500">Returning to admin dashboard...</p>
+      </div>
+    </div>
   );
 }
 
