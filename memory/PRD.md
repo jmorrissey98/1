@@ -153,6 +153,7 @@
 - `GET /api/coaches` - List coaches
 - `GET /api/coaches/{coach_id}` - Get coach details
 - `GET /api/coaches/{coach_id}/sessions` - Get all sessions for a specific coach
+- `GET /api/coaches/{coach_id}/analytics` - Get aggregated analytics for a specific coach (NEW)
 - `PUT /api/coaches/{coach_id}` - Update coach profile
 - `DELETE /api/coaches/{coach_id}` - Delete coach profile
 
