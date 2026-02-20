@@ -56,25 +56,30 @@ export default function AppHeader() {
     // Restore admin token if we have a backup
     const adminTokenBackup = localStorage.getItem('admin_token_backup');
     
-    // Clear impersonation data first
-    localStorage.removeItem('impersonating');
-    localStorage.removeItem('impersonated_user');
-    localStorage.removeItem('impersonated_by');
-    
     if (adminTokenBackup) {
-      // Restore admin token
+      // First clear impersonation data
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
+      
+      // Restore admin token - this must happen before the redirect
       localStorage.setItem('auth_token', adminTokenBackup);
       localStorage.removeItem('admin_token_backup');
       
+      // Show toast and then do a hard redirect with cache bust
       toast.success('Returning to admin dashboard...');
       
-      // Force a full page reload to /admin to reset React state and re-authenticate
-      window.location.assign('/admin');
+      // Force complete page reload to admin - use unique timestamp to prevent caching
+      const adminUrl = '/admin?_t=' + Date.now();
+      window.location.replace(adminUrl);
     } else {
       // No backup token - clear everything and go to login
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
       toast.success('Session expired. Please login again.');
-      window.location.assign('/login');
+      window.location.replace('/login');
     }
   };
   
