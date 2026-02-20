@@ -1198,11 +1198,19 @@ export default function ReviewSession() {
                     <CardContent className="space-y-3 pt-0">
                       {session.observerNotes.map(note => {
                         const part = (session.sessionParts || []).find(p => p.id === note.partId);
+                        // Calculate relative time from session start
+                        const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
+                        const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
+                        const noteRelativeMs = noteTime - sessionStartTime;
+                        
                         return (
                           <div key={note.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
                             <p className="text-slate-700">{note.text}</p>
                             <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                              <span>{formatDateTime(note.timestamp)}</span>
+                              <span className="text-purple-600 font-medium">
+                                {noteRelativeMs > 0 ? formatRelativeTime(noteRelativeMs) : '00:00'}
+                              </span>
+                              <span className="text-slate-400">into session</span>
                               {part && (
                                 <>
                                   <span>•</span>
