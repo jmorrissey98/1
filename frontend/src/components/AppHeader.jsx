@@ -68,13 +68,13 @@ export default function AppHeader() {
       
       toast.success('Returning to admin dashboard...');
       
-      // Use direct navigation to admin page
-      window.location.href = '/admin';
+      // Force a full page reload to /admin to reset React state and re-authenticate
+      window.location.assign('/admin');
     } else {
       // No backup token - clear everything and go to login
       localStorage.removeItem('auth_token');
       toast.success('Session expired. Please login again.');
-      window.location.href = '/login';
+      window.location.assign('/login');
     }
   };
   
