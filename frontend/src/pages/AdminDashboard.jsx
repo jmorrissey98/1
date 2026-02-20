@@ -13,6 +13,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [organizations, setOrganizations] = useState([]);
   const [stats, setStats] = useState({ totalOrgs: 0, totalUsers: 0, totalCoaches: 0 });
