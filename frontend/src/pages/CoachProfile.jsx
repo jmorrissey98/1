@@ -511,7 +511,7 @@ export default function CoachProfile() {
           <TabsList className="grid w-full max-w-xl grid-cols-5">
             <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
             <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
-            <TabsTrigger value="targets" data-testid="tab-targets">Targets</TabsTrigger>
+            <TabsTrigger value="development" data-testid="tab-development">Coach Development</TabsTrigger>
             <TabsTrigger value="sessions" data-testid="tab-sessions">Sessions</TabsTrigger>
             <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
           </TabsList>
