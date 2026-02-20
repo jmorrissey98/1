@@ -1839,6 +1839,64 @@ export default function ReviewSession() {
                             </div>
                           );
                         })}
+                        
+                        {/* Observer Notes markers on timeline */}
+                        {(session.observerNotes || []).map((note, noteIdx) => {
+                          // Calculate relative position based on note timestamp and session start
+                          const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
+                          const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
+                          const noteRelativeMs = noteTime - sessionStartTime;
+                          
+                          // Only show if note is within session duration
+                          if (noteRelativeMs < 0) return null;
+                          
+                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+                          const sessionDuration = session.totalDuration || session.total_duration || 0;
+                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
+                            ? sessionDuration 
+                            : (maxEventTime || 1);
+                          
+                          // Position as percentage
+                          const position = (noteRelativeMs / totalDuration) * 100;
+                          
+                          // Don't render if outside bounds
+                          if (position < 0 || position > 100) return null;
+                          
+                          return (
+                            <div
+                              key={`note-${note.id || noteIdx}`}
+                              className="absolute top-0 h-full group cursor-pointer"
+                              style={{
+                                left: `${Math.min(position, 98)}%`,
+                                width: '2px'
+                              }}
+                            >
+                              {/* Note marker line - dashed purple */}
+                              <div 
+                                className="w-full h-full border-l-2 border-dashed border-purple-500 opacity-60 group-hover:opacity-100"
+                              />
+                              {/* Note indicator at top */}
+                              <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                                <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors shadow-sm">
+                                  <StickyNote className="w-3 h-3 text-white" />
+                                </div>
+                              </div>
+                              {/* Tooltip on hover */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-7 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                <div className="bg-purple-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap max-w-xs shadow-lg">
+                                  <div className="flex items-center gap-1 text-purple-200 mb-1">
+                                    <StickyNote className="w-3 h-3" />
+                                    <span className="font-medium">Observer Note</span>
+                                  </div>
+                                  <p className="text-white text-[11px] break-words max-w-[200px]">{note.text}</p>
+                                  <div className="text-purple-300 text-[10px] mt-1">
+                                    {formatRelativeTime(noteRelativeMs)} into session
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                       
                       {/* Legend */}
@@ -1860,13 +1918,13 @@ export default function ReviewSession() {
                             <span className="text-slate-600">{type.name}</span>
                           </div>
                         ))}
-                        {/* Notes legend item */}
-                        {events.some(e => e.note && e.note.trim()) && (
+                        {/* Notes legend item - show if any observer notes or event notes exist */}
+                        {(events.some(e => e.note && e.note.trim()) || (session.observerNotes || []).length > 0) && (
                           <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center">
                               <StickyNote className="w-2 h-2 text-white" />
                             </div>
-                            <span className="text-slate-600">Has Note</span>
+                            <span className="text-slate-600">Note</span>
                           </div>
                         )}
                       </div>
