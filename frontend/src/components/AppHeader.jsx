@@ -66,12 +66,14 @@ export default function AppHeader() {
       localStorage.setItem('auth_token', adminTokenBackup);
       localStorage.removeItem('admin_token_backup');
       
-      // Show toast and then do a hard redirect with cache bust
+      // Set flag to tell ProtectedRoute we're transitioning back to admin
+      localStorage.setItem('exiting_impersonation', 'true');
+      
+      // Show toast and then do a hard redirect
       toast.success('Returning to admin dashboard...');
       
-      // Force complete page reload to admin - use unique timestamp to prevent caching
-      const adminUrl = '/admin?_t=' + Date.now();
-      window.location.replace(adminUrl);
+      // Force complete page reload to admin
+      window.location.href = '/admin';
     } else {
       // No backup token - clear everything and go to login
       localStorage.removeItem('auth_token');
@@ -79,7 +81,7 @@ export default function AppHeader() {
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
       toast.success('Session expired. Please login again.');
-      window.location.replace('/login');
+      window.location.href = '/login';
     }
   };
   
