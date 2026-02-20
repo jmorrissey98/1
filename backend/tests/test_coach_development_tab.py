@@ -157,9 +157,16 @@ class TestCoachAnalyticsEndpoint:
         
         print("PASS: Analytics endpoint requires authentication")
     
-    def test_analytics_nonexistent_coach_returns_404(self, authenticated_session):
+    def test_analytics_nonexistent_coach_returns_404(self, session):
         """Test that analytics for non-existent coach returns 404"""
-        response = authenticated_session.get(
+        # Re-authenticate first since previous test cleared cookies
+        login_response = session.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": COACH_DEV_EMAIL, "password": COACH_DEV_PASSWORD}
+        )
+        assert login_response.status_code == 200, f"Login failed: {login_response.text}"
+        
+        response = session.get(
             f"{BASE_URL}/api/coaches/coach_nonexistent_id/analytics"
         )
         assert response.status_code == 404, f"Expected 404, got {response.status_code}"
