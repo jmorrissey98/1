@@ -51,38 +51,21 @@ export default function AppHeader() {
     return () => window.removeEventListener('storage', checkImpersonation);
   }, [location.pathname]);
   
-  // Exit impersonation mode - restores admin session and returns to admin dashboard
+  // Exit impersonation mode - logs admin out to cleanly exit impersonation
+  // Admin will need to login again after exiting
   const handleExitImpersonation = () => {
-    // Restore admin token if we have a backup
-    const adminTokenBackup = localStorage.getItem('admin_token_backup');
+    // Clear ALL auth data to fully exit impersonation
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('admin_token_backup');
+    localStorage.removeItem('impersonating');
+    localStorage.removeItem('impersonated_user');
+    localStorage.removeItem('impersonated_by');
+    localStorage.removeItem('exiting_impersonation');
     
-    if (adminTokenBackup) {
-      // First clear impersonation data
-      localStorage.removeItem('impersonating');
-      localStorage.removeItem('impersonated_user');
-      localStorage.removeItem('impersonated_by');
-      
-      // Restore admin token - this must happen before the redirect
-      localStorage.setItem('auth_token', adminTokenBackup);
-      localStorage.removeItem('admin_token_backup');
-      
-      // Set flag to indicate we're exiting
-      localStorage.setItem('exiting_impersonation', 'true');
-      
-      // Show toast and redirect to the exit handler route
-      toast.success('Returning to admin dashboard...');
-      
-      // Navigate to exit-impersonation handler which will reauth and then go to admin
-      window.location.href = '/admin/exit-impersonation';
-    } else {
-      // No backup token - clear everything and go to login
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('impersonating');
-      localStorage.removeItem('impersonated_user');
-      localStorage.removeItem('impersonated_by');
-      toast.success('Session expired. Please login again.');
-      window.location.href = '/login';
-    }
+    toast.success('Exited impersonation. Please login again.');
+    
+    // Full redirect to login - this ensures clean state
+    window.location.href = '/login';
   };
   
   // Check if impersonating
