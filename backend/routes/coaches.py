@@ -397,6 +397,95 @@ async def get_coach_sessions_by_id(coach_id: str, request: Request):
     return result
 
 
+@router.get("/{coach_id}/analytics")
+async def get_coach_analytics_by_id(coach_id: str, request: Request):
+    """
+    Get aggregated analytics for a specific coach (Coach Developer only).
+    Returns same structure as /coach/analytics but for any coach by ID.
+    """
+    await require_coach_developer(request)
+    
+    # Verify coach exists
+    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    # Fetch all sessions with full event data for this coach
+    sessions = await db.observation_sessions.find(
+        {"coach_id": coach_id},
+        {"_id": 0, "session_id": 1, "events": 1, "ball_rolling_time": 1, 
+         "ball_not_rolling_time": 1, "total_duration": 1, "created_at": 1}
+    ).to_list(length=1000)
+    
+    total_sessions = len(sessions)
+    total_interventions = 0
+    total_ball_rolling = 0
+    total_ball_stopped = 0
+    total_duration = 0
+    intervention_type_count = {}
+    intervention_combinations = {}
+    
+    for session in sessions:
+        events = session.get("events", [])
+        total_interventions += len(events)
+        
+        # Ball rolling stats
+        total_ball_rolling += session.get("ball_rolling_time", 0) or 0
+        total_ball_stopped += session.get("ball_not_rolling_time", 0) or 0
+        total_duration += session.get("total_duration", 0) or 0
+        
+        # Count intervention types
+        for event in events:
+            type_name = event.get("eventTypeName") or event.get("eventTypeId") or "Unknown"
+            intervention_type_count[type_name] = intervention_type_count.get(type_name, 0) + 1
+            
+            # Track combinations for pattern analysis
+            desc1 = ", ".join(event.get("descriptors1", [])) or "None"
+            desc2 = ", ".join(event.get("descriptors2", [])) or "None"
+            combo = f"{type_name}|{desc1}|{desc2}"
+            intervention_combinations[combo] = intervention_combinations.get(combo, 0) + 1
+    
+    # Calculate averages
+    avg_per_session = round(total_interventions / total_sessions, 1) if total_sessions > 0 else 0
+    avg_ball_rolling = round((total_ball_rolling / total_duration) * 100) if total_duration > 0 else 0
+    
+    # Build intervention distribution chart data
+    intervention_chart_data = [
+        {
+            "name": name,
+            "count": count,
+            "percentage": round((count / total_interventions) * 100) if total_interventions > 0 else 0
+        }
+        for name, count in sorted(intervention_type_count.items(), key=lambda x: -x[1])
+    ]
+    
+    # Calculate variety percentage
+    unique_combinations = len(intervention_combinations)
+    variety_percentage = round((unique_combinations / total_interventions) * 100) if total_interventions > 0 else 0
+    
+    # Get most common pattern
+    sorted_combos = sorted(intervention_combinations.items(), key=lambda x: -x[1])
+    most_common_pattern = None
+    if sorted_combos:
+        pattern_name = sorted_combos[0][0].split("|")[0]
+        most_common_pattern = {
+            "pattern": pattern_name,
+            "count": sorted_combos[0][1]
+        }
+    
+    return {
+        "total_sessions": total_sessions,
+        "total_interventions": total_interventions,
+        "avg_per_session": avg_per_session,
+        "avg_ball_rolling": avg_ball_rolling,
+        "total_ball_rolling_time": total_ball_rolling,
+        "total_ball_stopped_time": total_ball_stopped,
+        "intervention_chart_data": intervention_chart_data,
+        "variety_percentage": variety_percentage,
+        "most_common_pattern": most_common_pattern
+    }
+
+
 @router.put("/{coach_id}")
 async def update_coach(coach_id: str, request: Request):
     """
