@@ -51,20 +51,31 @@ export default function AppHeader() {
     return () => window.removeEventListener('storage', checkImpersonation);
   }, [location.pathname]);
   
-  // Exit impersonation mode - clears session and returns to login
-  // Note: Admin will need to login again after exiting impersonation
+  // Exit impersonation mode - restores admin session and returns to admin dashboard
   const handleExitImpersonation = () => {
-    // Clear all auth data
-    localStorage.removeItem('auth_token');
+    // Restore admin token if we have a backup
+    const adminTokenBackup = localStorage.getItem('admin_token_backup');
+    
+    // Clear impersonation data
     localStorage.removeItem('impersonating');
     localStorage.removeItem('impersonated_user');
     localStorage.removeItem('impersonated_by');
-    localStorage.removeItem('admin_token_backup');
     
-    toast.success('Exited impersonation mode');
-    
-    // Redirect to login page
-    window.location.href = '/login';
+    if (adminTokenBackup) {
+      // Restore admin token
+      localStorage.setItem('auth_token', adminTokenBackup);
+      localStorage.removeItem('admin_token_backup');
+      setAuthToken(adminTokenBackup);
+      toast.success('Returned to admin view');
+      // Navigate to admin dashboard
+      window.location.href = '/admin';
+    } else {
+      // No backup token - clear everything and go to login
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('admin_token_backup');
+      toast.success('Exited impersonation mode');
+      window.location.href = '/login';
+    }
   };
   
   // Check if impersonating
