@@ -8,27 +8,25 @@ export default function ProtectedRoute({
   requireCoach = false,
   requireAdmin = false
 }) {
-  const { user, loading, isCoachDeveloper, isAdmin } = useAuth();
+  const { user, loading, isCoachDeveloper, isAdmin, checkAuth } = useAuth();
   const location = useLocation();
+  const [revalidating, setRevalidating] = useState(false);
   
   // Check if user is in impersonation mode
   const isImpersonating = localStorage.getItem('impersonating') === 'true';
   
   // Check if we just exited impersonation (token restored but user not re-fetched yet)
-  const justExitedImpersonation = localStorage.getItem('exiting_impersonation') === 'true';
-  if (justExitedImpersonation) {
-    // Clear the flag
-    localStorage.removeItem('exiting_impersonation');
-    // Show loading while auth refreshes
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-600 mx-auto mb-2" />
-          <p className="text-sm text-slate-500">Returning to admin...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const justExitedImpersonation = localStorage.getItem('exiting_impersonation') === 'true';
+    if (justExitedImpersonation && requireAdmin) {
+      // Clear the flag and revalidate auth
+      localStorage.removeItem('exiting_impersonation');
+      setRevalidating(true);
+      checkAuth().then(() => {
+        setRevalidating(false);
+      });
+    }
+  }, [requireAdmin, checkAuth]);
 
   // Check if user was passed from AuthCallback
   if (location.state?.user) {
@@ -36,12 +34,12 @@ export default function ProtectedRoute({
     return children;
   }
 
-  if (loading) {
+  if (loading || revalidating) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-slate-600 mx-auto mb-2" />
-          <p className="text-sm text-slate-500">Loading...</p>
+          <p className="text-sm text-slate-500">{revalidating ? 'Returning to admin...' : 'Loading...'}</p>
         </div>
       </div>
     );
