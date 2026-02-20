@@ -416,6 +416,10 @@ export default function ReviewSession() {
   const [savingReflection, setSavingReflection] = useState(false);
   const [observerNotesExpanded, setObserverNotesExpanded] = useState(true);
   
+  // State for clicked note dialog
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  
   const isCoachView = user?.role === 'coach';
   // Coaches can view everything but only edit their own reflections
   const canEditObserverContent = !isCoachView;
