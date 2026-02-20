@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, Loader2, Eye, Play, Download, FileText, Filter, Camera, Paperclip, Upload, CalendarClock, BarChart3 } from 'lucide-react';
+import { 
+  ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, 
+  Loader2, Eye, Play, Download, FileText, Filter, Camera, Paperclip, Upload, 
+  CalendarClock, BarChart3, TrendingUp, ChevronDown, ChevronUp
+} from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -11,6 +15,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
+import { Checkbox } from '../components/ui/checkbox';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 import { storage } from '../lib/storage';
 import { deleteCloudSession } from '../lib/cloudSessionService';
@@ -20,8 +27,10 @@ import { fetchSessionParts } from '../lib/sessionPartsApi';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
-const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
+
+// Color palette for charts
+const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
 
 export default function CoachProfile() {
   const navigate = useNavigate();
@@ -37,6 +46,12 @@ export default function CoachProfile() {
   const [editNotes, setEditNotes] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [isGeneratingTrends, setIsGeneratingTrends] = useState(false);
+  
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
+  const [interventionFilters, setInterventionFilters] = useState({});
+  const [interventionDetailsExpanded, setInterventionDetailsExpanded] = useState(false);
   
   // Report export state
   const [reportStartDate, setReportStartDate] = useState('');
@@ -54,6 +69,7 @@ export default function CoachProfile() {
   useEffect(() => {
     loadCoach();
     loadSessionParts();
+    loadAnalytics();
   }, [coachId]);
 
   const loadCoach = async () => {
@@ -94,6 +110,28 @@ export default function CoachProfile() {
     }
   };
 
+  const loadAnalytics = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      const response = await axios.get(`${API}/coaches/${coachId}/analytics`, { withCredentials: true });
+      setAnalyticsData(response.data);
+      
+      // Initialize intervention filters when analytics data loads
+      if (response.data?.intervention_chart_data) {
+        const initialFilters = {};
+        response.data.intervention_chart_data.forEach(item => {
+          initialFilters[item.name] = true; // All checked by default
+        });
+        setInterventionFilters(initialFilters);
+      }
+    } catch (err) {
+      console.error('Failed to load analytics:', err);
+      setAnalyticsData(null);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
   const loadSessionParts = async () => {
     try {
       const parts = await fetchSessionParts();
@@ -102,6 +140,22 @@ export default function CoachProfile() {
       console.error('Failed to load session parts:', err);
     }
   };
+
+  // Toggle intervention filter
+  const toggleInterventionFilter = (interventionName) => {
+    setInterventionFilters(prev => ({
+      ...prev,
+      [interventionName]: !prev[interventionName]
+    }));
+  };
+
+  // Filter intervention data based on selected filters
+  const filteredInterventionData = useMemo(() => {
+    if (!analyticsData?.intervention_chart_data) return [];
+    return analyticsData.intervention_chart_data.filter(item => 
+      interventionFilters[item.name] !== false
+    );
+  }, [analyticsData, interventionFilters]);
 
   // Photo upload handler
   const handlePhotoUpload = async (e) => {
@@ -441,6 +495,17 @@ export default function CoachProfile() {
   const activeTargets = (coach.targets || []).filter(t => t.status === 'active');
   const achievedTargets = (coach.targets || []).filter(t => t.status === 'achieved');
 
+  // Use API analytics if available, otherwise use defaults
+  const analytics = analyticsData || {
+    total_sessions: sessions.length,
+    total_interventions: 0,
+    avg_per_session: 0,
+    avg_ball_rolling: 0,
+    intervention_chart_data: [],
+    variety_percentage: 0,
+    most_common_pattern: null
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -507,14 +572,375 @@ export default function CoachProfile() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-xl grid-cols-5">
-            <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
+        <Tabs defaultValue="development" className="space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="development" data-testid="tab-development">Coach Development</TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
             <TabsTrigger value="sessions" data-testid="tab-sessions">Sessions</TabsTrigger>
             <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
           </TabsList>
+
+          {/* ==================== COACH DEVELOPMENT TAB ==================== */}
+          <TabsContent value="development" className="space-y-6">
+            {/* Coach Profile Card with Active Targets */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope']">Coach Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                    {coach.photoUrl || coach.photo ? (
+                      <img src={coach.photoUrl || coach.photo} alt={coach.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-medium text-slate-500">{coach.name?.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-slate-900">{coach.name}</h3>
+                    {coach.role_title && <p className="text-slate-600">{coach.role_title}</p>}
+                    {(coach.age_group || coach.department) && (
+                      <p className="text-sm text-slate-500">
+                        {[coach.age_group, coach.department].filter(Boolean).join(' | ')}
+                      </p>
+                    )}
+                    {coach.bio && (
+                      <p className="text-sm text-slate-600 mt-2">{coach.bio}</p>
+                    )}
+                  </div>
+                  {/* Active Targets mini card */}
+                  <div className="flex-shrink-0 p-3 bg-orange-50 rounded-lg border border-orange-200 text-center min-w-[100px]">
+                    <p className="text-2xl font-bold text-orange-600">{activeTargets.length}</p>
+                    <p className="text-xs text-orange-700">Active Targets</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Intervention Patterns Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-purple-500" />
+                  Intervention Patterns
+                </CardTitle>
+                <CardDescription>Insights into this coach's intervention habits</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAnalytics ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-24 w-full" />
+                    ))}
+                  </div>
+                ) : (analytics.total_interventions || 0) > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Most Common Intervention */}
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                      <p className="text-sm text-purple-700 font-medium">Most Used</p>
+                      <p className="text-xl font-bold text-purple-900 mt-1">
+                        {analytics.most_common_pattern?.pattern || 'N/A'}
+                      </p>
+                      {analytics.most_common_pattern && (
+                        <p className="text-sm text-purple-600 mt-1">
+                          {analytics.most_common_pattern.count} times ({Math.round((analytics.most_common_pattern.count / analytics.total_interventions) * 100)}%)
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Variety */}
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-sm text-blue-700 font-medium">Variety Score</p>
+                      <p className="text-xl font-bold text-blue-900 mt-1">
+                        {analytics.variety_percentage || 0}%
+                      </p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        {(analytics.variety_percentage || 0) > 50 ? 'High variety in approaches' : 'Consistent patterns'}
+                      </p>
+                    </div>
+                    
+                    {/* Ball Rolling Insight */}
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                      <p className="text-sm text-green-700 font-medium">Ball Rolling Balance</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 bg-green-200 rounded-full h-3 overflow-hidden">
+                          <div 
+                            className="bg-green-500 h-full rounded-full" 
+                            style={{ width: `${analytics.avg_ball_rolling || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-bold text-green-900">{analytics.avg_ball_rolling || 0}%</span>
+                      </div>
+                      <p className="text-sm text-green-600 mt-2">
+                        {(analytics.avg_ball_rolling || 0) >= 60 ? 'Great activity flow!' : 
+                         (analytics.avg_ball_rolling || 0) >= 40 ? 'Balanced approach' : 'More ball time could help'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    Complete some observation sessions to see intervention patterns
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Key Metrics Row - 3 metrics in one row */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-slate-900" data-testid="total-sessions-count">
+                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : analytics.total_sessions || sessions.length}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-green-600" data-testid="avg-ball-rolling">
+                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : `${analytics.avg_ball_rolling || 0}%`}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-3xl font-bold text-blue-600" data-testid="avg-interventions">
+                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : Math.round(analytics.avg_per_session || 0)}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">Avg Interventions</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Intervention Distribution Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-yellow-500" />
+                  Intervention Distribution
+                </CardTitle>
+                <CardDescription>Breakdown of intervention types across all sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAnalytics ? (
+                  <Skeleton className="h-48 w-full" />
+                ) : (analytics.intervention_chart_data || []).length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Filter toggles */}
+                    <div className="flex flex-wrap gap-3 pb-3 border-b border-slate-100">
+                      {(analytics.intervention_chart_data || []).map((item, idx) => (
+                        <label 
+                          key={item.name} 
+                          className="flex items-center gap-2 cursor-pointer select-none"
+                        >
+                          <Checkbox
+                            checked={interventionFilters[item.name] !== false}
+                            onCheckedChange={() => toggleInterventionFilter(item.name)}
+                            data-testid={`filter-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                          />
+                          <span className="text-sm text-slate-600">{item.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    
+                    {/* Chart with filtered data */}
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={filteredInterventionData} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <Tooltip 
+                            formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Count']}
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                          <Bar dataKey="count" fill="#FACC15" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    
+                    {/* Collapsible percentage breakdown */}
+                    <Collapsible open={interventionDetailsExpanded} onOpenChange={setInterventionDetailsExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-full text-slate-500 hover:text-slate-700">
+                          {interventionDetailsExpanded ? (
+                            <>
+                              <ChevronUp className="w-4 h-4 mr-2" />
+                              Hide Details
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-4 h-4 mr-2" />
+                              Show Details
+                            </>
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                          {(analytics.intervention_chart_data || []).map((item, idx) => (
+                            <div key={item.name} className="p-3 bg-slate-50 rounded-lg text-center">
+                              <p className="text-lg font-bold" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
+                                {item.percentage}%
+                              </p>
+                              <p className="text-xs text-slate-500">{item.name}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-slate-400">
+                    No intervention data available yet
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Development Targets */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <Target className="w-5 h-5 text-orange-500" />
+                  Development Targets
+                </CardTitle>
+                <CardDescription>Focus areas used in AI summaries and development trends</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 mb-6">
+                  <Input
+                    value={newTarget}
+                    onChange={(e) => setNewTarget(e.target.value)}
+                    placeholder="e.g., Increase use of questioning during practice"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTarget()}
+                    data-testid="new-target-input"
+                  />
+                  <Button onClick={handleAddTarget} data-testid="add-target-btn">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+
+                {/* Active Targets */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-slate-700 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-orange-500" />
+                    Active Focus Areas ({activeTargets.length})
+                  </h4>
+                  {activeTargets.length === 0 ? (
+                    <p className="text-slate-400 italic text-sm">No active targets - add one above to track development focus</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {activeTargets.map(target => (
+                        <div key={target.id} className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                          <button
+                            onClick={() => handleToggleTarget(target.id)}
+                            className="w-5 h-5 rounded border-2 border-orange-400 hover:bg-orange-100 flex items-center justify-center"
+                            title="Mark as achieved"
+                          />
+                          <span className="flex-1 text-slate-700">{target.text}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-slate-400 hover:text-red-600"
+                            onClick={() => handleDeleteTarget(target.id)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Achieved Targets */}
+                {achievedTargets.length > 0 && (
+                  <div className="space-y-4 mt-6">
+                    <h4 className="font-medium text-slate-700 flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      Completed Focus Areas ({achievedTargets.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {achievedTargets.map(target => (
+                        <div key={target.id} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <button
+                            onClick={() => handleToggleTarget(target.id)}
+                            className="w-5 h-5 rounded border-2 border-green-500 bg-green-500 flex items-center justify-center"
+                            title="Mark as active again"
+                          >
+                            <Check className="w-3 h-3 text-white" />
+                          </button>
+                          <span className="flex-1 text-slate-500 line-through">{target.text}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-slate-400 hover:text-red-600"
+                            onClick={() => handleDeleteTarget(target.id)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* AI Trends Summary */}
+            <Card className="border-purple-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
+                    <Sparkles className="w-5 h-5" />
+                    Development Trends
+                  </CardTitle>
+                  {coach.aiTrendSummaryDate && (
+                    <CardDescription>Last updated: {formatDate(coach.aiTrendSummaryDate)}</CardDescription>
+                  )}
+                </div>
+                <Button 
+                  onClick={handleGenerateTrends}
+                  disabled={isGeneratingTrends || sessions.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="generate-trends-btn"
+                >
+                  {isGeneratingTrends ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {coach.aiTrendSummary ? 'Refresh' : 'Generate'}
+                    </>
+                  )}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {coach.aiTrendSummary ? (
+                  <div className="prose prose-slate prose-sm max-w-none">
+                    {coach.aiTrendSummary.split('\n').map((paragraph, i) => (
+                      paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-400 italic">
+                    {sessions.length === 0 
+                      ? 'Complete some observations to generate trend analysis'
+                      : 'Click "Generate" to create an AI analysis of coaching trends'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Profile Tab - Photo & Attachments */}
           <TabsContent value="profile" className="space-y-6">
@@ -647,7 +1073,7 @@ export default function CoachProfile() {
                               {attachment.name}
                             </a>
                             <p className="text-xs text-slate-500">
-                              {(attachment.size / 1024).toFixed(1)} KB • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                              {(attachment.size / 1024).toFixed(1)} KB | {new Date(attachment.uploadedAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -708,380 +1134,6 @@ export default function CoachProfile() {
                   <Check className="w-4 h-4 mr-2" />
                   Save Changes
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Session Part Filter */}
-            {isCoachDeveloper() && (
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-slate-500" />
-                      <Label className="text-sm font-medium">Filter by Session Part:</Label>
-                    </div>
-                    <Select value={selectedPartFilter} onValueChange={setSelectedPartFilter}>
-                      <SelectTrigger className="w-[250px]" data-testid="part-filter-select">
-                        <SelectValue placeholder="All Parts" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Session Parts</SelectItem>
-                        {availableParts.filter(p => p.is_default).map(part => (
-                          <SelectItem key={part.part_id} value={part.name}>
-                            {part.name} {part.is_default && "(Default)"}
-                          </SelectItem>
-                        ))}
-                        {getAllUsedParts().filter(p => !availableParts.some(ap => ap.name === p.name)).map(part => (
-                          <SelectItem key={part.id} value={part.name}>
-                            {part.name} (Custom)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedPartFilter !== 'all' && (
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedPartFilter('all')}>
-                        Clear Filter
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <div className="text-3xl font-bold text-slate-900">
-                    {selectedPartFilter === 'all' ? sessions.length : getFilteredStats().sessionCount}
-                  </div>
-                  <div className="text-sm text-slate-500">Sessions Observed</div>
-                  {selectedPartFilter !== 'all' && (
-                    <div className="text-xs text-blue-600 mt-1">Filtered: {selectedPartFilter}</div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <div className="text-3xl font-bold text-orange-600">{activeTargets.length}</div>
-                  <div className="text-sm text-slate-500">Active Targets</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <div className="text-3xl font-bold text-green-600">{achievedTargets.length}</div>
-                  <div className="text-sm text-slate-500">Targets Achieved</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Additional Filtered Stats */}
-            {selectedPartFilter !== 'all' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-['Manrope'] text-base">
-                    Stats for "{selectedPartFilter}"
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-slate-700">{getFilteredStats().totalEvents}</div>
-                      <div className="text-xs text-slate-500">Total Interventions</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-slate-700">{formatTime(getFilteredStats().totalDuration)}</div>
-                      <div className="text-xs text-slate-500">Total Duration</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-orange-600">{getFilteredStats().avgBallRolling}%</div>
-                      <div className="text-xs text-slate-500">Avg Ball Rolling</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Profile Details */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-['Manrope']">Profile Details</CardTitle>
-                {!isEditing && (
-                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit2 className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700">Name</label>
-                      <Input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700">Role</label>
-                      <Input
-                        value={editRole}
-                        onChange={(e) => setEditRole(e.target.value)}
-                        placeholder="e.g., U14 Head Coach"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700">Notes</label>
-                      <Textarea
-                        value={editNotes}
-                        onChange={(e) => setEditNotes(e.target.value)}
-                        placeholder="General notes about this coach..."
-                        className="mt-1 min-h-[100px]"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={handleSaveDetails}>Save</Button>
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {coach.role && (
-                      <div>
-                        <span className="text-sm text-slate-500">Role: </span>
-                        <span className="text-slate-900">{coach.role}</span>
-                      </div>
-                    )}
-                    {coach.notes && (
-                      <div>
-                        <span className="text-sm text-slate-500">Notes: </span>
-                        <p className="text-slate-700 mt-1">{coach.notes}</p>
-                      </div>
-                    )}
-                    {!coach.role && !coach.notes && (
-                      <p className="text-slate-400 italic">No details added yet</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* AI Trends Summary */}
-            <Card className="border-purple-200">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="font-['Manrope'] flex items-center gap-2 text-purple-900">
-                    <Sparkles className="w-5 h-5" />
-                    Development Trends
-                  </CardTitle>
-                  {coach.aiTrendSummaryDate && (
-                    <CardDescription>Last updated: {formatDate(coach.aiTrendSummaryDate)}</CardDescription>
-                  )}
-                </div>
-                <Button 
-                  onClick={handleGenerateTrends}
-                  disabled={isGeneratingTrends || sessions.length === 0}
-                  className="bg-purple-600 hover:bg-purple-700"
-                  data-testid="generate-trends-btn"
-                >
-                  {isGeneratingTrends ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      {coach.aiTrendSummary ? 'Refresh' : 'Generate'}
-                    </>
-                  )}
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {coach.aiTrendSummary ? (
-                  <div className="prose prose-slate prose-sm max-w-none">
-                    {coach.aiTrendSummary.split('\n').map((paragraph, i) => (
-                      paragraph.trim() && <p key={i} className="text-slate-700 mb-3">{paragraph}</p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-400 italic">
-                    {sessions.length === 0 
-                      ? 'Complete some observations to generate trend analysis'
-                      : 'Click "Generate" to create an AI analysis of coaching trends'}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Coach Development Tab (formerly Targets) */}
-          <TabsContent value="development" className="space-y-6">
-            {/* Add Target */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope']">Development Targets</CardTitle>
-                <CardDescription>Set focus areas used in AI summaries and development trends</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 mb-6">
-                  <Input
-                    value={newTarget}
-                    onChange={(e) => setNewTarget(e.target.value)}
-                    placeholder="e.g., Increase use of questioning during practice"
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddTarget()}
-                    data-testid="new-target-input"
-                  />
-                  <Button onClick={handleAddTarget} data-testid="add-target-btn">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-
-                {/* Active Targets */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-slate-700 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-orange-500" />
-                    Active Focus Areas ({activeTargets.length})
-                  </h4>
-                  {activeTargets.length === 0 ? (
-                    <p className="text-slate-400 italic text-sm">No active targets - add one above to track development focus</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {activeTargets.map(target => (
-                        <div key={target.id} className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                          <button
-                            onClick={() => handleToggleTarget(target.id)}
-                            className="w-5 h-5 rounded border-2 border-orange-400 hover:bg-orange-100 flex items-center justify-center"
-                            title="Mark as achieved"
-                          />
-                          <span className="flex-1 text-slate-700">{target.text}</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-red-600"
-                            onClick={() => handleDeleteTarget(target.id)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Achieved Targets */}
-                {achievedTargets.length > 0 && (
-                  <div className="space-y-4 mt-6">
-                    <h4 className="font-medium text-slate-700 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-500" />
-                      Completed Focus Areas ({achievedTargets.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {achievedTargets.map(target => (
-                        <div key={target.id} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <button
-                            onClick={() => handleToggleTarget(target.id)}
-                            className="w-5 h-5 rounded border-2 border-green-500 bg-green-500 flex items-center justify-center"
-                            title="Mark as active again"
-                          >
-                            <Check className="w-3 h-3 text-white" />
-                          </button>
-                          <span className="flex-1 text-slate-500 line-through">{target.text}</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-red-600"
-                            onClick={() => handleDeleteTarget(target.id)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            {/* Coaching Analytics Section - Same view as coach sees in "My Coaching" */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-500" />
-                  Coaching Insights
-                </CardTitle>
-                <CardDescription>Analytics and patterns from this coach's sessions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {sessions.length > 0 ? (
-                  <div className="space-y-6">
-                    {/* Key Metrics */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-lg border text-center">
-                        <p className="text-3xl font-bold text-slate-900">{sessions.length}</p>
-                        <p className="text-sm text-slate-500">Total Sessions</p>
-                      </div>
-                      <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
-                        <p className="text-3xl font-bold text-green-600">
-                          {Math.round(sessions.reduce((sum, s) => sum + (s.ball_rolling_time || 0), 0) / 
-                            Math.max(sessions.reduce((sum, s) => sum + (s.total_duration || 1), 0), 1) * 100)}%
-                        </p>
-                        <p className="text-sm text-slate-500">Avg Ball Rolling</p>
-                      </div>
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
-                        <p className="text-3xl font-bold text-blue-600">
-                          {sessions.reduce((sum, s) => sum + (s.events?.length || 0), 0)}
-                        </p>
-                        <p className="text-sm text-slate-500">Total Interventions</p>
-                      </div>
-                    </div>
-                    
-                    {/* Intervention Breakdown */}
-                    {(() => {
-                      const interventionCounts = {};
-                      sessions.forEach(s => {
-                        (s.events || []).forEach(e => {
-                          const name = e.eventTypeName || 'Other';
-                          interventionCounts[name] = (interventionCounts[name] || 0) + 1;
-                        });
-                      });
-                      const sorted = Object.entries(interventionCounts).sort((a, b) => b[1] - a[1]);
-                      
-                      if (sorted.length === 0) return null;
-                      
-                      return (
-                        <div className="space-y-3">
-                          <h4 className="font-medium text-slate-700">Intervention Usage</h4>
-                          <div className="space-y-2">
-                            {sorted.slice(0, 5).map(([name, count]) => (
-                              <div key={name} className="flex items-center gap-3">
-                                <span className="text-sm text-slate-600 w-32 truncate">{name}</span>
-                                <div className="flex-1 bg-slate-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-purple-500 h-2 rounded-full" 
-                                    style={{ width: `${(count / sorted[0][1]) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-sm font-medium text-slate-700 w-10 text-right">{count}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center text-slate-400">
-                    No sessions recorded yet. Complete observation sessions to see coaching insights.
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1235,9 +1287,9 @@ export default function CoachProfile() {
                                   <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
                                   <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
                                     <span>{formatDate(session.createdAt || session.created_at)}</span>
-                                    <span>•</span>
+                                    <span>|</span>
                                     <span>{formatTime(session.totalDuration || session.total_duration || 0)}</span>
-                                    <span>•</span>
+                                    <span>|</span>
                                     <span>{session.events?.length || session.event_count || 0} events</span>
                                   </div>
                                 </div>
@@ -1271,7 +1323,7 @@ export default function CoachProfile() {
                                   <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
                                   <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
                                     <span>{formatDate(session.createdAt || session.created_at)}</span>
-                                    <span>•</span>
+                                    <span>|</span>
                                     <span>{session.events?.length || session.event_count || 0} events</span>
                                   </div>
                                 </div>
