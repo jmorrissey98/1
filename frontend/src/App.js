@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
@@ -8,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
 import AppHeader from "./components/AppHeader";
 import { AnalyticsTracker } from "./hooks/useAnalytics";
+import { Loader2 } from "lucide-react";
 import HomePage from "./pages/HomePage";
 import SessionSetup from "./pages/SessionSetup";
 import LiveObservation from "./pages/LiveObservation";
