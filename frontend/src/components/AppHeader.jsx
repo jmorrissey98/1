@@ -66,14 +66,14 @@ export default function AppHeader() {
       localStorage.setItem('auth_token', adminTokenBackup);
       localStorage.removeItem('admin_token_backup');
       
-      // Set flag to tell ProtectedRoute we're transitioning back to admin
+      // Set flag to indicate we're exiting
       localStorage.setItem('exiting_impersonation', 'true');
       
-      // Show toast and then do a hard redirect
+      // Show toast and redirect to the exit handler route
       toast.success('Returning to admin dashboard...');
       
-      // Force complete page reload to admin
-      window.location.href = '/admin';
+      // Navigate to exit-impersonation handler which will reauth and then go to admin
+      window.location.href = '/admin/exit-impersonation';
     } else {
       // No backup token - clear everything and go to login
       localStorage.removeItem('auth_token');
