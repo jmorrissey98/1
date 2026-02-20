@@ -689,25 +689,25 @@ export default function CoachProfile() {
             <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-slate-900" data-testid="total-sessions-count">
+                  <div className="text-3xl font-bold text-slate-900" data-testid="total-sessions-count">
                     {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : analytics.total_sessions || sessions.length}
-                  </p>
+                  </div>
                   <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-green-600" data-testid="avg-ball-rolling">
+                  <div className="text-3xl font-bold text-green-600" data-testid="avg-ball-rolling">
                     {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : `${analytics.avg_ball_rolling || 0}%`}
-                  </p>
+                  </div>
                   <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-3xl font-bold text-blue-600" data-testid="avg-interventions">
+                  <div className="text-3xl font-bold text-blue-600" data-testid="avg-interventions">
                     {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : Math.round(analytics.avg_per_session || 0)}
-                  </p>
+                  </div>
                   <p className="text-sm text-slate-500 mt-1">Avg Interventions</p>
                 </CardContent>
               </Card>
