@@ -30,10 +30,11 @@ class RoleUpdateRequest(BaseModel):
 
 @router.get("", response_model=List[UserResponse])
 async def list_users(request: Request):
-    """List all users (Coach Developer only)"""
+    """List all users (Coach Developer only) - excludes admin accounts"""
     await require_coach_developer(request)
     
-    users = await db.users.find({}, {"_id": 0}).to_list(100)
+    # Exclude admin users from the list - they are system accounts and shouldn't be visible/deletable
+    users = await db.users.find({"role": {"$ne": "admin"}}, {"_id": 0}).to_list(100)
     return [
         UserResponse(
             user_id=u["user_id"],
