@@ -555,6 +555,7 @@ export default function CoachMyDevelopment() {
               onFiltersChange={setSessionFilters}
               showCompact={true}
               dataRetention={dataRetention}
+              availableSessionParts={availableSessionParts.map(name => ({ name }))}
             />
 
             {/* Intervention Patterns - Moved up, right after profile */}
