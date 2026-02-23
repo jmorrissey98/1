@@ -16,7 +16,7 @@
 - **Marketing opt-in** - Optional newsletter subscription with consent tracking
 - ~~Google OAuth~~ - **REMOVED** (caused deployment issues)
 
-### Landing Page (Updated Feb 16, 2026)
+### Landing Page (Updated Feb 23, 2026)
 - **Hero:** "Develop Your Coaches. Simple." (Simple in blue)
 - **Body text:** "Keep your focus where it matters: developing your coaches. Observe sessions, build portfolios, and support progress with ease."
 - **Features:**
@@ -24,10 +24,20 @@
   - Build Coach Portfolios - Bring together observations, notes, evidence
   - Support Development - Turn observations into development plans
 - **Pricing tiers:**
-  - Individual: £20/month, 5 coaches, 1 admin
-  - Developer: £35/month, 10 coaches, 1 admin (Most Popular)
-  - Club: £60/month, 50 coaches, 10 admins
+  - Individual: £20/month, 5 coaches, 1 admin, **3 months data history**
+  - Developer: £35/month, 10 coaches, 1 admin, **Unlimited data history** (Most Popular)
+  - Club: £60/month, 50 coaches, 10 admins, **Unlimited data history**
 - **Billing:** Monthly default, Annual shows "2 months free" badge
+
+### Data Retention (NEW - Feb 23, 2026)
+- **Individual plan:** Rolling 3-month data window (data older than 3 months is hidden but preserved)
+- **Developer/Club plans:** Unlimited data history
+- **Upgrade behavior:** When Individual users upgrade, all historical data immediately becomes accessible
+- **Upgrade prompt:** Yellow banner shown when hidden sessions exist, links to settings/subscription
+- **Implementation:**
+  - Backend filters sessions by `created_at >= cutoff_date` for Individual tier
+  - `data_retention` object returned with session/analytics API responses
+  - Hidden session count tracked for upgrade messaging
 
 ### Coach Developer (Admin) Features
 - Create and manage observation sessions
