@@ -276,7 +276,7 @@ export default function MyCoaches() {
                     variant="ghost" 
                     size="sm" 
                     className="text-amber-600 hover:text-amber-700 h-7 px-2"
-                    onClick={() => navigate('/#pricing')}
+                    onClick={openUpgradeModal}
                   >
                     <Crown className="w-3 h-3 mr-1" />
                     Upgrade
