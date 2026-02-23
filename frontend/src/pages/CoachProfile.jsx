@@ -698,6 +698,13 @@ export default function CoachProfile() {
               </CardContent>
             </Card>
 
+            {/* Session Filters */}
+            <SessionFilters 
+              filters={sessionFilters}
+              onFiltersChange={setSessionFilters}
+              showCompact={true}
+            />
+
             {/* Intervention Patterns Card */}
             <Card>
               <CardHeader>
