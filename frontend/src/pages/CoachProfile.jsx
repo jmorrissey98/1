@@ -41,6 +41,7 @@ export default function CoachProfile() {
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [dataRetention, setDataRetention] = useState(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
