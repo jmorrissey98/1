@@ -472,7 +472,29 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline">{org.subscription_tier || 'individual'}</Badge>
+                          {/* Tier Selector */}
+                          <Select
+                            value={org.subscription_tier || 'individual'}
+                            onValueChange={(value) => handleChangeTier(org.org_id, value)}
+                            disabled={isArchived || changingTierOrg === org.org_id}
+                          >
+                            <SelectTrigger className="w-[130px] h-8" data-testid={`tier-select-${org.org_id}`}>
+                              {changingTierOrg === org.org_id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <SelectValue />
+                              )}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIER_OPTIONS.map(tier => (
+                                <SelectItem key={tier.value} value={tier.value}>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${tier.color}`}>
+                                    {tier.label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {org.has_custom_limits && (
                             <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">
                               Custom
