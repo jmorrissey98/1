@@ -19,6 +19,7 @@ const PRICING_TIERS = [
     annualPrice: 200,
     coaches: 5,
     admins: 1,
+    dataRetention: '3 months',
     popular: false
   },
   {
@@ -29,6 +30,7 @@ const PRICING_TIERS = [
     annualPrice: 350,
     coaches: 10,
     admins: 1,
+    dataRetention: 'Unlimited',
     popular: true
   },
   {
@@ -39,6 +41,7 @@ const PRICING_TIERS = [
     annualPrice: 600,
     coaches: 50,
     admins: 10,
+    dataRetention: 'Unlimited',
     popular: false
   }
 ];
