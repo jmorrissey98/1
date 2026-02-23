@@ -30,15 +30,6 @@ const API_URL = '';
 // Color palette for charts
 const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
 
-// Timeframe options
-const TIMEFRAMES = [
-  { value: 'all', label: 'All Time' },
-  { value: 'month', label: 'This Month' },
-  { value: '3months', label: 'Last 3 Months' },
-  { value: '6months', label: 'Last 6 Months' },
-  { value: 'year', label: 'This Year' }
-];
-
 export default function CoachMyDevelopment() {
   const navigate = useNavigate();
   const { user } = useAuth();
