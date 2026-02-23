@@ -195,9 +195,11 @@ export function SessionFilters({
                 onTimeframeChange={handleTimeframeChange}
                 onSessionTypeChange={handleSessionTypeChange}
                 onDayToggle={handleDayToggle}
+                onPartToggle={handlePartToggle}
                 onDateChange={handleDateChange}
                 availableTimeframes={availableTimeframes}
                 dataRetention={dataRetention}
+                sessionParts={displayParts}
               />
             </CardContent>
           </Card>
@@ -233,9 +235,11 @@ export function SessionFilters({
           onTimeframeChange={handleTimeframeChange}
           onSessionTypeChange={handleSessionTypeChange}
           onDayToggle={handleDayToggle}
+          onPartToggle={handlePartToggle}
           onDateChange={handleDateChange}
           availableTimeframes={availableTimeframes}
           dataRetention={dataRetention}
+          sessionParts={displayParts}
         />
       </CardContent>
     </Card>
