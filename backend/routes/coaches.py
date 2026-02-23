@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, '/app/backend')
 
 from database import db, logger
-from dependencies import require_coach_developer, get_current_user, check_coach_limit
+from dependencies import require_coach_developer, get_current_user, check_coach_limit, get_data_retention_info
 from utils import validate_email, send_invite_email
 
 router = APIRouter(prefix="/coaches", tags=["Coaches"])
