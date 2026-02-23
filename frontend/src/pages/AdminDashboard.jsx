@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Building2, Users, UserPlus, Settings, RefreshCw, Loader2, AlertCircle, Shield, LogOut, 
-  Edit2, Save, X, CreditCard, Database, ChevronDown, ChevronUp, Check
+  Edit2, Save, X, CreditCard, Database, ChevronDown, ChevronUp, Check, Archive, RotateCcw,
+  Filter, Clock, UserCog
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -12,6 +13,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
 import { safeGet, safePost, safePut } from '../lib/safeFetch';
 import { useAuth } from '../contexts/AuthContext';
