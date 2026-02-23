@@ -25,6 +25,7 @@ import { formatDate, formatTime, generateId, calcPercentage, countBy } from '../
 import { exportCoachReportPDF, exportCoachReportCSV } from '../lib/export';
 import { fetchSessionParts } from '../lib/sessionPartsApi';
 import { useAuth } from '../contexts/AuthContext';
+import { SessionFilters, applySessionFilters } from '../components/SessionFilters';
 import axios from 'axios';
 
 const API = '/api';
