@@ -37,7 +37,7 @@ const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#E
 export default function CoachProfile() {
   const navigate = useNavigate();
   const { coachId } = useParams();
-  const { isCoachDeveloper } = useAuth();
+  const { isCoachDeveloper, user } = useAuth();
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
