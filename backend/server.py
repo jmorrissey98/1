@@ -2420,6 +2420,174 @@ async def admin_delete_organization(org_id: str, request: Request):
         "users_deleted": delete_result.deleted_count
     }
 
+
+@api_router.get("/admin/subscription-tiers")
+async def admin_get_subscription_tiers(request: Request):
+    """Get all subscription tiers with their limits (Admin only)"""
+    await require_admin(request)
+    
+    # Get tiers from database or return defaults
+    tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
+    
+    if not tiers:
+        # Return default tiers if none exist in DB
+        tiers = [
+            {
+                "tier_id": "individual",
+                "name": "Individual",
+                "monthly_price": 20,
+                "annual_price": 200,
+                "coaches_limit": 5,
+                "admins_limit": 1,
+                "data_retention_months": 3,
+                "description": "For individual coach developers"
+            },
+            {
+                "tier_id": "developer",
+                "name": "Developer",
+                "monthly_price": 35,
+                "annual_price": 350,
+                "coaches_limit": 10,
+                "admins_limit": 1,
+                "data_retention_months": None,  # Unlimited
+                "description": "For growing teams"
+            },
+            {
+                "tier_id": "club",
+                "name": "Club",
+                "monthly_price": 60,
+                "annual_price": 600,
+                "coaches_limit": 50,
+                "admins_limit": 10,
+                "data_retention_months": None,  # Unlimited
+                "description": "For organizations"
+            }
+        ]
+    
+    return tiers
+
+
+@api_router.put("/admin/subscription-tiers/{tier_id}")
+async def admin_update_subscription_tier(tier_id: str, request: Request):
+    """Update a subscription tier's limits and pricing (Admin only)"""
+    await require_admin(request)
+    
+    body = await request.json()
+    
+    # Allowed fields to update
+    allowed_fields = ["name", "monthly_price", "annual_price", "coaches_limit", "admins_limit", "data_retention_months", "description"]
+    
+    update_data = {}
+    for field in allowed_fields:
+        if field in body:
+            update_data[field] = body[field]
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert the tier
+    result = await db.subscription_tiers.update_one(
+        {"tier_id": tier_id},
+        {"$set": update_data, "$setOnInsert": {"tier_id": tier_id, "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    # Also update any active subscriptions with this tier
+    await db.subscriptions.update_many(
+        {"tier_id": tier_id},
+        {"$set": {
+            "coaches_limit": update_data.get("coaches_limit") if "coaches_limit" in update_data else None,
+            "admins_limit": update_data.get("admins_limit") if "admins_limit" in update_data else None,
+        }}
+    )
+    
+    return {
+        "message": f"Tier '{tier_id}' updated successfully",
+        "updated_fields": list(update_data.keys())
+    }
+
+
+@api_router.get("/admin/organizations/{org_id}/limits")
+async def admin_get_org_limits(org_id: str, request: Request):
+    """Get custom limits for an organization (Admin only)"""
+    await require_admin(request)
+    
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Get subscription for this org
+    subscription = await db.subscriptions.find_one(
+        {"org_id": org_id},
+        {"_id": 0}
+    )
+    
+    # Get custom overrides
+    custom_limits = await db.organization_custom_limits.find_one(
+        {"org_id": org_id},
+        {"_id": 0}
+    )
+    
+    return {
+        "org_id": org_id,
+        "org_name": org.get("name") or org.get("club_name"),
+        "subscription_tier": subscription.get("tier_id") if subscription else "free",
+        "base_limits": {
+            "coaches": subscription.get("coaches_limit", 5) if subscription else 5,
+            "admins": subscription.get("admins_limit", 1) if subscription else 1,
+            "data_retention_months": 3 if subscription and subscription.get("tier_id") == "individual" else None
+        },
+        "custom_overrides": custom_limits or {
+            "coaches_limit": None,
+            "admins_limit": None,
+            "data_retention_months": None
+        },
+        "effective_limits": {
+            "coaches": custom_limits.get("coaches_limit") if custom_limits and custom_limits.get("coaches_limit") else (subscription.get("coaches_limit", 5) if subscription else 5),
+            "admins": custom_limits.get("admins_limit") if custom_limits and custom_limits.get("admins_limit") else (subscription.get("admins_limit", 1) if subscription else 1),
+            "data_retention_months": custom_limits.get("data_retention_months") if custom_limits and custom_limits.get("data_retention_months") is not None else (3 if subscription and subscription.get("tier_id") == "individual" else None)
+        }
+    }
+
+
+@api_router.put("/admin/organizations/{org_id}/limits")
+async def admin_update_org_limits(org_id: str, request: Request):
+    """Update custom limits for an organization (Admin only)"""
+    await require_admin(request)
+    
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    body = await request.json()
+    
+    # Allowed fields for custom overrides
+    allowed_fields = ["coaches_limit", "admins_limit", "data_retention_months"]
+    
+    update_data = {"org_id": org_id}
+    for field in allowed_fields:
+        if field in body:
+            # Allow None to clear override
+            update_data[field] = body[field]
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert custom limits
+    await db.organization_custom_limits.update_one(
+        {"org_id": org_id},
+        {"$set": update_data, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {
+        "message": f"Custom limits for organization updated",
+        "org_id": org_id,
+        "updated_fields": [f for f in allowed_fields if f in body]
+    }
+
+
 # ============================================
 # END ADMIN API ENDPOINTS
 # ============================================
