@@ -361,8 +361,8 @@ export default function CoachMyDevelopment() {
   // Count sessions needing reflection for notification indicator
   const sessionsNeedingReflection = sessions.filter(s => s.has_observation && !s.has_reflection).length;
   
-  // Use API analytics if available, otherwise use defaults
-  const analytics = analyticsData || {
+  // Use filtered analytics if filters are active, otherwise use API analytics
+  const analytics = filteredAnalytics || analyticsData || {
     total_sessions: filteredSessions.length,
     total_interventions: 0,
     avg_per_session: 0,
