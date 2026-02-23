@@ -51,21 +51,52 @@ export default function AppHeader() {
     return () => window.removeEventListener('storage', checkImpersonation);
   }, [location.pathname]);
   
-  // Exit impersonation mode - logs admin out to cleanly exit impersonation
-  // Admin will need to login again after exiting
-  const handleExitImpersonation = () => {
-    // Clear ALL auth data to fully exit impersonation
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('admin_token_backup');
-    localStorage.removeItem('impersonating');
-    localStorage.removeItem('impersonated_user');
-    localStorage.removeItem('impersonated_by');
-    localStorage.removeItem('exiting_impersonation');
-    
-    toast.success('Exited impersonation. Please login again.');
-    
-    // Full redirect to login - this ensures clean state
-    window.location.href = '/login';
+  // Exit impersonation mode - restores admin session via API
+  const handleExitImpersonation = async () => {
+    try {
+      // Call the backend to restore admin session
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${API_URL}/api/admin/exit-impersonation`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Failed to exit impersonation');
+      }
+      
+      // Clear impersonation state from localStorage
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
+      localStorage.removeItem('admin_token_backup');
+      
+      // Clear the auth token from localStorage (cookie has been restored by backend)
+      localStorage.removeItem('auth_token');
+      
+      toast.success('Returned to admin view');
+      
+      // Navigate to admin dashboard
+      navigate('/admin');
+      
+      // Force a page reload to ensure clean state
+      window.location.reload();
+    } catch (err) {
+      console.error('Error exiting impersonation:', err);
+      // Fallback: clear everything and redirect to login
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('admin_token_backup');
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
+      
+      toast.error(err.message || 'Failed to exit impersonation. Please login again.');
+      window.location.href = '/login';
+    }
   };
   
   // Check if impersonating
