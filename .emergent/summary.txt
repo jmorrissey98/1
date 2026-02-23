@@ -2,75 +2,61 @@
 The user is building a comprehensive coaching development platform. The primary goal is to provide tools for coaches and coach developers to track progress, analyze performance, and manage their professional development.
 
 Recent feature requests implemented in this session include:
-*   **Shared Session Reflections:** Allowing coaches and coach developers to share their private reflections on a session with each other, with granular sharing controls.
-*   **Stripe Subscription Management:** Adding a Manage Subscription button that redirects users to a Stripe Billing Portal to manage their plans, payment methods, and view invoices. This also involved enhancing the backend webhook to sync subscription status changes.
-*   **Advanced Session Filtering:** Implementing filters on the coach profile and development pages to allow users to view analytics based on time period (date ranges), session type (game/training), and day of the week.
-*   **Profile Notes:** A new request to add a private/shared notes section to coach profiles for both coaches and coach developers.
-
-The user also requested pricing and plan limit updates for the landing page, which were implemented.
+*   **Redesigned Variety Score:** The score calculation was overhauled to use Normalized Shannon Entropy, providing a mathematically sound measure of how evenly intervention types are distributed.
+*   **Data Retention Policy:** A 3-month rolling data history limit was implemented for the Individual subscription plan. This involved backend data filtering and frontend UI updates to hide older data, disable filter options, and present upgrade prompts.
+*   **Admin Page Enhancements:**
+    *   The admin impersonation exit flow was fixed to prevent logging the admin out.
+    *   Admins can now edit global subscription plan details (name, price, limits).
+    *   Admins can set custom per-club overrides for coach, coach developer, and data history limits.
+*   **Bug Fixes:**
+    *   Fixed a critical bug where analytics cards were not updating when filters were applied.
+    *   Fixed a bug where Ball Rolling data was not being displayed.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack platform using React, FastAPI, and MongoDB. It features user authentication (coach, coach developer, admin roles), role-based dashboards, session recording/analysis tools, and Stripe integration for subscriptions.
+The application is a full-stack platform using React, FastAPI, and MongoDB. It features user authentication with multiple roles (admin, coach developer, coach), role-based dashboards, session recording/analysis tools, and Stripe integration for subscriptions.
 
-In this session, the agent successfully completed several major features:
-1.  A complete overhaul of the Coach Development tab to provide rich analytics.
-2.  Implementation of a shared reflections system within sessions.
-3.  Integration of the Stripe Billing Portal for subscription self-management.
-4.  Addition of a comprehensive data filtering component on profile pages.
-5.  The agent has started work on the latest request: a Notes feature for coach profiles.
+In this session, the agent successfully implemented several user requests, including a complete redesign of the Variety Score calculation, a new data retention policy for the base subscription tier, and a major overhaul of the Admin Dashboard to allow for dynamic management of subscription plans and organization-specific limits. Multiple critical bugs related to data filtering were also resolved.
 
 **Last working item**:
--   **Last item agent was working:** The agent began implementing a Notes feature for coach profiles. This will allow coaches and coach developers to add private or shared notes on a coach's profile page.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** both. The frontend agent is needed to test the new UI component () on both  and , verifying its expand/collapse functionality and sharing logic. The backend agent or  is needed to test the new API endpoints for creating and fetching notes.
+-   **Last item agent was working:** The agent completed a major enhancement of the Admin Dashboard. This involved creating a new UI and backend endpoints for:
+    1.  Editing global subscription tier properties (price, name, limits).
+    2.  Setting custom limit overrides on a per-organization basis.
+    3.  Fixing the admin impersonation exit flow to no longer log the admin out.
+-   **Status:** USER VERIFICATION PENDING
+-   **Agent Testing Done:** Y (Verified via screenshots that the new UI components and forms are rendering correctly. Did not perform an end-to-end test of saving changes and verifying their effect.)
+-   **Which testing method agent to use?** both. Use the frontend testing agent to test the new Admin UI, including editing a tier, setting a custom override, and confirming the impersonation exit flow works without logging the user out. Use  to test the new backend endpoints (, ) to ensure the changes are saved correctly.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0):** Admin impersonation exit flow is a workaround.
+-   **Issue 1 (P0):** Production environment sync failure causing data loss.
 -   **Issue 2 (P1):** Note position on the session timeline is incorrect.
--   **Issue 3 (P1):** Production environment sync failure causing data loss. (Critical)
--   **Issue 4 (P2):** Production deployment login failure. (Blocked on user)
--   **Issue 5 (P2):** Production password reset emails are significantly delayed. (Blocked on user)
--   **Issue 6 (P3):** Body stream already read console error.
+-   **Issue 3 (P2):** Production deployment login failure.
+-   **Issue 4 (P2):** Production password reset emails are significantly delayed.
+-   **Issue 5 (P3):** Body stream already read console error.
 
 **Issues Detail:**
--   **Issue 1: Admin impersonation exit flow is a workaround**
-    -   **Attempted fixes:** The current workaround logs the admin out completely after impersonation instead of restoring their original session, due to a frontend race condition.
-    -   **Next debug checklist:** Investigate the interaction between  in  and the  component to ensure the admin's user object is fully restored before rendering a protected route.
-    -   **Why fix this issue?** The current flow is highly disruptive for admins.
-    -   **Status:** IN PROGRESS (Workaround implemented, proper fix pending)
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on other issue:** None
-
--   **Issue 2: Note position on the session timeline is incorrect**
-    -   **Attempted fixes:** Notes were made clickable, but their position on the visual timeline does not correctly correspond to the time they were made during the session.
-    -   **Next debug checklist:** Modify the CSS calculation for the note markers in . The  property should be calculated as a percentage based on .
-    -   **Why fix this issue?** Provides accurate context for when a note was taken during a session review.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on other issue:** None
-
--   **Issue 3: Production environment sync failure causing data loss**
+-   **Issue 1: Production environment sync failure causing data loss**
     -   **Attempted fixes:** None.
-    -   **Next debug checklist:** This is a critical data integrity issue that has recurred. A full investigation is needed. Start by: 1. Reviewing server logs (backend, database) on the production environment for any errors during user sessions. 2. Trying to reproduce the issue by simulating user workflows that involve data creation/updates. 3. Checking for any discrepancies between data models and database schema that might cause silent failures.
-    -   **Why fix this issue?** Prevents catastrophic data loss for users. This is a P0 business risk.
+    -   **Next debug checklist:** This is a critical data integrity issue. 1. Review server and database logs on the production environment for errors. 2. Attempt to reproduce by simulating user workflows involving data creation/updates. 3. Check for discrepancies between Pydantic models and the MongoDB schema.
+    -   **Why fix this issue?** Prevents catastrophic data loss for users. This is a top-priority business risk.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** Both
     -   **Blocked on other issue:** None
 
+-   **Issue 2: Note position on the session timeline is incorrect**
+    -   **Attempted fixes:** None in this session.
+    -   **Next debug checklist:** Review the CSS calculation for the note markers in . The  property should be calculated as a percentage based on .
+    -   **Why fix this issue?** To provide accurate visual context for when a note was taken during a session.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on other issue:** None
+
 **In progress Task List**:
--   **Task 1: Complete Notes feature on coach profiles (P0)**
-    -   **Where to resume:** The agent has created the backend model ( in ), API endpoints ( in ), and a new frontend component file ().
-    -   **What will be achieved with this?** The next steps are to build out the UI and logic within  and then integrate this component into  and  to allow users to create, view, and manage shared/private notes.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Both
-    -   **Blocked on something:** None
+-   None. All tasks from this session were completed pending user verification.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
@@ -79,104 +65,115 @@ In this session, the agent successfully completed several major features:
     *   **(P2) PDF Export:** Add the ability to export a session summary or coach portfolio as a PDF document.
 
 **Completed work in this session**
--   **Coach Development Tab Overhaul:** Fully replicated the coach's personal analytics view () into the coach developer's profile view (), including all charts and data cards. A new backend endpoint was created to support this.
--   **Shared Reflections Feature:** Implemented a system for coaches and coach developers to share their session reflections. This included adding sharing toggles to the UI and updating the backend to manage visibility based on user role and sharing preferences.
--   **Stripe Billing Portal Integration:** Added a Manage Subscription button and backend endpoint () that redirects users to Stripe to manage their subscription. The webhook () was enhanced to listen for more events like  and .
--   **Session Data Filtering:** Created a reusable  component and integrated it into  and , allowing users to filter analytics by date range, session type, and day of the week.
--   **Landing Page Updates:** Modified the text on the landing page to reflect new pricing (£60 for Club plan) and limits (10 coaches for Developer plan) as requested by the user.
+-   **Admin Dashboard Overhaul:**
+    -   Fixed the admin impersonation exit flow to correctly restore the admin's session without a forced logout.
+    -   Built a new UI and backend for editing global subscription tiers (name, price, limits).
+    -   Built a new UI and backend for setting custom limit overrides for individual organizations.
+-   **Variety Score Redesign:** Re-implemented the score calculation on the backend and frontend using Normalized Shannon Entropy for a more accurate measure of intervention distribution.
+-   **Data Retention Feature (Individual Plan):**
+    -   Backend endpoints now filter sessions and analytics to a 3-month window for users on the Individual plan.
+    -   The landing page was updated to display the 3 months data history limit.
+    -   Profile and development pages now show an upgrade banner and grey out inaccessible sessions older than 3 months.
+    -   The session filter dropdown now disables timeframes beyond the user's retention limit and links to the pricing page.
+-   **Data Filtering Bug Fixes:**
+    -   Resolved a bug where analytics cards (e.g., Most Used Intervention, Variety Score) were not updating when date filters were applied.
+    -   Fixed an issue where Ball Rolling metrics were always 0% by ensuring the relevant data fields were included in the API response from .
+-   **UI/UX Improvements:**
+    -   Completed the Notes feature on coach profiles.
+    -   Moved the Notes component to the Profile tab as requested.
+    -   Renamed the This Week filter to Last 7 Days for accuracy.
 
 **Earlier issues found/mentioned but not fixed**
--   **Unoptimized Database Queries:** Some database queries may be inefficient and could be optimized for better performance as the application scales.
+-   **Unoptimized Database Queries:** Some database queries may be inefficient and could be optimized for better performance as the application scales. This was not addressed.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Production Sync issue causing disappearing data.
 -   **Recurrence count:** 2+
 -   **Status:** NOT STARTED
--   **Note:** This critical data integrity issue has been carried over and remains unaddressed. It is a P0 risk for the application.
+-   **Note:** This critical data integrity issue has been carried over and remains unaddressed.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Stripe Billing Portal:** Implemented using  to allow users to self-manage their subscriptions, reducing support overhead.
--   **Stateful Stripe Webhooks:** The webhook at  was enhanced to handle a wider range of events (, ), making the application's user subscription status more robust and in sync with Stripe.
--   **Conditional UI Rendering & Role-Based Logic:** Used extensively in  to implement the shared reflections feature, showing different views and controls based on whether the user is a coach or a coach developer.
--   **Reusable Frontend Components:** Created  and  to encapsulate complex UI and logic, following DRY principles and making the codebase easier to maintain.
--   **Client-Side Data Filtering:** Implemented filtering logic directly in the frontend (, ) using  hooks. This provides a fast, responsive user experience by filtering existing data without requiring new backend calls for every change.
+-   **Centralized Admin Configuration:** Created a new admin dashboard for managing global subscription settings and per-organization overrides, centralizing business logic control.
+-   **Role-Based Data Retention:** Implemented backend logic to filter data based on user subscription tier ( plan has a 3-month limit). The logic respects both global plan settings and per-organization overrides.
+-   **Dynamic Frontend UI based on Subscription:** The frontend conditionally renders UI elements (disabled filters, upgrade prompts, greyed-out sessions) based on the  limits sent from the backend.
+-   **Normalized Shannon Entropy (Pielou's Evenness Index):** Implemented on both backend and frontend to provide a mathematically sound Variety Score.
+-   **Stateful Impersonation Flow:** Fixed a critical admin UX issue by correctly managing session state on the backend when an admin exits impersonation mode, avoiding a forced logout.
 
 **key DB schema**
--   **observations:**
-    -    (new)
-    -    (new)
--   **coaches:** (A new sub-document will be added)
-    -    (new)
+-   **organizations:**
+    -    (new, optional field for overrides)
+-   **plans** (managed in backend config):
+    -    (new property)
 
 **changes in tech stack**
--   None.
+-    is a required dependency for date calculations.
 
 **All files of reference**
--    (Primary file for the current P0 task - needs implementation)
--    (Target for integrating the Notes component)
--    (Target for integrating the Notes component)
--    (Contains the new Notes API endpoints)
--    (Contains the new  model definition)
+-    (New admin management UI)
+-    (New admin management backend logic)
+-    (Contains the core data retention logic)
+-    (Shows impact of filtering fixes and data retention UI)
+-    (Shows impact of filtering fixes and data retention UI)
+-    (Contains logic for disabling filter options)
+-    (Contains the impersonation exit fix)
 
 **Areas that need refactoring**:
--   The admin **Exit Impersonation** flow in  is a temporary patch and requires a proper fix to avoid forcing a full logout.
+-   The main  file still contains several endpoints. These could be migrated to more specific route files under  for better organization.
 
 **key api endpoints**
--   : (New) Add a note to a coach's profile.
--   : (New) Get notes for a coach's profile.
--   : (New) Create a Stripe Billing Portal session for the current user.
--   : (New) Toggle reflection sharing status for a session.
--   : (New) Get analytics data for a specific coach.
--   : (Modified) Enhanced to handle more subscription lifecycle events.
+-   : (New) Updates a global subscription plan.
+-   : (New) Sets custom limits for a specific organization.
+-   : (New) Fetches all subscription plans.
+-   : (New) Fetches all organizations.
+-   : (Modified) Correctly restores the admin session.
+-   : (Modified) Returns new Variety Score and data retention info.
+-   : (Modified) Includes ball rolling data and filters by data retention.
 
 **Critical Info for New Agent**
--   **Immediate Priority:** Your first task is to complete the Notes feature (P0). The backend model and API endpoints are already created in . You need to build out the frontend component  and integrate it into  and .
--   **High Priority Issue:** The admin impersonation exit flow is broken and provides a poor user experience. This is the top-priority bug to address after completing the current task.
--   **Critical Data Loss Bug:** A recurring production sync issue that causes data loss has been identified but not investigated. This is a critical stability risk for the application and should be prioritized.
--   **Context on Recent Features:** The agent just finished implementing a Stripe Billing Portal, a shared reflections system, and a comprehensive session filter. Be aware of these new components () and logic when working in related files (, , ).
+-   **Admin Dashboard is the Latest Feature:** The agent just finished a major overhaul of the Admin page to allow management of subscription tiers and per-organization limits. This is the most recent work and awaits user verification.
+-   **Data Retention Logic is Key:** A new data retention feature limits Individual plan users to 3 months of data. This logic is implemented across the backend (data filtering in ) and frontend (UI restrictions in , , etc.). The system checks for organization-specific overrides before applying global plan limits.
+-   **Variety Score Has Changed:** The  metric now uses Normalized Shannon Entropy. Be mindful of this new calculation in any future analytics work.
+-   **Critical Bugs Remain Unaddressed:** The recurring production data loss issue is a P0 priority and should be investigated as soon as the current work is verified.
 
 **documents and test reports created in this job**
--   
--   
--   
 -    (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Request: Add Notes tab to coach profiles.** User provided detailed requirements for a new notes feature with private/shared visibility. (IN PROGRESS)
-2.  **Request: Filter data on coach profiles.** User asked for filtering by day of the week, session type, and date ranges. (COMPLETED)
-3.  **Request: Manage Stripe subscription in-app.** User requested a Manage Subscription button redirecting to a Stripe Billing Portal and a webhook to sync status. (COMPLETED)
-4.  **Correction: Remove duplicate Coach Reflections section.** User asked to clean up the UI after the shared reflections feature was implemented. (COMPLETED)
-5.  **Confirmation on sharing behavior.** User clarified that reflections should be shared by default and auto-save when toggled. (Acknowledged & Implemented)
-6.  **Request: Implement shared reflections.** User provided detailed requirements for sharing reflections between a coach and coach developer. (COMPLETED)
-7.  **Info: Provided new Stripe Price IDs.** User updated prices in Stripe and provided the new IDs. (Acknowledged & Implemented)
-8.  **Request: Update landing page pricing.** User asked to change the coach limit and monthly/annual price for certain plans. (COMPLETED)
-9.  **User prompt:** continue.
-10. **Approval:** yes, proceed with Completing the Coach Development tab overhaul first. (Acknowledged & Implemented)
+1.  **Request (Bug/UI):** Fix broken data filters on profile pages and move the Notes component. (COMPLETED)
+2.  **Request (Bug):** Ball rolling metric is incorrectly showing 0%. (COMPLETED)
+3.  **Request (UI):** Rename the This Week filter to Last 7 Days. (COMPLETED)
+4.  **Request (Feature):** Redesign the Variety Score to be a mathematically sound measure of distribution. (COMPLETED)
+5.  **Request (Feature):** Implement a 3-month data retention limit for the Individual plan, including UI prompts and pricing page updates. (COMPLETED)
+6.  **Request (Bug):** User on the individual plan can still see all-time data filters. (COMPLETED - This was due to testing with an admin account, but led to further UI refinements).
+7.  **Request (UI):** Grey out sessions older than the retention limit and make the upgrade prompts link to the pricing page. (COMPLETED)
+8.  **Request (Feature):** Overhaul the Admin Page: fix impersonation exit, add editing for subscription plans, and add per-club limit overrides. (COMPLETED - PENDING USER VERIFICATION)
+9.  **User prompt:** 
+10. **Approval:** User approved proceeding with a fix.
 
 **Project Health Check:**
 -   **Broken:**
-    -   **Production Data Sync:** A critical, uninvestigated data loss bug that has recurred.
-    -   **Admin Impersonation Exit Flow:** The intended functionality is broken; a disruptive workaround is in place.
+    -   **Production Data Sync:** A critical, recurring, and uninvestigated data loss bug.
+    -   **Note Position on Timeline:** A known UI bug where session notes are not placed correctly on the visual timeline.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
--   **Stripe:** (Payments) Handles user subscriptions. Now integrated with the Stripe Billing Portal.
+-   **Stripe:** (Payments) Handles user subscriptions.
 -   **Resend:** (Email API) For transactional emails.
 -   **Google Analytics (GA4):** For tracking page views and events.
 -   **recharts:** For data visualizations and charts.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. Used three times for the Coach Development overhaul, Shared Reflections feature, and Session Filters feature.
--   **Troubleshoot agent used after agent stuck in loop:** NO.
--   **Test files created:** None by the main agent, but the testing agent applied a fix to .
--   **Known regressions:** The admin Exit Impersonation feature remains a functional regression.
+-   **Testing agent used after significant changes:** NO (Agent self-tested with screenshots and )
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** NO
+-   **Known regressions:** None from this session. The previous Admin Impersonation regression was fixed.
 
 **Credentials to test flow:**
 -   **Admin/Coach Developer:**  / 
 -   **Coach:**  / 
 
 **What agent forgot to execute**
--   The agent has successfully addressed or started work on all user requests from this session. The pre-existing issue regarding incorrect note positioning on the session timeline remains pending but was not part of this session's immediate scope.</analysis>
+-   The agent successfully addressed all user requests from this session. Pre-existing issues that were not prioritized by the user (e.g., incorrect note positioning on the timeline) remain pending.</analysis>
