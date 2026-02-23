@@ -111,25 +111,10 @@ export default function CoachMyDevelopment() {
     }
   };
 
-  // Filter sessions based on search and date
+  // Filter sessions based on search and filters
   const filteredSessions = useMemo(() => {
-    let result = [...sessions];
-    
-    // Apply timeframe filter
-    const now = new Date();
-    if (timeframe === 'month') {
-      const start = startOfMonth(now);
-      result = result.filter(s => new Date(s.date) >= start);
-    } else if (timeframe === '3months') {
-      const start = subMonths(now, 3);
-      result = result.filter(s => new Date(s.date) >= start);
-    } else if (timeframe === '6months') {
-      const start = subMonths(now, 6);
-      result = result.filter(s => new Date(s.date) >= start);
-    } else if (timeframe === 'year') {
-      const start = new Date(now.getFullYear(), 0, 1);
-      result = result.filter(s => new Date(s.date) >= start);
-    }
+    // First apply session filters
+    let result = applySessionFilters(sessions, sessionFilters);
     
     // Apply search query
     if (searchQuery.trim()) {
@@ -141,22 +126,74 @@ export default function CoachMyDevelopment() {
       );
     }
     
-    // Apply date range filter
-    if (dateFilter.start && dateFilter.end) {
-      const start = new Date(dateFilter.start);
-      const end = new Date(dateFilter.end);
-      end.setHours(23, 59, 59, 999);
-      result = result.filter(s => {
-        const sessionDate = new Date(s.date);
-        return sessionDate >= start && sessionDate <= end;
-      });
+    return result.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [sessions, searchQuery, sessionFilters]);
+
+  // Calculate filtered analytics based on the current filters
+  const filteredAnalytics = useMemo(() => {
+    if (!analyticsData) return null;
+    
+    // If no filters are active, return original analytics
+    const hasActiveFilters = sessionFilters.timeframe !== 'all' || 
+                            sessionFilters.sessionType !== 'all' || 
+                            sessionFilters.daysOfWeek.length > 0;
+    
+    if (!hasActiveFilters) return analyticsData;
+    
+    // Recalculate analytics based on filtered sessions
+    const filtered = filteredSessions.filter(s => s.status === 'completed');
+    
+    if (filtered.length === 0) {
+      return {
+        ...analyticsData,
+        total_sessions: 0,
+        total_interventions: 0,
+        avg_per_session: 0,
+        avg_ball_rolling: 0,
+        intervention_chart_data: []
+      };
     }
     
-    return result.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [sessions, searchQuery, dateFilter, timeframe]);
-
-  // Note: Main analytics comes from /api/coach/analytics endpoint (analyticsData state)
-  // This filteredSessions is just for session list display
+    // Calculate totals from filtered sessions
+    let totalInterventions = 0;
+    let totalBallRolling = 0;
+    let totalBallStopped = 0;
+    const interventionCounts = {};
+    
+    filtered.forEach(session => {
+      const events = session.events || [];
+      totalInterventions += events.length;
+      totalBallRolling += session.ball_rolling_time || session.ballRollingTime || 0;
+      totalBallStopped += session.ball_not_rolling_time || session.ballNotRollingTime || 0;
+      
+      events.forEach(event => {
+        const typeName = event.eventTypeName || event.eventTypeId || 'Unknown';
+        interventionCounts[typeName] = (interventionCounts[typeName] || 0) + 1;
+      });
+    });
+    
+    const avgPerSession = filtered.length > 0 ? Math.round(totalInterventions / filtered.length * 10) / 10 : 0;
+    const totalDuration = totalBallRolling + totalBallStopped;
+    const avgBallRolling = totalDuration > 0 ? Math.round((totalBallRolling / totalDuration) * 100) : 0;
+    
+    // Build intervention chart data
+    const chartData = Object.entries(interventionCounts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: totalInterventions > 0 ? Math.round((count / totalInterventions) * 100) : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+    
+    return {
+      ...analyticsData,
+      total_sessions: filtered.length,
+      total_interventions: totalInterventions,
+      avg_per_session: avgPerSession,
+      avg_ball_rolling: avgBallRolling,
+      intervention_chart_data: chartData
+    };
+  }, [analyticsData, filteredSessions, sessionFilters]);
 
   // Target management functions
   const handleSaveTarget = async (targetId, newText) => {
