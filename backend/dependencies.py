@@ -189,6 +189,7 @@ DATA_RETENTION_LIMITS = {
 async def get_data_retention_info(user_id: str) -> Dict[str, Any]:
     """
     Get data retention information for a user based on their subscription tier.
+    Checks for custom organization overrides.
     Returns: {
         "months_limit": int or None (None = unlimited),
         "tier": str,
@@ -201,6 +202,26 @@ async def get_data_retention_info(user_id: str) -> Dict[str, Any]:
     # Normalize tier name for lookup
     tier_lower = tier.lower() if tier else "free"
     months_limit = DATA_RETENTION_LIMITS.get(tier_lower, 3)  # Default to 3 months if unknown
+    
+    # Check for custom organization override
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if user_doc:
+        org_id = user_doc.get("organization_id")
+        if not org_id:
+            # Check if user owns an org
+            org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
+            org_id = org.get("org_id") if org else None
+        
+        if org_id:
+            custom_limits = await db.organization_custom_limits.find_one(
+                {"org_id": org_id},
+                {"_id": 0}
+            )
+            if custom_limits and custom_limits.get("data_retention_months") is not None:
+                months_limit = custom_limits.get("data_retention_months")
+                # None in custom means unlimited
+                if months_limit == 0:
+                    months_limit = None
     
     cutoff_date = None
     if months_limit is not None:
