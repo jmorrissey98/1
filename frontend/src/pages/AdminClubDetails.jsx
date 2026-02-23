@@ -100,6 +100,28 @@ export default function AdminClubDetails() {
     }
   };
 
+  const handleSendResetEmail = async (userEmail) => {
+    setSendingResetEmail(userEmail);
+    
+    try {
+      const result = await safePost(`${API_URL}/api/admin/users/send-reset-email`, {
+        email: userEmail
+      });
+      
+      if (!result.ok) {
+        throw new Error(result.data?.detail || result.error || 'Failed to send reset email');
+      }
+      
+      toast.success(`Password reset email sent to ${userEmail}`, {
+        description: 'Link valid for 24 hours'
+      });
+    } catch (err) {
+      toast.error(err.message || 'Failed to send reset email');
+    } finally {
+      setSendingResetEmail(null);
+    }
+  };
+
   const handleDeleteUser = async () => {
     setDeleting(true);
     
