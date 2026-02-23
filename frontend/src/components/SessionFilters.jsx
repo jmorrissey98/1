@@ -68,9 +68,9 @@ export function SessionFilters({
   const [sessionParts, setSessionParts] = useState([]);
   const [hasSetDefaultTimeframe, setHasSetDefaultTimeframe] = useState(false);
   
-  // Set default timeframe based on tier (only on initial load)
+  // Set default timeframe based on tier (only on initial load when dataRetention loads)
   useEffect(() => {
-    if (!hasSetDefaultTimeframe && filters.timeframe === 'all') {
+    if (!hasSetDefaultTimeframe && dataRetention !== null) {
       // Determine the tier from dataRetention or subscriptionTier prop
       const tier = subscriptionTier || dataRetention?.tier?.toLowerCase() || 'individual';
       
@@ -80,7 +80,7 @@ export function SessionFilters({
       }
       setHasSetDefaultTimeframe(true);
     }
-  }, [dataRetention, subscriptionTier, hasSetDefaultTimeframe]);
+  }, [dataRetention, subscriptionTier, hasSetDefaultTimeframe, filters, onFiltersChange]);
   
   // Load session parts on mount
   useEffect(() => {
