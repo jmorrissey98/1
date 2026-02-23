@@ -666,8 +666,8 @@ export function calculateFilteredAnalytics(sessions, selectedParts = []) {
     });
   });
   
-  const avgPerSession = completedSessions.length > 0 
-    ? Math.round(totalInterventions / completedSessions.length * 10) / 10 
+  const avgPerSession = validSessions.length > 0 
+    ? Math.round(totalInterventions / validSessions.length * 10) / 10 
     : 0;
   const totalDuration = totalBallRolling + totalBallStopped;
   const avgBallRolling = totalDuration > 0 ? Math.round((totalBallRolling / totalDuration) * 100) : 0;
@@ -710,7 +710,7 @@ export function calculateFilteredAnalytics(sessions, selectedParts = []) {
   }
   
   return {
-    total_sessions: completedSessions.length,
+    total_sessions: validSessions.length,
     total_interventions: totalInterventions,
     avg_per_session: avgPerSession,
     avg_ball_rolling: avgBallRolling,
