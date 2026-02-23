@@ -104,7 +104,14 @@ export default function CoachProfile() {
       // Load sessions for this coach from API
       try {
         const sessionsResponse = await axios.get(`${API}/coaches/${coachId}/sessions`, { withCredentials: true });
-        setSessions(sessionsResponse.data || []);
+        // Handle new response format with data_retention info
+        if (sessionsResponse.data?.sessions) {
+          setSessions(sessionsResponse.data.sessions || []);
+          setDataRetention(sessionsResponse.data.data_retention || null);
+        } else {
+          // Fallback for old response format (array)
+          setSessions(sessionsResponse.data || []);
+        }
       } catch (sessErr) {
         console.warn('Failed to load coach sessions from API:', sessErr);
         // Fall back to localStorage for sessions if API fails
