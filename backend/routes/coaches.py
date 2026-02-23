@@ -463,9 +463,29 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
         for name, count in sorted(intervention_type_count.items(), key=lambda x: -x[1])
     ]
     
-    # Calculate variety percentage
-    unique_combinations = len(intervention_combinations)
-    variety_percentage = round((unique_combinations / total_interventions) * 100) if total_interventions > 0 else 0
+    # Calculate variety score using Normalized Shannon Entropy (Pielou's Evenness)
+    # This measures how evenly distributed interventions are across types
+    # 100% = perfectly even, 0% = only one type used
+    import math
+    variety_percentage = 0
+    num_types = len(intervention_type_count)
+    
+    if num_types > 1 and total_interventions > 0:
+        # Calculate Shannon Entropy: H = -Σ(p_i * log(p_i))
+        shannon_entropy = 0
+        for count in intervention_type_count.values():
+            if count > 0:
+                p = count / total_interventions
+                shannon_entropy -= p * math.log(p)
+        
+        # Maximum entropy for n types: H_max = log(n)
+        max_entropy = math.log(num_types)
+        
+        # Normalized entropy (evenness): E = H / H_max
+        if max_entropy > 0:
+            variety_percentage = round((shannon_entropy / max_entropy) * 100)
+    # If only 1 type used, variety is 0%
+    # If 0 types/interventions, variety is 0%
     
     # Get most common pattern
     sorted_combos = sorted(intervention_combinations.items(), key=lambda x: -x[1])
