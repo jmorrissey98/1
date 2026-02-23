@@ -345,21 +345,38 @@ async def get_coach_sessions_by_id(coach_id: str, request: Request):
     """
     Get all observation sessions for a specific coach.
     Coach Developer only - used to view a coach's session history.
+    Individual tier users only see last 3 months of data.
     """
-    await require_coach_developer(request)
+    user = await require_coach_developer(request)
     
     # Verify coach exists
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
     if not coach:
         raise HTTPException(status_code=404, detail="Coach not found")
     
-    # Get all observation sessions for this coach
+    # Get data retention info for the user
+    retention_info = await get_data_retention_info(user.user_id)
+    
+    # Build query - filter by date if user has limited retention
+    query = {"coach_id": coach_id}
+    if retention_info["is_limited"] and retention_info["cutoff_date"]:
+        query["created_at"] = {"$gte": retention_info["cutoff_date"].isoformat()}
+    
+    # Get observation sessions for this coach
     sessions_cursor = db.observation_sessions.find(
-        {"coach_id": coach_id},
+        query,
         {"_id": 0}
     ).sort("updated_at", -1)
     
     sessions = await sessions_cursor.to_list(100)
+    
+    # Also get count of sessions outside retention window (for upgrade prompt)
+    hidden_sessions_count = 0
+    if retention_info["is_limited"] and retention_info["cutoff_date"]:
+        hidden_sessions_count = await db.observation_sessions.count_documents({
+            "coach_id": coach_id,
+            "created_at": {"$lt": retention_info["cutoff_date"].isoformat()}
+        })
     
     # Get observer names in batch
     observer_ids = list(set(s.get("observer_id") for s in sessions if s.get("observer_id")))
@@ -398,7 +415,17 @@ async def get_coach_sessions_by_id(coach_id: str, request: Request):
             "eventTypes": s.get("intervention_types", [])
         })
     
-    return result
+    # Return with metadata about data retention
+    return {
+        "sessions": result,
+        "data_retention": {
+            "is_limited": retention_info["is_limited"],
+            "months_limit": retention_info["months_limit"],
+            "hidden_sessions_count": hidden_sessions_count,
+            "tier": retention_info["tier"],
+            "upgrade_message": f"You have {hidden_sessions_count} more sessions from before {retention_info['cutoff_date'].strftime('%B %Y')}. Upgrade to Developer or Club plan to access all historical data." if hidden_sessions_count > 0 else None
+        }
+    }
 
 
 @router.get("/{coach_id}/analytics")
