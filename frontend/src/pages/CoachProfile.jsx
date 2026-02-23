@@ -39,6 +39,7 @@ export default function CoachProfile() {
   const navigate = useNavigate();
   const { coachId } = useParams();
   const { isCoachDeveloper, user } = useAuth();
+  const { openUpgradeModal } = useUpgrade();
   
   const [coach, setCoach] = useState(null);
   const [sessions, setSessions] = useState([]);
