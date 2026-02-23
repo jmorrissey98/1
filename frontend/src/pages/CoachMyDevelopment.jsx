@@ -316,13 +316,11 @@ export default function CoachMyDevelopment() {
     }
   }, [analyticsData]);
 
-  // Filter intervention data based on selected filters
+  // Filter intervention data based on selected filters (uses filtered analytics)
   const filteredInterventionData = useMemo(() => {
-    if (!analyticsData?.intervention_chart_data) return [];
-    return analyticsData.intervention_chart_data.filter(item => 
-      interventionFilters[item.name] !== false
-    );
-  }, [analyticsData, interventionFilters]);
+    const chartData = filteredAnalytics?.intervention_chart_data || analyticsData?.intervention_chart_data || [];
+    return chartData.filter(item => interventionFilters[item.name] !== false);
+  }, [filteredAnalytics, analyticsData, interventionFilters]);
 
   const handleAddTarget = async () => {
     if (!newTargetText.trim()) return;
