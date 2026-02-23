@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { useUpgrade } from '../contexts/UpgradeContext';
 import { storage } from '../lib/storage';
 import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 
@@ -19,6 +20,7 @@ export default function UserSettings() {
   const navigate = useNavigate();
   const { user, logout, isCoachDeveloper } = useAuth();
   const { organization, updateOrganization, refreshOrganization } = useOrganization();
+  const { openUpgradeModal } = useUpgrade();
   const API_URL = ''; // Relative URL - frontend and backend on same domain
   
   const [users, setUsers] = useState([]);
