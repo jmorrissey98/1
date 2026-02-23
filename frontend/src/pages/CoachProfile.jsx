@@ -704,10 +704,39 @@ export default function CoachProfile() {
             </AlertDialog>
           </div>
         </div>
-      </header>
+      </main>
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
+        {/* Data Retention Upgrade Banner */}
+        {dataRetention?.is_limited && dataRetention?.hidden_sessions_count > 0 && (
+          <Card className="mb-6 border-amber-200 bg-amber-50">
+            <CardContent className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                <div>
+                  <p className="font-medium text-amber-800">
+                    {dataRetention.hidden_sessions_count} older session{dataRetention.hidden_sessions_count > 1 ? 's' : ''} not shown
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    Your {dataRetention.tier} plan shows data from the last {dataRetention.months_limit} months. 
+                    Upgrade to access all historical data.
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                className="border-amber-400 text-amber-700 hover:bg-amber-100"
+                onClick={() => navigate('/settings?tab=subscription')}
+                data-testid="upgrade-btn"
+              >
+                <ArrowUpCircle className="w-4 h-4 mr-2" />
+                Upgrade Plan
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs defaultValue="development" className="space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="development" data-testid="tab-development">Coach Development</TabsTrigger>
