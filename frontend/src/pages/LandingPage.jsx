@@ -27,7 +27,7 @@ const PRICING_TIERS = [
     subtitle: 'The Growth Specialist',
     monthlyPrice: 35,
     annualPrice: 350,
-    coaches: 15,
+    coaches: 10,
     admins: 1,
     popular: true
   },
@@ -35,8 +35,8 @@ const PRICING_TIERS = [
     id: 'club',
     name: 'Club',
     subtitle: 'The Organization',
-    monthlyPrice: 50,
-    annualPrice: 500,
+    monthlyPrice: 60,
+    annualPrice: 600,
     coaches: 50,
     admins: 10,
     popular: false
