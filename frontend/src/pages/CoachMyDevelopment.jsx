@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, TrendingUp, Calendar, Target, Search, Filter, 
-  Loader2, Eye, Edit2, Check, X, Archive, Plus, ChevronDown, ChevronUp, FileText, Bell, Trash2
+  Loader2, Eye, Edit2, Check, X, Archive, Plus, ChevronDown, ChevronUp, FileText, Bell, Trash2, Lock
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
