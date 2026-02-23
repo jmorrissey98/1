@@ -1554,13 +1554,31 @@ export default function ReviewSession() {
             {/* Coach Reflections */}
             <Card>
               <CardHeader>
-                <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                  <User className="w-5 h-5 text-green-600" />
-                  Coach Reflections
-                </CardTitle>
-                <CardDescription>
-                  {isCoachView ? 'Add your reflections on this session.' : 'Reflections from the coach.'}
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                      <User className="w-5 h-5 text-green-600" />
+                      {isCoachView ? 'My Reflections' : 'Coach Reflections'}
+                    </CardTitle>
+                    <CardDescription>
+                      {isCoachView ? 'Add your reflections on this session.' : `Reflections from ${session.coach_name || 'the coach'}.`}
+                    </CardDescription>
+                  </div>
+                  {/* Sharing toggle for coach */}
+                  {isCoachView && (session.coachReflections || []).length > 0 && (
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
+                      <span className="text-xs text-slate-500">
+                        {coachReflectionShared ? 'Shared' : 'Private'}
+                      </span>
+                      <Switch
+                        checked={coachReflectionShared}
+                        onCheckedChange={handleToggleCoachSharing}
+                        disabled={togglingShare}
+                        data-testid="toggle-coach-sharing"
+                      />
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {(session.coachReflections || []).length > 0 ? (
@@ -1644,16 +1662,187 @@ export default function ReviewSession() {
                       className="min-h-[80px] resize-y"
                       data-testid="coach-reflection-textarea"
                     />
-                    <Button 
-                      onClick={() => handleAddReflection('coach')} 
-                      variant="outline"
-                      disabled={!newCoachReflection.trim()}
-                      className="border-green-300 text-green-700 hover:bg-green-50"
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      Add Reflection
-                    </Button>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <Button 
+                        onClick={() => handleAddReflection('coach')} 
+                        variant="outline"
+                        disabled={!newCoachReflection.trim()}
+                        className="border-green-300 text-green-700 hover:bg-green-50"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Add Reflection
+                      </Button>
+                      
+                      {/* Sharing toggle for coach when adding first reflection */}
+                      {(session.coachReflections || []).length === 0 && (
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            {coachReflectionShared ? (
+                              <Eye className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <EyeOff className="w-4 h-4 text-slate-400" />
+                            )}
+                            <Label htmlFor="share-coach-reflection" className="text-sm font-medium cursor-pointer">
+                              Share with {session.observer_name || 'Coach Developers'}
+                            </Label>
+                          </div>
+                          <Switch
+                            id="share-coach-reflection"
+                            checked={coachReflectionShared}
+                            onCheckedChange={handleToggleCoachSharing}
+                            disabled={togglingShare}
+                            data-testid="toggle-coach-sharing-new"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ===== SHARED REFLECTIONS SECTION ===== */}
+            <Card className="border-blue-200 bg-blue-50/30">
+              <CardHeader>
+                <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                  <Share2 className="w-5 h-5 text-blue-600" />
+                  {isCoachView 
+                    ? `${session.observer_name || 'Coach Developer'}'s Reflections` 
+                    : `${session.coach_name || 'Coach'}'s Reflections`
+                  }
+                </CardTitle>
+                <CardDescription>
+                  {isCoachView 
+                    ? 'View the observer\'s shared reflection on this session.'
+                    : 'View the coach\'s shared reflection on this session.'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Determine what to show based on other_reflection_status */}
+                {session.other_reflection_status === 'not_completed' && (
+                  <div className="flex items-center gap-3 p-4 bg-slate-100 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                      <ClipboardList className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-slate-600 font-medium">Reflection not yet completed</p>
+                      <p className="text-sm text-slate-500">
+                        {isCoachView 
+                          ? `${session.observer_name || 'The coach developer'} hasn't completed their reflection yet.`
+                          : `${session.coach_name || 'The coach'} hasn't completed their reflection yet.`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {session.other_reflection_status === 'not_shared' && (
+                  <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                      <Lock className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-amber-700 font-medium">Reflection not shared with you</p>
+                      <p className="text-sm text-amber-600">
+                        {isCoachView 
+                          ? `${session.observer_name || 'The coach developer'} has completed their reflection but hasn't shared it with you.`
+                          : `${session.coach_name || 'The coach'} has completed their reflection but hasn't shared it with you.`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {session.other_reflection_status === 'shared' && session.other_reflection && (
+                  <div className="space-y-4">
+                    {/* Structured reflection display */}
+                    {session.other_reflection.responses && (
+                      <div className="space-y-4">
+                        {session.other_reflection.templateName && (
+                          <div className="text-sm text-blue-600 font-medium">
+                            Template: {session.other_reflection.templateName}
+                          </div>
+                        )}
+                        {Object.entries(session.other_reflection.responses).map(([questionId, response], idx) => (
+                          <div key={questionId} className="p-3 bg-white rounded-lg border">
+                            <p className="text-xs text-slate-500 mb-1">Response {idx + 1}</p>
+                            <p className="text-slate-700">
+                              {Array.isArray(response) ? response.join(', ') : String(response)}
+                            </p>
+                          </div>
+                        ))}
+                        {session.other_reflection.completedAt && (
+                          <p className="text-xs text-slate-400">
+                            Completed: {formatDateTime(session.other_reflection.completedAt)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Free-form reflections display */}
+                    {session.other_reflection.freeFormReflections && (
+                      <div className="space-y-3">
+                        {session.other_reflection.freeFormReflections.map((r, idx) => (
+                          <div key={r.id || idx} className="p-4 bg-white rounded-lg border space-y-2">
+                            {r.rating && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">Self Assessment</p>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map(n => (
+                                    <div 
+                                      key={n}
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                                        n <= r.rating 
+                                          ? 'bg-blue-500 text-white' 
+                                          : 'bg-slate-200 text-slate-400'
+                                      }`}
+                                    >
+                                      {n}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {r.text && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">Reflection</p>
+                                <p className="text-slate-700">{r.text}</p>
+                              </div>
+                            )}
+                            {r.what_went_well && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">What went well</p>
+                                <p className="text-slate-700">{r.what_went_well}</p>
+                              </div>
+                            )}
+                            {r.areas_for_development && (
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-1">Areas for development</p>
+                                <p className="text-slate-700">{r.areas_for_development}</p>
+                              </div>
+                            )}
+                            <p className="text-xs text-slate-400">{formatDateTime(r.timestamp)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Fallback for when status is not set (legacy sessions) */}
+                {!session.other_reflection_status && (
+                  <div className="flex items-center gap-3 p-4 bg-slate-100 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                      <ClipboardList className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-slate-600 font-medium">No shared reflection available</p>
+                      <p className="text-sm text-slate-500">
+                        The other participant's reflection is not available.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
