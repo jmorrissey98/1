@@ -185,6 +185,19 @@
 - `PUT /api/organization` - Update club branding
 - `GET /api/session-parts` - Get session part templates
 
+### Admin Endpoints (Updated Feb 23, 2026)
+- `GET /api/admin/organizations` - List all organizations (include_archived query param)
+- `GET /api/admin/organizations/{org_id}/users` - List users in organization
+- `GET /api/admin/organizations/{org_id}/limits` - Get organization limits
+- `PUT /api/admin/organizations/{org_id}/limits` - Set custom limit overrides
+- `POST /api/admin/organizations/{org_id}/archive` - Archive organization (soft delete)
+- `POST /api/admin/organizations/{org_id}/reinstate` - Reinstate archived organization
+- `DELETE /api/admin/organizations/{org_id}` - Permanently delete organization
+- `GET /api/admin/subscription-tiers` - Get all subscription tiers
+- `PUT /api/admin/subscription-tiers/{tier_id}` - Update subscription tier
+- `POST /api/admin/impersonate/{user_id}` - Start impersonating user
+- `POST /api/admin/exit-impersonation` - Exit impersonation mode (returns admin_token)
+
 ## Tech Stack
 - **Frontend:** React, TailwindCSS, Shadcn UI
 - **Backend:** FastAPI, Pydantic
