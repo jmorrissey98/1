@@ -216,3 +216,24 @@ async def can_add_admin(request: Request):
     user = await require_coach_developer(request)
     return await check_admin_limit(user.user_id)
 
+
+
+@router.get("/data-retention")
+async def get_data_retention(request: Request):
+    """
+    Get data retention information for the current user's subscription.
+    Individual tier: 3 months rolling window
+    Developer/Club tiers: Unlimited
+    """
+    user = await require_auth(request)
+    
+    retention_info = await get_data_retention_info(user.user_id)
+    
+    return {
+        "tier": retention_info["tier"],
+        "months_limit": retention_info["months_limit"],
+        "is_limited": retention_info["is_limited"],
+        "cutoff_date": retention_info["cutoff_date"].isoformat() if retention_info["cutoff_date"] else None,
+        "message": f"Your {retention_info['tier']} plan shows data from the last {retention_info['months_limit']} months. Upgrade to access all historical data." if retention_info["is_limited"] else None
+    }
+
