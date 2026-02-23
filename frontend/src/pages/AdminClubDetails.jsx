@@ -26,6 +26,7 @@ export default function AdminClubDetails() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [sendingResetEmail, setSendingResetEmail] = useState(null); // tracks which user email is being sent
   
   // Delete user dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
