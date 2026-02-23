@@ -2686,6 +2686,153 @@ async def get_payment_transaction(session_id: str):
     
     return transaction
 
+
+class BillingPortalRequest(BaseModel):
+    return_url: str
+
+
+@api_router.post("/payments/billing-portal")
+async def create_billing_portal_session(data: BillingPortalRequest, request: Request):
+    """Create a Stripe Billing Portal session for subscription management"""
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    # Require authentication
+    user = await require_coach_developer(request)
+    
+    try:
+        # Get the user's Stripe customer ID from their subscription
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # First check if user has a stripe_customer_id stored directly
+        customer_id = user_doc.get("stripe_customer_id")
+        
+        # If not, look for it in their organization's subscription
+        if not customer_id:
+            org_id = user_doc.get("organization_id")
+            if not org_id:
+                # Check if user owns an organization
+                org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+                if org:
+                    org_id = org.get("org_id")
+            
+            if org_id:
+                # Find subscription by organization
+                subscription = await db.subscriptions.find_one(
+                    {"organization_id": org_id, "status": {"$in": ["active", "trialing", "past_due"]}},
+                    {"_id": 0}
+                )
+                if subscription:
+                    customer_id = subscription.get("customer_id")
+            
+            # If still no customer_id, check payment transactions
+            if not customer_id:
+                transaction = await db.payment_transactions.find_one(
+                    {"user_id": user.user_id, "customer_id": {"$exists": True}},
+                    {"_id": 0},
+                    sort=[("created_at", -1)]
+                )
+                if transaction:
+                    customer_id = transaction.get("customer_id")
+        
+        if not customer_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="No active subscription found. Please subscribe to a plan first."
+            )
+        
+        # Create Stripe Billing Portal session
+        portal_session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=data.return_url
+        )
+        
+        logger.info(f"Billing portal session created for user {user.user_id}, customer {customer_id}")
+        
+        return {
+            "url": portal_session.url,
+            "id": portal_session.id
+        }
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe billing portal error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create billing portal: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Billing portal error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create billing portal session")
+
+
+@api_router.get("/payments/subscription-status")
+async def get_subscription_status(request: Request):
+    """Get the current user's subscription status"""
+    user = await require_coach_developer(request)
+    
+    try:
+        # Get user's organization
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+        org_id = user_doc.get("organization_id") if user_doc else None
+        
+        if not org_id:
+            org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+            if org:
+                org_id = org.get("org_id")
+        
+        if not org_id:
+            return {
+                "has_subscription": False,
+                "status": None,
+                "tier": None,
+                "current_period_end": None
+            }
+        
+        # Find active subscription
+        subscription = await db.subscriptions.find_one(
+            {"organization_id": org_id},
+            {"_id": 0}
+        )
+        
+        if not subscription:
+            # Try to find by customer_id from payment transactions
+            transaction = await db.payment_transactions.find_one(
+                {"user_id": user.user_id, "status": "completed"},
+                {"_id": 0},
+                sort=[("created_at", -1)]
+            )
+            if transaction and transaction.get("subscription_id"):
+                subscription = await db.subscriptions.find_one(
+                    {"subscription_id": transaction.get("subscription_id")},
+                    {"_id": 0}
+                )
+        
+        if not subscription:
+            return {
+                "has_subscription": False,
+                "status": None,
+                "tier": None,
+                "current_period_end": None
+            }
+        
+        return {
+            "has_subscription": True,
+            "status": subscription.get("status"),
+            "tier": subscription.get("tier_id"),
+            "tier_name": subscription.get("tier_name"),
+            "current_period_start": subscription.get("current_period_start"),
+            "current_period_end": subscription.get("current_period_end"),
+            "canceled_at": subscription.get("canceled_at"),
+            "coaches_limit": subscription.get("coaches_limit"),
+            "admins_limit": subscription.get("admins_limit")
+        }
+        
+    except Exception as e:
+        logger.error(f"Subscription status error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get subscription status")
+
+
 # ============================================
 # END STRIPE PAYMENT ENDPOINTS
 # ============================================
