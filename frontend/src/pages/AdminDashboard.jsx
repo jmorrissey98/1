@@ -159,6 +159,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // Change organization subscription tier
+  const handleChangeTier = async (orgId, newTier) => {
+    setChangingTierOrg(orgId);
+    try {
+      const result = await safePut(`${API_URL}/api/admin/organizations/${orgId}/tier`, { tier_id: newTier });
+      if (result.ok) {
+        toast.success(`Subscription tier changed to ${newTier}`);
+        loadData();
+      } else {
+        toast.error(result.data?.detail || 'Failed to change tier');
+      }
+    } catch (err) {
+      toast.error('Failed to change subscription tier');
+    } finally {
+      setChangingTierOrg(null);
+    }
+  };
+
   // Start editing a tier
   const startEditingTier = (tier) => {
     setEditingTier(tier.tier_id);
