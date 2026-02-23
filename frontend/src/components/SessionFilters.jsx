@@ -222,14 +222,35 @@ function FilterContent({
   availableTimeframes = TIMEFRAME_PRESETS,
   dataRetention = null
 }) {
+  const navigate = useNavigate();
   const { timeframe, startDate, endDate, sessionType, daysOfWeek = [] } = filters;
+
+  // Handle timeframe selection - redirect to pricing if selecting disabled option
+  const handleTimeframeSelect = (value, isDisabled) => {
+    if (isDisabled) {
+      // Navigate to pricing section
+      navigate('/#pricing');
+      return;
+    }
+    onTimeframeChange(value);
+  };
+
+  // Get the current timeframe label
+  const currentTimeframeLabel = availableTimeframes.find(t => t.value === timeframe)?.label || 'Select timeframe';
 
   return (
     <div className="space-y-4">
       {/* Time Period */}
       <div>
         <Label className="text-sm text-slate-600 mb-2 block">Time Period</Label>
-        <Select value={timeframe} onValueChange={onTimeframeChange}>
+        <Select value={timeframe} onValueChange={(val) => {
+          const preset = availableTimeframes.find(p => p.value === val);
+          if (preset?.disabled) {
+            navigate('/#pricing');
+          } else {
+            onTimeframeChange(val);
+          }
+        }}>
           <SelectTrigger data-testid="timeframe-select">
             <SelectValue placeholder="Select timeframe" />
           </SelectTrigger>
@@ -238,12 +259,13 @@ function FilterContent({
               <SelectItem 
                 key={preset.value} 
                 value={preset.value}
-                disabled={preset.disabled}
-                className={preset.disabled ? 'opacity-50' : ''}
+                className={preset.disabled ? 'opacity-60 cursor-pointer' : ''}
               >
                 <span className="flex items-center gap-2">
-                  {preset.disabled && <Lock className="w-3 h-3 text-slate-400" />}
-                  {preset.disabled ? preset.lockedLabel : preset.label}
+                  {preset.disabled && <Lock className="w-3 h-3 text-amber-500" />}
+                  <span className={preset.disabled ? 'text-amber-600' : ''}>
+                    {preset.disabled ? preset.lockedLabel : preset.label}
+                  </span>
                 </span>
               </SelectItem>
             ))}
@@ -251,7 +273,13 @@ function FilterContent({
         </Select>
         {dataRetention?.is_limited && (
           <p className="text-xs text-slate-500 mt-1">
-            Your {dataRetention.tier} plan shows data from the last {dataRetention.months_limit} months
+            Your {dataRetention.tier} plan shows data from the last {dataRetention.months_limit} months. 
+            <button 
+              onClick={() => navigate('/#pricing')}
+              className="text-blue-600 hover:underline ml-1"
+            >
+              Upgrade for more
+            </button>
           </p>
         )}
       </div>
