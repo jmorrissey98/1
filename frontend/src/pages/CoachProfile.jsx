@@ -64,7 +64,8 @@ export default function CoachProfile() {
     startDate: '',
     endDate: '',
     sessionType: 'all',
-    daysOfWeek: []
+    daysOfWeek: [],
+    sessionParts: []
   });
   
   // Report export state
@@ -72,9 +73,22 @@ export default function CoachProfile() {
   const [reportEndDate, setReportEndDate] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   
-  // Session part filtering
+  // Session part filtering - extract unique parts from sessions
   const [availableParts, setAvailableParts] = useState([]);
   const [selectedPartFilter, setSelectedPartFilter] = useState('all');
+  
+  // Extract unique session parts from all sessions
+  const availableSessionParts = useMemo(() => {
+    const partsSet = new Set();
+    sessions.forEach(session => {
+      const parts = session.session_parts || session.sessionParts || session.parts || [];
+      parts.forEach(part => {
+        const partName = part.name || part.part_name || part;
+        if (partName) partsSet.add(partName);
+      });
+    });
+    return Array.from(partsSet).sort();
+  }, [sessions]);
   
   // Photo upload state
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
