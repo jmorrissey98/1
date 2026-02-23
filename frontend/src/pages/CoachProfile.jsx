@@ -54,6 +54,15 @@ export default function CoachProfile() {
   const [interventionFilters, setInterventionFilters] = useState({});
   const [interventionDetailsExpanded, setInterventionDetailsExpanded] = useState(false);
   
+  // Session filters state
+  const [sessionFilters, setSessionFilters] = useState({
+    timeframe: 'all',
+    startDate: '',
+    endDate: '',
+    sessionType: 'all',
+    daysOfWeek: []
+  });
+  
   // Report export state
   const [reportStartDate, setReportStartDate] = useState('');
   const [reportEndDate, setReportEndDate] = useState('');
