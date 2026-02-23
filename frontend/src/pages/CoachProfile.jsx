@@ -787,6 +787,7 @@ export default function CoachProfile() {
               filters={sessionFilters}
               onFiltersChange={setSessionFilters}
               showCompact={true}
+              dataRetention={dataRetention}
             />
 
             {/* Intervention Patterns Card */}
