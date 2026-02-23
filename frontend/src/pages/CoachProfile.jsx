@@ -817,7 +817,7 @@ export default function CoachProfile() {
               <Card>
                 <CardContent className="pt-6 text-center">
                   <div className="text-3xl font-bold text-slate-900" data-testid="total-sessions-count">
-                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : analytics.total_sessions || sessions.length}
+                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : (analytics.total_sessions ?? sessions.length)}
                   </div>
                   <p className="text-sm text-slate-500 mt-1">Sessions Observed</p>
                 </CardContent>
@@ -825,7 +825,7 @@ export default function CoachProfile() {
               <Card>
                 <CardContent className="pt-6 text-center">
                   <div className="text-3xl font-bold text-green-600" data-testid="avg-ball-rolling">
-                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : `${analytics.avg_ball_rolling || 0}%`}
+                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : `${analytics.avg_ball_rolling ?? 0}%`}
                   </div>
                   <p className="text-sm text-slate-500 mt-1">Avg Ball Rolling</p>
                 </CardContent>
@@ -833,7 +833,7 @@ export default function CoachProfile() {
               <Card>
                 <CardContent className="pt-6 text-center">
                   <div className="text-3xl font-bold text-blue-600" data-testid="avg-interventions">
-                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : Math.round(analytics.avg_per_session || 0)}
+                    {isLoadingAnalytics ? <Skeleton className="h-9 w-16 mx-auto" /> : Math.round(analytics.avg_per_session ?? 0)}
                   </div>
                   <p className="text-sm text-slate-500 mt-1">Avg Interventions</p>
                 </CardContent>
