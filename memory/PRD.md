@@ -25,8 +25,8 @@
   - Support Development - Turn observations into development plans
 - **Pricing tiers:**
   - Individual: £20/month, 5 coaches, 1 admin
-  - Developer: £35/month, 15 coaches, 1 admin (Most Popular)
-  - Club: £50/month, 50 coaches, 10 admins
+  - Developer: £35/month, 10 coaches, 1 admin (Most Popular)
+  - Club: £60/month, 50 coaches, 10 admins
 - **Billing:** Monthly default, Annual shows "2 months free" badge
 
 ### Coach Developer (Admin) Features
