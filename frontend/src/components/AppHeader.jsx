@@ -69,21 +69,23 @@ export default function AppHeader() {
         throw new Error(data.detail || 'Failed to exit impersonation');
       }
       
+      const data = await response.json();
+      
       // Clear impersonation state from localStorage
       localStorage.removeItem('impersonating');
       localStorage.removeItem('impersonated_user');
       localStorage.removeItem('impersonated_by');
       localStorage.removeItem('admin_token_backup');
       
-      // Clear the auth token from localStorage (cookie has been restored by backend)
-      localStorage.removeItem('auth_token');
+      // CRITICAL: Restore the admin token to localStorage (returned from backend)
+      if (data.admin_token) {
+        localStorage.setItem('auth_token', data.admin_token);
+      }
       
       toast.success('Returned to admin view');
       
-      // Navigate to admin dashboard
+      // Navigate to admin dashboard and reload to get fresh auth state
       navigate('/admin');
-      
-      // Force a page reload to ensure clean state
       window.location.reload();
     } catch (err) {
       console.error('Error exiting impersonation:', err);
