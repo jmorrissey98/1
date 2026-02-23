@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Filter, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, Calendar, X, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Label } from './ui/label';
@@ -27,24 +27,43 @@ const SESSION_TYPES = [
   { value: 'game', label: 'Game Only' }
 ];
 
-// Timeframe presets
+// Timeframe presets with months requirement
 const TIMEFRAME_PRESETS = [
-  { value: 'all', label: 'All Time' },
-  { value: 'week', label: 'Last 7 Days' },
-  { value: 'month', label: 'This Month' },
-  { value: '3months', label: 'Last 3 Months' },
-  { value: '6months', label: 'Last 6 Months' },
-  { value: 'year', label: 'This Year' },
-  { value: 'custom', label: 'Custom Range' }
+  { value: 'all', label: 'All Time', monthsRequired: null }, // null means unlimited
+  { value: 'week', label: 'Last 7 Days', monthsRequired: 1 },
+  { value: 'month', label: 'This Month', monthsRequired: 1 },
+  { value: '3months', label: 'Last 3 Months', monthsRequired: 3 },
+  { value: '6months', label: 'Last 6 Months', monthsRequired: 6 },
+  { value: 'year', label: 'This Year', monthsRequired: 12 },
+  { value: 'custom', label: 'Custom Range', monthsRequired: null }
 ];
+
+// Get available timeframes based on data retention limit
+const getAvailableTimeframes = (monthsLimit) => {
+  if (!monthsLimit) return TIMEFRAME_PRESETS; // Unlimited access
+  
+  return TIMEFRAME_PRESETS.map(preset => ({
+    ...preset,
+    disabled: preset.monthsRequired === null 
+      ? (preset.value === 'all') // Disable "All Time" for limited users
+      : preset.monthsRequired > monthsLimit,
+    lockedLabel: preset.monthsRequired === null 
+      ? (preset.value === 'all' ? `Upgrade for ${preset.label}` : preset.label)
+      : (preset.monthsRequired > monthsLimit ? `Upgrade for ${preset.label}` : preset.label)
+  }));
+};
 
 export function SessionFilters({ 
   filters, 
   onFiltersChange, 
   showCompact = false,
+  dataRetention = null, // { is_limited, months_limit, tier }
   className = '' 
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Get available timeframes based on retention limits
+  const availableTimeframes = getAvailableTimeframes(dataRetention?.months_limit);
   
   const {
     timeframe = 'all',
