@@ -2684,19 +2684,19 @@ async def admin_update_org_limits(org_id: str, request: Request):
     # Allowed fields for custom overrides
     allowed_fields = ["coaches_limit", "admins_limit", "data_retention_months"]
     
-    update_data = {"org_id": org_id}
+    custom_limits = {}
     for field in allowed_fields:
         if field in body:
             # Allow None to clear override
-            update_data[field] = body[field]
+            custom_limits[field] = body[field]
     
-    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    
-    # Upsert custom limits
-    await db.organization_custom_limits.update_one(
+    # Update custom_limits directly on the organization document
+    await db.organizations.update_one(
         {"org_id": org_id},
-        {"$set": update_data, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
-        upsert=True
+        {"$set": {
+            "custom_limits": custom_limits,
+            "custom_limits_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
     )
     
     return {
