@@ -28,7 +28,8 @@ db = client[os.environ['DB_NAME']]
 # Email configuration
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
-APP_URL = os.environ.get('APP_URL')
+# APP_URL for email links - default to production URL if not set
+APP_URL = os.environ.get('APP_URL', 'https://mycoachdeveloper.com')
 
 # Default session parts
 DEFAULT_SESSION_PARTS = [
