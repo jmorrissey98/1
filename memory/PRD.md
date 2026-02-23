@@ -60,11 +60,15 @@
 - Permanent navigation bar (Dashboard, My Sessions, My Profile)
 - **Can access their own coach profile without 403 errors (FIX)**
 
-### Admin Features (Feb 16, 2026)
-- Delete clubs/organizations
+### Admin Features (Updated Feb 23, 2026)
+- **Archive/Reinstate Organizations** - Soft delete clubs moving them to "Archived" status, with ability to reinstate
+- **Organization Status Filter** - Toggle to show/hide archived organizations
+- **Visual Limits Display** - Badges showing coach count, developer limit, and data retention per organization
+- **Edit Subscription Tiers** - Modify global tier properties (price, limits) 
+- **Per-Organization Limit Overrides** - Set custom limits for individual clubs
+- **Impersonate Users** - View app as any non-admin user for debugging (exit returns to admin dashboard)
 - Add coach developers to clubs directly
 - View all clubs and users
-- Impersonate users for debugging
 
 ### Cloud Sync
 - **MongoDB Cloud Database** - All sessions stored in cloud
