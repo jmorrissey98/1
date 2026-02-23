@@ -570,3 +570,189 @@ async def delete_coach(coach_id: str, request: Request):
     except Exception as e:
         logger.error(f"Error deleting coach {coach_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete coach: {str(e)}")
+
+
+# ============================================
+# COACH NOTES ENDPOINTS
+# ============================================
+
+from pydantic import BaseModel
+from typing import Optional
+
+class CoachNoteCreate(BaseModel):
+    text: str
+    is_private: bool = False  # If True, only coach developers can see it (not the coach)
+
+
+class CoachNoteUpdate(BaseModel):
+    text: Optional[str] = None
+    is_private: Optional[bool] = None
+
+
+@router.get("/{coach_id}/notes")
+async def get_coach_notes(coach_id: str, request: Request):
+    """
+    Get notes for a coach profile.
+    - Coach developers see: all shared notes + all private notes (from any coach developer)
+    - Coaches see: all shared notes + their own private notes
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    is_coach_developer = user.role in ['admin', 'coach_developer']
+    is_coach = user.role == 'coach'
+    
+    # Verify access
+    if is_coach:
+        # Coach can only access their own notes
+        if user.linked_coach_id != coach_id:
+            raise HTTPException(status_code=403, detail="Cannot access notes for another coach")
+    
+    # Build query based on role
+    if is_coach_developer:
+        # Coach developers see all notes (shared + all private notes from coach developers)
+        notes = await db.coach_notes.find(
+            {"coach_id": coach_id},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(500)
+    else:
+        # Coaches see: shared notes + their own private notes
+        notes = await db.coach_notes.find(
+            {
+                "coach_id": coach_id,
+                "$or": [
+                    {"is_private": False},  # All shared notes
+                    {"is_private": True, "author_role": "coach", "author_id": user.user_id}  # Their own private notes
+                ]
+            },
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(500)
+    
+    return notes
+
+
+@router.post("/{coach_id}/notes")
+async def create_coach_note(coach_id: str, data: CoachNoteCreate, request: Request):
+    """
+    Add a note to a coach's profile.
+    Both coach developers and coaches can add notes.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    is_coach_developer = user.role in ['admin', 'coach_developer']
+    is_coach = user.role == 'coach'
+    
+    # Verify access
+    if is_coach:
+        # Coach can only add notes to their own profile
+        if user.linked_coach_id != coach_id:
+            raise HTTPException(status_code=403, detail="Cannot add notes to another coach's profile")
+    
+    # Verify coach exists
+    coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0, "name": 1})
+    if not coach:
+        raise HTTPException(status_code=404, detail="Coach not found")
+    
+    # Get author name
+    author_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "name": 1})
+    author_name = author_doc.get("name") if author_doc else user.email
+    
+    now = datetime.now(timezone.utc).isoformat()
+    note_id = f"note_{uuid.uuid4().hex[:12]}"
+    
+    note = {
+        "note_id": note_id,
+        "coach_id": coach_id,
+        "text": data.text.strip(),
+        "is_private": data.is_private,
+        "author_id": user.user_id,
+        "author_name": author_name,
+        "author_role": "coach_developer" if is_coach_developer else "coach",
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.coach_notes.insert_one(note)
+    
+    # Remove _id before returning
+    note.pop("_id", None)
+    
+    logger.info(f"Note {note_id} created for coach {coach_id} by {user.user_id} (private: {data.is_private})")
+    
+    return note
+
+
+@router.put("/{coach_id}/notes/{note_id}")
+async def update_coach_note(coach_id: str, note_id: str, data: CoachNoteUpdate, request: Request):
+    """
+    Update a note. Only the author can update their own note.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Find the note
+    note = await db.coach_notes.find_one(
+        {"note_id": note_id, "coach_id": coach_id},
+        {"_id": 0}
+    )
+    
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Only author can update
+    if note.get("author_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Cannot update another user's note")
+    
+    # Build update
+    update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.text is not None:
+        update_fields["text"] = data.text.strip()
+    if data.is_private is not None:
+        update_fields["is_private"] = data.is_private
+    
+    await db.coach_notes.update_one(
+        {"note_id": note_id},
+        {"$set": update_fields}
+    )
+    
+    # Return updated note
+    updated_note = await db.coach_notes.find_one({"note_id": note_id}, {"_id": 0})
+    
+    return updated_note
+
+
+@router.delete("/{coach_id}/notes/{note_id}")
+async def delete_coach_note(coach_id: str, note_id: str, request: Request):
+    """
+    Delete a note. Only the author can delete their own note.
+    Coach developers (admins) can delete any note.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    is_admin = user.role == 'admin'
+    
+    # Find the note
+    note = await db.coach_notes.find_one(
+        {"note_id": note_id, "coach_id": coach_id},
+        {"_id": 0}
+    )
+    
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Only author or admin can delete
+    if note.get("author_id") != user.user_id and not is_admin:
+        raise HTTPException(status_code=403, detail="Cannot delete another user's note")
+    
+    await db.coach_notes.delete_one({"note_id": note_id})
+    
+    logger.info(f"Note {note_id} deleted by {user.user_id}")
+    
+    return {"success": True, "deleted": True}
+
