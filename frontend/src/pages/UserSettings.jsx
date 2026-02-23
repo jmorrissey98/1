@@ -32,6 +32,10 @@ export default function UserSettings() {
   const [limits, setLimits] = useState(null);
   const [limitsLoading, setLimitsLoading] = useState(true);
   
+  // Subscription status state
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [loadingBillingPortal, setLoadingBillingPortal] = useState(false);
+  
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('coach');
@@ -46,6 +50,9 @@ export default function UserSettings() {
   useEffect(() => {
     loadData();
     loadLimits();
+    if (isCoachDeveloper()) {
+      loadSubscriptionStatus();
+    }
   }, []);
   
   const loadLimits = async () => {
