@@ -14,11 +14,19 @@ import { Label } from '../components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Switch } from '../components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { safeGet, safePost, safePut } from '../lib/safeFetch';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Subscription tier options
+const TIER_OPTIONS = [
+  { value: 'individual', label: 'Individual', color: 'bg-slate-100 text-slate-700' },
+  { value: 'developer', label: 'Developer', color: 'bg-blue-100 text-blue-700' },
+  { value: 'club', label: 'Club', color: 'bg-emerald-100 text-emerald-700' }
+];
 
 // Default subscription tiers
 const DEFAULT_TIERS = [
