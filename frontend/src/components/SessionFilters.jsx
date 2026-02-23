@@ -246,13 +246,15 @@ function FilterContent({
   filters, 
   onTimeframeChange, 
   onSessionTypeChange, 
-  onDayToggle, 
+  onDayToggle,
+  onPartToggle,
   onDateChange,
   availableTimeframes = TIMEFRAME_PRESETS,
-  dataRetention = null
+  dataRetention = null,
+  sessionParts = []
 }) {
   const { openUpgradeModal } = useUpgrade();
-  const { timeframe, startDate, endDate, sessionType, daysOfWeek = [] } = filters;
+  const { timeframe, startDate, endDate, sessionType, daysOfWeek = [], sessionParts: selectedParts = [] } = filters;
 
   // Handle timeframe selection - open upgrade modal if selecting disabled option
   const handleTimeframeSelect = (value, isDisabled) => {
