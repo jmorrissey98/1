@@ -380,6 +380,20 @@
 - [x] **Development Trends Section** - AI-generated trends with Generate button
 - [x] Layout now matches coach's "My Development" page (CoachMyDevelopment.jsx)
 
+### Phase 15: Shared Reflections Feature (COMPLETED - February 23, 2026)
+- [x] **Sharing toggle for Observer (Coach Developer):** "Share with [Coach Name]" - defaults ON
+- [x] **Sharing toggle for Coach:** "Share with Coach Developers" - defaults ON
+- [x] **Auto-save on toggle:** Sharing settings save immediately when toggled
+- [x] **New backend endpoints:**
+  - `PUT /api/observations/{session_id}/observer-reflection-sharing` - Toggle observer sharing
+  - `PUT /api/observations/{session_id}/coach-reflection-sharing` - Toggle coach sharing
+- [x] **Shared Reflections Section:** Each user sees other participant's reflection below their own
+- [x] **Placeholder states:**
+  - "Reflection not yet completed" when other user hasn't completed reflection
+  - "Reflection not shared with you" when completed but sharing is OFF
+  - Full reflection content when completed AND shared
+- [x] **Access control:** Only session participants can view reflections
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
