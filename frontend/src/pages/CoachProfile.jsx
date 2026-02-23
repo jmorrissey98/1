@@ -193,27 +193,44 @@ export default function CoachProfile() {
 
   // Filter sessions based on session filters
   const filteredSessions = useMemo(() => {
-    return applySessionFilters(sessions, sessionFilters);
-  }, [sessions, sessionFilters]);
+    // Apply explicit filters first
+    let result = applySessionFilters(sessions, sessionFilters);
+    
+    // For Individual/free tier users, always enforce the 3-month limit
+    // This ensures data is filtered even before the user interacts with filters
+    if (dataRetention?.is_limited && sessionFilters.timeframe === 'all') {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      result = result.filter(s => {
+        const sessionDate = new Date(s.date || s.created_at || s.createdAt);
+        return sessionDate >= threeMonthsAgo;
+      });
+    }
+    
+    return result;
+  }, [sessions, sessionFilters, dataRetention]);
 
   // Calculate filtered analytics based on the current filters
   // Uses the new calculateFilteredAnalytics helper that properly filters by session parts
   const filteredAnalytics = useMemo(() => {
     if (!analyticsData) return null;
     
-    // Check if any filters are active
+    // Check if any filters are active OR if tier-based filtering is needed
     const hasActiveFilters = sessionFilters.timeframe !== 'all' || 
                             sessionFilters.sessionType !== 'all' || 
                             sessionFilters.daysOfWeek.length > 0 ||
                             (sessionFilters.sessionParts && sessionFilters.sessionParts.length > 0);
     
-    // If no filters, return original analytics
-    if (!hasActiveFilters) return analyticsData;
+    // Also recalculate if tier-based filtering is applied
+    const needsTierFiltering = dataRetention?.is_limited && sessionFilters.timeframe === 'all';
+    
+    // If no filters and no tier filtering needed, return original analytics
+    if (!hasActiveFilters && !needsTierFiltering) return analyticsData;
     
     // Use the new helper that properly handles session parts filtering
     // This ensures that when filtering by parts, only events FROM those parts are counted
     return calculateFilteredAnalytics(filteredSessions, sessionFilters.sessionParts || []);
-  }, [analyticsData, filteredSessions, sessionFilters]);
+  }, [analyticsData, filteredSessions, sessionFilters, dataRetention]);
 
   // Filter intervention data based on selected checkbox filters (uses filtered analytics)
   const filteredInterventionData = useMemo(() => {
