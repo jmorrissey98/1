@@ -387,6 +387,31 @@ export default function CoachMyDevelopment() {
     return `${mins}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Helper to check if a session is accessible based on data retention
+  const isSessionAccessible = (session) => {
+    if (!dataRetention?.is_limited || !dataRetention?.cutoff_date) return true;
+    const sessionDate = new Date(session.createdAt || session.created_at || session.session_date);
+    const cutoffDate = new Date(dataRetention.cutoff_date);
+    return sessionDate >= cutoffDate;
+  };
+
+  // Handler for clicking on restricted sessions
+  const handleRestrictedSessionClick = (e) => {
+    e.stopPropagation();
+    toast.error(
+      <div>
+        <p className="font-medium">Session not accessible</p>
+        <p className="text-sm">Upgrade your plan to view sessions older than 3 months.</p>
+      </div>,
+      {
+        action: {
+          label: 'View Plans',
+          onClick: () => navigate('/#pricing')
+        }
+      }
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
