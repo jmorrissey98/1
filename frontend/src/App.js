@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { CloudSyncProvider } from "./contexts/CloudSyncContext";
+import { UpgradeProvider } from "./contexts/UpgradeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
 import AppHeader from "./components/AppHeader";
