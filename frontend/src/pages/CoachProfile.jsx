@@ -319,7 +319,7 @@ export default function CoachProfile() {
       {
         action: {
           label: 'View Plans',
-          onClick: () => navigate('/#pricing')
+          onClick: openUpgradeModal
         }
       }
     );
