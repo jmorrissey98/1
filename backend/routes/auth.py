@@ -400,8 +400,8 @@ async def forgot_password(forgot_data: ForgotPasswordRequest):
         if not user_doc:
             return {"message": "If an account with this email exists, a password reset link has been sent."}
         
-        if user_doc.get("auth_provider") == "google" and not user_doc.get("password_hash"):
-            return {"message": "If an account with this email exists, a password reset link has been sent."}
+        # NOTE: Removed Google OAuth check - allow all users to set/reset passwords
+        # This enables Google OAuth users to also have email/password login
         
         reset_token = secrets.token_urlsafe(32)
         expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
