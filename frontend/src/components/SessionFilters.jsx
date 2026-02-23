@@ -61,10 +61,26 @@ export function SessionFilters({
   showCompact = false,
   dataRetention = null, // { is_limited, months_limit, tier }
   availableSessionParts = null, // Optional: pass session parts used in sessions
-  className = '' 
+  className = '',
+  subscriptionTier = null // 'individual', 'developer', 'club'
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [sessionParts, setSessionParts] = useState([]);
+  const [hasSetDefaultTimeframe, setHasSetDefaultTimeframe] = useState(false);
+  
+  // Set default timeframe based on tier (only on initial load)
+  useEffect(() => {
+    if (!hasSetDefaultTimeframe && filters.timeframe === 'all') {
+      // Determine the tier from dataRetention or subscriptionTier prop
+      const tier = subscriptionTier || dataRetention?.tier?.toLowerCase() || 'individual';
+      
+      // Individual tier defaults to 3 months, others get all time
+      if (tier === 'individual' && filters.timeframe === 'all') {
+        onFiltersChange({ ...filters, timeframe: '3months' });
+      }
+      setHasSetDefaultTimeframe(true);
+    }
+  }, [dataRetention, subscriptionTier, hasSetDefaultTimeframe]);
   
   // Load session parts on mount
   useEffect(() => {
