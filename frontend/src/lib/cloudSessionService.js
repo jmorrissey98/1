@@ -453,8 +453,10 @@ export const cloudToLocalSession = (cloudSession) => {
     name: cloudSession.name,
     coachId: cloudSession.coach_id,
     coachName: cloudSession.coach_name,
+    coach_name: cloudSession.coach_name, // Keep snake_case for compatibility
     observerId: cloudSession.observer_id,
     observerName: cloudSession.observer_name,
+    observer_name: cloudSession.observer_name, // Keep snake_case for compatibility
     observationContext: cloudSession.observation_context,
     status: cloudSession.status,
     plannedDate: cloudSession.planned_date,
@@ -478,7 +480,16 @@ export const cloudToLocalSession = (cloudSession) => {
     coachReflections: cloudSession.coach_reflections || [],
     sessionNotes: cloudSession.session_notes || '',
     aiSummary: cloudSession.ai_summary || '',
-    attachments: cloudSession.attachments || []
+    attachments: cloudSession.attachments || [],
+    // Reflection sharing fields
+    observer_reflection_shared: cloudSession.observer_reflection_shared !== false,
+    coach_reflection_shared: cloudSession.coach_reflection_shared !== false,
+    observerReflection: cloudSession.observer_reflection,
+    coachReflection: cloudSession.coach_reflection,
+    // Shared reflections for other user
+    other_reflection_status: cloudSession.other_reflection_status,
+    other_reflection: cloudSession.other_reflection,
+    other_user_name: cloudSession.other_user_name
   };
 };
 
