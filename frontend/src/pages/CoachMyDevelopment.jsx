@@ -142,7 +142,9 @@ export default function CoachMyDevelopment() {
         total_interventions: 0,
         avg_per_session: 0,
         avg_ball_rolling: 0,
-        intervention_chart_data: []
+        intervention_chart_data: [],
+        variety_percentage: 0,
+        most_common_pattern: null
       };
     }
     
@@ -151,6 +153,7 @@ export default function CoachMyDevelopment() {
     let totalBallRolling = 0;
     let totalBallStopped = 0;
     const interventionCounts = {};
+    const interventionCombinations = {};
     
     filtered.forEach(session => {
       const events = session.events || [];
@@ -161,6 +164,12 @@ export default function CoachMyDevelopment() {
       events.forEach(event => {
         const typeName = event.eventTypeName || event.eventTypeId || 'Unknown';
         interventionCounts[typeName] = (interventionCounts[typeName] || 0) + 1;
+        
+        // Track combinations for pattern analysis (same as backend)
+        const desc1 = (event.descriptors1 || []).join(', ') || 'None';
+        const desc2 = (event.descriptors2 || []).join(', ') || 'None';
+        const combo = `${typeName}|${desc1}|${desc2}`;
+        interventionCombinations[combo] = (interventionCombinations[combo] || 0) + 1;
       });
     });
     
@@ -177,13 +186,32 @@ export default function CoachMyDevelopment() {
       }))
       .sort((a, b) => b.count - a.count);
     
+    // Calculate variety percentage (unique combinations / total interventions)
+    const uniqueCombinations = Object.keys(interventionCombinations).length;
+    const varietyPercentage = totalInterventions > 0 
+      ? Math.round((uniqueCombinations / totalInterventions) * 100) 
+      : 0;
+    
+    // Find most common pattern
+    const sortedCombos = Object.entries(interventionCombinations).sort((a, b) => b[1] - a[1]);
+    let mostCommonPattern = null;
+    if (sortedCombos.length > 0) {
+      const patternName = sortedCombos[0][0].split('|')[0];
+      mostCommonPattern = {
+        pattern: patternName,
+        count: sortedCombos[0][1]
+      };
+    }
+    
     return {
       ...analyticsData,
       total_sessions: filtered.length,
       total_interventions: totalInterventions,
       avg_per_session: avgPerSession,
       avg_ball_rolling: avgBallRolling,
-      intervention_chart_data: chartData
+      intervention_chart_data: chartData,
+      variety_percentage: varietyPercentage,
+      most_common_pattern: mostCommonPattern
     };
   }, [analyticsData, filteredSessions, sessionFilters]);
 
