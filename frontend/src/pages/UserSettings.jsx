@@ -484,6 +484,102 @@ export default function UserSettings() {
                     </div>
                   )}
                   
+                  {/* Subscription Management Section */}
+                  {subscriptionStatus?.has_subscription && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-blue-600" />
+                        Subscription Management
+                      </h4>
+                      
+                      <div className="space-y-3">
+                        {/* Current Plan Info */}
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                          <div>
+                            <p className="text-sm text-slate-600">Current Plan</p>
+                            <p className="font-semibold text-slate-900">
+                              {subscriptionStatus.tier_name || subscriptionStatus.tier || 'Active'}
+                            </p>
+                          </div>
+                          <Badge 
+                            className={
+                              subscriptionStatus.status === 'active' ? 'bg-green-100 text-green-700' :
+                              subscriptionStatus.status === 'past_due' ? 'bg-amber-100 text-amber-700' :
+                              subscriptionStatus.status === 'canceled' ? 'bg-red-100 text-red-700' :
+                              'bg-slate-100 text-slate-700'
+                            }
+                          >
+                            {subscriptionStatus.status === 'active' ? 'Active' :
+                             subscriptionStatus.status === 'past_due' ? 'Past Due' :
+                             subscriptionStatus.status === 'canceled' ? 'Canceled' :
+                             subscriptionStatus.status}
+                          </Badge>
+                        </div>
+                        
+                        {/* Billing Period */}
+                        {subscriptionStatus.current_period_end && (
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {subscriptionStatus.cancel_at_period_end 
+                                ? `Cancels on ${new Date(subscriptionStatus.current_period_end).toLocaleDateString()}`
+                                : `Renews on ${new Date(subscriptionStatus.current_period_end).toLocaleDateString()}`
+                              }
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Warning for past due */}
+                        {subscriptionStatus.status === 'past_due' && (
+                          <div className="p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            Your payment is past due. Please update your payment method.
+                          </div>
+                        )}
+                        
+                        {/* Manage Subscription Button */}
+                        <Button 
+                          onClick={handleManageSubscription}
+                          disabled={loadingBillingPortal}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                          data-testid="manage-subscription-btn"
+                        >
+                          {loadingBillingPortal ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                          )}
+                          Manage Subscription
+                        </Button>
+                        
+                        <p className="text-xs text-slate-500 text-center">
+                          Update payment method, change plan, or cancel subscription
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* No subscription - show upgrade prompt */}
+                  {subscriptionStatus && !subscriptionStatus.has_subscription && (
+                    <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                      <h4 className="font-medium text-slate-700 mb-2 flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        No Active Subscription
+                      </h4>
+                      <p className="text-sm text-slate-600 mb-3">
+                        Subscribe to a plan to unlock team management features.
+                      </p>
+                      <Button 
+                        onClick={() => window.location.href = 'https://mycoachdeveloper.com/#pricing'}
+                        className="w-full"
+                        data-testid="subscribe-btn"
+                      >
+                        <Crown className="w-4 h-4 mr-2" />
+                        View Plans
+                      </Button>
+                    </div>
+                  )}
+                  
                   <form onSubmit={handleCreateInvite} className="space-y-4">
                     <div>
                       <Label htmlFor="invite-email">Email Address</Label>
