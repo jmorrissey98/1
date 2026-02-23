@@ -56,8 +56,13 @@ export default function CoachMyDevelopment() {
   
   // Filter/search states
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
-  const [timeframe, setTimeframe] = useState('all');
+  const [sessionFilters, setSessionFilters] = useState({
+    timeframe: 'all',
+    startDate: '',
+    endDate: '',
+    sessionType: 'all',
+    daysOfWeek: []
+  });
   
   // Edit states
   const [editingTargetId, setEditingTargetId] = useState(null);
