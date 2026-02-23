@@ -2281,7 +2281,12 @@ async def admin_exit_impersonation(request: Request, response: Response):
         path="/"
     )
     
-    return {"message": "Exited impersonation mode", "redirect": "/admin"}
+    # Return admin token so frontend can restore localStorage
+    return {
+        "message": "Exited impersonation mode", 
+        "redirect": "/admin",
+        "admin_token": admin_session_token
+    }
 
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, request: Request):
