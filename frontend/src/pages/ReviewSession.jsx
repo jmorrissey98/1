@@ -1551,21 +1551,22 @@ export default function ReviewSession() {
             </Card>
             )}
 
-            {/* Coach Reflections */}
+            {/* Coach's Own Reflection Form - Only visible to coaches */}
+            {isCoachView && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="font-['Manrope'] flex items-center gap-2">
                       <User className="w-5 h-5 text-green-600" />
-                      {isCoachView ? 'My Reflections' : 'Coach Reflections'}
+                      My Reflections
                     </CardTitle>
                     <CardDescription>
-                      {isCoachView ? 'Add your reflections on this session.' : `Reflections from ${session.coach_name || 'the coach'}.`}
+                      Add your reflections on this session.
                     </CardDescription>
                   </div>
                   {/* Sharing toggle for coach */}
-                  {isCoachView && (session.coachReflections || []).length > 0 && (
+                  {(session.coachReflections || []).length > 0 && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
                       <span className="text-xs text-slate-500">
                         {coachReflectionShared ? 'Shared' : 'Private'}
@@ -1634,7 +1635,7 @@ export default function ReviewSession() {
                             
                             <p className="text-xs text-slate-400 mt-2">{formatDateTime(r.timestamp)}</p>
                           </div>
-                          {isCoachView && !r.source && (
+                          {!r.source && (
                             <Button
                               size="icon"
                               variant="ghost"
@@ -1649,57 +1650,54 @@ export default function ReviewSession() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-slate-400 italic text-sm">No coach reflections yet</p>
+                  <p className="text-slate-400 italic text-sm">No reflections yet</p>
                 )}
                 
                 {/* Coach can add reflections */}
-                {isCoachView && (
-                  <>
-                    <Textarea
-                      value={newCoachReflection}
-                      onChange={(e) => setNewCoachReflection(e.target.value)}
-                      placeholder="Add your reflection..."
-                      className="min-h-[80px] resize-y"
-                      data-testid="coach-reflection-textarea"
-                    />
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <Button 
-                        onClick={() => handleAddReflection('coach')} 
-                        variant="outline"
-                        disabled={!newCoachReflection.trim()}
-                        className="border-green-300 text-green-700 hover:bg-green-50"
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        Add Reflection
-                      </Button>
-                      
-                      {/* Sharing toggle for coach when adding first reflection */}
-                      {(session.coachReflections || []).length === 0 && (
-                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
-                          <div className="flex items-center gap-2">
-                            {coachReflectionShared ? (
-                              <Eye className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <EyeOff className="w-4 h-4 text-slate-400" />
-                            )}
-                            <Label htmlFor="share-coach-reflection" className="text-sm font-medium cursor-pointer">
-                              Share with {session.observer_name || 'Coach Developers'}
-                            </Label>
-                          </div>
-                          <Switch
-                            id="share-coach-reflection"
-                            checked={coachReflectionShared}
-                            onCheckedChange={handleToggleCoachSharing}
-                            disabled={togglingShare}
-                            data-testid="toggle-coach-sharing-new"
-                          />
-                        </div>
-                      )}
+                <Textarea
+                  value={newCoachReflection}
+                  onChange={(e) => setNewCoachReflection(e.target.value)}
+                  placeholder="Add your reflection..."
+                  className="min-h-[80px] resize-y"
+                  data-testid="coach-reflection-textarea"
+                />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <Button 
+                    onClick={() => handleAddReflection('coach')} 
+                    variant="outline"
+                    disabled={!newCoachReflection.trim()}
+                    className="border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Add Reflection
+                  </Button>
+                  
+                  {/* Sharing toggle for coach when adding first reflection */}
+                  {(session.coachReflections || []).length === 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
+                      <div className="flex items-center gap-2">
+                        {coachReflectionShared ? (
+                          <Eye className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 text-slate-400" />
+                        )}
+                        <Label htmlFor="share-coach-reflection" className="text-sm font-medium cursor-pointer">
+                          Share with {session.observer_name || 'Coach Developers'}
+                        </Label>
+                      </div>
+                      <Switch
+                        id="share-coach-reflection"
+                        checked={coachReflectionShared}
+                        onCheckedChange={handleToggleCoachSharing}
+                        disabled={togglingShare}
+                        data-testid="toggle-coach-sharing-new"
+                      />
                     </div>
-                  </>
-                )}
+                  )}
+                </div>
               </CardContent>
             </Card>
+            )}
 
             {/* ===== SHARED REFLECTIONS SECTION ===== */}
             <Card className="border-blue-200 bg-blue-50/30">
