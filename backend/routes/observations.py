@@ -89,6 +89,16 @@ class ObservationSessionResponse(BaseModel):
     session_notes: str = ""
     ai_summary: str = ""
     attachments: List[Any] = []
+    # Reflection sharing flags
+    observer_reflection_shared: bool = True
+    coach_reflection_shared: bool = True
+    # Structured reflection data
+    observer_reflection: Optional[Any] = None
+    coach_reflection: Optional[Any] = None
+    # Other user's reflection (for shared view)
+    other_reflection: Optional[Any] = None
+    other_reflection_status: Optional[str] = None  # "not_completed", "not_shared", "shared"
+    other_user_name: Optional[str] = None
 
 
 @router.get("")
