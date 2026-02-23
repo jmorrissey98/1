@@ -144,8 +144,10 @@ async def get_observation_session(session_id: str, request: Request):
     """Get a specific observation session - accessible by both coach developers and coaches"""
     user = await require_auth(request)
     
+    is_coach_view = user.role == 'coach'
+    
     # Build query based on user role
-    if user.role == 'coach':
+    if is_coach_view:
         # Coaches can only access sessions where they are the assigned coach
         session = await db.observation_sessions.find_one(
             {"session_id": session_id, "coach_id": user.linked_coach_id},
@@ -175,19 +177,19 @@ async def get_observation_session(session_id: str, request: Request):
     # and merge with any reflections stored directly on the session
     coach_reflections = session.get("coach_reflections", [])
     
-    coach_reflection = await db.reflections.find_one(
+    coach_reflection_from_db = await db.reflections.find_one(
         {"session_id": session_id},
         {"_id": 0}
     )
-    if coach_reflection:
+    if coach_reflection_from_db:
         # Convert the coach's reflection to the expected format
         coach_reflections_from_db = [{
-            "id": coach_reflection.get("reflection_id"),
-            "text": coach_reflection.get("reflection", ""),
-            "rating": coach_reflection.get("self_rating"),
-            "what_went_well": coach_reflection.get("what_went_well", ""),
-            "areas_for_development": coach_reflection.get("areas_for_development", ""),
-            "timestamp": coach_reflection.get("updated_at") or coach_reflection.get("created_at"),
+            "id": coach_reflection_from_db.get("reflection_id"),
+            "text": coach_reflection_from_db.get("reflection", ""),
+            "rating": coach_reflection_from_db.get("self_rating"),
+            "what_went_well": coach_reflection_from_db.get("what_went_well", ""),
+            "areas_for_development": coach_reflection_from_db.get("areas_for_development", ""),
+            "timestamp": coach_reflection_from_db.get("updated_at") or coach_reflection_from_db.get("created_at"),
             "source": "coach"  # Mark this as from the coach
         }]
         # Merge - don't duplicate if same reflection ID
@@ -195,6 +197,49 @@ async def get_observation_session(session_id: str, request: Request):
         for ref in coach_reflections_from_db:
             if ref.get("id") not in existing_ids:
                 coach_reflections.append(ref)
+    
+    # Get sharing flags (default to True for backwards compatibility)
+    observer_reflection_shared = session.get("observer_reflection_shared", True)
+    coach_reflection_shared = session.get("coach_reflection_shared", True)
+    
+    # Get the structured reflections
+    observer_reflection = session.get("observer_reflection")
+    coach_reflection = session.get("coach_reflection")
+    
+    # Determine the "other" user's reflection status and content
+    other_reflection = None
+    other_reflection_status = None
+    other_user_name = None
+    
+    if is_coach_view:
+        # Coach is viewing - show observer's reflection if shared
+        other_user_name = observer_name
+        if observer_reflection and observer_reflection.get("completedAt"):
+            # Observer has completed a reflection
+            if observer_reflection_shared:
+                other_reflection = observer_reflection
+                other_reflection_status = "shared"
+            else:
+                other_reflection_status = "not_shared"
+        else:
+            other_reflection_status = "not_completed"
+    else:
+        # Coach developer is viewing - show coach's reflection if shared
+        other_user_name = coach_name
+        # Check if coach has completed a reflection (either structured or free-form)
+        has_coach_reflection = (coach_reflection and coach_reflection.get("completedAt")) or len(coach_reflections) > 0
+        if has_coach_reflection:
+            if coach_reflection_shared:
+                # Return the structured reflection if available, otherwise the free-form ones
+                if coach_reflection and coach_reflection.get("completedAt"):
+                    other_reflection = coach_reflection
+                else:
+                    other_reflection = {"freeFormReflections": coach_reflections}
+                other_reflection_status = "shared"
+            else:
+                other_reflection_status = "not_shared"
+        else:
+            other_reflection_status = "not_completed"
     
     return ObservationSessionResponse(
         session_id=session.get("session_id"),
@@ -223,7 +268,14 @@ async def get_observation_session(session_id: str, request: Request):
         coach_reflections=coach_reflections,
         session_notes=session.get("session_notes", ""),
         ai_summary=session.get("ai_summary", ""),
-        attachments=session.get("attachments", [])
+        attachments=session.get("attachments", []),
+        observer_reflection_shared=observer_reflection_shared,
+        coach_reflection_shared=coach_reflection_shared,
+        observer_reflection=observer_reflection,
+        coach_reflection=coach_reflection,
+        other_reflection=other_reflection,
+        other_reflection_status=other_reflection_status,
+        other_user_name=other_user_name
     )
 
 
