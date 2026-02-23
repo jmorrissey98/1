@@ -60,9 +60,27 @@ export function SessionFilters({
   onFiltersChange, 
   showCompact = false,
   dataRetention = null, // { is_limited, months_limit, tier }
+  availableSessionParts = null, // Optional: pass session parts used in sessions
   className = '' 
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [sessionParts, setSessionParts] = useState([]);
+  
+  // Load session parts on mount
+  useEffect(() => {
+    const loadParts = async () => {
+      try {
+        const parts = await fetchSessionParts();
+        setSessionParts(parts || []);
+      } catch (err) {
+        console.error('Failed to load session parts:', err);
+      }
+    };
+    loadParts();
+  }, []);
+  
+  // Use available parts from props if provided, otherwise use loaded parts
+  const displayParts = availableSessionParts || sessionParts;
   
   // Get available timeframes based on retention limits
   const availableTimeframes = getAvailableTimeframes(dataRetention?.months_limit);
@@ -72,7 +90,8 @@ export function SessionFilters({
     startDate = '',
     endDate = '',
     sessionType = 'all',
-    daysOfWeek = [] // array of selected day values
+    daysOfWeek = [], // array of selected day values
+    sessionParts: selectedParts = [] // array of selected part names
   } = filters;
 
   const handleTimeframeChange = (value) => {
