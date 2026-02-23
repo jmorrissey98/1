@@ -589,6 +589,54 @@ export default function ReviewSession() {
     }
   };
 
+  // Toggle sharing for observer reflection
+  const handleToggleObserverSharing = async (checked) => {
+    setTogglingShare(true);
+    try {
+      const response = await fetch(`/api/observations/${sessionId}/observer-reflection-sharing`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ shared: checked })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update sharing');
+      
+      setObserverReflectionShared(checked);
+      setSession(prev => ({ ...prev, observer_reflection_shared: checked }));
+      toast.success(checked ? 'Reflection will be shared with the coach' : 'Reflection is now private');
+    } catch (err) {
+      console.error('Failed to toggle sharing:', err);
+      toast.error('Failed to update sharing setting');
+    } finally {
+      setTogglingShare(false);
+    }
+  };
+
+  // Toggle sharing for coach reflection
+  const handleToggleCoachSharing = async (checked) => {
+    setTogglingShare(true);
+    try {
+      const response = await fetch(`/api/observations/${sessionId}/coach-reflection-sharing`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ shared: checked })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update sharing');
+      
+      setCoachReflectionShared(checked);
+      setSession(prev => ({ ...prev, coach_reflection_shared: checked }));
+      toast.success(checked ? `Reflection will be shared with ${session.observer_name || 'coach developers'}` : 'Reflection is now private');
+    } catch (err) {
+      console.error('Failed to toggle sharing:', err);
+      toast.error('Failed to update sharing setting');
+    } finally {
+      setTogglingShare(false);
+    }
+  };
+
   const saveSession = async (updated) => {
     setSession(updated);
     setCurrentSession(updated);
