@@ -388,6 +388,10 @@ async def get_coach_sessions_by_id(coach_id: str, request: Request):
             "updated_at": s.get("updated_at", ""),
             "total_duration": s.get("total_duration", 0),
             "totalDuration": s.get("total_duration", 0),  # Also include camelCase
+            "ball_rolling_time": s.get("ball_rolling_time", 0),
+            "ball_not_rolling_time": s.get("ball_not_rolling_time", 0),
+            "ballRollingTime": s.get("ball_rolling_time", 0),  # camelCase for frontend
+            "ballNotRollingTime": s.get("ball_not_rolling_time", 0),  # camelCase for frontend
             "events": s.get("events", []),
             "event_count": len(s.get("events", [])),
             "sessionParts": s.get("session_parts", []),
