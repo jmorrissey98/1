@@ -704,7 +704,7 @@ export default function CoachProfile() {
             </AlertDialog>
           </div>
         </div>
-      </main>
+      </header>
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
