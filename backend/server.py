@@ -2191,13 +2191,67 @@ async def admin_reset_user_password(user_id: str, data: AdminResetPasswordReques
     # Hash the new password
     hashed_pw = hash_password(data.new_password)
     
-    # Update the user's password
+    # Update the user's password (use password_hash, not password!)
     await db.users.update_one(
         {"user_id": user_id},
-        {"$set": {"password": hashed_pw, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {
+            "password_hash": hashed_pw, 
+            "auth_provider": "email",  # Enable email login
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
     )
     
     return {"message": "Password reset successfully", "user_id": user_id}
+
+
+@api_router.post("/admin/users/send-reset-email")
+async def admin_send_reset_email(request: Request):
+    """Force send a password reset email to any user, bypassing Google OAuth check (Admin only)"""
+    await require_admin(request)
+    
+    body = await request.json()
+    email = body.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # Find the user
+    user = await db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail=f"No user found with email: {email}")
+    
+    # Generate reset token
+    reset_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)  # 24 hours for admin-triggered resets
+    
+    # Delete any existing reset tokens for this email
+    await db.password_resets.delete_many({"email": email})
+    
+    # Insert new reset token
+    await db.password_resets.insert_one({
+        "email": email,
+        "token": reset_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "triggered_by": "admin"
+    })
+    
+    # Send the email
+    try:
+        await send_password_reset_email(
+            email=email,
+            reset_token=reset_token,
+            user_name=user.get("name", "User")
+        )
+        return {
+            "message": f"Password reset email sent to {email}",
+            "expires_in": "24 hours",
+            "user_name": user.get("name"),
+            "auth_provider": user.get("auth_provider", "unknown")
+        }
+    except Exception as e:
+        logger.error(f"Failed to send admin-triggered password reset email: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
 @api_router.get("/admin/users")
 async def admin_list_all_users(request: Request):
