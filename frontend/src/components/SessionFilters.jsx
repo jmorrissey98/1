@@ -441,7 +441,7 @@ function FilterContent({
 
 // Helper function to apply filters to sessions
 export function applySessionFilters(sessions, filters) {
-  const { timeframe, startDate, endDate, sessionType, daysOfWeek = [] } = filters;
+  const { timeframe, startDate, endDate, sessionType, daysOfWeek = [], sessionParts: selectedParts = [] } = filters;
   let result = [...sessions];
 
   // Apply timeframe filter
@@ -513,6 +513,22 @@ export function applySessionFilters(sessions, filters) {
       const sessionDate = new Date(s.date || s.created_at || s.createdAt);
       const dayName = dayNameMap[sessionDate.getDay()];
       return daysOfWeek.includes(dayName);
+    });
+  }
+
+  // Apply session parts filter
+  if (selectedParts.length > 0) {
+    result = result.filter(s => {
+      // Get parts from the session (could be in different formats)
+      const parts = s.session_parts || s.sessionParts || s.parts || [];
+      
+      // Check if any of the selected parts are in this session
+      return selectedParts.some(selectedPart => {
+        return parts.some(part => {
+          const partName = part.name || part.part_name || part;
+          return partName.toLowerCase() === selectedPart.toLowerCase();
+        });
+      });
     });
   }
 
