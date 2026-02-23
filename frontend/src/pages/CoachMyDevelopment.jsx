@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { fetchCoachSessions, fetchCoachDashboard } from '../lib/offlineApi';
 import { useAuth } from '../contexts/AuthContext';
+import { useUpgrade } from '../contexts/UpgradeContext';
 import { safeGet, safePut, safePost } from '../lib/safeFetch';
 import { toast } from 'sonner';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
@@ -34,6 +35,7 @@ const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#E
 export default function CoachMyDevelopment() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openUpgradeModal } = useUpgrade();
   
   // Loading states
   const [loading, setLoading] = useState(true);
