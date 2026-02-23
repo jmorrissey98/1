@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Filter, Calendar, X, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Filter, Calendar, X, ChevronDown, ChevronUp, Lock, Layers } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Label } from './ui/label';
@@ -9,6 +9,7 @@ import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { useUpgrade } from '../contexts/UpgradeContext';
+import { fetchSessionParts } from '../lib/sessionPartsApi';
 
 // Days of the week
 const DAYS_OF_WEEK = [
