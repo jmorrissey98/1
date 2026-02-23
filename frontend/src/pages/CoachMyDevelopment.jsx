@@ -724,27 +724,41 @@ export default function CoachMyDevelopment() {
                   <p className="text-slate-400 italic text-center py-8">No sessions recorded yet</p>
                 ) : (
                   <div className="space-y-3">
-                    {filteredSessions.slice(0, 5).map(session => (
-                      <div
-                        key={session.session_id}
-                        className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors border border-slate-100"
-                        onClick={() => navigate(`/session/${session.session_id}/review`)}
-                        data-testid={`coaching-session-${session.session_id}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-slate-900">
-                              {session.title || session.session_name || 'Untitled Session'}
-                            </h4>
-                            <p className="text-sm text-slate-500 mt-1">
-                              {formatDate(session.date)}
-                              {session.observer_name && ` • Observer: ${session.observer_name}`}
-                            </p>
+                    {filteredSessions.slice(0, 5).map(session => {
+                      const accessible = isSessionAccessible(session);
+                      return (
+                        <div
+                          key={session.session_id}
+                          className={`p-4 rounded-lg cursor-pointer transition-colors border ${
+                            accessible 
+                              ? 'bg-slate-50 hover:bg-slate-100 border-slate-100' 
+                              : 'bg-slate-100 opacity-60 border-slate-200'
+                          }`}
+                          onClick={accessible 
+                            ? () => navigate(`/session/${session.session_id}/review`)
+                            : handleRestrictedSessionClick
+                          }
+                          data-testid={`coaching-session-${session.session_id}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className={`font-medium ${accessible ? 'text-slate-900' : 'text-slate-500'}`}>
+                                {session.title || session.session_name || 'Untitled Session'}
+                              </h4>
+                              <p className={`text-sm mt-1 ${accessible ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {formatDate(session.date)}
+                                {session.observer_name && ` • Observer: ${session.observer_name}`}
+                              </p>
+                            </div>
+                            {accessible ? (
+                              <Eye className="w-5 h-5 text-slate-400" />
+                            ) : (
+                              <Lock className="w-5 h-5 text-slate-300" />
+                            )}
                           </div>
-                          <Eye className="w-5 h-5 text-slate-400" />
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {filteredSessions.length > 5 && (
