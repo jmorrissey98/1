@@ -834,6 +834,7 @@ export default function CoachProfile() {
               onFiltersChange={setSessionFilters}
               showCompact={true}
               dataRetention={dataRetention}
+              availableSessionParts={availableSessionParts.map(name => ({ name }))}
             />
 
             {/* Intervention Patterns Card */}
