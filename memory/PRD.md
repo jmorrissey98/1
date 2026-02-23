@@ -424,6 +424,15 @@
 - [x] **Pattern analysis** recalculated when filters applied (variety %, most common pattern)
 - [x] **Applied fixes to both** CoachProfile.jsx and CoachMyDevelopment.jsx
 
+### Phase 18: Session Filtering Enhancements (COMPLETED - February 23, 2026)
+- [x] **Default timeframe by tier** - Individual/free tier users now default to "Last 3 Months" filter
+- [x] **Session Parts filter** - Filters analytics to show only data FROM events during selected parts
+- [x] **Zero-data display fix** - Metrics now correctly show 0 when filters match no data (instead of total count)
+- [x] **New helper functions** in SessionFilters.jsx:
+  - `filterEventsByParts()` - Filters events by sessionPartId
+  - `calculateFilteredAnalytics()` - Recalculates analytics with part-specific filtering
+- [x] **Uses nullish coalescing (??)** instead of OR (||) to properly display 0 values
+
 ### Phase 15: Shared Reflections Feature (COMPLETED - February 23, 2026)
 - [x] **Sharing toggle for Observer (Coach Developer):** "Share with [Coach Name]" - defaults ON
 - [x] **Sharing toggle for Coach:** "Share with Coach Developers" - defaults ON
