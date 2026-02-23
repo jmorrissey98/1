@@ -2440,9 +2440,74 @@ async def admin_add_coach_developer(org_id: str, request: Request):
         "organization_id": org_id
     }
 
+@api_router.post("/admin/organizations/{org_id}/archive")
+async def admin_archive_organization(org_id: str, request: Request):
+    """Archive an organization (soft delete) - Admin only"""
+    await require_admin(request)
+    
+    # Find the organization
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    if org.get("status") == "archived":
+        raise HTTPException(status_code=400, detail="Organization is already archived")
+    
+    # Update organization status to archived
+    await db.organizations.update_one(
+        {"org_id": org_id},
+        {"$set": {
+            "status": "archived",
+            "archived_at": datetime.now(timezone.utc).isoformat(),
+            "archived_reason": "manual"  # Can be "manual" or "subscription_cancelled"
+        }}
+    )
+    
+    return {
+        "message": "Organization archived successfully",
+        "org_id": org_id,
+        "status": "archived"
+    }
+
+
+@api_router.post("/admin/organizations/{org_id}/reinstate")
+async def admin_reinstate_organization(org_id: str, request: Request):
+    """Reinstate an archived organization - Admin only"""
+    await require_admin(request)
+    
+    # Find the organization
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    if org.get("status") != "archived":
+        raise HTTPException(status_code=400, detail="Organization is not archived")
+    
+    # Update organization status to active
+    await db.organizations.update_one(
+        {"org_id": org_id},
+        {
+            "$set": {
+                "status": "active",
+                "reinstated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$unset": {
+                "archived_at": "",
+                "archived_reason": ""
+            }
+        }
+    )
+    
+    return {
+        "message": "Organization reinstated successfully",
+        "org_id": org_id,
+        "status": "active"
+    }
+
+
 @api_router.delete("/admin/organizations/{org_id}")
 async def admin_delete_organization(org_id: str, request: Request):
-    """Delete an organization and all its users (Admin only)"""
+    """Permanently delete an organization and all its data (Admin only) - USE WITH CAUTION"""
     await require_admin(request)
     
     # Find the organization
@@ -2468,7 +2533,7 @@ async def admin_delete_organization(org_id: str, request: Request):
     await db.organizations.delete_one({"org_id": org_id})
     
     return {
-        "message": "Organization deleted successfully",
+        "message": "Organization permanently deleted",
         "org_id": org_id,
         "users_deleted": delete_result.deleted_count
     }
