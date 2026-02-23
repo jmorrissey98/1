@@ -522,11 +522,13 @@ export function applySessionFilters(sessions, filters) {
       // Get parts from the session (could be in different formats)
       const parts = s.session_parts || s.sessionParts || s.parts || [];
       
-      // Check if any of the selected parts are in this session
+      // Check if any of the selected parts were used in this session
       return selectedParts.some(selectedPart => {
         return parts.some(part => {
           const partName = part.name || part.part_name || part;
-          return partName.toLowerCase() === selectedPart.toLowerCase();
+          // Check if the part was used (has used=true or has startTime/endTime)
+          const wasUsed = part.used === true || (part.startTime && part.endTime);
+          return wasUsed && partName.toLowerCase() === selectedPart.toLowerCase();
         });
       });
     });
