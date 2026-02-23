@@ -456,7 +456,8 @@ function FilterContent({
 }
 
 // Helper function to apply filters to sessions
-export function applySessionFilters(sessions, filters) {
+// Returns { sessions: filtered sessions, partFilteredEvents: events filtered by part (if part filter active) }
+export function applySessionFilters(sessions, filters, returnPartFilteredData = false) {
   const { timeframe, startDate, endDate, sessionType, daysOfWeek = [], sessionParts: selectedParts = [] } = filters;
   let result = [...sessions];
 
@@ -532,7 +533,7 @@ export function applySessionFilters(sessions, filters) {
     });
   }
 
-  // Apply session parts filter
+  // Apply session parts filter - filter sessions that contain the selected parts
   if (selectedParts.length > 0) {
     result = result.filter(s => {
       // Get parts from the session (could be in different formats)
@@ -551,6 +552,170 @@ export function applySessionFilters(sessions, filters) {
   }
 
   return result;
+}
+
+// Helper function to filter events by session parts
+// Returns only the events that occurred during the selected parts
+export function filterEventsByParts(session, selectedParts) {
+  if (!selectedParts || selectedParts.length === 0) {
+    return session.events || [];
+  }
+  
+  const parts = session.session_parts || session.sessionParts || session.parts || [];
+  const events = session.events || [];
+  
+  // Find the part IDs that match the selected part names
+  const selectedPartIds = parts
+    .filter(part => {
+      const partName = part.name || part.part_name || part;
+      const wasUsed = part.used === true || (part.startTime && part.endTime);
+      return wasUsed && selectedParts.some(sp => sp.toLowerCase() === partName.toLowerCase());
+    })
+    .map(part => part.id);
+  
+  // Filter events that belong to the selected parts
+  return events.filter(event => {
+    // If event has a sessionPartId, check if it's in our selected parts
+    if (event.sessionPartId) {
+      return selectedPartIds.includes(event.sessionPartId);
+    }
+    // If event has timestamp information, check if it falls within any selected part's time range
+    if (event.timestamp || event.time) {
+      const eventTime = event.timestamp || event.time;
+      return parts.some(part => {
+        const partName = part.name || part.part_name || part;
+        if (!selectedParts.some(sp => sp.toLowerCase() === partName.toLowerCase())) {
+          return false;
+        }
+        const startTime = part.startTime || part.start_time;
+        const endTime = part.endTime || part.end_time;
+        if (startTime && endTime) {
+          return eventTime >= startTime && eventTime <= endTime;
+        }
+        return false;
+      });
+    }
+    return false;
+  });
+}
+
+// Helper to calculate analytics from filtered data with part-specific filtering
+export function calculateFilteredAnalytics(sessions, selectedParts = []) {
+  const completedSessions = sessions.filter(s => s.status === 'completed');
+  
+  if (completedSessions.length === 0) {
+    return {
+      total_sessions: 0,
+      total_interventions: 0,
+      avg_per_session: 0,
+      avg_ball_rolling: 0,
+      intervention_chart_data: [],
+      variety_percentage: 0,
+      most_common_pattern: null
+    };
+  }
+  
+  let totalInterventions = 0;
+  let totalBallRolling = 0;
+  let totalBallStopped = 0;
+  const interventionCounts = {};
+  
+  completedSessions.forEach(session => {
+    // If session parts filter is active, only count events from those parts
+    const events = selectedParts.length > 0 
+      ? filterEventsByParts(session, selectedParts)
+      : (session.events || []);
+    
+    totalInterventions += events.length;
+    
+    // For ball rolling time, if filtering by parts, calculate only for those parts
+    if (selectedParts.length > 0) {
+      const parts = session.session_parts || session.sessionParts || session.parts || [];
+      parts.forEach(part => {
+        const partName = part.name || part.part_name || part;
+        if (selectedParts.some(sp => sp.toLowerCase() === partName.toLowerCase())) {
+          const wasUsed = part.used === true || (part.startTime && part.endTime);
+          if (wasUsed && part.ball_rolling_time !== undefined) {
+            totalBallRolling += part.ball_rolling_time || 0;
+            totalBallStopped += part.ball_not_rolling_time || 0;
+          } else if (wasUsed) {
+            // Fallback: estimate based on part duration if no specific ball time
+            const startTime = part.startTime || part.start_time || 0;
+            const endTime = part.endTime || part.end_time || 0;
+            const duration = endTime - startTime;
+            if (duration > 0) {
+              // Use session average ball rolling percentage
+              const sessionTotal = (session.ball_rolling_time || 0) + (session.ball_not_rolling_time || 0);
+              const sessionBallPct = sessionTotal > 0 ? (session.ball_rolling_time || 0) / sessionTotal : 0.5;
+              totalBallRolling += duration * sessionBallPct;
+              totalBallStopped += duration * (1 - sessionBallPct);
+            }
+          }
+        }
+      });
+    } else {
+      totalBallRolling += session.ball_rolling_time || session.ballRollingTime || 0;
+      totalBallStopped += session.ball_not_rolling_time || session.ballNotRollingTime || 0;
+    }
+    
+    events.forEach(event => {
+      const typeName = event.eventTypeName || event.eventTypeId || 'Unknown';
+      interventionCounts[typeName] = (interventionCounts[typeName] || 0) + 1;
+    });
+  });
+  
+  const avgPerSession = completedSessions.length > 0 
+    ? Math.round(totalInterventions / completedSessions.length * 10) / 10 
+    : 0;
+  const totalDuration = totalBallRolling + totalBallStopped;
+  const avgBallRolling = totalDuration > 0 ? Math.round((totalBallRolling / totalDuration) * 100) : 0;
+  
+  // Build intervention chart data
+  const chartData = Object.entries(interventionCounts)
+    .map(([name, count]) => ({
+      name,
+      count,
+      percentage: totalInterventions > 0 ? Math.round((count / totalInterventions) * 100) : 0
+    }))
+    .sort((a, b) => b.count - a.count);
+  
+  // Calculate variety score
+  let varietyPercentage = 0;
+  const numTypes = Object.keys(interventionCounts).length;
+  
+  if (numTypes > 1 && totalInterventions > 0) {
+    let shannonEntropy = 0;
+    Object.values(interventionCounts).forEach(count => {
+      if (count > 0) {
+        const p = count / totalInterventions;
+        shannonEntropy -= p * Math.log(p);
+      }
+    });
+    const maxEntropy = Math.log(numTypes);
+    if (maxEntropy > 0) {
+      varietyPercentage = Math.round((shannonEntropy / maxEntropy) * 100);
+    }
+  }
+  
+  // Find most common pattern
+  const sortedCombos = Object.entries(interventionCounts).sort((a, b) => b[1] - a[1]);
+  let mostCommonPattern = null;
+  if (sortedCombos.length > 0) {
+    mostCommonPattern = {
+      pattern: sortedCombos[0][0],
+      count: sortedCombos[0][1]
+    };
+  }
+  
+  return {
+    total_sessions: completedSessions.length,
+    total_interventions: totalInterventions,
+    avg_per_session: avgPerSession,
+    avg_ball_rolling: avgBallRolling,
+    intervention_chart_data: chartData,
+    variety_percentage: varietyPercentage,
+    most_common_pattern: mostCommonPattern
+  };
 }
 
 export default SessionFilters;
