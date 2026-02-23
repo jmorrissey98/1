@@ -21,6 +21,7 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     """
     Get subscription limits for a user's organization.
     Returns: (coaches_limit, admins_limit, tier_name)
+    Checks for custom organization overrides first.
     """
     # Find user's organization
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
@@ -44,9 +45,17 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     
     org_id = org.get("org_id")
     
+    # Check for custom organization overrides FIRST
+    custom_limits = await db.organization_custom_limits.find_one(
+        {"org_id": org_id},
+        {"_id": 0}
+    )
+    
     # Check if bootstrapped (unlimited)
     if org_id in BOOTSTRAPPED_ORG_IDS:
-        return 999, 999, "bootstrapped"
+        coaches = custom_limits.get("coaches_limit") if custom_limits and custom_limits.get("coaches_limit") else 999
+        admins = custom_limits.get("admins_limit") if custom_limits and custom_limits.get("admins_limit") else 999
+        return coaches, admins, "bootstrapped"
     
     # Find active subscription for this org
     subscription = await db.subscriptions.find_one(
@@ -77,11 +86,23 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
                 )
     
     if subscription:
-        return (
-            subscription.get("coaches_limit", DEFAULT_COACHES_LIMIT),
-            subscription.get("admins_limit", DEFAULT_ADMINS_LIMIT),
-            subscription.get("tier_id", "unknown")
-        )
+        # Apply custom overrides if they exist
+        base_coaches = subscription.get("coaches_limit", DEFAULT_COACHES_LIMIT)
+        base_admins = subscription.get("admins_limit", DEFAULT_ADMINS_LIMIT)
+        tier = subscription.get("tier_id", "unknown")
+        
+        if custom_limits:
+            coaches = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else base_coaches
+            admins = custom_limits.get("admins_limit") if custom_limits.get("admins_limit") is not None else base_admins
+            return coaches, admins, tier
+        
+        return base_coaches, base_admins, tier
+    
+    # Apply custom overrides even without subscription
+    if custom_limits:
+        coaches = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else DEFAULT_COACHES_LIMIT
+        admins = custom_limits.get("admins_limit") if custom_limits.get("admins_limit") is not None else DEFAULT_ADMINS_LIMIT
+        return coaches, admins, "free"
     
     return DEFAULT_COACHES_LIMIT, DEFAULT_ADMINS_LIMIT, "free"
 
