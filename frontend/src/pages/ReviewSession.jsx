@@ -1417,7 +1417,7 @@ export default function ReviewSession() {
                       ))}
 
                       {/* Save Button */}
-                      <div className="pt-4">
+                      <div className="pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <Button 
                           onClick={handleSaveTemplateReflection}
                           disabled={savingReflection}
@@ -1431,6 +1431,27 @@ export default function ReviewSession() {
                           )}
                           Save Reflection
                         </Button>
+                        
+                        {/* Sharing toggle for observer */}
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            {observerReflectionShared ? (
+                              <Eye className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <EyeOff className="w-4 h-4 text-slate-400" />
+                            )}
+                            <Label htmlFor="share-observer-reflection" className="text-sm font-medium cursor-pointer">
+                              Share with {session.coach_name || 'Coach'}
+                            </Label>
+                          </div>
+                          <Switch
+                            id="share-observer-reflection"
+                            checked={observerReflectionShared}
+                            onCheckedChange={handleToggleObserverSharing}
+                            disabled={togglingShare}
+                            data-testid="toggle-observer-sharing"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1438,12 +1459,26 @@ export default function ReviewSession() {
                   {/* Show saved reflection if exists */}
                   {session.observerReflection?.completedAt && (
                     <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Check className="w-4 h-4 text-green-600" />
-                        <span className="font-medium text-green-700">Reflection completed</span>
-                        <span className="text-sm text-green-600">
-                          {formatDateTime(session.observerReflection.completedAt)}
-                        </span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-green-700">Reflection completed</span>
+                          <span className="text-sm text-green-600">
+                            {formatDateTime(session.observerReflection.completedAt)}
+                          </span>
+                        </div>
+                        {/* Sharing toggle when reflection is already saved */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">
+                            {observerReflectionShared ? 'Shared' : 'Private'}
+                          </span>
+                          <Switch
+                            checked={observerReflectionShared}
+                            onCheckedChange={handleToggleObserverSharing}
+                            disabled={togglingShare}
+                            data-testid="toggle-observer-sharing-saved"
+                          />
+                        </div>
                       </div>
                       {session.observerReflection.templateName && (
                         <p className="text-sm text-slate-600">
