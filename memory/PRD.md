@@ -380,6 +380,20 @@
 - [x] **Development Trends Section** - AI-generated trends with Generate button
 - [x] Layout now matches coach's "My Development" page (CoachMyDevelopment.jsx)
 
+### Phase 16: Coach Profile Notes Feature (COMPLETED - February 23, 2026)
+- [x] **Backend API endpoints** for notes CRUD (`/api/coaches/{coach_id}/notes`)
+- [x] **CoachNotes.jsx component** - Collapsible card with add/edit/delete notes
+- [x] **Privacy controls** - Toggle between private and shared notes
+- [x] **Role-based visibility** - Coach developers see all notes; coaches see shared + own private
+- [x] **Integrated into Profile tab** of CoachProfile.jsx (coach developer view)
+- [x] **Integrated into My Coaching tab** of CoachMyDevelopment.jsx (coach view)
+
+### Phase 17: Session Filters Bug Fix (COMPLETED - February 23, 2026)
+- [x] **Fixed filtering calculations** - Most Used, Variety Score, Ball Rolling Balance now update correctly
+- [x] **Intervention Distribution chart** updates based on filtered sessions
+- [x] **Pattern analysis** recalculated when filters applied (variety %, most common pattern)
+- [x] **Applied fixes to both** CoachProfile.jsx and CoachMyDevelopment.jsx
+
 ### Phase 15: Shared Reflections Feature (COMPLETED - February 23, 2026)
 - [x] **Sharing toggle for Observer (Coach Developer):** "Share with [Coach Name]" - defaults ON
 - [x] **Sharing toggle for Coach:** "Share with Coach Developers" - defaults ON
