@@ -408,7 +408,7 @@ export default function CoachMyDevelopment() {
       {
         action: {
           label: 'View Plans',
-          onClick: () => navigate('/#pricing')
+          onClick: openUpgradeModal
         }
       }
     );
