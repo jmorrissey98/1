@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, Users, UserPlus, Loader2, AlertCircle, Key, Trash2, Eye } from 'lucide-react';
+import { ArrowLeft, Building2, Users, UserPlus, Loader2, AlertCircle, Key, Trash2, Eye, Mail } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
