@@ -74,6 +74,7 @@ export default function AdminDashboard() {
   // Filter states
   const [showArchived, setShowArchived] = useState(false);
   const [archivingOrg, setArchivingOrg] = useState(null);
+  const [changingTierOrg, setChangingTierOrg] = useState(null);
   
   // Editing states
   const [editingTier, setEditingTier] = useState(null);
