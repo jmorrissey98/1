@@ -154,6 +154,46 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
     return coaches_count, max(1, admins_count)
 
 
+# Data retention limits by tier (in months, None = unlimited)
+DATA_RETENTION_LIMITS = {
+    "individual": 3,  # 3 months rolling window
+    "free": 3,        # Free tier also 3 months
+    "developer": None,  # Unlimited
+    "club": None,       # Unlimited
+    "admin": None,      # Unlimited
+    "bootstrapped": None,  # Unlimited
+}
+
+
+async def get_data_retention_info(user_id: str) -> Dict[str, Any]:
+    """
+    Get data retention information for a user based on their subscription tier.
+    Returns: {
+        "months_limit": int or None (None = unlimited),
+        "tier": str,
+        "cutoff_date": datetime or None,
+        "is_limited": bool
+    }
+    """
+    _, _, tier = await get_subscription_limits(user_id)
+    
+    # Normalize tier name for lookup
+    tier_lower = tier.lower() if tier else "free"
+    months_limit = DATA_RETENTION_LIMITS.get(tier_lower, 3)  # Default to 3 months if unknown
+    
+    cutoff_date = None
+    if months_limit is not None:
+        from dateutil.relativedelta import relativedelta
+        cutoff_date = datetime.now(timezone.utc) - relativedelta(months=months_limit)
+    
+    return {
+        "months_limit": months_limit,
+        "tier": tier,
+        "cutoff_date": cutoff_date,
+        "is_limited": months_limit is not None
+    }
+
+
 async def check_coach_limit(user_id: str) -> Dict[str, Any]:
     """
     Check if the user can add more coaches.
