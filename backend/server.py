@@ -2594,6 +2594,8 @@ async def stripe_webhook(request: Request):
             json.loads(body), stripe.api_key
         )
         
+        logger.info(f"Received Stripe webhook event: {event.type}")
+        
         # Handle specific event types
         if event.type == "checkout.session.completed":
             session = event.data.object
@@ -2619,6 +2621,10 @@ async def stripe_webhook(request: Request):
                 subscription = stripe.Subscription.retrieve(session.get("subscription"))
                 metadata = dict(session.get("metadata", {}))
                 
+                # Get the organization_id from metadata or user
+                org_id = metadata.get("organization_id")
+                user_id = metadata.get("user_id")
+                
                 sub_record = {
                     "subscription_id": session.get("subscription"),
                     "customer_id": session.get("customer"),
@@ -2633,26 +2639,78 @@ async def stripe_webhook(request: Request):
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }
                 
+                if org_id:
+                    sub_record["organization_id"] = org_id
+                if user_id:
+                    sub_record["user_id"] = user_id
+                
                 await db.subscriptions.update_one(
                     {"subscription_id": session.get("subscription")},
                     {"$set": sub_record},
                     upsert=True
                 )
                 
+                # Also store customer_id on user if we have user_id
+                if user_id:
+                    await db.users.update_one(
+                        {"user_id": user_id},
+                        {"$set": {"stripe_customer_id": session.get("customer")}}
+                    )
+                
                 logger.info(f"Subscription created: {session.get('subscription')} for tier {metadata.get('tier_id')}")
         
         elif event.type == "customer.subscription.updated":
             subscription = event.data.object
             
+            # Detect plan changes by checking the items
+            items = subscription.get("items", {}).get("data", [])
+            price_id = items[0].get("price", {}).get("id") if items else None
+            product_id = items[0].get("price", {}).get("product") if items else None
+            
+            # Find the tier based on product_id
+            new_tier_id = None
+            new_tier_name = None
+            new_coaches_limit = None
+            new_admins_limit = None
+            
+            if product_id:
+                for tier_id, tier_info in STRIPE_PRODUCTS.items():
+                    if tier_info["product_id"] == product_id:
+                        new_tier_id = tier_id
+                        new_tier_name = tier_info["name"]
+                        new_coaches_limit = tier_info["coaches"]
+                        new_admins_limit = tier_info["admins"]
+                        break
+            
+            update_data = {
+                "status": subscription.status,
+                "current_period_start": datetime.fromtimestamp(subscription.current_period_start, timezone.utc).isoformat(),
+                "current_period_end": datetime.fromtimestamp(subscription.current_period_end, timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Update tier info if plan changed
+            if new_tier_id:
+                update_data["tier_id"] = new_tier_id
+                update_data["tier_name"] = new_tier_name
+                update_data["coaches_limit"] = new_coaches_limit
+                update_data["admins_limit"] = new_admins_limit
+                logger.info(f"Subscription {subscription.id} plan changed to {new_tier_name}")
+            
+            # Handle cancel_at_period_end
+            if subscription.cancel_at_period_end:
+                update_data["cancel_at_period_end"] = True
+                update_data["cancel_at"] = datetime.fromtimestamp(subscription.cancel_at, timezone.utc).isoformat() if subscription.cancel_at else None
+            else:
+                update_data["cancel_at_period_end"] = False
+                update_data["cancel_at"] = None
+            
             await db.subscriptions.update_one(
                 {"subscription_id": subscription.id},
-                {"$set": {
-                    "status": subscription.status,
-                    "current_period_start": datetime.fromtimestamp(subscription.current_period_start, timezone.utc).isoformat(),
-                    "current_period_end": datetime.fromtimestamp(subscription.current_period_end, timezone.utc).isoformat(),
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }}
+                {"$set": update_data}
             )
+            
+            logger.info(f"Subscription updated: {subscription.id}, status: {subscription.status}")
             
         elif event.type == "customer.subscription.deleted":
             subscription = event.data.object
@@ -2665,6 +2723,65 @@ async def stripe_webhook(request: Request):
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }}
             )
+            
+            logger.info(f"Subscription canceled: {subscription.id}")
+        
+        elif event.type == "invoice.payment_succeeded":
+            invoice = event.data.object
+            subscription_id = invoice.get("subscription")
+            
+            if subscription_id:
+                await db.subscriptions.update_one(
+                    {"subscription_id": subscription_id},
+                    {"$set": {
+                        "status": "active",
+                        "last_payment_status": "succeeded",
+                        "last_payment_date": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # Store invoice record
+                await db.invoices.update_one(
+                    {"invoice_id": invoice.get("id")},
+                    {"$set": {
+                        "invoice_id": invoice.get("id"),
+                        "subscription_id": subscription_id,
+                        "customer_id": invoice.get("customer"),
+                        "amount_paid": invoice.get("amount_paid"),
+                        "currency": invoice.get("currency"),
+                        "status": invoice.get("status"),
+                        "invoice_url": invoice.get("hosted_invoice_url"),
+                        "invoice_pdf": invoice.get("invoice_pdf"),
+                        "created_at": datetime.fromtimestamp(invoice.get("created"), timezone.utc).isoformat() if invoice.get("created") else None,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }},
+                    upsert=True
+                )
+                
+                logger.info(f"Invoice payment succeeded for subscription: {subscription_id}")
+        
+        elif event.type == "invoice.payment_failed":
+            invoice = event.data.object
+            subscription_id = invoice.get("subscription")
+            
+            if subscription_id:
+                await db.subscriptions.update_one(
+                    {"subscription_id": subscription_id},
+                    {"$set": {
+                        "status": "past_due",
+                        "last_payment_status": "failed",
+                        "last_payment_failure_date": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                logger.warning(f"Invoice payment failed for subscription: {subscription_id}")
+        
+        elif event.type == "customer.subscription.trial_will_end":
+            subscription = event.data.object
+            # Log for now, could send notification email
+            logger.info(f"Trial ending soon for subscription: {subscription.id}")
         
         return {"received": True}
     except json.JSONDecodeError:
