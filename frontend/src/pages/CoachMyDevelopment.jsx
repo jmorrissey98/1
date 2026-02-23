@@ -95,6 +95,10 @@ export default function CoachMyDevelopment() {
       const analyticsResult = await safeGet(`${API_URL}/api/coach/analytics`);
       if (analyticsResult.ok) {
         setAnalyticsData(analyticsResult.data);
+        // Extract data retention info if present
+        if (analyticsResult.data?.data_retention) {
+          setDataRetention(analyticsResult.data.data_retention);
+        }
       }
     } catch (err) {
       console.error('Failed to load data:', err);
