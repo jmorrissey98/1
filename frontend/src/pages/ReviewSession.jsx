@@ -416,6 +416,11 @@ export default function ReviewSession() {
   const [savingReflection, setSavingReflection] = useState(false);
   const [observerNotesExpanded, setObserverNotesExpanded] = useState(true);
   
+  // Sharing state
+  const [observerReflectionShared, setObserverReflectionShared] = useState(true);
+  const [coachReflectionShared, setCoachReflectionShared] = useState(true);
+  const [togglingShare, setTogglingShare] = useState(false);
+  
   // State for clicked note dialog
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
