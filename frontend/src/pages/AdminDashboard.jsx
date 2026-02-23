@@ -409,41 +409,97 @@ export default function AdminDashboard() {
             {organizations.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-slate-500">
-                  No organizations found
+                  {showArchived ? 'No organizations found' : 'No active organizations found'}
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-4">
-                {organizations.map(org => (
-                  <Card key={org.org_id} className="overflow-hidden" data-testid={`org-card-${org.org_id}`}>
-                    <CardHeader className="bg-slate-50 border-b">
+                {organizations.map(org => {
+                  const isArchived = org.status === 'archived';
+                  return (
+                  <Card 
+                    key={org.org_id} 
+                    className={`overflow-hidden ${isArchived ? 'opacity-70 bg-slate-50' : ''}`} 
+                    data-testid={`org-card-${org.org_id}`}
+                  >
+                    <CardHeader className={`border-b ${isArchived ? 'bg-slate-100' : 'bg-slate-50'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-12 w-12">
                             <AvatarImage src={org.club_logo} alt={org.name} />
-                            <AvatarFallback className="bg-emerald-100 text-emerald-600">
+                            <AvatarFallback className={`${isArchived ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
                               {(org.name || org.club_name || 'O')[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <CardTitle className="text-lg">{org.name || org.club_name || 'Unnamed Org'}</CardTitle>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              {org.name || org.club_name || 'Unnamed Org'}
+                              {isArchived && (
+                                <Badge variant="secondary" className="bg-slate-200 text-slate-600">
+                                  <Archive className="w-3 h-3 mr-1" />
+                                  Archived
+                                </Badge>
+                              )}
+                            </CardTitle>
                             <CardDescription>{org.owner_email}</CardDescription>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline">{org.subscription_tier || 'Free'}</Badge>
+                          <Badge variant="outline">{org.subscription_tier || 'individual'}</Badge>
+                          {org.has_custom_limits && (
+                            <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">
+                              Custom
+                            </Badge>
+                          )}
+                          {!isArchived && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/admin/clubs/${org.org_id}`)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              View Users
+                            </Button>
+                          )}
                           <Button
-                            variant="outline"
+                            variant={isArchived ? "default" : "ghost"}
                             size="sm"
-                            onClick={() => navigate(`/admin/clubs/${org.org_id}`)}
+                            onClick={() => handleArchiveOrg(org.org_id, isArchived)}
+                            disabled={archivingOrg === org.org_id}
+                            className={isArchived ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}
+                            data-testid={`${isArchived ? 'reinstate' : 'archive'}-org-${org.org_id}`}
                           >
-                            <Users className="w-4 h-4 mr-1" />
-                            View Users
+                            {archivingOrg === org.org_id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : isArchived ? (
+                              <>
+                                <RotateCcw className="w-4 h-4 mr-1" />
+                                Reinstate
+                              </>
+                            ) : (
+                              <Archive className="w-4 h-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-4">
+                      {/* Limits Badges */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        <Badge variant="outline" className="text-xs font-normal">
+                          <Users className="w-3 h-3 mr-1" />
+                          {org.coach_count || 0}/{org.effective_coaches_limit || '∞'} coaches
+                        </Badge>
+                        <Badge variant="outline" className="text-xs font-normal">
+                          <UserCog className="w-3 h-3 mr-1" />
+                          {org.effective_admins_limit || 1} dev{org.effective_admins_limit !== 1 ? 's' : ''}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs font-normal">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {org.effective_data_retention_months ? `${org.effective_data_retention_months}mo data` : 'Unlimited data'}
+                        </Badge>
+                      </div>
+                      
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div>
                           <p className="text-xs text-slate-500 uppercase tracking-wide">Users</p>
@@ -465,7 +521,8 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      {/* Custom Limits Section */}
+                      {/* Custom Limits Section - only show for active orgs */}
+                      {!isArchived && (
                       <Collapsible>
                         <CollapsibleTrigger asChild>
                           <Button variant="ghost" size="sm" className="w-full justify-between text-slate-600">
