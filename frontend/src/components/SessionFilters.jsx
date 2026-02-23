@@ -123,20 +123,29 @@ export function SessionFilters({
     });
   };
 
+  const handlePartToggle = (partName) => {
+    const newParts = selectedParts.includes(partName)
+      ? selectedParts.filter(p => p !== partName)
+      : [...selectedParts, partName];
+    onFiltersChange({ ...filters, sessionParts: newParts });
+  };
+
   const clearFilters = () => {
     onFiltersChange({
       timeframe: 'all',
       startDate: '',
       endDate: '',
       sessionType: 'all',
-      daysOfWeek: []
+      daysOfWeek: [],
+      sessionParts: []
     });
   };
 
-  const hasActiveFilters = timeframe !== 'all' || sessionType !== 'all' || daysOfWeek.length > 0;
+  const hasActiveFilters = timeframe !== 'all' || sessionType !== 'all' || daysOfWeek.length > 0 || selectedParts.length > 0;
   const activeFilterCount = (timeframe !== 'all' ? 1 : 0) + 
                            (sessionType !== 'all' ? 1 : 0) + 
-                           (daysOfWeek.length > 0 ? 1 : 0);
+                           (daysOfWeek.length > 0 ? 1 : 0) +
+                           (selectedParts.length > 0 ? 1 : 0);
 
   if (showCompact) {
     return (
