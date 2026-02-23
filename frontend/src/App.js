@@ -283,9 +283,11 @@ function App() {
           <SyncProvider>
             <OrganizationProvider>
               <CloudSyncProvider>
-                <AppHeader />
-                <AppRouter />
-                <OfflineIndicator />
+                <UpgradeProvider>
+                  <AppHeader />
+                  <AppRouter />
+                  <OfflineIndicator />
+                </UpgradeProvider>
               </CloudSyncProvider>
             </OrganizationProvider>
           </SyncProvider>
