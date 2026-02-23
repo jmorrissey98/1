@@ -550,7 +550,14 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
         "total_ball_stopped_time": total_ball_stopped,
         "intervention_chart_data": intervention_chart_data,
         "variety_percentage": variety_percentage,
-        "most_common_pattern": most_common_pattern
+        "most_common_pattern": most_common_pattern,
+        "data_retention": {
+            "is_limited": retention_info["is_limited"],
+            "months_limit": retention_info["months_limit"],
+            "hidden_sessions_count": hidden_sessions_count,
+            "tier": retention_info["tier"],
+            "upgrade_message": f"Analytics based on last {retention_info['months_limit']} months. You have {hidden_sessions_count} older sessions. Upgrade to see complete history." if hidden_sessions_count > 0 else None
+        }
     }
 
 
