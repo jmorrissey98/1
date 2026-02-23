@@ -1035,7 +1035,7 @@ export default function CoachProfile() {
               coachId={coachId}
               coachName={coach.name}
               currentUserRole={isCoachDeveloper ? 'coach_developer' : 'coach'}
-              currentUserId={coach.user_id}
+              currentUserId={user?.user_id}
               isOwnProfile={false}
             />
           </TabsContent>
