@@ -827,28 +827,34 @@ export default function CoachMyDevelopment() {
                       })
                       .map(session => {
                         const needsReflection = session.has_observation && !session.has_reflection;
+                        const accessible = isSessionAccessible(session);
                         return (
                           <div
                             key={session.session_id}
                             className={`p-4 rounded-lg cursor-pointer transition-colors border ${
-                              needsReflection 
-                                ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' 
-                                : 'bg-slate-50 hover:bg-slate-100 border-slate-100'
+                              !accessible
+                                ? 'bg-slate-100 opacity-60 border-slate-200'
+                                : needsReflection 
+                                  ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' 
+                                  : 'bg-slate-50 hover:bg-slate-100 border-slate-100'
                             }`}
-                            onClick={() => navigate(`/session/${session.session_id}/review`)}
+                            onClick={accessible 
+                              ? () => navigate(`/session/${session.session_id}/review`)
+                              : handleRestrictedSessionClick
+                            }
                             data-testid={`session-item-${session.session_id}`}
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <h4 className="font-medium text-slate-900">
+                                  <h4 className={`font-medium ${accessible ? 'text-slate-900' : 'text-slate-500'}`}>
                                     {session.title || session.session_name || 'Untitled Session'}
                                   </h4>
-                                  {needsReflection && (
+                                  {accessible && needsReflection && (
                                     <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" data-testid={`session-notification-dot-${session.session_id}`} />
                                   )}
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                <div className={`flex items-center gap-3 text-sm mt-1 ${accessible ? 'text-slate-500' : 'text-slate-400'}`}>
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
                                     {formatDate(session.date)}
@@ -862,45 +868,58 @@ export default function CoachMyDevelopment() {
                                 </div>
                                 
                                 {/* Session indicators */}
-                                <div className="flex gap-2 mt-2">
-                                  {session.has_observation && (
-                                    <Badge variant="outline" className="text-xs border-green-300 text-green-700">
-                                      Has Observation
+                                {accessible ? (
+                                  <div className="flex gap-2 mt-2">
+                                    {session.has_observation && (
+                                      <Badge variant="outline" className="text-xs border-green-300 text-green-700">
+                                        Has Observation
+                                      </Badge>
+                                    )}
+                                    {session.has_reflection ? (
+                                      <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
+                                        Has Reflection
+                                      </Badge>
+                                    ) : needsReflection && (
+                                      <Badge className="text-xs bg-blue-600 hover:bg-blue-700">
+                                        Needs Reflection
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-2 mt-2">
+                                    <Badge variant="outline" className="text-xs border-slate-300 text-slate-400">
+                                      <Lock className="w-3 h-3 mr-1" />
+                                      Upgrade to view
                                     </Badge>
-                                  )}
-                                  {session.has_reflection ? (
-                                    <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
-                                      Has Reflection
-                                    </Badge>
-                                  ) : needsReflection && (
-                                    <Badge className="text-xs bg-blue-600 hover:bg-blue-700">
-                                      Needs Reflection
-                                    </Badge>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                                 
                                 {/* Summary preview */}
-                                {session.summary_preview && (
+                                {accessible && session.summary_preview && (
                                   <p className="text-sm text-slate-600 mt-2 line-clamp-2">
                                     {session.summary_preview}
                                   </p>
                                 )}
                               </div>
                               <div className="flex flex-col items-end gap-2">
-                                {needsReflection ? (
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/session/${session.session_id}/review`);
-                                    }}
-                                    data-testid={`add-reflection-btn-${session.session_id}`}
-                                  >
-                                    Add Reflection
-                                  </Button>
+                                {accessible ? (
+                                  needsReflection ? (
+                                    <Button 
+                                      size="sm" 
+                                      className="bg-blue-600 hover:bg-blue-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/session/${session.session_id}/review`);
+                                      }}
+                                      data-testid={`add-reflection-btn-${session.session_id}`}
+                                    >
+                                      Add Reflection
+                                    </Button>
+                                  ) : (
+                                    <Eye className="w-5 h-5 text-slate-400" />
+                                  )
                                 ) : (
-                                  <Eye className="w-5 h-5 text-slate-400" />
+                                  <Lock className="w-5 h-5 text-slate-300" />
                                 )}
                               </div>
                             </div>
