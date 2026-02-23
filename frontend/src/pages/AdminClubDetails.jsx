@@ -389,7 +389,23 @@ export default function AdminClubDetails() {
                         <Eye className="w-4 h-4" />
                       </Button>
                       
-                      {/* Reset Password Button */}
+                      {/* Send Password Reset Email Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSendResetEmail(user.email)}
+                        disabled={sendingResetEmail === user.email}
+                        title="Send password reset email"
+                        data-testid={`send-reset-email-${user.user_id}`}
+                      >
+                        {sendingResetEmail === user.email ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                      </Button>
+                      
+                      {/* Reset Password Button (Set directly) */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -397,7 +413,7 @@ export default function AdminClubDetails() {
                           setSelectedUser(user);
                           setResetPasswordOpen(true);
                         }}
-                        title="Reset password"
+                        title="Set new password directly"
                       >
                         <Key className="w-4 h-4" />
                       </Button>
