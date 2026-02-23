@@ -2706,6 +2706,50 @@ async def admin_update_org_limits(org_id: str, request: Request):
     }
 
 
+@api_router.put("/admin/organizations/{org_id}/tier")
+async def admin_update_org_tier(org_id: str, request: Request):
+    """Update organization's subscription tier (Admin only)"""
+    await require_admin(request)
+    
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    body = await request.json()
+    new_tier = body.get("tier_id")
+    
+    if not new_tier:
+        raise HTTPException(status_code=400, detail="tier_id is required")
+    
+    valid_tiers = ["individual", "developer", "club"]
+    if new_tier not in valid_tiers:
+        raise HTTPException(status_code=400, detail=f"Invalid tier. Must be one of: {', '.join(valid_tiers)}")
+    
+    # Update organization's subscription tier
+    await db.organizations.update_one(
+        {"org_id": org_id},
+        {"$set": {
+            "subscription_tier": new_tier,
+            "tier_updated_at": datetime.now(timezone.utc).isoformat(),
+            "tier_updated_by": "admin_manual"
+        }}
+    )
+    
+    # Also update the owner's user record
+    owner_id = org.get("owner_id")
+    if owner_id:
+        await db.users.update_one(
+            {"user_id": owner_id},
+            {"$set": {"subscription_tier": new_tier}}
+        )
+    
+    return {
+        "message": f"Organization tier updated to {new_tier}",
+        "org_id": org_id,
+        "new_tier": new_tier
+    }
+
+
 # ============================================
 # END ADMIN API ENDPOINTS
 # ============================================
