@@ -465,6 +465,13 @@ export default function CoachMyDevelopment() {
               </CardContent>
             </Card>
 
+            {/* Session Filters */}
+            <SessionFilters 
+              filters={sessionFilters}
+              onFiltersChange={setSessionFilters}
+              showCompact={true}
+            />
+
             {/* Intervention Patterns - Moved up, right after profile */}
             <Card>
               <CardHeader>
