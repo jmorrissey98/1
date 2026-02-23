@@ -14,11 +14,13 @@ import { toast } from 'sonner';
 import { fetchCoaches, createCoach, deleteCoach } from '../lib/offlineApi';
 import { isOnline, getPendingSyncCount } from '../lib/offlineSync';
 import { safeGet } from '../lib/safeFetch';
+import { useUpgrade } from '../contexts/UpgradeContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export default function MyCoaches() {
   const navigate = useNavigate();
+  const { openUpgradeModal } = useUpgrade();
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
