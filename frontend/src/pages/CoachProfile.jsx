@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, 
   Loader2, Eye, Play, Download, FileText, Filter, Camera, Paperclip, Upload, 
-  CalendarClock, BarChart3, TrendingUp, ChevronDown, ChevronUp, AlertTriangle, ArrowUpCircle
+  CalendarClock, BarChart3, TrendingUp, ChevronDown, ChevronUp, AlertTriangle, ArrowUpCircle, Lock
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
