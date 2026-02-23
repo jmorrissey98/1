@@ -54,6 +54,12 @@ class ObservationSessionCreate(BaseModel):
     session_notes: Optional[str] = ""
     ai_summary: Optional[str] = ""
     attachments: Optional[List[Any]] = []
+    # Reflection sharing flags (default to True - shared by default)
+    observer_reflection_shared: Optional[bool] = True
+    coach_reflection_shared: Optional[bool] = True
+    # Structured reflection data
+    observer_reflection: Optional[Any] = None
+    coach_reflection: Optional[Any] = None
 
 class ObservationSessionResponse(BaseModel):
     session_id: str
