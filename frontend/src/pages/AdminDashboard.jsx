@@ -126,7 +126,29 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [showArchived]);
+
+  // Archive/Reinstate organization
+  const handleArchiveOrg = async (orgId, isArchived) => {
+    setArchivingOrg(orgId);
+    try {
+      const endpoint = isArchived 
+        ? `${API_URL}/api/admin/organizations/${orgId}/reinstate`
+        : `${API_URL}/api/admin/organizations/${orgId}/archive`;
+      
+      const result = await safePost(endpoint, {});
+      if (result.ok) {
+        toast.success(isArchived ? 'Organization reinstated' : 'Organization archived');
+        loadData();
+      } else {
+        toast.error(result.data?.detail || 'Operation failed');
+      }
+    } catch (err) {
+      toast.error('Failed to update organization status');
+    } finally {
+      setArchivingOrg(null);
+    }
+  };
 
   // Start editing a tier
   const startEditingTier = (tier) => {
