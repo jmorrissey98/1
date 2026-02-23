@@ -576,9 +576,9 @@ export default function CoachProfile() {
   const activeTargets = (coach.targets || []).filter(t => t.status === 'active');
   const achievedTargets = (coach.targets || []).filter(t => t.status === 'achieved');
 
-  // Use API analytics if available, otherwise use defaults
-  const analytics = analyticsData || {
-    total_sessions: sessions.length,
+  // Use filtered analytics if filters are active, otherwise use API analytics
+  const analytics = filteredAnalytics || analyticsData || {
+    total_sessions: filteredSessions.length,
     total_interventions: 0,
     avg_per_session: 0,
     avg_ball_rolling: 0,
