@@ -23,6 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { safeGet, safePut, safePost } from '../lib/safeFetch';
 import { toast } from 'sonner';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { SessionFilters, applySessionFilters } from '../components/SessionFilters';
 
 const API_URL = '';
 
