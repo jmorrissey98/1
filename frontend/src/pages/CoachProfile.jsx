@@ -26,7 +26,7 @@ import { exportCoachReportPDF, exportCoachReportCSV } from '../lib/export';
 import { fetchSessionParts } from '../lib/sessionPartsApi';
 import { useAuth } from '../contexts/AuthContext';
 import { useUpgrade } from '../contexts/UpgradeContext';
-import { SessionFilters, applySessionFilters } from '../components/SessionFilters';
+import { SessionFilters, applySessionFilters, calculateFilteredAnalytics } from '../components/SessionFilters';
 import CoachNotes from '../components/coach/CoachNotes';
 import axios from 'axios';
 
