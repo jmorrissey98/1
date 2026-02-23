@@ -60,8 +60,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [organizations, setOrganizations] = useState([]);
   const [subscriptionTiers, setSubscriptionTiers] = useState(DEFAULT_TIERS);
-  const [stats, setStats] = useState({ totalOrgs: 0, totalUsers: 0, totalCoaches: 0 });
+  const [stats, setStats] = useState({ totalOrgs: 0, totalUsers: 0, totalCoaches: 0, archivedOrgs: 0 });
   const [error, setError] = useState(null);
+  
+  // Filter states
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivingOrg, setArchivingOrg] = useState(null);
   
   // Editing states
   const [editingTier, setEditingTier] = useState(null);
@@ -78,8 +82,8 @@ export default function AdminDashboard() {
     setError(null);
     
     try {
-      // Load organizations
-      const orgsResult = await safeGet(`${API_URL}/api/admin/organizations`);
+      // Load organizations (include archived based on filter)
+      const orgsResult = await safeGet(`${API_URL}/api/admin/organizations?include_archived=${showArchived}`);
       
       if (!orgsResult.ok) {
         if (orgsResult.status === 401) {
@@ -94,13 +98,16 @@ export default function AdminDashboard() {
       setOrganizations(orgs);
       
       // Calculate stats
-      const totalUsers = orgs.reduce((sum, org) => sum + (org.user_count || 0), 0);
-      const totalCoaches = orgs.reduce((sum, org) => sum + (org.coach_count || 0), 0);
+      const activeOrgs = orgs.filter(o => o.status !== 'archived');
+      const archivedOrgs = orgs.filter(o => o.status === 'archived');
+      const totalUsers = activeOrgs.reduce((sum, org) => sum + (org.user_count || 0), 0);
+      const totalCoaches = activeOrgs.reduce((sum, org) => sum + (org.coach_count || 0), 0);
       
       setStats({
-        totalOrgs: orgs.length,
+        totalOrgs: activeOrgs.length,
         totalUsers,
-        totalCoaches
+        totalCoaches,
+        archivedOrgs: archivedOrgs.length
       });
       
       // Load subscription tiers
