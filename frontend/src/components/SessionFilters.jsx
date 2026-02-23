@@ -637,21 +637,12 @@ export function calculateFilteredAnalytics(sessions, selectedParts = []) {
         const partName = part.name || part.part_name || part;
         if (selectedParts.some(sp => sp.toLowerCase() === partName.toLowerCase())) {
           const wasUsed = part.used === true || (part.startTime && part.endTime);
-          if (wasUsed && part.ball_rolling_time !== undefined) {
-            totalBallRolling += part.ball_rolling_time || 0;
-            totalBallStopped += part.ball_not_rolling_time || 0;
-          } else if (wasUsed) {
-            // Fallback: estimate based on part duration if no specific ball time
-            const startTime = part.startTime || part.start_time || 0;
-            const endTime = part.endTime || part.end_time || 0;
-            const duration = endTime - startTime;
-            if (duration > 0) {
-              // Use session average ball rolling percentage
-              const sessionTotal = (session.ball_rolling_time || 0) + (session.ball_not_rolling_time || 0);
-              const sessionBallPct = sessionTotal > 0 ? (session.ball_rolling_time || 0) / sessionTotal : 0.5;
-              totalBallRolling += duration * sessionBallPct;
-              totalBallStopped += duration * (1 - sessionBallPct);
-            }
+          if (wasUsed) {
+            // Use camelCase field names (ballRollingTime) as that's what the data uses
+            const partBallRolling = part.ballRollingTime ?? part.ball_rolling_time ?? 0;
+            const partBallStopped = part.ballNotRollingTime ?? part.ball_not_rolling_time ?? 0;
+            totalBallRolling += partBallRolling;
+            totalBallStopped += partBallStopped;
           }
         }
       });
