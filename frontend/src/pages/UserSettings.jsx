@@ -475,7 +475,7 @@ export default function UserSettings() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => window.location.href = 'https://mycoachdeveloper.com/#pricing'}
+                            onClick={() => openUpgradeModal()}
                             data-testid="upgrade-limits-btn"
                           >
                             <Crown className="w-3 h-3 mr-1" />
@@ -572,7 +572,7 @@ export default function UserSettings() {
                         Subscribe to a plan to unlock team management features.
                       </p>
                       <Button 
-                        onClick={() => window.location.href = 'https://mycoachdeveloper.com/#pricing'}
+                        onClick={() => openUpgradeModal()}
                         className="w-full"
                         data-testid="subscribe-btn"
                       >
