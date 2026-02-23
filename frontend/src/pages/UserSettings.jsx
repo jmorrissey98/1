@@ -380,7 +380,7 @@ export default function UserSettings() {
                             className="w-full"
                             onClick={() => {
                               setShowUpgradeTooltip(false);
-                              window.location.href = 'https://mycoachdeveloper.com/#pricing';
+                              openUpgradeModal();
                             }}
                             data-testid="upgrade-btn"
                           >
