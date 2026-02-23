@@ -229,9 +229,18 @@ class AdminOrganizationListItem(BaseModel):
     club_name: Optional[str] = None
     club_logo: Optional[str] = None
     owner_id: str
+    owner_email: Optional[str] = None
     user_count: int = 0
     coach_count: int = 0
+    session_count: int = 0
+    subscription_tier: Optional[str] = None
+    status: str = "active"  # "active" or "archived"
     created_at: Optional[str] = None
+    # Effective limits (considering custom overrides)
+    effective_coaches_limit: Optional[int] = None
+    effective_admins_limit: Optional[int] = None
+    effective_data_retention_months: Optional[int] = None
+    has_custom_limits: bool = False
 
 class Invite(BaseModel):
     model_config = ConfigDict(extra="ignore")
