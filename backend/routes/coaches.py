@@ -433,20 +433,37 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
     """
     Get aggregated analytics for a specific coach (Coach Developer only).
     Returns same structure as /coach/analytics but for any coach by ID.
+    Individual tier users only see analytics from last 3 months of data.
     """
-    await require_coach_developer(request)
+    user = await require_coach_developer(request)
     
     # Verify coach exists
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
     if not coach:
         raise HTTPException(status_code=404, detail="Coach not found")
     
-    # Fetch all sessions with full event data for this coach
+    # Get data retention info for the user
+    retention_info = await get_data_retention_info(user.user_id)
+    
+    # Build query - filter by date if user has limited retention
+    query = {"coach_id": coach_id}
+    if retention_info["is_limited"] and retention_info["cutoff_date"]:
+        query["created_at"] = {"$gte": retention_info["cutoff_date"].isoformat()}
+    
+    # Fetch sessions with full event data for this coach
     sessions = await db.observation_sessions.find(
-        {"coach_id": coach_id},
+        query,
         {"_id": 0, "session_id": 1, "events": 1, "ball_rolling_time": 1, 
          "ball_not_rolling_time": 1, "total_duration": 1, "created_at": 1}
     ).to_list(length=1000)
+    
+    # Count hidden sessions for upgrade prompt
+    hidden_sessions_count = 0
+    if retention_info["is_limited"] and retention_info["cutoff_date"]:
+        hidden_sessions_count = await db.observation_sessions.count_documents({
+            "coach_id": coach_id,
+            "created_at": {"$lt": retention_info["cutoff_date"].isoformat()}
+        })
     
     total_sessions = len(sessions)
     total_interventions = 0
