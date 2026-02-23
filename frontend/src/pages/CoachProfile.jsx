@@ -26,6 +26,7 @@ import { exportCoachReportPDF, exportCoachReportCSV } from '../lib/export';
 import { fetchSessionParts } from '../lib/sessionPartsApi';
 import { useAuth } from '../contexts/AuthContext';
 import { SessionFilters, applySessionFilters } from '../components/SessionFilters';
+import CoachNotes from '../components/coach/CoachNotes';
 import axios from 'axios';
 
 const API = '/api';
@@ -1028,6 +1029,15 @@ export default function CoachProfile() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Coach Notes */}
+            <CoachNotes
+              coachId={coachId}
+              coachName={coach.name}
+              currentUserRole={isCoachDeveloper ? 'coach_developer' : 'coach'}
+              currentUserId={coach.user_id}
+              isOwnProfile={false}
+            />
           </TabsContent>
 
           {/* Profile Tab - Photo & Attachments */}
