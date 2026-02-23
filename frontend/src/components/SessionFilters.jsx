@@ -217,7 +217,9 @@ function FilterContent({
   onTimeframeChange, 
   onSessionTypeChange, 
   onDayToggle, 
-  onDateChange 
+  onDateChange,
+  availableTimeframes = TIMEFRAME_PRESETS,
+  dataRetention = null
 }) {
   const { timeframe, startDate, endDate, sessionType, daysOfWeek = [] } = filters;
 
@@ -231,13 +233,26 @@ function FilterContent({
             <SelectValue placeholder="Select timeframe" />
           </SelectTrigger>
           <SelectContent>
-            {TIMEFRAME_PRESETS.map(preset => (
-              <SelectItem key={preset.value} value={preset.value}>
-                {preset.label}
+            {availableTimeframes.map(preset => (
+              <SelectItem 
+                key={preset.value} 
+                value={preset.value}
+                disabled={preset.disabled}
+                className={preset.disabled ? 'opacity-50' : ''}
+              >
+                <span className="flex items-center gap-2">
+                  {preset.disabled && <Lock className="w-3 h-3 text-slate-400" />}
+                  {preset.disabled ? preset.lockedLabel : preset.label}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {dataRetention?.is_limited && (
+          <p className="text-xs text-slate-500 mt-1">
+            Your {dataRetention.tier} plan shows data from the last {dataRetention.months_limit} months
+          </p>
+        )}
       </div>
 
       {/* Custom Date Range */}
