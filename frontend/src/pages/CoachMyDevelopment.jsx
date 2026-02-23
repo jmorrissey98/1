@@ -60,14 +60,16 @@ export default function CoachMyDevelopment() {
     sessionParts: []
   });
   
-  // Extract unique session parts from all sessions
+  // Extract unique session parts from all sessions (only parts that were actually used)
   const availableSessionParts = useMemo(() => {
     const partsSet = new Set();
     sessions.forEach(session => {
       const parts = session.session_parts || session.sessionParts || session.parts || [];
       parts.forEach(part => {
+        // Only include parts that were actually used in the session
         const partName = part.name || part.part_name || part;
-        if (partName) partsSet.add(partName);
+        const wasUsed = part.used !== false; // Default to true if 'used' field doesn't exist
+        if (partName && wasUsed) partsSet.add(partName);
       });
     });
     return Array.from(partsSet).sort();
