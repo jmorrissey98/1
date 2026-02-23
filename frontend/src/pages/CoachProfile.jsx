@@ -298,6 +298,31 @@ export default function CoachProfile() {
     return chartData.filter(item => interventionFilters[item.name] !== false);
   }, [filteredAnalytics, analyticsData, interventionFilters]);
 
+  // Helper to check if a session is accessible based on data retention
+  const isSessionAccessible = (session) => {
+    if (!dataRetention?.is_limited || !dataRetention?.cutoff_date) return true;
+    const sessionDate = new Date(session.createdAt || session.created_at);
+    const cutoffDate = new Date(dataRetention.cutoff_date);
+    return sessionDate >= cutoffDate;
+  };
+
+  // Handler for clicking on restricted sessions
+  const handleRestrictedSessionClick = (e) => {
+    e.stopPropagation();
+    toast.error(
+      <div>
+        <p className="font-medium">Session not accessible</p>
+        <p className="text-sm">Upgrade your plan to view sessions older than 3 months.</p>
+      </div>,
+      {
+        action: {
+          label: 'View Plans',
+          onClick: () => navigate('/#pricing')
+        }
+      }
+    );
+  };
+
   // Photo upload handler
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
