@@ -1055,15 +1055,6 @@ export default function CoachProfile() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Coach Notes */}
-            <CoachNotes
-              coachId={coachId}
-              coachName={coach.name}
-              currentUserRole={isCoachDeveloper ? 'coach_developer' : 'coach'}
-              currentUserId={user?.user_id}
-              isOwnProfile={false}
-            />
           </TabsContent>
 
           {/* Profile Tab - Photo & Attachments */}
