@@ -442,6 +442,10 @@ export default function ReviewSession() {
         setSession(loaded);
         setCurrentSession(loaded);
         
+        // Initialize sharing states from loaded session
+        setObserverReflectionShared(loaded.observer_reflection_shared !== false);
+        setCoachReflectionShared(loaded.coach_reflection_shared !== false);
+        
         // Load reflection templates for both coach developers and coaches
         // Coaches need to see their assigned template
         loadReflectionTemplates();
