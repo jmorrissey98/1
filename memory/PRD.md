@@ -65,8 +65,11 @@
 - **Organization Status Filter** - Toggle to show/hide archived organizations
 - **Visual Limits Display** - Badges showing coach count, developer limit, and data retention per organization
 - **Edit Subscription Tiers** - Modify global tier properties (price, limits) 
+- **Manual Tier Changes** - Dropdown to change organization subscription tier (Individual/Developer/Club)
 - **Per-Organization Limit Overrides** - Set custom limits for individual clubs
 - **Impersonate Users** - View app as any non-admin user for debugging (exit returns to admin dashboard)
+- **Send Password Reset Email** - Admin can force-send reset email to any user (bypasses OAuth check, 24hr validity)
+- **Direct Password Set** - Admin can directly set a new password for any user
 - Add coach developers to clubs directly
 - View all clubs and users
 
