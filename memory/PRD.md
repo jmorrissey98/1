@@ -428,6 +428,9 @@
 - [x] **Default timeframe by tier** - Individual/free tier users now default to "Last 3 Months" filter
 - [x] **Session Parts filter** - Filters analytics to show only data FROM events during selected parts
 - [x] **Zero-data display fix** - Metrics now correctly show 0 when filters match no data (instead of total count)
+- [x] **Tier-based data enforcement** - Frontend now enforces 3-month limit for Individual tier even before user interacts with filters
+- [x] **Ball Rolling fix** - Fixed field name lookup to use `ballRollingTime` (camelCase) from session parts data
+- [x] **Session counting fix** - Analytics now count sessions with events or ball rolling time, not just status=completed
 - [x] **New helper functions** in SessionFilters.jsx:
   - `filterEventsByParts()` - Filters events by sessionPartId
   - `calculateFilteredAnalytics()` - Recalculates analytics with part-specific filtering
