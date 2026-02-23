@@ -426,6 +426,127 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
     return {"success": True, "session_id": session_id, "synced_at": now}
 
 
+class ReflectionSharingUpdate(BaseModel):
+    shared: bool
+
+
+@router.put("/{session_id}/observer-reflection-sharing")
+async def update_observer_reflection_sharing(session_id: str, data: ReflectionSharingUpdate, request: Request):
+    """Toggle observer reflection sharing - only coach developers can toggle their own sharing"""
+    user = await require_coach_developer(request)
+    
+    # Verify ownership
+    existing = await db.observation_sessions.find_one(
+        {"session_id": session_id, "observer_id": user.user_id}
+    )
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    await db.observation_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": {"observer_reflection_shared": data.shared}}
+    )
+    
+    return {"success": True, "shared": data.shared}
+
+
+@router.put("/{session_id}/coach-reflection-sharing")
+async def update_coach_reflection_sharing(session_id: str, data: ReflectionSharingUpdate, request: Request):
+    """Toggle coach reflection sharing - only coaches can toggle their own sharing"""
+    user = await require_auth(request)
+    
+    if user.role != 'coach':
+        raise HTTPException(status_code=403, detail="Only coaches can toggle their reflection sharing")
+    
+    # Verify coach is assigned to this session
+    existing = await db.observation_sessions.find_one(
+        {"session_id": session_id, "coach_id": user.linked_coach_id}
+    )
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    await db.observation_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": {"coach_reflection_shared": data.shared}}
+    )
+    
+    return {"success": True, "shared": data.shared}
+
+
+class StructuredReflectionData(BaseModel):
+    template_id: Optional[str] = None
+    template_name: Optional[str] = None
+    responses: dict = {}
+    completed_at: Optional[str] = None
+
+
+@router.put("/{session_id}/observer-reflection")
+async def save_observer_reflection(session_id: str, data: StructuredReflectionData, request: Request):
+    """Save observer's structured reflection"""
+    user = await require_coach_developer(request)
+    
+    # Verify ownership
+    existing = await db.observation_sessions.find_one(
+        {"session_id": session_id, "observer_id": user.user_id}
+    )
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    reflection_data = {
+        "templateId": data.template_id,
+        "templateName": data.template_name,
+        "responses": data.responses,
+        "completedAt": data.completed_at or now,
+        "updatedAt": now
+    }
+    
+    await db.observation_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": {"observer_reflection": reflection_data, "updated_at": now}}
+    )
+    
+    return {"success": True, "reflection": reflection_data}
+
+
+@router.put("/{session_id}/coach-reflection")
+async def save_coach_reflection(session_id: str, data: StructuredReflectionData, request: Request):
+    """Save coach's structured reflection"""
+    user = await require_auth(request)
+    
+    if user.role != 'coach':
+        raise HTTPException(status_code=403, detail="Only coaches can save their reflection")
+    
+    # Verify coach is assigned to this session
+    existing = await db.observation_sessions.find_one(
+        {"session_id": session_id, "coach_id": user.linked_coach_id}
+    )
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    reflection_data = {
+        "templateId": data.template_id,
+        "templateName": data.template_name,
+        "responses": data.responses,
+        "completedAt": data.completed_at or now,
+        "updatedAt": now
+    }
+    
+    await db.observation_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": {"coach_reflection": reflection_data, "updated_at": now}}
+    )
+    
+    return {"success": True, "reflection": reflection_data}
+
+
 @router.delete("/{session_id}")
 async def delete_observation_session(session_id: str, request: Request):
     """Delete an observation session"""
