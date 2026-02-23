@@ -26,7 +26,7 @@ class SessionListItem(BaseModel):
     planned_date: Optional[str] = None
     created_at: str = ""
     updated_at: str = ""
-    total_duration: int = 0
+    total_duration: float = 0
     event_count: int = 0
 
 class ObservationSessionCreate(BaseModel):
