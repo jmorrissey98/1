@@ -603,11 +603,20 @@ export function filterEventsByParts(session, selectedParts) {
 
 // Helper to calculate analytics from filtered data with part-specific filtering
 export function calculateFilteredAnalytics(sessions, selectedParts = []) {
-  const completedSessions = sessions.filter(s => s.status === 'completed');
+  // Filter for sessions that have actual data (events, or are marked as completed, or have ball rolling time)
+  // Don't strictly require status === 'completed' as some sessions may not have this field
+  const validSessions = sessions.filter(s => {
+    const hasEvents = (s.events || []).length > 0;
+    const isCompleted = s.status === 'completed';
+    const hasBallTime = (s.ball_rolling_time || s.ballRollingTime || 0) > 0;
+    return hasEvents || isCompleted || hasBallTime;
+  });
   
-  if (completedSessions.length === 0) {
+  if (validSessions.length === 0) {
+    // If no valid sessions, still return the count of all sessions passed in
+    // This handles the case where sessions exist but don't have events yet
     return {
-      total_sessions: 0,
+      total_sessions: sessions.length,
       total_interventions: 0,
       avg_per_session: 0,
       avg_ball_rolling: 0,
@@ -622,7 +631,7 @@ export function calculateFilteredAnalytics(sessions, selectedParts = []) {
   let totalBallStopped = 0;
   const interventionCounts = {};
   
-  completedSessions.forEach(session => {
+  validSessions.forEach(session => {
     // If session parts filter is active, only count events from those parts
     const events = selectedParts.length > 0 
       ? filterEventsByParts(session, selectedParts)
