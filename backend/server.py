@@ -1967,17 +1967,35 @@ async def list_scheduled_observations(request: Request):
 # ============================================
 
 @api_router.get("/admin/organizations")
-async def admin_list_organizations(request: Request):
+async def admin_list_organizations(request: Request, include_archived: bool = False):
     """List all organizations (Admin only)"""
     await require_admin(request)
     
-    orgs = await db.organizations.find({}, {"_id": 0}).to_list(1000)
+    # Build query based on whether to include archived orgs
+    query = {} if include_archived else {"status": {"$ne": "archived"}}
+    orgs = await db.organizations.find(query, {"_id": 0}).to_list(1000)
+    
+    # Get subscription tiers for limit lookups
+    tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
+    tier_map = {t["tier_id"]: t for t in tiers} if tiers else {}
+    
+    # Default tier limits if not in DB
+    default_tiers = {
+        "individual": {"coaches_limit": 5, "admins_limit": 1, "data_retention_months": 3},
+        "developer": {"coaches_limit": 10, "admins_limit": 1, "data_retention_months": None},
+        "club": {"coaches_limit": 50, "admins_limit": 10, "data_retention_months": None}
+    }
     
     # Get user and coach counts for each organization
     result = []
     for org in orgs:
         org_id = org.get("org_id")
         owner_id = org.get("owner_id")
+        
+        # Get owner email
+        owner = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1, "subscription_tier": 1})
+        owner_email = owner.get("email") if owner else None
+        subscription_tier = org.get("subscription_tier") or (owner.get("subscription_tier") if owner else None) or "individual"
         
         # Count users in this organization
         user_count = await db.users.count_documents({
@@ -1990,14 +2008,35 @@ async def admin_list_organizations(request: Request):
         # Count coaches in this organization
         coach_count = await db.coaches.count_documents({"created_by": owner_id})
         
+        # Count sessions
+        session_count = await db.sessions.count_documents({"created_by": owner_id})
+        
+        # Calculate effective limits
+        custom_limits = org.get("custom_limits", {})
+        tier_limits = tier_map.get(subscription_tier, default_tiers.get(subscription_tier, default_tiers["individual"]))
+        
+        effective_coaches_limit = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else tier_limits.get("coaches_limit", 5)
+        effective_admins_limit = custom_limits.get("admins_limit") if custom_limits.get("admins_limit") is not None else tier_limits.get("admins_limit", 1)
+        effective_data_retention = custom_limits.get("data_retention_months") if custom_limits.get("data_retention_months") is not None else tier_limits.get("data_retention_months")
+        
+        has_custom_limits = bool(custom_limits and any(v is not None for v in custom_limits.values()))
+        
         result.append(AdminOrganizationListItem(
             org_id=org_id,
             club_name=org.get("club_name"),
             club_logo=org.get("club_logo"),
             owner_id=owner_id,
+            owner_email=owner_email,
             user_count=user_count,
             coach_count=coach_count,
-            created_at=org.get("created_at")
+            session_count=session_count,
+            subscription_tier=subscription_tier,
+            status=org.get("status", "active"),
+            created_at=org.get("created_at"),
+            effective_coaches_limit=effective_coaches_limit,
+            effective_admins_limit=effective_admins_limit,
+            effective_data_retention_months=effective_data_retention,
+            has_custom_limits=has_custom_limits
         ))
     
     return result
