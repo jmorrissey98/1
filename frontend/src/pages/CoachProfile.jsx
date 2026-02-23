@@ -135,6 +135,11 @@ export default function CoachProfile() {
       const response = await axios.get(`${API}/coaches/${coachId}/analytics`, { withCredentials: true });
       setAnalyticsData(response.data);
       
+      // Extract data retention info if present
+      if (response.data?.data_retention) {
+        setDataRetention(response.data.data_retention);
+      }
+      
       // Initialize intervention filters when analytics data loads
       if (response.data?.intervention_chart_data) {
         const initialFilters = {};
