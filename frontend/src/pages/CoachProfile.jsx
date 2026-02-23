@@ -160,14 +160,6 @@ export default function CoachProfile() {
     }));
   };
 
-  // Filter intervention data based on selected filters
-  const filteredInterventionData = useMemo(() => {
-    if (!analyticsData?.intervention_chart_data) return [];
-    return analyticsData.intervention_chart_data.filter(item => 
-      interventionFilters[item.name] !== false
-    );
-  }, [analyticsData, interventionFilters]);
-
   // Filter sessions based on session filters
   const filteredSessions = useMemo(() => {
     return applySessionFilters(sessions, sessionFilters);
@@ -266,6 +258,12 @@ export default function CoachProfile() {
       most_common_pattern: mostCommonPattern
     };
   }, [analyticsData, filteredSessions, sessionFilters]);
+
+  // Filter intervention data based on selected checkbox filters (uses filtered analytics)
+  const filteredInterventionData = useMemo(() => {
+    const chartData = filteredAnalytics?.intervention_chart_data || analyticsData?.intervention_chart_data || [];
+    return chartData.filter(item => interventionFilters[item.name] !== false);
+  }, [filteredAnalytics, analyticsData, interventionFilters]);
 
   // Photo upload handler
   const handlePhotoUpload = async (e) => {
