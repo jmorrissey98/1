@@ -56,8 +56,22 @@ export default function CoachMyDevelopment() {
     startDate: '',
     endDate: '',
     sessionType: 'all',
-    daysOfWeek: []
+    daysOfWeek: [],
+    sessionParts: []
   });
+  
+  // Extract unique session parts from all sessions
+  const availableSessionParts = useMemo(() => {
+    const partsSet = new Set();
+    sessions.forEach(session => {
+      const parts = session.session_parts || session.sessionParts || session.parts || [];
+      parts.forEach(part => {
+        const partName = part.name || part.part_name || part;
+        if (partName) partsSet.add(partName);
+      });
+    });
+    return Array.from(partsSet).sort();
+  }, [sessions]);
   
   // Edit states
   const [editingTargetId, setEditingTargetId] = useState(null);
