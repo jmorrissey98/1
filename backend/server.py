@@ -2409,7 +2409,7 @@ STRIPE_PRODUCTS = {
     "developer": {
         "product_id": "prod_TzxEC0P2ychhee",
         "name": "Developer",
-        "coaches": 15,
+        "coaches": 10,
         "admins": 1
     },
     "club": {
