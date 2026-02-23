@@ -24,6 +24,7 @@ import { safeGet, safePut, safePost } from '../lib/safeFetch';
 import { toast } from 'sonner';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { SessionFilters, applySessionFilters } from '../components/SessionFilters';
+import CoachNotes from '../components/coach/CoachNotes';
 
 const API_URL = '';
 
