@@ -45,6 +45,7 @@ export default function CoachMyDevelopment() {
   const [targets, setTargets] = useState([]);
   const [archivedTargets, setArchivedTargets] = useState([]);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [dataRetention, setDataRetention] = useState(null);
   
   // Filter/search states
   const [searchQuery, setSearchQuery] = useState('');
