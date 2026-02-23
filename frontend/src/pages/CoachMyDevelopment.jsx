@@ -151,7 +151,8 @@ export default function CoachMyDevelopment() {
     // If no filters are active, return original analytics
     const hasActiveFilters = sessionFilters.timeframe !== 'all' || 
                             sessionFilters.sessionType !== 'all' || 
-                            sessionFilters.daysOfWeek.length > 0;
+                            sessionFilters.daysOfWeek.length > 0 ||
+                            (sessionFilters.sessionParts && sessionFilters.sessionParts.length > 0);
     
     if (!hasActiveFilters) return analyticsData;
     
