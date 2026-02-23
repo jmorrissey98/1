@@ -376,14 +376,20 @@ export default function LandingPage() {
                   )}
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="border-t border-slate-100 pt-6">
-                    <div className="flex justify-between text-sm mb-3">
+                  <div className="border-t border-slate-100 pt-6 space-y-3">
+                    <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Coach Developers</span>
                       <span className="font-medium text-slate-900">Up to {tier.admins}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Coaches</span>
                       <span className="font-medium text-slate-900">Up to {tier.coaches}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Data History</span>
+                      <span className={`font-medium ${tier.dataRetention === 'Unlimited' ? 'text-green-600' : 'text-slate-900'}`}>
+                        {tier.dataRetention}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
