@@ -317,7 +317,7 @@ export default function AdminDashboard() {
 
       <main className="max-w-6xl mx-auto px-6 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalOrgs}</p>
-                  <p className="text-sm text-slate-500">Organizations</p>
+                  <p className="text-sm text-slate-500">Active Organizations</p>
                 </div>
               </div>
             </CardContent>
@@ -359,6 +359,20 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-100 rounded-lg">
+                  <Archive className="w-6 h-6 text-slate-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.archivedOrgs}</p>
+                  <p className="text-sm text-slate-500">Archived</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="organizations" className="space-y-6">
@@ -376,7 +390,20 @@ export default function AdminDashboard() {
           {/* Organizations Tab */}
           <TabsContent value="organizations" className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">All Organizations ({organizations.length})</h2>
+              <h2 className="text-lg font-semibold">
+                {showArchived ? 'All Organizations' : 'Active Organizations'} ({organizations.length})
+              </h2>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="show-archived" className="text-sm text-slate-600 flex items-center gap-2 cursor-pointer">
+                  <Switch
+                    id="show-archived"
+                    checked={showArchived}
+                    onCheckedChange={setShowArchived}
+                    data-testid="show-archived-toggle"
+                  />
+                  Show Archived
+                </Label>
+              </div>
             </div>
             
             {organizations.length === 0 ? (
