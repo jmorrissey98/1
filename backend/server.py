@@ -1656,14 +1656,33 @@ async def update_coach_profile(profile_data: CoachProfileUpdate, request: Reques
 @api_router.get("/coach/analytics")
 async def get_coach_analytics(request: Request):
     """Get aggregated analytics for the authenticated coach's sessions"""
+    import math
+    from dependencies import get_data_retention_info
+    
     user = await require_coach(request)
     
-    # Fetch all sessions with full event data for this coach
+    # Get data retention info for the user
+    retention_info = await get_data_retention_info(user.user_id)
+    
+    # Build query - filter by date if user has limited retention
+    query = {"coach_id": user.linked_coach_id}
+    if retention_info["is_limited"] and retention_info["cutoff_date"]:
+        query["created_at"] = {"$gte": retention_info["cutoff_date"].isoformat()}
+    
+    # Fetch sessions with full event data for this coach
     sessions = await db.observation_sessions.find(
-        {"coach_id": user.linked_coach_id},
+        query,
         {"_id": 0, "session_id": 1, "events": 1, "ball_rolling_time": 1, 
          "ball_not_rolling_time": 1, "total_duration": 1, "created_at": 1}
     ).to_list(length=1000)
+    
+    # Count hidden sessions for upgrade prompt
+    hidden_sessions_count = 0
+    if retention_info["is_limited"] and retention_info["cutoff_date"]:
+        hidden_sessions_count = await db.observation_sessions.count_documents({
+            "coach_id": user.linked_coach_id,
+            "created_at": {"$lt": retention_info["cutoff_date"].isoformat()}
+        })
     
     total_sessions = len(sessions)
     total_interventions = 0
@@ -1707,9 +1726,19 @@ async def get_coach_analytics(request: Request):
         for name, count in sorted(intervention_type_count.items(), key=lambda x: -x[1])
     ]
     
-    # Calculate variety percentage
-    unique_combinations = len(intervention_combinations)
-    variety_percentage = round((unique_combinations / total_interventions) * 100) if total_interventions > 0 else 0
+    # Calculate variety score using Normalized Shannon Entropy (Pielou's Evenness)
+    variety_percentage = 0
+    num_types = len(intervention_type_count)
+    
+    if num_types > 1 and total_interventions > 0:
+        shannon_entropy = 0
+        for count in intervention_type_count.values():
+            if count > 0:
+                p = count / total_interventions
+                shannon_entropy -= p * math.log(p)
+        max_entropy = math.log(num_types)
+        if max_entropy > 0:
+            variety_percentage = round((shannon_entropy / max_entropy) * 100)
     
     # Get most common pattern
     sorted_combos = sorted(intervention_combinations.items(), key=lambda x: -x[1])
@@ -1730,7 +1759,14 @@ async def get_coach_analytics(request: Request):
         "total_ball_stopped_time": total_ball_stopped,
         "intervention_chart_data": intervention_chart_data,
         "variety_percentage": variety_percentage,
-        "most_common_pattern": most_common_pattern
+        "most_common_pattern": most_common_pattern,
+        "data_retention": {
+            "is_limited": retention_info["is_limited"],
+            "months_limit": retention_info["months_limit"],
+            "hidden_sessions_count": hidden_sessions_count,
+            "tier": retention_info["tier"],
+            "upgrade_message": f"Analytics based on last {retention_info['months_limit']} months. You have {hidden_sessions_count} older sessions. Upgrade to see complete history." if hidden_sessions_count > 0 else None
+        }
     }
 
 
