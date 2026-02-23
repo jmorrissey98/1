@@ -389,6 +389,48 @@ function FilterContent({
           </p>
         )}
       </div>
+
+      {/* Session Parts */}
+      {sessionParts.length > 0 && (
+        <div>
+          <Label className="text-sm text-slate-600 mb-2 block flex items-center gap-2">
+            <Layers className="w-4 h-4" />
+            Session Parts
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            {sessionParts.map(part => {
+              const partName = part.name || part;
+              const isSelected = selectedParts.includes(partName);
+              return (
+                <label 
+                  key={partName}
+                  className={`
+                    flex items-center gap-1.5 px-3 py-1.5 rounded-full border cursor-pointer select-none text-sm
+                    transition-colors
+                    ${isSelected 
+                      ? 'bg-emerald-100 border-emerald-300 text-emerald-700' 
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }
+                  `}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onPartToggle(partName)}
+                    className="sr-only"
+                    data-testid={`filter-part-${partName.toLowerCase().replace(/\s+/g, '-')}`}
+                  />
+                  {partName}
+                </label>
+              );
+            })}
+          </div>
+          {selectedParts.length > 0 && (
+            <p className="text-xs text-slate-500 mt-2">
+              Showing sessions with: {selectedParts.join(', ')}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
