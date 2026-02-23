@@ -69,6 +69,38 @@ export default function UserSettings() {
     }
   };
   
+  const loadSubscriptionStatus = async () => {
+    try {
+      const result = await safeGet(`${API_URL}/api/payments/subscription-status`);
+      if (result.ok) {
+        setSubscriptionStatus(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to load subscription status:', err);
+    }
+  };
+  
+  const handleManageSubscription = async () => {
+    setLoadingBillingPortal(true);
+    try {
+      const result = await safePost(`${API_URL}/api/payments/billing-portal`, {
+        return_url: `${window.location.origin}/settings`
+      });
+      
+      if (result.ok && result.data?.url) {
+        // Redirect to Stripe Billing Portal
+        window.location.href = result.data.url;
+      } else {
+        toast.error(result.error || 'Failed to open billing portal');
+      }
+    } catch (err) {
+      console.error('Failed to create billing portal session:', err);
+      toast.error('Failed to open subscription management');
+    } finally {
+      setLoadingBillingPortal(false);
+    }
+  };
+  
   useEffect(() => {
     if (organization) {
       setClubName(organization.club_name || '');
