@@ -513,6 +513,7 @@ export default function CoachMyDevelopment() {
               filters={sessionFilters}
               onFiltersChange={setSessionFilters}
               showCompact={true}
+              dataRetention={dataRetention}
             />
 
             {/* Intervention Patterns - Moved up, right after profile */}
