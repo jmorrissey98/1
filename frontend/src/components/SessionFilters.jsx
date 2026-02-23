@@ -222,14 +222,13 @@ function FilterContent({
   availableTimeframes = TIMEFRAME_PRESETS,
   dataRetention = null
 }) {
-  const navigate = useNavigate();
+  const { openUpgradeModal } = useUpgrade();
   const { timeframe, startDate, endDate, sessionType, daysOfWeek = [] } = filters;
 
-  // Handle timeframe selection - redirect to pricing if selecting disabled option
+  // Handle timeframe selection - open upgrade modal if selecting disabled option
   const handleTimeframeSelect = (value, isDisabled) => {
     if (isDisabled) {
-      // Navigate to pricing section
-      navigate('/#pricing');
+      openUpgradeModal();
       return;
     }
     onTimeframeChange(value);
@@ -246,7 +245,7 @@ function FilterContent({
         <Select value={timeframe} onValueChange={(val) => {
           const preset = availableTimeframes.find(p => p.value === val);
           if (preset?.disabled) {
-            navigate('/#pricing');
+            openUpgradeModal();
           } else {
             onTimeframeChange(val);
           }
@@ -275,7 +274,7 @@ function FilterContent({
           <p className="text-xs text-slate-500 mt-1">
             Your {dataRetention.tier} plan shows data from the last {dataRetention.months_limit} months. 
             <button 
-              onClick={() => navigate('/#pricing')}
+              onClick={openUpgradeModal}
               className="text-blue-600 hover:underline ml-1"
             >
               Upgrade for more
