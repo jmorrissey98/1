@@ -72,10 +72,12 @@ export function SessionFilters({
   useEffect(() => {
     if (!hasSetDefaultTimeframe && dataRetention !== null) {
       // Determine the tier from dataRetention or subscriptionTier prop
-      const tier = subscriptionTier || dataRetention?.tier?.toLowerCase() || 'individual';
+      // Note: API may return 'free' for Individual tier accounts
+      const tier = (subscriptionTier || dataRetention?.tier || 'individual').toLowerCase();
       
-      // Individual tier defaults to 3 months, others get all time
-      if (tier === 'individual' && filters.timeframe === 'all') {
+      // Individual/free tier defaults to 3 months, others get all time
+      const isIndividualTier = tier === 'individual' || tier === 'free';
+      if (isIndividualTier && filters.timeframe === 'all') {
         onFiltersChange({ ...filters, timeframe: '3months' });
       }
       setHasSetDefaultTimeframe(true);
