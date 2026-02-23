@@ -713,45 +713,6 @@ export default function CoachMyDevelopment() {
                       data-testid="session-search"
                     />
                   </div>
-                  
-                  {/* Timeframe Filter */}
-                  <Select value={timeframe} onValueChange={setTimeframe}>
-                    <SelectTrigger className="w-40" data-testid="timeframe-select">
-                      <SelectValue placeholder="Time period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIMEFRAMES.map(tf => (
-                        <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Date Range */}
-                  <div className="flex gap-2">
-                    <Input
-                      type="date"
-                      value={dateFilter.start}
-                      onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-                      className="w-36"
-                      data-testid="date-filter-start"
-                    />
-                    <Input
-                      type="date"
-                      value={dateFilter.end}
-                      onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-                      className="w-36"
-                      data-testid="date-filter-end"
-                    />
-                    {(dateFilter.start || dateFilter.end) && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setDateFilter({ start: '', end: '' })}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </CardContent>
             </Card>
