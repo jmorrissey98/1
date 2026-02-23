@@ -686,6 +686,17 @@ export default function CoachMyDevelopment() {
                 )}
               </CardContent>
             </Card>
+
+            {/* My Notes - Coach's own notes */}
+            {user?.linked_coach_id && (
+              <CoachNotes
+                coachId={user.linked_coach_id}
+                coachName={profile.name || user?.name || 'Me'}
+                currentUserRole="coach"
+                currentUserId={user?.user_id}
+                isOwnProfile={true}
+              />
+            )}
           </TabsContent>
 
           {/* ==================== MY SESSIONS TAB ==================== */}
