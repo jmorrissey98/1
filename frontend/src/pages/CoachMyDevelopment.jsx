@@ -145,118 +145,22 @@ export default function CoachMyDevelopment() {
   }, [sessions, searchQuery, sessionFilters]);
 
   // Calculate filtered analytics based on the current filters
+  // Uses the new calculateFilteredAnalytics helper that properly filters by session parts
   const filteredAnalytics = useMemo(() => {
     if (!analyticsData) return null;
     
-    // If no filters are active, return original analytics
+    // Check if any filters are active
     const hasActiveFilters = sessionFilters.timeframe !== 'all' || 
                             sessionFilters.sessionType !== 'all' || 
                             sessionFilters.daysOfWeek.length > 0 ||
                             (sessionFilters.sessionParts && sessionFilters.sessionParts.length > 0);
     
+    // If no filters, return original analytics
     if (!hasActiveFilters) return analyticsData;
     
-    // Recalculate analytics based on filtered sessions
-    const filtered = filteredSessions.filter(s => s.status === 'completed');
-    
-    if (filtered.length === 0) {
-      return {
-        ...analyticsData,
-        total_sessions: 0,
-        total_interventions: 0,
-        avg_per_session: 0,
-        avg_ball_rolling: 0,
-        intervention_chart_data: [],
-        variety_percentage: 0,
-        most_common_pattern: null
-      };
-    }
-    
-    // Calculate totals from filtered sessions
-    let totalInterventions = 0;
-    let totalBallRolling = 0;
-    let totalBallStopped = 0;
-    const interventionCounts = {};
-    const interventionCombinations = {};
-    
-    filtered.forEach(session => {
-      const events = session.events || [];
-      totalInterventions += events.length;
-      totalBallRolling += session.ball_rolling_time || session.ballRollingTime || 0;
-      totalBallStopped += session.ball_not_rolling_time || session.ballNotRollingTime || 0;
-      
-      events.forEach(event => {
-        const typeName = event.eventTypeName || event.eventTypeId || 'Unknown';
-        interventionCounts[typeName] = (interventionCounts[typeName] || 0) + 1;
-        
-        // Track combinations for pattern analysis (same as backend)
-        const desc1 = (event.descriptors1 || []).join(', ') || 'None';
-        const desc2 = (event.descriptors2 || []).join(', ') || 'None';
-        const combo = `${typeName}|${desc1}|${desc2}`;
-        interventionCombinations[combo] = (interventionCombinations[combo] || 0) + 1;
-      });
-    });
-    
-    const avgPerSession = filtered.length > 0 ? Math.round(totalInterventions / filtered.length * 10) / 10 : 0;
-    const totalDuration = totalBallRolling + totalBallStopped;
-    const avgBallRolling = totalDuration > 0 ? Math.round((totalBallRolling / totalDuration) * 100) : 0;
-    
-    // Build intervention chart data
-    const chartData = Object.entries(interventionCounts)
-      .map(([name, count]) => ({
-        name,
-        count,
-        percentage: totalInterventions > 0 ? Math.round((count / totalInterventions) * 100) : 0
-      }))
-      .sort((a, b) => b.count - a.count);
-    
-    // Calculate variety score using Normalized Shannon Entropy (Pielou's Evenness)
-    // This measures how evenly distributed interventions are across types
-    // 100% = perfectly even, 0% = only one type used
-    let varietyPercentage = 0;
-    const numTypes = Object.keys(interventionCounts).length;
-    
-    if (numTypes > 1 && totalInterventions > 0) {
-      // Calculate Shannon Entropy: H = -Σ(p_i * log(p_i))
-      let shannonEntropy = 0;
-      Object.values(interventionCounts).forEach(count => {
-        if (count > 0) {
-          const p = count / totalInterventions;
-          shannonEntropy -= p * Math.log(p);
-        }
-      });
-      
-      // Maximum entropy for n types: H_max = log(n)
-      const maxEntropy = Math.log(numTypes);
-      
-      // Normalized entropy (evenness): E = H / H_max
-      if (maxEntropy > 0) {
-        varietyPercentage = Math.round((shannonEntropy / maxEntropy) * 100);
-      }
-    }
-    // If only 1 type used, variety is 0%
-    // If 0 types/interventions, variety is 0%
-    
-    // Find most common pattern
-    const sortedCombos = Object.entries(interventionCounts).sort((a, b) => b[1] - a[1]);
-    let mostCommonPattern = null;
-    if (sortedCombos.length > 0) {
-      mostCommonPattern = {
-        pattern: sortedCombos[0][0],
-        count: sortedCombos[0][1]
-      };
-    }
-    
-    return {
-      ...analyticsData,
-      total_sessions: filtered.length,
-      total_interventions: totalInterventions,
-      avg_per_session: avgPerSession,
-      avg_ball_rolling: avgBallRolling,
-      intervention_chart_data: chartData,
-      variety_percentage: varietyPercentage,
-      most_common_pattern: mostCommonPattern
-    };
+    // Use the new helper that properly handles session parts filtering
+    // This ensures that when filtering by parts, only events FROM those parts are counted
+    return calculateFilteredAnalytics(filteredSessions, sessionFilters.sessionParts || []);
   }, [analyticsData, filteredSessions, sessionFilters]);
 
   // Target management functions
