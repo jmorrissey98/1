@@ -604,9 +604,11 @@ export default function AdminDashboard() {
                           )}
                         </CollapsibleContent>
                       </Collapsible>
+                      )}
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
