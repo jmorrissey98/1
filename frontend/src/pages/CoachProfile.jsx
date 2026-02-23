@@ -1489,28 +1489,51 @@ export default function CoachProfile() {
                         <div>
                           <h4 className="text-sm font-medium text-slate-500 mb-3">Observation History ({completedSessions.length})</h4>
                           <div className="space-y-3">
-                            {completedSessions.map(session => (
-                              <div 
-                                key={session.id || session.session_id}
-                                className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer"
-                                onClick={() => navigate(`/session/${session.id || session.session_id}/review`)}
-                              >
-                                <div>
-                                  <h4 className="font-medium text-slate-900">{session.name || session.title}</h4>
-                                  <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                                    <span>{formatDate(session.createdAt || session.created_at)}</span>
-                                    <span>|</span>
-                                    <span>{formatTime(session.totalDuration || session.total_duration || 0)}</span>
-                                    <span>|</span>
-                                    <span>{session.events?.length || session.event_count || 0} events</span>
+                            {completedSessions.map(session => {
+                              const accessible = isSessionAccessible(session);
+                              return (
+                                <div 
+                                  key={session.id || session.session_id}
+                                  className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${
+                                    accessible 
+                                      ? 'bg-slate-50 hover:bg-slate-100' 
+                                      : 'bg-slate-100 opacity-60 border border-slate-200'
+                                  }`}
+                                  onClick={accessible 
+                                    ? () => navigate(`/session/${session.id || session.session_id}/review`)
+                                    : handleRestrictedSessionClick
+                                  }
+                                >
+                                  <div>
+                                    <h4 className={`font-medium ${accessible ? 'text-slate-900' : 'text-slate-500'}`}>
+                                      {session.name || session.title}
+                                    </h4>
+                                    <div className={`flex items-center gap-3 text-sm mt-1 ${accessible ? 'text-slate-500' : 'text-slate-400'}`}>
+                                      <span>{formatDate(session.createdAt || session.created_at)}</span>
+                                      <span>|</span>
+                                      <span>{formatTime(session.totalDuration || session.total_duration || 0)}</span>
+                                      <span>|</span>
+                                      <span>{session.events?.length || session.event_count || 0} events</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {accessible ? (
+                                      <>
+                                        <Badge className="bg-green-600 hover:bg-green-600">Completed</Badge>
+                                        <Eye className="w-4 h-4 text-slate-400" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Badge variant="outline" className="text-slate-400 border-slate-300">
+                                          <Lock className="w-3 h-3 mr-1" />
+                                          Locked
+                                        </Badge>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="bg-green-600 hover:bg-green-600">Completed</Badge>
-                                  <Eye className="w-4 h-4 text-slate-400" />
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
