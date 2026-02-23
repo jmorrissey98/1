@@ -30,7 +30,7 @@ const SESSION_TYPES = [
 // Timeframe presets
 const TIMEFRAME_PRESETS = [
   { value: 'all', label: 'All Time' },
-  { value: 'week', label: 'This Week' },
+  { value: 'week', label: 'Last 7 Days' },
   { value: 'month', label: 'This Month' },
   { value: '3months', label: 'Last 3 Months' },
   { value: '6months', label: 'Last 6 Months' },
