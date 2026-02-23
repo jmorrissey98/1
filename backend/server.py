@@ -62,7 +62,8 @@ db = client[os.environ['DB_NAME']]
 # Resend configuration - Read from environment (no fallbacks for deployment safety)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
-APP_URL = os.environ.get('APP_URL')
+# APP_URL for email links - default to production URL if not set
+APP_URL = os.environ.get('APP_URL', 'https://mycoachdeveloper.com')
 
 # Initialize Resend (only if API key is available)
 if RESEND_API_KEY:
