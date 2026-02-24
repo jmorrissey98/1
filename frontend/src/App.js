@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { Toaster } from "./components/ui/sonner";
+import { useEffect, useState } from "react";
+import { Toaster, toast } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
@@ -10,7 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
 import AppHeader from "./components/AppHeader";
 import { AnalyticsTracker } from "./hooks/useAnalytics";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import HomePage from "./pages/HomePage";
 import SessionSetup from "./pages/SessionSetup";
 import LiveObservation from "./pages/LiveObservation";
@@ -28,6 +28,11 @@ import LandingPage from "./pages/LandingPage";
 import InviteRegistration from "./pages/InviteRegistration";
 // Coach Role Pages
 import CoachDashboard from "./pages/CoachDashboard";
+
+// BUILD VERSION - Update on each deployment
+// Format: YYYYMMDDHHMM
+const BUILD_VERSION = "202402241600";
+console.log(`[MCD] Build version: ${BUILD_VERSION}`);
 import CoachDevelopment from "./pages/CoachDevelopment";
 import CoachMyDevelopment from "./pages/CoachMyDevelopment";
 import CoachSessions from "./pages/CoachSessions";
