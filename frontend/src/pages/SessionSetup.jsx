@@ -192,18 +192,6 @@ export default function SessionSetup() {
     }
   };
 
-  const loadSessionParts = async () => {
-    setLoadingParts(true);
-    try {
-      const parts = await fetchSessionParts();
-      setAvailableParts(parts);
-    } catch (err) {
-      console.error('Failed to load session parts:', err);
-    } finally {
-      setLoadingParts(false);
-    }
-  };
-
   const loadReflectionTemplates = async () => {
     try {
       // Load coach educator reflection templates
