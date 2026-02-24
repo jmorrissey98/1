@@ -500,7 +500,7 @@ export default function UserSettings() {
                           <div>
                             <p className="text-sm text-slate-600">Current Plan</p>
                             <p className="font-semibold text-slate-900">
-                              {subscriptionStatus.tier_name || subscriptionStatus.tier || 'Active'}
+                              {subscriptionStatus.tier_name || subscriptionStatus.tier?.charAt(0).toUpperCase() + subscriptionStatus.tier?.slice(1) || 'Active'}
                             </p>
                           </div>
                           <Badge 
@@ -516,6 +516,30 @@ export default function UserSettings() {
                              subscriptionStatus.status === 'canceled' ? 'Canceled' :
                              subscriptionStatus.status}
                           </Badge>
+                        </div>
+                        
+                        {/* Plan Benefits */}
+                        <div className="p-3 bg-white rounded-lg">
+                          <p className="text-sm font-medium text-slate-700 mb-2">Your Plan Includes:</p>
+                          <div className="grid grid-cols-1 gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-slate-600">
+                              <Users className="w-4 h-4 text-blue-500" />
+                              <span><strong>{subscriptionStatus.coaches_limit || limits?.coaches?.limit || 5}</strong> Coaches</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-600">
+                              <UserPlus className="w-4 h-4 text-purple-500" />
+                              <span><strong>{subscriptionStatus.admins_limit || limits?.admins?.limit || 1}</strong> Coach {(subscriptionStatus.admins_limit || limits?.admins?.limit || 1) === 1 ? 'Educator' : 'Educators'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-600">
+                              <Database className="w-4 h-4 text-green-500" />
+                              <span>
+                                {(subscriptionStatus.tier === 'individual' || subscriptionStatus.tier === 'free') 
+                                  ? <><strong>3 months</strong> data history</>
+                                  : <><strong>Unlimited</strong> data history</>
+                                }
+                              </span>
+                            </div>
+                          </div>
                         </div>
                         
                         {/* Billing Period */}
