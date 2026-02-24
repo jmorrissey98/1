@@ -109,21 +109,28 @@ export default function SessionSetup() {
   }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate, getSession]);
 
   // Load observation templates from API
-  const loadObservationTemplates = async () => {
+  const loadObservationTemplates = async (applyDefault = false) => {
     setLoadingTemplates(true);
     try {
       const apiTemplates = await fetchObservationTemplates();
       if (apiTemplates && apiTemplates.length > 0) {
         setTemplates(apiTemplates);
-        // Select the default template initially
-        const defaultTemplate = apiTemplates.find(t => t.isDefault && t.observationContext === 'training');
-        if (defaultTemplate) {
-          setSelectedTemplate(defaultTemplate.id);
-          // Apply template to session
-          applyTemplateToSession(defaultTemplate);
+        
+        if (applyDefault) {
+          // Select the default template for the current context
+          const defaultTemplate = apiTemplates.find(t => t.isDefault && t.observationContext === 'training');
+          if (defaultTemplate) {
+            setSelectedTemplate(defaultTemplate.id);
+            // Apply template's session parts to the new session
+            applyTemplateToSession(defaultTemplate);
+          } else if (apiTemplates.length > 0) {
+            // No default found, use the first template
+            setSelectedTemplate(apiTemplates[0].id);
+            applyTemplateToSession(apiTemplates[0]);
+          }
         } else if (apiTemplates.length > 0) {
+          // Just set the selected template without applying (for editing existing sessions)
           setSelectedTemplate(apiTemplates[0].id);
-          applyTemplateToSession(apiTemplates[0]);
         }
       } else {
         // Fallback to localStorage templates
@@ -131,6 +138,9 @@ export default function SessionSetup() {
         setTemplates(localTemplates);
         if (localTemplates.length > 0) {
           setSelectedTemplate(localTemplates[0].id || 'default');
+          if (applyDefault) {
+            applyTemplateToSession(localTemplates[0]);
+          }
         }
       }
     } catch (err) {
@@ -140,6 +150,9 @@ export default function SessionSetup() {
       setTemplates(localTemplates);
       if (localTemplates.length > 0) {
         setSelectedTemplate(localTemplates[0].id || 'default');
+        if (applyDefault) {
+          applyTemplateToSession(localTemplates[0]);
+        }
       }
     } finally {
       setLoadingTemplates(false);
