@@ -149,6 +149,41 @@
 }
 ```
 
+#### observation_templates Collection (NEW - Feb 24, 2026)
+```
+{
+  template_id: string,
+  name: string,
+  description: string (optional),
+  observation_context: "training" | "game",
+  intervention_types: [
+    { id: string, name: string, color: string }
+  ],
+  descriptor_group1: {
+    id: string, name: string, color: string,
+    descriptors: [{ id: string, name: string }]
+  },
+  descriptor_group2: {
+    id: string, name: string, color: string,
+    descriptors: [{ id: string, name: string }]
+  },
+  session_parts: [
+    { id: string, name: string, order: number, isDefault: boolean }
+  ],
+  is_default: boolean,
+  organization_id: string,
+  created_by: string,
+  created_at: string,
+  updated_at: string
+}
+```
+
+**Default Templates (Bootstrapped at Signup):**
+- **Training Template:** Parts = "Part 1", "Part 2", "Part 3", "Part 4"
+- **Match Day Template:** Parts = "First Half", "Second Half"
+- **Coach Educator Reflection:** 5 comprehensive questions
+- **Coach Reflection:** 3 simple questions
+
 ## API Endpoints
 
 ### Authentication
