@@ -3337,9 +3337,12 @@ async def get_subscription_status(request: Request):
                 "current_period_end": None
             }
         
-        # Find active subscription
+        # Find active subscription (try both field names)
         subscription = await db.subscriptions.find_one(
-            {"organization_id": org_id},
+            {"$or": [
+                {"organization_id": org_id},
+                {"org_id": org_id}
+            ]},
             {"_id": 0}
         )
         
