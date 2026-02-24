@@ -443,11 +443,6 @@ async def signup_paid(signup_data: PaidSignupRequest, response: Response):
         # Get tier info from session metadata
         tier_id = checkout_session.metadata.get('tier_id', 'individual') if checkout_session.metadata else 'individual'
         
-        # Verify email matches the Stripe customer email (if available)
-        stripe_email = None
-        if checkout_session.customer_details and checkout_session.customer_details.email:
-            stripe_email = checkout_session.customer_details.email.lower()
-        
         # Create the user account
         password_hash = hash_password(signup_data.password)
         user_id = f"user_{uuid.uuid4().hex[:12]}"
