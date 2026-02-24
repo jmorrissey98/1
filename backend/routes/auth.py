@@ -393,14 +393,13 @@ async def login(login_data: LoginRequest, response: Response):
 
 
 @router.post("/signup-paid")
-async def signup_paid(signup_data: "PaidSignupRequest", response: Response):
+async def signup_paid(signup_data: PaidSignupRequest, response: Response):
     """
     Create a new account for users who paid via Stripe.
     Verifies the payment session and creates the account with the appropriate tier.
     """
     import stripe
     import os
-    from models import PaidSignupRequest
     
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
     if not STRIPE_SECRET_KEY:
