@@ -494,6 +494,25 @@
   - Full reflection content when completed AND shared
 - [x] **Access control:** Only session participants can view reflections
 
+### Phase 19: Default Templates System (COMPLETED - February 24, 2026)
+- [x] **Observation Window Templates**
+  - Training Template: Parts = "Part 1", "Part 2", "Part 3", "Part 4"
+  - Match Day Template: Parts = "First Half", "Second Half" (only 2 parts)
+  - Both templates share same intervention types and descriptor groups
+- [x] **Reflection Templates**
+  - Coach Educator Reflection: 5 comprehensive questions (for coach developers)
+  - Coach Reflection: 3 simple questions (for coaches)
+- [x] **Auto-bootstrap on signup:** Templates automatically created for every new organization
+- [x] **Full CRUD API endpoints** for observation templates
+- [x] **Users can customize:** After creation, templates are fully editable
+
+### Settings Page Restructure (COMPLETED - February 24, 2026)
+- [x] Removed "Admin" tab
+- [x] Removed "Invites" tab
+- [x] Moved "Subscription Management" to "Club" tab
+- [x] Moved "Invite New User" to collapsible section in "Users" tab (at top)
+- [x] Only 2 tabs remain: "Users" and "Club"
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
