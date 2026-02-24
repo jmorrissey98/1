@@ -183,6 +183,15 @@
 - `POST /api/reflection-templates/{template_id}/set-default` - Set as default
 - `POST /api/reflection-templates/{template_id}/unset-default` - Remove default
 
+### Observation Window Templates (NEW - Feb 24, 2026)
+- `GET /api/observation-templates` - List all observation templates
+- `GET /api/observation-templates/{template_id}` - Get template details
+- `GET /api/observation-templates/default/{context}` - Get default template for context (training/game)
+- `POST /api/observation-templates` - Create template
+- `PUT /api/observation-templates/{template_id}` - Update template
+- `DELETE /api/observation-templates/{template_id}` - Delete template
+- `POST /api/observation-templates/{template_id}/set-default` - Set as default
+
 ### Other
 - `GET /api/organization` - Get club branding
 - `PUT /api/organization` - Update club branding
