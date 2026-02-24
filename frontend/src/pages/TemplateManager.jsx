@@ -715,64 +715,33 @@ export default function TemplateManager() {
                             </Button>
                           </div>
                           
-                          {/* Global Default Parts Quick Add */}
-                          {!loadingParts && globalParts.filter(p => p.is_default).length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs text-slate-500 mb-2">Quick add from global defaults:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {globalParts.filter(p => p.is_default).map(globalPart => {
-                                  const isAdded = (template.sessionParts || []).some(sp => sp.name === globalPart.name);
-                                  return (
-                                    <Button
-                                      key={globalPart.part_id}
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => !isAdded && addGlobalPartToTemplate(template.id, globalPart)}
-                                      disabled={isAdded}
-                                      className={`text-xs h-7 ${isAdded ? 'opacity-50' : ''}`}
-                                      data-testid={`quick-add-${template.id}-${globalPart.part_id}`}
-                                    >
-                                      <Globe className="w-3 h-3 mr-1" />
-                                      {globalPart.name}
-                                      {isAdded && ' ✓'}
-                                    </Button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          
                           <div className="space-y-2">
-                            {(template.sessionParts || []).map((part, index) => (
-                              <div key={part.id} className="flex items-center gap-2">
-                                <span className="text-sm text-slate-400 w-6">{index + 1}</span>
-                                <Input
-                                  value={part.name}
-                                  onChange={(e) => updateSessionPart(template.id, part.id, e.target.value)}
-                                  className="flex-1"
-                                  data-testid={`part-${template.id}-${part.id}`}
-                                />
-                                {part.isDefault && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    <Globe className="w-3 h-3 mr-1" />
-                                    Default
-                                  </Badge>
-                                )}
-                                {part.isCustom && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Custom
-                                  </Badge>
-                                )}
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-slate-400 hover:text-red-600 h-8 w-8"
-                                  onClick={() => removeSessionPart(template.id, part.id)}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ))}
+                            {(template.sessionParts || []).length === 0 ? (
+                              <p className="text-sm text-slate-400 italic py-2">No session parts. Click "Add" to create one.</p>
+                            ) : (
+                              (template.sessionParts || []).map((part, index) => (
+                                <div key={part.id} className="flex items-center gap-2">
+                                  <span className="text-sm text-slate-400 w-6">{index + 1}</span>
+                                  <Input
+                                    value={part.name}
+                                    onChange={(e) => updateSessionPart(template.id, part.id, e.target.value)}
+                                    className="flex-1"
+                                    placeholder="Part name"
+                                    data-testid={`part-${template.id}-${part.id}`}
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-slate-400 hover:text-red-600 h-8 w-8"
+                                    onClick={() => removeSessionPart(template.id, part.id)}
+                                    title="Remove this part"
+                                    data-testid={`remove-part-${template.id}-${part.id}`}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       </CardContent>
