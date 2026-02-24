@@ -506,6 +506,22 @@
 - [x] **Full CRUD API endpoints** for observation templates
 - [x] **Users can customize:** After creation, templates are fully editable
 
+### Phase 20: Template-Based Session Parts (COMPLETED - February 24, 2026)
+- [x] **Template Part Names Persist:**
+  - When user edits session part names in a template, changes are saved to the backend
+  - Updated names become the new defaults for that template
+  - No fallback to legacy default names
+- [x] **Session Setup Uses Selected Template:**
+  - Session Setup page has "Start from Template" dropdown
+  - Selecting a template applies its session parts to the new session
+  - No mixing of old and new part names
+- [x] **Template Isolation:**
+  - Editing one template does not affect other templates
+  - Each template maintains its own session parts
+- [x] **Session History Preserved:**
+  - Previously created sessions retain their original part names
+  - Changes only apply to future sessions
+
 ### Settings Page Restructure (COMPLETED - February 24, 2026)
 - [x] Removed "Admin" tab
 - [x] Removed "Invites" tab
