@@ -54,7 +54,6 @@ export default function SessionSetup() {
       setLoading(true);
       loadCoaches();
       loadReflectionTemplates();
-      await loadObservationTemplates();
       
       if (isEditing) {
         // Load existing session from cloud
@@ -76,14 +75,32 @@ export default function SessionSetup() {
           toast.error('Failed to load session');
           navigate('/');
         }
+        // Load templates for editing (but don't apply)
+        await loadObservationTemplates(false);
       } else {
-        const newSession = createSession('', null, preselectedCoachId || null, {
+        // For NEW sessions: Create a basic session shell first
+        const baseSession = {
+          id: generateId('session'),
+          name: '',
+          coachId: preselectedCoachId || null,
           observationContext: OBSERVATION_CONTEXTS.TRAINING,
           plannedDate: plannedDate || null,
-          planned: !!plannedDate
-        });
-        setSession(newSession);
+          planned: !!plannedDate,
+          status: plannedDate ? 'planned' : 'draft',
+          createdAt: new Date().toISOString(),
+          events: [],
+          notes: [],
+          sessionParts: [], // Start empty - will be populated by template
+          interventionTypes: [],
+          eventTypes: [],
+          descriptorGroup1: { id: 'group1', name: 'Group 1', color: 'blue', descriptors: [] },
+          descriptorGroup2: { id: 'group2', name: 'Group 2', color: 'green', descriptors: [] }
+        };
+        setSession(baseSession);
         if (plannedDate) setSessionDate(plannedDate);
+        
+        // NOW load templates and apply default template to session
+        await loadObservationTemplates(true);
       }
       setLoading(false);
     };
