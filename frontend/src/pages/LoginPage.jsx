@@ -308,9 +308,13 @@ export default function LoginPage() {
           )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={`grid w-full ${paymentSessionId ? 'grid-cols-2' : 'grid-cols-2'}`}>
               <TabsTrigger value="signin" data-testid="signin-tab">Sign In</TabsTrigger>
-              <TabsTrigger value="create" data-testid="create-account-tab">Create Account</TabsTrigger>
+              {paymentSessionId ? (
+                <TabsTrigger value="signup" data-testid="signup-tab">Create Account</TabsTrigger>
+              ) : (
+                <TabsTrigger value="create" data-testid="create-account-tab">Create Account</TabsTrigger>
+              )}
             </TabsList>
             
             {/* Sign In Tab */}
@@ -380,7 +384,102 @@ export default function LoginPage() {
               </form>
             </TabsContent>
             
-            {/* Create Account Tab */}
+            {/* Paid Signup Tab - shown when coming from Stripe payment */}
+            <TabsContent value="signup" className="space-y-4 mt-4">
+              {loadingPaymentInfo ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
+                </div>
+              ) : (
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <Alert className="bg-green-50 border-green-200">
+                    <AlertDescription className="text-green-800">
+                      Payment successful! Complete your account setup below.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Full Name *</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Your full name"
+                      value={signUpName}
+                      onChange={(e) => setSignUpName(e.target.value)}
+                      data-testid="signup-name-input"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email *</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        className="pl-10"
+                        data-testid="signup-email-input"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password *</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Min 8 chars, 1 uppercase, 1 number"
+                        value={signUpPassword}
+                        onChange={(e) => setSignUpPassword(e.target.value)}
+                        className="pl-10 pr-10"
+                        data-testid="signup-password-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Must be at least 8 characters with 1 uppercase letter and 1 number
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-club">Club/Organization Name (optional)</Label>
+                    <Input
+                      id="signup-club"
+                      type="text"
+                      placeholder="Your club or organization"
+                      value={signUpClubName}
+                      onChange={(e) => setSignUpClubName(e.target.value)}
+                      data-testid="signup-club-input"
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isSubmitting}
+                    data-testid="signup-submit-btn"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Create Account
+                  </Button>
+                </form>
+              )}
+            </TabsContent>
+            
+            {/* Create Account Tab - redirect to pricing */}
             <TabsContent value="create" className="space-y-6 mt-4">
               <div className="text-center py-4">
                 <p className="text-slate-600 mb-6">
