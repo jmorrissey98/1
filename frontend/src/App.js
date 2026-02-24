@@ -279,7 +279,62 @@ function ExitImpersonationHandler() {
   );
 }
 
+// Update notification component
+function UpdateNotification({ onRefresh }) {
+  return (
+    <div className="fixed bottom-20 right-4 z-50 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right">
+      <RefreshCw className="w-5 h-5" />
+      <span className="text-sm font-medium">New version available!</span>
+      <button 
+        onClick={onRefresh}
+        className="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-blue-50"
+      >
+        Refresh
+      </button>
+    </div>
+  );
+}
+
 function App() {
+  const [showUpdate, setShowUpdate] = useState(false);
+
+  useEffect(() => {
+    // Listen for service worker updates
+    const handleSWUpdate = (event) => {
+      console.log('[MCD] Service worker update detected');
+      setShowUpdate(true);
+    };
+
+    // Listen for SW messages
+    const handleSWMessage = (event) => {
+      if (event.data && event.data.type === 'SW_UPDATED') {
+        console.log('[MCD] Service worker updated to version:', event.data.version);
+        setShowUpdate(true);
+      }
+    };
+
+    window.addEventListener('swUpdate', handleSWUpdate);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
+    return () => {
+      window.removeEventListener('swUpdate', handleSWUpdate);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
+    };
+  }, []);
+
+  const handleRefresh = () => {
+    // Tell the waiting service worker to take over
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+    }
+    // Hard reload to get fresh content
+    window.location.reload(true);
+  };
+
   return (
     <div className="App min-h-screen bg-slate-50">
       <BrowserRouter>
@@ -292,6 +347,10 @@ function App() {
                   <AppHeader />
                   <AppRouter />
                   <OfflineIndicator />
+                  {/* Version indicator - visible in dev/debug */}
+                  <div className="fixed bottom-2 left-2 text-[10px] text-slate-400 opacity-50 hover:opacity-100 transition-opacity z-10">
+                    v{BUILD_VERSION}
+                  </div>
                 </UpgradeProvider>
               </CloudSyncProvider>
             </OrganizationProvider>
@@ -299,6 +358,7 @@ function App() {
         </AuthProvider>
       </BrowserRouter>
       <Toaster position="bottom-left" richColors closeButton />
+      {showUpdate && <UpdateNotification onRefresh={handleRefresh} />}
     </div>
   );
 }
