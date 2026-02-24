@@ -23,6 +23,13 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     Returns: (coaches_limit, admins_limit, tier_name)
     Checks for custom organization overrides first.
     """
+    # Tier limits lookup
+    TIER_LIMITS = {
+        "individual": {"coaches": 5, "admins": 1},
+        "developer": {"coaches": 10, "admins": 1},
+        "club": {"coaches": 50, "admins": 10}
+    }
+    
     # Find user's organization
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user_doc:
@@ -57,9 +64,9 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
         admins = custom_limits.get("admins_limit") if custom_limits and custom_limits.get("admins_limit") else 999
         return coaches, admins, "bootstrapped"
     
-    # Find active subscription for this org
+    # Find active subscription for this org (try both field names)
     subscription = await db.subscriptions.find_one(
-        {"org_id": org_id, "status": {"$in": ["active", "trialing"]}},
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}], "status": {"$in": ["active", "trialing"]}},
         {"_id": 0}
     )
     
@@ -67,7 +74,7 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     if not subscription:
         # Look up subscription by owner
         subscription = await db.subscriptions.find_one(
-            {"status": {"$in": ["active", "trialing"]}},
+            {"user_id": user_id, "status": {"$in": ["active", "trialing"]}},
             {"_id": 0},
             sort=[("created_at", -1)]
         )
@@ -75,7 +82,7 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
         # Try to match by examining payment transactions
         if not subscription:
             txn = await db.payment_transactions.find_one(
-                {"status": "completed"},
+                {"user_id": user_id, "status": "completed"},
                 {"_id": 0},
                 sort=[("created_at", -1)]
             )
@@ -89,7 +96,7 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
         # Apply custom overrides if they exist
         base_coaches = subscription.get("coaches_limit", DEFAULT_COACHES_LIMIT)
         base_admins = subscription.get("admins_limit", DEFAULT_ADMINS_LIMIT)
-        tier = subscription.get("tier_id", "unknown")
+        tier = subscription.get("tier_id") or subscription.get("tier") or "unknown"
         
         if custom_limits:
             coaches = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else base_coaches
@@ -97,6 +104,20 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
             return coaches, admins, tier
         
         return base_coaches, base_admins, tier
+    
+    # Fall back to organization's subscription_tier_id if no subscription record exists
+    org_tier = org.get("subscription_tier_id")
+    if org_tier and org_tier in TIER_LIMITS:
+        tier_config = TIER_LIMITS[org_tier]
+        base_coaches = tier_config["coaches"]
+        base_admins = tier_config["admins"]
+        
+        if custom_limits:
+            coaches = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else base_coaches
+            admins = custom_limits.get("admins_limit") if custom_limits.get("admins_limit") is not None else base_admins
+            return coaches, admins, org_tier
+        
+        return base_coaches, base_admins, org_tier
     
     # Apply custom overrides even without subscription
     if custom_limits:
