@@ -6,10 +6,10 @@ const API_URL = ''; // Relative URL - frontend and backend on same domain
 
 // Fallback defaults when backend is unavailable
 const FALLBACK_SESSION_PARTS = [
-  { part_id: 'default_technique', name: 'Develop The Technique', is_default: true },
-  { part_id: 'default_game_model', name: 'Develop The Game Model', is_default: true },
-  { part_id: 'default_performance', name: 'Develop Performance', is_default: true },
-  { part_id: 'default_mentality', name: 'Develop Mentality', is_default: true }
+  { part_id: 'part_1', name: 'Part 1', is_default: true },
+  { part_id: 'part_2', name: 'Part 2', is_default: true },
+  { part_id: 'part_3', name: 'Part 3', is_default: true },
+  { part_id: 'part_4', name: 'Part 4', is_default: true }
 ];
 
 // Cache key for local storage
