@@ -68,8 +68,9 @@ export function UpgradeModal({ open, onOpenChange, currentTier = null }) {
         origin_url: window.location.origin + '/settings'  // Redirect back to settings after payment
       });
       
-      if (result.ok && result.data?.checkout_url) {
-        window.location.href = result.data.checkout_url;
+      // The endpoint returns 'url' not 'checkout_url'
+      if (result.ok && (result.data?.url || result.data?.checkout_url)) {
+        window.location.href = result.data.url || result.data.checkout_url;
       } else {
         toast.error(result.data?.detail || 'Failed to start checkout');
       }
