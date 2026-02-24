@@ -483,6 +483,20 @@ export default function TemplateManager() {
               </Button>
             </div>
 
+            {loadingTemplates ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-2" />
+                <p className="text-slate-500">Loading templates...</p>
+              </div>
+            ) : templates.length === 0 ? (
+              <Card className="py-12 text-center">
+                <p className="text-slate-500 mb-4">No observation templates yet</p>
+                <Button onClick={handleCreateNew}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Template
+                </Button>
+              </Card>
+            ) : (
             <div className="space-y-4">
               {templates.map((template) => (
                 <Collapsible
