@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from 'sonner';
 import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { fetchSessionParts, createSessionPart, toFrontendFormat } from '../lib/sessionPartsApi';
+import { fetchObservationTemplates, fetchDefaultObservationTemplate } from '../lib/observationTemplatesApi';
 import { fetchReflectionTemplates } from '../lib/reflectionTemplatesApi';
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,12 +32,13 @@ export default function SessionSetup() {
   
   const [templates, setTemplates] = useState([]);
   const [coaches, setCoaches] = useState([]);
-  const [selectedTemplate, setSelectedTemplate] = useState('default');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedCoachId, setSelectedCoachId] = useState(preselectedCoachId || 'none');
   const [observationContext, setObservationContext] = useState(OBSERVATION_CONTEXTS.TRAINING);
   const [sessionDate, setSessionDate] = useState(plannedDate || '');
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   
   // Session parts state
   const [availableParts, setAvailableParts] = useState([]);
@@ -56,7 +58,7 @@ export default function SessionSetup() {
       loadSessionParts();
       loadCoaches();
       loadReflectionTemplates();
-      setTemplates(storage.getTemplates());
+      await loadObservationTemplates();
       
       if (isEditing) {
         // Load existing session from cloud
@@ -92,6 +94,81 @@ export default function SessionSetup() {
     
     initSession();
   }, [sessionId, isEditing, navigate, preselectedCoachId, plannedDate, getSession]);
+
+  // Load observation templates from API
+  const loadObservationTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const apiTemplates = await fetchObservationTemplates();
+      if (apiTemplates && apiTemplates.length > 0) {
+        setTemplates(apiTemplates);
+        // Select the default template initially
+        const defaultTemplate = apiTemplates.find(t => t.isDefault && t.observationContext === 'training');
+        if (defaultTemplate) {
+          setSelectedTemplate(defaultTemplate.id);
+          // Apply template to session
+          applyTemplateToSession(defaultTemplate);
+        } else if (apiTemplates.length > 0) {
+          setSelectedTemplate(apiTemplates[0].id);
+          applyTemplateToSession(apiTemplates[0]);
+        }
+      } else {
+        // Fallback to localStorage templates
+        const localTemplates = storage.getTemplates();
+        setTemplates(localTemplates);
+        if (localTemplates.length > 0) {
+          setSelectedTemplate(localTemplates[0].id || 'default');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load observation templates:', err);
+      // Fallback to localStorage
+      const localTemplates = storage.getTemplates();
+      setTemplates(localTemplates);
+      if (localTemplates.length > 0) {
+        setSelectedTemplate(localTemplates[0].id || 'default');
+      }
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Apply template configuration to session
+  const applyTemplateToSession = (template) => {
+    if (!template) return;
+    
+    const interventions = template.interventionTypes || template.eventTypes || [];
+    setSession(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        interventionTypes: [...interventions],
+        eventTypes: [...interventions],
+        descriptorGroup1: template.descriptorGroup1 ? { 
+          ...template.descriptorGroup1, 
+          descriptors: [...(template.descriptorGroup1.descriptors || [])] 
+        } : prev.descriptorGroup1,
+        descriptorGroup2: template.descriptorGroup2 ? { 
+          ...template.descriptorGroup2, 
+          descriptors: [...(template.descriptorGroup2.descriptors || [])] 
+        } : prev.descriptorGroup2,
+        // Use ONLY the template's session parts - no mixing with defaults
+        sessionParts: (template.sessionParts || []).map(p => ({
+          id: p.id || generateId('part'),
+          name: p.name,
+          order: p.order,
+          startTime: null,
+          endTime: null,
+          ballRollingTime: 0,
+          ballNotRollingTime: 0,
+          used: false
+        })),
+        // Store which template was used for this session
+        templateId: template.id || template.templateId,
+        templateName: template.name
+      };
+    });
+  };
 
   // Load coaches from API instead of localStorage
   const loadCoaches = async () => {
