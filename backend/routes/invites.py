@@ -84,6 +84,7 @@ async def create_invite(invite_data: InviteCreate, request: Request):
         invite = {
             "invite_id": invite_id,
             "email": email_lower,
+            "name": invite_data.name,  # Store invitee name
             "role": invite_data.role,
             "coach_id": invite_data.coach_id,
             "invited_by": user.user_id,
@@ -103,7 +104,7 @@ async def create_invite(invite_data: InviteCreate, request: Request):
                 inviter_name=user.name,
                 role=invite_data.role,
                 invite_id=invite_id,
-                invitee_name=None
+                invitee_name=invite_data.name  # Pass the invitee name
             )
             email_sent = True
             logger.info(f"Invite email sent successfully to {email_lower}")
