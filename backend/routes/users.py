@@ -30,11 +30,48 @@ class RoleUpdateRequest(BaseModel):
 
 @router.get("", response_model=List[UserResponse])
 async def list_users(request: Request):
-    """List all users (Coach Developer only) - excludes admin accounts"""
-    await require_coach_developer(request)
+    """List all users in the same organization (Coach Developer only) - excludes admin accounts"""
+    current_user = await require_coach_developer(request)
     
-    # Exclude admin users from the list - they are system accounts and shouldn't be visible/deletable
-    users = await db.users.find({"role": {"$ne": "admin"}}, {"_id": 0}).to_list(100)
+    # Get current user's organization
+    org = await db.organizations.find_one({"owner_id": current_user.user_id}, {"_id": 0})
+    if not org:
+        # Check if user belongs to an org
+        user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+        org_id = user_doc.get("organization_id") if user_doc else None
+        if org_id:
+            org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    
+    if not org:
+        # Return only the current user if no organization
+        return [
+            UserResponse(
+                user_id=current_user.user_id,
+                email=current_user.email,
+                name=current_user.name,
+                picture=current_user.picture,
+                role=current_user.role,
+                linked_coach_id=current_user.linked_coach_id
+            )
+        ]
+    
+    org_id = org.get("org_id")
+    owner_id = org.get("owner_id")
+    
+    # Find all users who:
+    # 1. Are the org owner, OR
+    # 2. Have this organization_id
+    # Exclude admin users
+    users = await db.users.find({
+        "$and": [
+            {"role": {"$ne": "admin"}},
+            {"$or": [
+                {"user_id": owner_id},
+                {"organization_id": org_id}
+            ]}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
     return [
         UserResponse(
             user_id=u["user_id"],
