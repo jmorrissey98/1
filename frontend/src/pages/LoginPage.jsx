@@ -120,6 +120,55 @@ export default function LoginPage() {
     }
   };
 
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    
+    if (!signUpEmail || !signUpPassword || !signUpName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    if (!paymentSessionId) {
+      toast.error('Invalid signup session. Please complete payment first.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const result = await safePost(`${API_URL}/api/auth/signup-paid`, {
+        email: signUpEmail,
+        password: signUpPassword,
+        name: signUpName,
+        payment_session_id: paymentSessionId,
+        club_name: signUpClubName || null
+      });
+      
+      if (result.networkError) {
+        toast.error(result.data?.detail || 'Unable to connect. Please try again.');
+        return;
+      }
+      
+      if (!result.ok) {
+        toast.error(result.data?.detail || 'Signup failed');
+        return;
+      }
+      
+      // Store the auth token
+      if (result.data?.token) {
+        setAuthToken(result.data.token);
+      }
+      
+      toast.success('Account created successfully! Welcome to My Coach Developer!');
+      await checkAuth();
+      
+    } catch (err) {
+      toast.error('Signup failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     
