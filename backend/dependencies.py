@@ -132,6 +132,9 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
     """
     Get current coach and admin counts for a user's organization.
     Returns: (current_coaches, current_admins)
+    
+    NOTE: "coaches" here refers to USER ACCOUNTS with role="coach", 
+    NOT coach profiles in the coaches collection.
     """
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     org_id = None
@@ -139,7 +142,7 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
     if user_doc:
         # Admin users see all counts
         if user_doc.get("role") == "admin":
-            coaches_count = await db.coaches.count_documents({})
+            coaches_count = await db.users.count_documents({"role": "coach"})
             admins_count = await db.users.count_documents({
                 "role": {"$in": ["coach_developer", "admin"]}
             })
@@ -152,22 +155,30 @@ async def get_current_counts(user_id: str) -> Tuple[int, int]:
         elif user_doc.get("organization_id"):
             org_id = user_doc.get("organization_id")
     
-    # Count coaches - try multiple strategies
+    # Count coach users (users with role="coach") in the organization
     if org_id:
-        # First try: count by organization_id
-        coaches_count = await db.coaches.count_documents({"organization_id": org_id})
+        # Count users with role="coach" in this organization
+        coaches_count = await db.users.count_documents({
+            "organization_id": org_id,
+            "role": "coach"
+        })
         
-        # If no coaches found with org_id, try created_by
+        # If no coaches found with org_id, try invited_by fallback
         if coaches_count == 0:
-            coaches_count = await db.coaches.count_documents({"created_by": user_id})
+            coaches_count = await db.users.count_documents({
+                "invited_by": user_id,
+                "role": "coach"
+            })
         
-        # If still no coaches, for bootstrapped orgs count all coaches in the system
-        # This is a fallback for legacy data without proper org linking
+        # For bootstrapped orgs, if still no coaches, count all coach users
         if coaches_count == 0 and org_id in BOOTSTRAPPED_ORG_IDS:
-            coaches_count = await db.coaches.count_documents({})
+            coaches_count = await db.users.count_documents({"role": "coach"})
     else:
-        # Fallback: count coaches created by this user
-        coaches_count = await db.coaches.count_documents({"created_by": user_id})
+        # Fallback: count coach users invited by this user
+        coaches_count = await db.users.count_documents({
+            "invited_by": user_id,
+            "role": "coach"
+        })
     
     # Count admin users (coach_developer role) in the organization
     if org_id:
