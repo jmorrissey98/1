@@ -13,7 +13,8 @@ sys.path.insert(0, '/app/backend')
 from database import db, logger
 from models import (
     UserResponse, SignupRequest, LoginRequest, 
-    ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
+    ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest,
+    PaidSignupRequest
 )
 from dependencies import require_auth, get_current_user
 from utils import (
