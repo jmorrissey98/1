@@ -19,7 +19,7 @@ from models import (
 from dependencies import require_auth, get_current_user
 from utils import (
     hash_password, verify_password, validate_password, 
-    validate_email, send_password_reset_email
+    validate_email, send_password_reset_email, bootstrap_default_templates
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
