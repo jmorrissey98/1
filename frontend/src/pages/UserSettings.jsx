@@ -44,6 +44,7 @@ export default function UserSettings() {
   const [inviteRole, setInviteRole] = useState('coach');
   const [inviteCoachId, setInviteCoachId] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [inviteFormExpanded, setInviteFormExpanded] = useState(false);  // Collapsible state
   
   // Club settings state
   const [clubName, setClubName] = useState('');
