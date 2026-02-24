@@ -469,18 +469,45 @@ async def signup_paid(signup_data: PaidSignupRequest, response: Response):
         
         # Create organization for the user
         org_id = f"org_{uuid.uuid4().hex[:12]}"
+        stripe_customer_id = checkout_session.customer if isinstance(checkout_session.customer, str) else (checkout_session.customer.id if checkout_session.customer else None)
+        stripe_subscription_id = checkout_session.subscription if isinstance(checkout_session.subscription, str) else (checkout_session.subscription.id if checkout_session.subscription else None)
+        
         org_doc = {
             "org_id": org_id,
             "owner_id": user_id,
             "club_name": signup_data.club_name or f"{signup_data.name}'s Organization",
             "club_logo": signup_data.club_logo,
             "subscription_tier_id": tier_id,
-            "stripe_customer_id": checkout_session.customer if isinstance(checkout_session.customer, str) else (checkout_session.customer.id if checkout_session.customer else None),
-            "stripe_subscription_id": checkout_session.subscription if isinstance(checkout_session.subscription, str) else (checkout_session.subscription.id if checkout_session.subscription else None),
+            "stripe_customer_id": stripe_customer_id,
+            "stripe_subscription_id": stripe_subscription_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         await db.organizations.insert_one(org_doc)
+        
+        # Create subscription record for the organization
+        # Get tier limits from the STRIPE_PRODUCTS or defaults
+        tier_limits = {
+            "individual": {"coaches": 5, "admins": 1},
+            "developer": {"coaches": 10, "admins": 1},
+            "club": {"coaches": 50, "admins": 10}
+        }
+        limits = tier_limits.get(tier_id, tier_limits["individual"])
+        
+        subscription_doc = {
+            "subscription_id": stripe_subscription_id,
+            "organization_id": org_id,
+            "user_id": user_id,
+            "tier_id": tier_id,
+            "tier_name": tier_id.capitalize(),
+            "status": "active",
+            "stripe_customer_id": stripe_customer_id,
+            "coaches_limit": limits["coaches"],
+            "admins_limit": limits["admins"],
+            "current_period_start": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.subscriptions.insert_one(subscription_doc)
         
         # Update user with organization_id
         await db.users.update_one(
