@@ -275,7 +275,8 @@ async def signup(signup_data: SignupRequest, response: Response):
         }
         await db.users.insert_one(new_user)
         
-        if user_role == "coach_developer" and (signup_data.club_name or signup_data.club_logo):
+        if user_role == "coach_developer":
+            # Create organization for coach developers (even without club name)
             org_id = f"org_{uuid.uuid4().hex[:12]}"
             org_doc = {
                 "org_id": org_id,
@@ -286,7 +287,17 @@ async def signup(signup_data: SignupRequest, response: Response):
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
             await db.organizations.insert_one(org_doc)
-            logger.info(f"Created organization {org_id} for user {user_id}")
+            
+            # Update user with organization_id
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"organization_id": org_id}}
+            )
+            
+            # Bootstrap default templates for the new organization
+            await bootstrap_default_templates(org_id, user_id)
+            
+            logger.info(f"Created organization {org_id} with default templates for user {user_id}")
         
         if user_role == "coach" and linked_coach_id:
             await db.coaches.update_one(
