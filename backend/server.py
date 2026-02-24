@@ -3859,6 +3859,307 @@ async def unset_template_as_default(template_id: str, request: Request):
 # END REFLECTION TEMPLATE ENDPOINTS
 # ============================================
 
+# ============================================
+# OBSERVATION WINDOW TEMPLATE ENDPOINTS
+# ============================================
+
+@api_router.get("/observation-templates")
+async def list_observation_templates(
+    request: Request,
+    observation_context: Optional[str] = None
+):
+    """
+    List all observation window templates for the user's organization.
+    Can filter by observation_context: 'training' or 'game'
+    """
+    user = await require_auth(request)
+    
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # Build query
+    query = {}
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        # Fallback: show templates created by this user
+        query["created_by"] = user.user_id
+    
+    if observation_context:
+        query["observation_context"] = observation_context
+    
+    templates = await db.observation_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return templates
+
+
+@api_router.get("/observation-templates/{template_id}")
+async def get_observation_template(template_id: str, request: Request):
+    """Get a specific observation window template"""
+    user = await require_auth(request)
+    
+    template = await db.observation_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return template
+
+
+class ObservationTemplateCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    observation_context: str = "training"  # "training" or "game"
+    intervention_types: List[Dict[str, Any]] = []
+    descriptor_group1: Optional[Dict[str, Any]] = None
+    descriptor_group2: Optional[Dict[str, Any]] = None
+    session_parts: List[Dict[str, Any]] = []
+    is_default: bool = False
+
+
+class ObservationTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    intervention_types: Optional[List[Dict[str, Any]]] = None
+    descriptor_group1: Optional[Dict[str, Any]] = None
+    descriptor_group2: Optional[Dict[str, Any]] = None
+    session_parts: Optional[List[Dict[str, Any]]] = None
+    is_default: Optional[bool] = None
+
+
+@api_router.post("/observation-templates")
+async def create_observation_template(data: ObservationTemplateCreate, request: Request):
+    """Create a new observation window template"""
+    user = await require_coach_developer(request)
+    
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    template_id = f"obs_tmpl_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # If setting as default, unset any existing default for the same context in the org
+    if data.is_default and org_id:
+        await db.observation_templates.update_many(
+            {"organization_id": org_id, "observation_context": data.observation_context, "is_default": True},
+            {"$set": {"is_default": False}}
+        )
+    
+    template_doc = {
+        "template_id": template_id,
+        "name": data.name,
+        "description": data.description,
+        "observation_context": data.observation_context,
+        "intervention_types": data.intervention_types,
+        "descriptor_group1": data.descriptor_group1,
+        "descriptor_group2": data.descriptor_group2,
+        "session_parts": data.session_parts,
+        "is_default": data.is_default,
+        "created_by": user.user_id,
+        "organization_id": org_id,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.observation_templates.insert_one(template_doc)
+    
+    # Return without MongoDB _id
+    template_doc.pop("_id", None)
+    return template_doc
+
+
+@api_router.put("/observation-templates/{template_id}")
+async def update_observation_template(
+    template_id: str,
+    data: ObservationTemplateUpdate,
+    request: Request
+):
+    """Update an existing observation window template"""
+    user = await require_coach_developer(request)
+    
+    # Find the template
+    template = await db.observation_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Build update dict with only provided fields
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.intervention_types is not None:
+        update_data["intervention_types"] = data.intervention_types
+    if data.descriptor_group1 is not None:
+        update_data["descriptor_group1"] = data.descriptor_group1
+    if data.descriptor_group2 is not None:
+        update_data["descriptor_group2"] = data.descriptor_group2
+    if data.session_parts is not None:
+        update_data["session_parts"] = data.session_parts
+    
+    # Handle is_default special case
+    if data.is_default is not None:
+        update_data["is_default"] = data.is_default
+        if data.is_default:
+            # Unset default for other templates with same context
+            org_id = template.get("organization_id")
+            observation_context = template.get("observation_context")
+            if org_id:
+                await db.observation_templates.update_many(
+                    {
+                        "organization_id": org_id, 
+                        "observation_context": observation_context,
+                        "is_default": True,
+                        "template_id": {"$ne": template_id}
+                    },
+                    {"$set": {"is_default": False}}
+                )
+    
+    await db.observation_templates.update_one(
+        {"template_id": template_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated template
+    updated = await db.observation_templates.find_one({"template_id": template_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/observation-templates/{template_id}")
+async def delete_observation_template(template_id: str, request: Request):
+    """Delete an observation window template"""
+    user = await require_coach_developer(request)
+    
+    # Find the template
+    template = await db.observation_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Don't allow deleting if it's the only default template for that context
+    if template.get("is_default"):
+        org_id = template.get("organization_id")
+        context = template.get("observation_context")
+        other_defaults = await db.observation_templates.count_documents({
+            "organization_id": org_id,
+            "observation_context": context,
+            "is_default": True,
+            "template_id": {"$ne": template_id}
+        })
+        if other_defaults == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot delete the only default template for this context. Set another template as default first."
+            )
+    
+    await db.observation_templates.delete_one({"template_id": template_id})
+    
+    return {"status": "success", "deleted": template_id}
+
+
+@api_router.post("/observation-templates/{template_id}/set-default")
+async def set_observation_template_default(template_id: str, request: Request):
+    """Set an observation template as the default for its context"""
+    user = await require_coach_developer(request)
+    
+    template = await db.observation_templates.find_one(
+        {"template_id": template_id},
+        {"_id": 0}
+    )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    org_id = template.get("organization_id")
+    observation_context = template.get("observation_context")
+    
+    # Unset default for all other templates with same context in the org
+    if org_id:
+        await db.observation_templates.update_many(
+            {"organization_id": org_id, "observation_context": observation_context, "is_default": True},
+            {"$set": {"is_default": False}}
+        )
+    
+    # Set this template as default
+    await db.observation_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {"is_default": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"status": "success", "template_id": template_id, "is_default": True}
+
+
+@api_router.get("/observation-templates/default/{observation_context}")
+async def get_default_observation_template(observation_context: str, request: Request):
+    """Get the default observation template for a specific context (training or game)"""
+    user = await require_auth(request)
+    
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    if not org_id:
+        raise HTTPException(status_code=404, detail="No organization found")
+    
+    # Find the default template for this context
+    template = await db.observation_templates.find_one(
+        {
+            "organization_id": org_id,
+            "observation_context": observation_context,
+            "is_default": True
+        },
+        {"_id": 0}
+    )
+    
+    if not template:
+        # If no default set, return the first template for this context
+        template = await db.observation_templates.find_one(
+            {
+                "organization_id": org_id,
+                "observation_context": observation_context
+            },
+            {"_id": 0}
+        )
+    
+    if not template:
+        raise HTTPException(status_code=404, detail=f"No template found for context: {observation_context}")
+    
+    return template
+
+# ============================================
+# END OBSERVATION TEMPLATE ENDPOINTS
+# ============================================
+
 # Add CORS middleware BEFORE including routes (order matters!)
 # Build comprehensive list of allowed origins for CORS with credentials
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
