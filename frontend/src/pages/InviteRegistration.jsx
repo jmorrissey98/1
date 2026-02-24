@@ -32,6 +32,7 @@ export default function InviteRegistration() {
   const [showPassword, setShowPassword] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [name, setName] = useState('');  // Editable name field
   
   // T&C and Marketing state
   const [acceptedTerms, setAcceptedTerms] = useState(false);
