@@ -1,36 +1,40 @@
 // Service Worker for My Coach Developer PWA
 // Handles offline caching and background sync
 
-const CACHE_NAME = 'mcd-cache-v1';
-const DYNAMIC_CACHE = 'mcd-dynamic-v1';
+// IMPORTANT: Update this version number on every deployment to bust caches
+const SW_VERSION = 'v2024022415'; // Format: vYYYYMMDDHH
+const CACHE_NAME = `mcd-cache-${SW_VERSION}`;
+const DYNAMIC_CACHE = `mcd-dynamic-${SW_VERSION}`;
 
-// Static assets to cache on install
+// Static assets to cache on install (DO NOT include index.html - must always be fresh)
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
-  '/favicon-32x32.png',
-  '/pwa-icon-192.png',
-  '/pwa-icon-384.png',
-  '/pwa-icon-512.png'
+  '/mcd-favicon-32.png',
+  '/mcd-icon-192.png',
+  '/mcd-icon-384.png',
+  '/mcd-icon-512.png',
+  '/mcd-logo.png'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  console.log(`[SW ${SW_VERSION}] Installing service worker...`);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Caching static assets');
+        console.log(`[SW ${SW_VERSION}] Caching static assets`);
         return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log(`[SW ${SW_VERSION}] Skip waiting to activate immediately`);
+        return self.skipWaiting();
+      })
   );
 });
 
-// Activate event - clean old caches
+// Activate event - clean ALL old caches aggressively
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  console.log(`[SW ${SW_VERSION}] Activating service worker...`);
   event.waitUntil(
     caches.keys()
       .then((keys) => {
@@ -38,16 +42,27 @@ self.addEventListener('activate', (event) => {
           keys
             .filter((key) => key !== CACHE_NAME && key !== DYNAMIC_CACHE)
             .map((key) => {
-              console.log('[SW] Deleting old cache:', key);
+              console.log(`[SW ${SW_VERSION}] Deleting old cache:`, key);
               return caches.delete(key);
             })
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => {
+        console.log(`[SW ${SW_VERSION}] Claiming all clients`);
+        return self.clients.claim();
+      })
+      .then(() => {
+        // Notify all clients to reload for the new version
+        return self.clients.matchAll().then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({ type: 'SW_UPDATED', version: SW_VERSION });
+          });
+        });
+      })
   );
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - NETWORK FIRST for HTML, cache-first only for images/fonts
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -62,20 +77,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests (HTML pages), use network-first
-  if (request.mode === 'navigate') {
+  // ALWAYS use network-first for navigation requests (HTML pages)
+  // This ensures users always get the latest index.html
+  if (request.mode === 'navigate' || request.destination === 'document' || 
+      url.pathname === '/' || url.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone and cache the response
-          const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          // Don't cache HTML - always fetch fresh
           return response;
         })
         .catch(() => {
-          // Fallback to cache, then to offline page
+          // Only use cache as absolute last resort for offline
+          console.log(`[SW ${SW_VERSION}] Network failed, trying cache for:`, url.pathname);
           return caches.match(request)
             .then((cached) => cached || caches.match('/'));
         })
@@ -83,24 +97,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets, use cache-first
-  event.respondWith(
-    caches.match(request)
-      .then((cached) => {
-        if (cached) {
-          // Return cached and update in background
-          fetch(request).then((response) => {
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, response);
-            });
-          }).catch(() => {});
-          return cached;
-        }
-
-        // Not in cache, fetch from network
-        return fetch(request)
-          .then((response) => {
-            // Cache valid responses
+  // For JS/CSS bundles with hashes, use cache-first (they're immutable)
+  if (url.pathname.match(/\.(js|css)$/) && url.pathname.match(/\.[a-f0-9]{8}\./)) {
+    event.respondWith(
+      caches.match(request)
+        .then((cached) => {
+          if (cached) {
+            return cached;
+          }
+          return fetch(request).then((response) => {
             if (response.status === 200) {
               const responseClone = response.clone();
               caches.open(DYNAMIC_CACHE).then((cache) => {
@@ -108,17 +113,41 @@ self.addEventListener('fetch', (event) => {
               });
             }
             return response;
-          })
-          .catch(() => {
-            // Return offline fallback for images
-            if (request.destination === 'image') {
-              return new Response(
-                '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="#e2e8f0" width="100" height="100"/><text fill="#94a3b8" x="50" y="50" text-anchor="middle" dy=".3em">Offline</text></svg>',
-                { headers: { 'Content-Type': 'image/svg+xml' } }
-              );
-            }
           });
-      })
+        })
+    );
+    return;
+  }
+
+  // For images and other static assets, use cache-first with background update
+  if (request.destination === 'image' || request.destination === 'font' ||
+      url.pathname.match(/\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/)) {
+    event.respondWith(
+      caches.match(request)
+        .then((cached) => {
+          // Fetch in background to update cache
+          const fetchPromise = fetch(request).then((response) => {
+            if (response.status === 200) {
+              const responseClone = response.clone();
+              caches.open(DYNAMIC_CACHE).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return response;
+          }).catch(() => null);
+
+          // Return cached immediately if available, otherwise wait for network
+          return cached || fetchPromise;
+        })
+    );
+    return;
+  }
+
+  // Default: network-first for everything else
+  event.respondWith(
+    fetch(request)
+      .then((response) => response)
+      .catch(() => caches.match(request))
   );
 });
 
