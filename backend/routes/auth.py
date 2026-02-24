@@ -798,6 +798,7 @@ async def register_with_invite(request: Request, response: Response):
             "role": role,
             "linked_coach_id": coach_id,
             "organization_id": organization_id,
+            "invited_by": invited_by,  # Track who invited this user
             "auth_provider": "email",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "marketing_opt_in": marketing_opt_in,
