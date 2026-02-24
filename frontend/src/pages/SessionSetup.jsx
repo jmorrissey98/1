@@ -225,23 +225,10 @@ export default function SessionSetup() {
 
   const handleTemplateChange = (templateId) => {
     setSelectedTemplate(templateId);
-    const template = templates.find(t => t.id === templateId) || getDefaultTemplate();
-    const interventions = template.interventionTypes || template.eventTypes;
-    setSession(prev => ({
-      ...prev,
-      interventionTypes: [...interventions],
-      eventTypes: [...interventions],
-      descriptorGroup1: { ...template.descriptorGroup1, descriptors: [...template.descriptorGroup1.descriptors] },
-      descriptorGroup2: { ...template.descriptorGroup2, descriptors: [...template.descriptorGroup2.descriptors] },
-      sessionParts: template.sessionParts.map(p => ({
-        ...p,
-        startTime: null,
-        endTime: null,
-        ballRollingTime: 0,
-        ballNotRollingTime: 0,
-        used: false
-      }))
-    }));
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      applyTemplateToSession(template);
+    }
   };
 
   const handleCoachChange = (coachId) => {
