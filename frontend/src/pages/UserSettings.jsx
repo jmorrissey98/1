@@ -169,6 +169,11 @@ export default function UserSettings() {
       return;
     }
     
+    if (!inviteName.trim()) {
+      toast.error('Please enter the invitee\'s name');
+      return;
+    }
+    
     // Check subscription limits before sending
     if (limits) {
       if (inviteRole === 'coach' && !limits.coaches.can_add) {
@@ -185,6 +190,7 @@ export default function UserSettings() {
     try {
       const result = await safePost(`${API_URL}/api/invites`, {
         email: inviteEmail.trim().toLowerCase(),
+        name: inviteName.trim(),  // Pass the name
         role: inviteRole,
         coach_id: inviteRole === 'coach' && inviteCoachId && inviteCoachId !== 'none' ? inviteCoachId : null
       });
@@ -203,6 +209,7 @@ export default function UserSettings() {
 
       toast.success(`Invite sent to ${inviteEmail}${result.data?.email_sent === false ? ' (email delivery pending)' : ''}`);
       setInviteEmail('');
+      setInviteName('');  // Clear name field
       setInviteCoachId('');
       await loadData();
       await loadLimits(); // Refresh limits after sending invite
