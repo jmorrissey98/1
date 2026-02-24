@@ -616,7 +616,20 @@ export default function UserSettings() {
                   
                   <form onSubmit={handleCreateInvite} className="space-y-4">
                     <div>
-                      <Label htmlFor="invite-email">Email Address</Label>
+                      <Label htmlFor="invite-name">Full Name *</Label>
+                      <Input
+                        id="invite-name"
+                        type="text"
+                        value={inviteName}
+                        onChange={(e) => setInviteName(e.target.value)}
+                        placeholder="Enter invitee's full name"
+                        className="mt-1"
+                        data-testid="invite-name-input"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="invite-email">Email Address *</Label>
                       <Input
                         id="invite-email"
                         type="email"
