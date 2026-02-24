@@ -235,7 +235,7 @@ export default function InviteRegistration() {
                 <Avatar className="w-16 h-16">
                   <AvatarImage src={photoPreview} />
                   <AvatarFallback className="bg-slate-200 text-slate-600">
-                    {inviteData?.name?.[0] || inviteData?.email?.[0]?.toUpperCase() || '?'}
+                    {name?.[0]?.toUpperCase() || inviteData?.email?.[0]?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
