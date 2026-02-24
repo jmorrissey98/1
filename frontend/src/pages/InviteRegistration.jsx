@@ -56,6 +56,10 @@ export default function InviteRegistration() {
         }
         
         setInviteData(result.data);
+        // Pre-fill the name from invite data
+        if (result.data.name) {
+          setName(result.data.name);
+        }
       } catch (err) {
         setError('Failed to validate invitation');
       } finally {
