@@ -60,18 +60,18 @@ const DEFAULT_DESCRIPTOR_GROUP_2 = {
 
 // Fallback default session parts (used when backend unavailable)
 const FALLBACK_SESSION_PARTS = [
-  { id: 'default_technique', name: 'Develop The Technique', order: 0, isDefault: true },
-  { id: 'default_game_model', name: 'Develop The Game Model', order: 1, isDefault: true },
-  { id: 'default_performance', name: 'Develop Performance', order: 2, isDefault: true },
-  { id: 'default_mentality', name: 'Develop Mentality', order: 3, isDefault: true }
+  { id: 'part_1', name: 'Part 1', order: 0, isDefault: true },
+  { id: 'part_2', name: 'Part 2', order: 1, isDefault: true },
+  { id: 'part_3', name: 'Part 3', order: 2, isDefault: true },
+  { id: 'part_4', name: 'Part 4', order: 3, isDefault: true }
 ];
 
 // Legacy default session parts (for backwards compatibility)
 const DEFAULT_SESSION_PARTS = [
-  { id: 'default_technique', name: 'Develop The Technique', order: 0, isDefault: true },
-  { id: 'default_game_model', name: 'Develop The Game Model', order: 1, isDefault: true },
-  { id: 'default_performance', name: 'Develop Performance', order: 2, isDefault: true },
-  { id: 'default_mentality', name: 'Develop Mentality', order: 3, isDefault: true }
+  { id: 'part_1', name: 'Part 1', order: 0, isDefault: true },
+  { id: 'part_2', name: 'Part 2', order: 1, isDefault: true },
+  { id: 'part_3', name: 'Part 3', order: 2, isDefault: true },
+  { id: 'part_4', name: 'Part 4', order: 3, isDefault: true }
 ];
 
 // Get default template
