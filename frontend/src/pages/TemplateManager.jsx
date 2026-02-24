@@ -781,6 +781,7 @@ export default function TemplateManager() {
                 </Collapsible>
               ))}
             </div>
+            )}
           </TabsContent>
 
           {/* Reflection Templates Tab */}
