@@ -331,14 +331,17 @@ async def require_admin_slot(request: Request) -> None:
 
 async def get_current_user(request: Request) -> Optional[User]:
     """Get current user from session token in cookie or Authorization header"""
-    # Check cookie first
-    session_token = request.cookies.get("session_token")
+    session_token = None
     
-    # Fallback to Authorization header
+    # Check Authorization header FIRST (takes priority)
+    # This ensures that explicitly set tokens (from localStorage) override cookies
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        session_token = auth_header[7:]
+    
+    # Fallback to cookie if no Authorization header
     if not session_token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            session_token = auth_header[7:]
+        session_token = request.cookies.get("session_token")
     
     if not session_token:
         return None
