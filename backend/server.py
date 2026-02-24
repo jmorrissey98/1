@@ -3061,6 +3061,7 @@ async def stripe_webhook(request: Request):
                     "customer_id": session.get("customer"),
                     "status": subscription.status,
                     "tier_id": metadata.get("tier_id"),
+                    "tier": metadata.get("tier_id"),  # For backwards compatibility
                     "tier_name": metadata.get("tier_name"),
                     "coaches_limit": int(metadata.get("coaches_limit", 5)),
                     "admins_limit": int(metadata.get("admins_limit", 1)),
