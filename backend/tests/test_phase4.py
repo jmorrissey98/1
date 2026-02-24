@@ -10,7 +10,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://coach-management-pro.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://coaching-platform-qa.preview.emergentagent.com').rstrip('/')
 
 class TestReflectionTemplatesAPI:
     """Test reflection templates endpoints"""
