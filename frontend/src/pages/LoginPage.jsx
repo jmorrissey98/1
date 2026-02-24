@@ -27,11 +27,46 @@ export default function LoginPage() {
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
   
+  // Sign Up form state (for paid users)
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpName, setSignUpName] = useState('');
+  const [signUpClubName, setSignUpClubName] = useState('');
+  const [paymentSessionId, setPaymentSessionId] = useState(null);
+  const [loadingPaymentInfo, setLoadingPaymentInfo] = useState(false);
+  
   // Forgot password state
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
 
   const error = location.state?.error;
+
+  // Check for paid signup flow from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const isSignup = params.get('signup') === 'true';
+    const sessionId = params.get('payment_session');
+    
+    if (isSignup && sessionId) {
+      setPaymentSessionId(sessionId);
+      setActiveTab('signup');
+      
+      // Fetch payment info to pre-fill email
+      setLoadingPaymentInfo(true);
+      fetch(`${API_URL}/api/payments/status/${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.customer_email) {
+            setSignUpEmail(data.customer_email);
+          }
+          setLoadingPaymentInfo(false);
+        })
+        .catch(err => {
+          console.error('Error fetching payment info:', err);
+          setLoadingPaymentInfo(false);
+        });
+    }
+  }, [location.search]);
 
   // Redirect if already authenticated
   useEffect(() => {
