@@ -20,6 +20,7 @@ router = APIRouter(prefix="/invites", tags=["Invites"])
 # Request/Response Models
 class InviteCreate(BaseModel):
     email: str
+    name: Optional[str] = None  # Invitee's name
     role: str = "coach"
     coach_id: Optional[str] = None
 

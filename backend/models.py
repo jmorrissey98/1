@@ -198,6 +198,7 @@ class Invite(BaseModel):
 
 class InviteCreate(BaseModel):
     email: str
+    name: Optional[str] = None  # Invitee's name
     role: str
     coach_id: Optional[str] = None
 
