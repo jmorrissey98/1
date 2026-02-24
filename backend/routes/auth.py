@@ -497,8 +497,10 @@ async def signup_paid(signup_data: PaidSignupRequest, response: Response):
         subscription_doc = {
             "subscription_id": stripe_subscription_id,
             "organization_id": org_id,
+            "org_id": org_id,  # For backwards compatibility with queries
             "user_id": user_id,
             "tier_id": tier_id,
+            "tier": tier_id,  # For backwards compatibility
             "tier_name": tier_id.capitalize(),
             "status": "active",
             "stripe_customer_id": stripe_customer_id,
