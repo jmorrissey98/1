@@ -61,9 +61,11 @@ export function UpgradeModal({ open, onOpenChange, currentTier = null }) {
     setLoadingTier(tier.id);
     
     try {
-      const result = await safePost(`${API_URL}/api/subscriptions/checkout`, {
+      // Use /api/payments/checkout endpoint - the correct Stripe checkout endpoint
+      const result = await safePost(`${API_URL}/api/payments/checkout`, {
         tier_id: tier.id,
-        billing_period: isAnnual ? 'annual' : 'monthly'
+        billing_period: isAnnual ? 'annual' : 'monthly',
+        origin_url: window.location.origin + '/settings'  // Redirect back to settings after payment
       });
       
       if (result.ok && result.data?.checkout_url) {
