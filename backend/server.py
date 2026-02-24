@@ -2967,8 +2967,8 @@ async def get_payment_status(session_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Payment system not configured")
     
     try:
-        # Retrieve the checkout session from Stripe
-        session = stripe.checkout.Session.retrieve(session_id)
+        # Retrieve the checkout session from Stripe with customer details
+        session = stripe.checkout.Session.retrieve(session_id, expand=['customer'])
         
         # Update payment transaction in database
         update_data = {
@@ -2980,7 +2980,16 @@ async def get_payment_status(session_id: str, request: Request):
         if session.subscription:
             update_data["subscription_id"] = session.subscription
         if session.customer:
-            update_data["customer_id"] = session.customer
+            update_data["customer_id"] = session.customer if isinstance(session.customer, str) else session.customer.id
+        
+        # Get customer email from session
+        customer_email = None
+        if session.customer_details and session.customer_details.email:
+            customer_email = session.customer_details.email
+            update_data["customer_email"] = customer_email
+        elif session.customer and hasattr(session.customer, 'email'):
+            customer_email = session.customer.email
+            update_data["customer_email"] = customer_email
         
         await db.payment_transactions.update_one(
             {"session_id": session_id},
@@ -2993,7 +3002,8 @@ async def get_payment_status(session_id: str, request: Request):
             "amount_total": session.amount_total,
             "currency": session.currency,
             "subscription_id": session.subscription,
-            "customer_id": session.customer,
+            "customer_id": session.customer if isinstance(session.customer, str) else (session.customer.id if session.customer else None),
+            "customer_email": customer_email,
             "metadata": dict(session.metadata) if session.metadata else {}
         }
     except stripe.error.StripeError as e:
