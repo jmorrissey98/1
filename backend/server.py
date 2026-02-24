@@ -3072,6 +3072,7 @@ async def stripe_webhook(request: Request):
                 
                 if org_id:
                     sub_record["organization_id"] = org_id
+                    sub_record["org_id"] = org_id  # For backwards compatibility
                 if user_id:
                     sub_record["user_id"] = user_id
                 
