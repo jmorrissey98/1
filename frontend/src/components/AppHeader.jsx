@@ -254,14 +254,21 @@ export default function AppHeader() {
           )}
         </div>
         
-        {/* Right side - MCD Logo */}
-        <img 
-          src="/mcd-logo.png" 
-          alt="My Coach Developer" 
-          className="h-10 w-auto object-contain cursor-pointer"
+        {/* Right side - MCD Logo with brand name */}
+        <div 
+          className="flex flex-col items-center cursor-pointer"
           onClick={() => navigate(getHomePath())}
           data-testid="mcd-app-logo"
-        />
+        >
+          <img 
+            src="/mcd-logo.png" 
+            alt="My Coach Developer" 
+            className="h-10 w-auto object-contain"
+          />
+          <span className="text-[10px] font-medium text-slate-500 mt-0.5">
+            My Coach Developer
+          </span>
+        </div>
       </div>
     </div>
     </>
