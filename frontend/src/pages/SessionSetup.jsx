@@ -10,7 +10,6 @@ import { Switch } from '../components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from '../lib/storage';
-import { fetchSessionParts, createSessionPart, toFrontendFormat } from '../lib/sessionPartsApi';
 import { fetchObservationTemplates, fetchDefaultObservationTemplate } from '../lib/observationTemplatesApi';
 import { fetchReflectionTemplates } from '../lib/reflectionTemplatesApi';
 import { generateId, cn } from '../lib/utils';
