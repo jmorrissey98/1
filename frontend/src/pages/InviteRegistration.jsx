@@ -90,6 +90,12 @@ export default function InviteRegistration() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate name
+    if (!name || !name.trim()) {
+      toast.error('Please enter your full name');
+      return;
+    }
+    
     if (!password || password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return;
@@ -121,6 +127,7 @@ export default function InviteRegistration() {
     try {
       const result = await safePost(`${API_URL}/api/auth/register-invite`, {
         invite_id: inviteId,
+        name: name.trim(),  // Pass the editable name
         password: password,
         photo: photo,
         marketing_opt_in: marketingOptIn
