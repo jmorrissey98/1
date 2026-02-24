@@ -40,6 +40,7 @@ export default function UserSettings() {
   
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');  // Add name field
   const [inviteRole, setInviteRole] = useState('coach');
   const [inviteCoachId, setInviteCoachId] = useState('');
   const [inviting, setInviting] = useState(false);
