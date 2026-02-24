@@ -55,7 +55,6 @@ export default function SessionSetup() {
   useEffect(() => {
     const initSession = async () => {
       setLoading(true);
-      loadSessionParts();
       loadCoaches();
       loadReflectionTemplates();
       await loadObservationTemplates();
