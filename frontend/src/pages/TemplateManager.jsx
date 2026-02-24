@@ -15,6 +15,13 @@ import { toast } from 'sonner';
 import { storage, getDefaultTemplate } from '../lib/storage';
 import { generateId } from '../lib/utils';
 import { fetchSessionParts, createSessionPart, deleteSessionPart } from '../lib/sessionPartsApi';
+import { 
+  fetchObservationTemplates, 
+  updateObservationTemplate, 
+  createObservationTemplate,
+  deleteObservationTemplate,
+  setDefaultObservationTemplate
+} from '../lib/observationTemplatesApi';
 import { useAuth } from '../contexts/AuthContext';
 import ReflectionTemplatesSection from '../components/ReflectionTemplatesSection';
 
@@ -24,6 +31,8 @@ export default function TemplateManager() {
   const [activeTab, setActiveTab] = useState('observation');
   const [templates, setTemplates] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   
   // Global session parts state
   const [globalParts, setGlobalParts] = useState([]);
@@ -37,9 +46,28 @@ export default function TemplateManager() {
   const [savingPart, setSavingPart] = useState(false);
 
   useEffect(() => {
-    setTemplates(storage.getTemplates());
+    loadTemplates();
     loadGlobalParts();
   }, []);
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const apiTemplates = await fetchObservationTemplates();
+      if (apiTemplates && apiTemplates.length > 0) {
+        setTemplates(apiTemplates);
+      } else {
+        // Fallback to localStorage if no API templates
+        setTemplates(storage.getTemplates());
+      }
+    } catch (err) {
+      console.error('Failed to load templates from API:', err);
+      // Fallback to localStorage
+      setTemplates(storage.getTemplates());
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const loadGlobalParts = async () => {
     setLoadingParts(true);
@@ -53,62 +81,160 @@ export default function TemplateManager() {
     }
   };
 
-  const saveAndRefresh = (template) => {
-    storage.saveTemplate(template);
-    setTemplates(storage.getTemplates());
+  // Save template to API and refresh
+  const saveAndRefresh = async (template) => {
+    setSavingTemplate(true);
+    try {
+      // Check if this is an API template (has templateId) or localStorage template
+      if (template.templateId) {
+        // Update via API
+        const updated = await updateObservationTemplate(template.templateId, template);
+        setTemplates(prev => prev.map(t => t.id === template.id ? updated : t));
+        toast.success('Template saved');
+      } else {
+        // Save to localStorage (legacy support)
+        storage.saveTemplate(template);
+        setTemplates(storage.getTemplates());
+      }
+    } catch (err) {
+      console.error('Failed to save template:', err);
+      toast.error(err.message || 'Failed to save template');
+      // Fallback to localStorage
+      storage.saveTemplate(template);
+      setTemplates(storage.getTemplates());
+    } finally {
+      setSavingTemplate(false);
+    }
   };
 
-  const handleDuplicate = (template) => {
+  const handleDuplicate = async (template) => {
     const newTemplate = {
-      ...template,
-      id: generateId('template'),
       name: `${template.name} (Copy)`,
-      eventTypes: (template.eventTypes || []).map(e => ({ ...e, id: generateId('event') })),
+      description: template.description,
+      observationContext: template.observationContext || 'training',
+      interventionTypes: (template.eventTypes || template.interventionTypes || []).map(e => ({ 
+        ...e, 
+        id: generateId('event') 
+      })),
+      eventTypes: (template.eventTypes || template.interventionTypes || []).map(e => ({ 
+        ...e, 
+        id: generateId('event') 
+      })),
       descriptorGroup1: {
-        ...(template.descriptorGroup1 || { name: 'Group 1', descriptors: [] }),
+        ...(template.descriptorGroup1 || { name: 'Group 1', color: 'blue', descriptors: [] }),
         descriptors: (template.descriptorGroup1?.descriptors || []).map(d => ({ ...d, id: generateId('desc') }))
       },
       descriptorGroup2: {
-        ...(template.descriptorGroup2 || { name: 'Group 2', descriptors: [] }),
+        ...(template.descriptorGroup2 || { name: 'Group 2', color: 'green', descriptors: [] }),
         descriptors: (template.descriptorGroup2?.descriptors || []).map(d => ({ ...d, id: generateId('desc') }))
       },
-      sessionParts: (template.sessionParts || []).map(p => ({ ...p, id: generateId('part') }))
+      sessionParts: (template.sessionParts || []).map((p, idx) => ({ 
+        ...p, 
+        id: generateId('part'),
+        order: idx
+      })),
+      isDefault: false
     };
     
-    storage.saveTemplate(newTemplate);
-    setTemplates(storage.getTemplates());
-    setExpandedId(newTemplate.id);
-    toast.success('Template duplicated');
+    try {
+      const created = await createObservationTemplate(newTemplate);
+      setTemplates(prev => [created, ...prev]);
+      setExpandedId(created.id);
+      toast.success('Template duplicated');
+    } catch (err) {
+      console.error('Failed to duplicate template:', err);
+      // Fallback to localStorage
+      const localTemplate = {
+        ...newTemplate,
+        id: generateId('template')
+      };
+      storage.saveTemplate(localTemplate);
+      setTemplates(storage.getTemplates());
+      setExpandedId(localTemplate.id);
+      toast.success('Template duplicated (saved locally)');
+    }
   };
 
-  const handleDelete = (templateId) => {
-    storage.deleteTemplate(templateId);
-    setTemplates(storage.getTemplates());
-    toast.success('Template deleted');
+  const handleDelete = async (templateId, template) => {
+    try {
+      if (template.templateId) {
+        await deleteObservationTemplate(template.templateId);
+      } else {
+        storage.deleteTemplate(templateId);
+      }
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      toast.success('Template deleted');
+    } catch (err) {
+      console.error('Failed to delete template:', err);
+      toast.error(err.message || 'Failed to delete template');
+    }
   };
 
-  const handleCreateNew = () => {
+  const handleSetDefault = async (template) => {
+    try {
+      if (template.templateId) {
+        await setDefaultObservationTemplate(template.templateId);
+        // Update local state to reflect the change
+        setTemplates(prev => prev.map(t => ({
+          ...t,
+          isDefault: t.id === template.id
+        })));
+        toast.success(`"${template.name}" is now the default template`);
+      }
+    } catch (err) {
+      console.error('Failed to set default template:', err);
+      toast.error(err.message || 'Failed to set default template');
+    }
+  };
+
+  const handleCreateNew = async () => {
     const defaultTemplate = getDefaultTemplate();
     const newTemplate = {
-      ...defaultTemplate,
-      id: generateId('template'),
       name: 'New Template',
-      eventTypes: (defaultTemplate.eventTypes || []).map(e => ({ ...e, id: generateId('event') })),
+      description: '',
+      observationContext: 'training',
+      interventionTypes: (defaultTemplate.eventTypes || defaultTemplate.interventionTypes || []).map(e => ({ 
+        ...e, 
+        id: generateId('event') 
+      })),
+      eventTypes: (defaultTemplate.eventTypes || defaultTemplate.interventionTypes || []).map(e => ({ 
+        ...e, 
+        id: generateId('event') 
+      })),
       descriptorGroup1: {
-        ...(defaultTemplate.descriptorGroup1 || { name: 'Group 1', descriptors: [] }),
+        ...(defaultTemplate.descriptorGroup1 || { name: 'Content Focus', color: 'blue', descriptors: [] }),
         descriptors: (defaultTemplate.descriptorGroup1?.descriptors || []).map(d => ({ ...d, id: generateId('desc') }))
       },
       descriptorGroup2: {
-        ...(defaultTemplate.descriptorGroup2 || { name: 'Group 2', descriptors: [] }),
+        ...(defaultTemplate.descriptorGroup2 || { name: 'Delivery Method', color: 'green', descriptors: [] }),
         descriptors: (defaultTemplate.descriptorGroup2?.descriptors || []).map(d => ({ ...d, id: generateId('desc') }))
       },
-      sessionParts: (defaultTemplate.sessionParts || []).map(p => ({ ...p, id: generateId('part') }))
+      sessionParts: [
+        { id: generateId('part'), name: 'Part 1', order: 0 },
+        { id: generateId('part'), name: 'Part 2', order: 1 },
+        { id: generateId('part'), name: 'Part 3', order: 2 },
+        { id: generateId('part'), name: 'Part 4', order: 3 }
+      ],
+      isDefault: false
     };
     
-    storage.saveTemplate(newTemplate);
-    setTemplates(storage.getTemplates());
-    setExpandedId(newTemplate.id);
-    toast.success('Template created');
+    try {
+      const created = await createObservationTemplate(newTemplate);
+      setTemplates(prev => [created, ...prev]);
+      setExpandedId(created.id);
+      toast.success('Template created');
+    } catch (err) {
+      console.error('Failed to create template:', err);
+      // Fallback to localStorage
+      const localTemplate = {
+        ...newTemplate,
+        id: generateId('template')
+      };
+      storage.saveTemplate(localTemplate);
+      setTemplates(storage.getTemplates());
+      setExpandedId(localTemplate.id);
+      toast.success('Template created (saved locally)');
+    }
   };
 
   // Update template name
