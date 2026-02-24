@@ -41,8 +41,6 @@ export default function SessionSetup() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   
   // Session parts state
-  const [availableParts, setAvailableParts] = useState([]);
-  const [loadingParts, setLoadingParts] = useState(true);
   const [showCustomPartDialog, setShowCustomPartDialog] = useState(false);
   const [customPartName, setCustomPartName] = useState('');
   const [savingPart, setSavingPart] = useState(false);
