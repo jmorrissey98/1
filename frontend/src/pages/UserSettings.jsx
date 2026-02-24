@@ -408,12 +408,8 @@ export default function UserSettings() {
 
         {/* Coach Developer Only: Team Management */}
         {isCoachDeveloper() && (
-          <Tabs defaultValue="invites" className="space-y-6">
-            <TabsList className="grid w-full max-w-lg grid-cols-4">
-              <TabsTrigger value="invites" data-testid="tab-invites">
-                <Mail className="w-4 h-4 mr-2" />
-                Invites
-              </TabsTrigger>
+          <Tabs defaultValue="users" className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="users" data-testid="tab-users">
                 <Users className="w-4 h-4 mr-2" />
                 Users
@@ -422,389 +418,11 @@ export default function UserSettings() {
                 <Building2 className="w-4 h-4 mr-2" />
                 Club
               </TabsTrigger>
-              <TabsTrigger value="admin" data-testid="tab-admin">
-                <Database className="w-4 h-4 mr-2" />
-                Admin
-              </TabsTrigger>
             </TabsList>
 
-            {/* Invites Tab */}
-            <TabsContent value="invites">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                    <UserPlus className="w-5 h-5" />
-                    Invite New User
-                  </CardTitle>
-                  <CardDescription>
-                    Send an invite to allow someone to create an account
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Subscription Limits Summary */}
-                  {limits && (
-                    <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Subscription Usage
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Coaches Usage */}
-                        <div className={`p-3 rounded-lg ${limits.coaches.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-600">Coaches</span>
-                            <span className={`font-semibold ${limits.coaches.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
-                              {limits.coaches.current}/{limits.coaches.limit}
-                            </span>
-                          </div>
-                          {!limits.coaches.can_add && (
-                            <p className="text-xs text-amber-600 mt-1">Limit reached</p>
-                          )}
-                        </div>
-                        
-                        {/* Admins Usage */}
-                        <div className={`p-3 rounded-lg ${limits.admins.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-600">Coach Developers</span>
-                            <span className={`font-semibold ${limits.admins.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
-                              {limits.admins.current}/{limits.admins.limit}
-                            </span>
-                          </div>
-                          {!limits.admins.can_add && (
-                            <p className="text-xs text-amber-600 mt-1">Limit reached</p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Upgrade prompt if any limit reached */}
-                      {(!limits.coaches.can_add || !limits.admins.can_add) && (
-                        <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-                          <p className="text-sm text-slate-600">
-                            Need more slots?
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => openUpgradeModal()}
-                            data-testid="upgrade-limits-btn"
-                          >
-                            <Crown className="w-3 h-3 mr-1" />
-                            Upgrade Plan
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Subscription Management Section */}
-                  {subscriptionStatus?.has_subscription && (
-                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                      <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-blue-600" />
-                        Subscription Management
-                      </h4>
-                      
-                      <div className="space-y-3">
-                        {/* Current Plan Info */}
-                        <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-                          <div>
-                            <p className="text-sm text-slate-600">Current Plan</p>
-                            <p className="font-semibold text-slate-900">
-                              {subscriptionStatus.tier_name || subscriptionStatus.tier?.charAt(0).toUpperCase() + subscriptionStatus.tier?.slice(1) || 'Active'}
-                            </p>
-                          </div>
-                          <Badge 
-                            className={
-                              subscriptionStatus.status === 'active' ? 'bg-green-100 text-green-700' :
-                              subscriptionStatus.status === 'past_due' ? 'bg-amber-100 text-amber-700' :
-                              subscriptionStatus.status === 'canceled' ? 'bg-red-100 text-red-700' :
-                              'bg-slate-100 text-slate-700'
-                            }
-                          >
-                            {subscriptionStatus.status === 'active' ? 'Active' :
-                             subscriptionStatus.status === 'past_due' ? 'Past Due' :
-                             subscriptionStatus.status === 'canceled' ? 'Canceled' :
-                             subscriptionStatus.status}
-                          </Badge>
-                        </div>
-                        
-                        {/* Plan Benefits */}
-                        <div className="p-3 bg-white rounded-lg">
-                          <p className="text-sm font-medium text-slate-700 mb-2">Your Plan Includes:</p>
-                          <div className="grid grid-cols-1 gap-2 text-sm">
-                            <div className="flex items-center gap-2 text-slate-600">
-                              <Users className="w-4 h-4 text-blue-500" />
-                              <span><strong>{subscriptionStatus.coaches_limit || limits?.coaches?.limit || 5}</strong> Coaches</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-600">
-                              <UserPlus className="w-4 h-4 text-purple-500" />
-                              <span><strong>{subscriptionStatus.admins_limit || limits?.admins?.limit || 1}</strong> Coach {(subscriptionStatus.admins_limit || limits?.admins?.limit || 1) === 1 ? 'Educator' : 'Educators'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-600">
-                              <Database className="w-4 h-4 text-green-500" />
-                              <span>
-                                {(subscriptionStatus.tier === 'individual' || subscriptionStatus.tier === 'free') 
-                                  ? <><strong>3 months</strong> data history</>
-                                  : <><strong>Unlimited</strong> data history</>
-                                }
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Billing Period */}
-                        {subscriptionStatus.current_period_end && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              {subscriptionStatus.cancel_at_period_end 
-                                ? `Cancels on ${new Date(subscriptionStatus.current_period_end).toLocaleDateString()}`
-                                : `Renews on ${new Date(subscriptionStatus.current_period_end).toLocaleDateString()}`
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Warning for past due */}
-                        {subscriptionStatus.status === 'past_due' && (
-                          <div className="p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700 flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4" />
-                            Your payment is past due. Please update your payment method.
-                          </div>
-                        )}
-                        
-                        {/* Manage Subscription Button */}
-                        <Button 
-                          onClick={handleManageSubscription}
-                          disabled={loadingBillingPortal}
-                          className="w-full bg-blue-600 hover:bg-blue-700"
-                          data-testid="manage-subscription-btn"
-                        >
-                          {loadingBillingPortal ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                          )}
-                          Manage Subscription
-                        </Button>
-                        
-                        <p className="text-xs text-slate-500 text-center">
-                          Update payment method, change plan, or cancel subscription
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* No subscription - show upgrade prompt */}
-                  {subscriptionStatus && !subscriptionStatus.has_subscription && (
-                    <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <h4 className="font-medium text-slate-700 mb-2 flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        No Active Subscription
-                      </h4>
-                      <p className="text-sm text-slate-600 mb-3">
-                        Subscribe to a plan to unlock team management features.
-                      </p>
-                      <Button 
-                        onClick={() => openUpgradeModal()}
-                        className="w-full"
-                        data-testid="subscribe-btn"
-                      >
-                        <Crown className="w-4 h-4 mr-2" />
-                        View Plans
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <form onSubmit={handleCreateInvite} className="space-y-4">
-                    <div>
-                      <Label htmlFor="invite-name">Full Name *</Label>
-                      <Input
-                        id="invite-name"
-                        type="text"
-                        value={inviteName}
-                        onChange={(e) => setInviteName(e.target.value)}
-                        placeholder="Enter invitee's full name"
-                        className="mt-1"
-                        data-testid="invite-name-input"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="invite-email">Email Address *</Label>
-                      <Input
-                        id="invite-email"
-                        type="email"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="coach@example.com"
-                        className="mt-1"
-                        data-testid="invite-email-input"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="invite-role">Role</Label>
-                      <Select 
-                        value={inviteRole} 
-                        onValueChange={(val) => {
-                          // Prevent selecting coach_developer if limit reached
-                          if (val === 'coach_developer' && limits && !limits.admins.can_add) {
-                            toast.error(`Admin limit reached (${limits.admins.current}/${limits.admins.limit}). Please upgrade your subscription.`);
-                            return;
-                          }
-                          // Prevent selecting coach if limit reached
-                          if (val === 'coach' && limits && !limits.coaches.can_add) {
-                            toast.error(`Coach limit reached (${limits.coaches.current}/${limits.coaches.limit}). Please upgrade your subscription.`);
-                            return;
-                          }
-                          setInviteRole(val);
-                        }}
-                      >
-                        <SelectTrigger className="mt-1" data-testid="invite-role-select">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem 
-                            value="coach" 
-                            disabled={limits && !limits.coaches.can_add}
-                          >
-                            Coach {limits && !limits.coaches.can_add && '(Limit reached)'}
-                          </SelectItem>
-                          <SelectItem 
-                            value="coach_developer"
-                            disabled={limits && !limits.admins.can_add}
-                          >
-                            Coach Developer {limits && !limits.admins.can_add && '(Limit reached)'}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      {/* Warning if selected role limit is reached */}
-                      {limits && inviteRole === 'coach' && !limits.coaches.can_add && (
-                        <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>Coach limit reached. Upgrade to invite more coaches.</span>
-                        </div>
-                      )}
-                      {limits && inviteRole === 'coach_developer' && !limits.admins.can_add && (
-                        <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>Admin limit reached. Upgrade to invite more admins.</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {inviteRole === 'coach' && coaches.length > 0 && (
-                      <div>
-                        <Label htmlFor="invite-coach">Link to Coach Profile (Optional)</Label>
-                        <Select value={inviteCoachId} onValueChange={setInviteCoachId}>
-                          <SelectTrigger className="mt-1" data-testid="invite-coach-select">
-                            <SelectValue placeholder="Select a coach profile..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No profile</SelectItem>
-                            {coaches.map(coach => (
-                              <SelectItem key={coach.id} value={coach.id}>
-                                {coach.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-slate-500 mt-1">
-                          If selected, the user will automatically be linked to this coach profile
-                        </p>
-                      </div>
-                    )}
-
-                    <Button 
-                      type="submit" 
-                      disabled={
-                        inviting || 
-                        (limits && inviteRole === 'coach' && !limits.coaches.can_add) ||
-                        (limits && inviteRole === 'coach_developer' && !limits.admins.can_add)
-                      } 
-                      data-testid="send-invite-btn"
-                    >
-                      {inviting ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Mail className="w-4 h-4 mr-2" />
-                      )}
-                      Send Invite
-                    </Button>
-                  </form>
-
-                  {/* Pending Invites */}
-                  {invites.length > 0 && (
-                    <div className="mt-6 border-t pt-6">
-                      <h4 className="font-medium text-slate-700 mb-3">Pending Invites</h4>
-                      <div className="space-y-2">
-                        {invites.map(invite => (
-                          <div key={invite.invite_id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                            <div>
-                              <p className="font-medium">{invite.email}</p>
-                              <div className="flex items-center gap-2 text-sm text-slate-500">
-                                <Badge variant="outline">
-                                  {invite.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
-                                </Badge>
-                                {invite.coach_id && (
-                                  <span>→ {getCoachName(invite.coach_id)}</span>
-                                )}
-                                {invite.email_sent === false && (
-                                  <Badge variant="outline" className="text-amber-600 border-amber-300">
-                                    Email pending
-                                  </Badge>
-                                )}
-                                {invite.email_sent === true && (
-                                  <Badge variant="outline" className="text-green-600 border-green-300">
-                                    Email sent
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleResendInvite(invite.invite_id, invite.email)}
-                                title="Resend invite email"
-                              >
-                                <Send className="w-4 h-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-red-600">
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Invite?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will revoke the invite for {invite.email}.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteInvite(invite.invite_id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             {/* Users Tab */}
-            <TabsContent value="users">
+            <TabsContent value="users" className="space-y-6">
+              {/* Team Members Card */}
               <Card>
                 <CardHeader>
                   <CardTitle className="font-['Manrope'] flex items-center gap-2">
@@ -888,10 +506,408 @@ export default function UserSettings() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Collapsible Invite New User Section */}
+              <Collapsible open={inviteFormExpanded} onOpenChange={setInviteFormExpanded}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-slate-50 transition-colors rounded-t-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                            <UserPlus className="w-5 h-5" />
+                            Invite New User
+                          </CardTitle>
+                          <CardDescription>
+                            Send an invite to allow someone to create an account
+                          </CardDescription>
+                        </div>
+                        {inviteFormExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-slate-500" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-slate-500" />
+                        )}
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent>
+                      {/* Subscription Limits Summary */}
+                      {limits && (
+                        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                          <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            Subscription Usage
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Coaches Usage */}
+                            <div className={`p-3 rounded-lg ${limits.coaches.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-slate-600">Coaches</span>
+                                <span className={`font-semibold ${limits.coaches.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
+                                  {limits.coaches.current}/{limits.coaches.limit}
+                                </span>
+                              </div>
+                              {!limits.coaches.can_add && (
+                                <p className="text-xs text-amber-600 mt-1">Limit reached</p>
+                              )}
+                            </div>
+                            
+                            {/* Admins Usage */}
+                            <div className={`p-3 rounded-lg ${limits.admins.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-slate-600">Coach Developers</span>
+                                <span className={`font-semibold ${limits.admins.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
+                                  {limits.admins.current}/{limits.admins.limit}
+                                </span>
+                              </div>
+                              {!limits.admins.can_add && (
+                                <p className="text-xs text-amber-600 mt-1">Limit reached</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Upgrade prompt if any limit reached */}
+                          {(!limits.coaches.can_add || !limits.admins.can_add) && (
+                            <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
+                              <p className="text-sm text-slate-600">
+                                Need more slots?
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openUpgradeModal()}
+                                data-testid="upgrade-limits-btn"
+                              >
+                                <Crown className="w-3 h-3 mr-1" />
+                                Upgrade Plan
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <form onSubmit={handleCreateInvite} className="space-y-4">
+                        <div>
+                          <Label htmlFor="invite-name">Full Name *</Label>
+                          <Input
+                            id="invite-name"
+                            type="text"
+                            value={inviteName}
+                            onChange={(e) => setInviteName(e.target.value)}
+                            placeholder="Enter invitee's full name"
+                            className="mt-1"
+                            data-testid="invite-name-input"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="invite-email">Email Address *</Label>
+                          <Input
+                            id="invite-email"
+                            type="email"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            placeholder="coach@example.com"
+                            className="mt-1"
+                            data-testid="invite-email-input"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="invite-role">Role</Label>
+                          <Select 
+                            value={inviteRole} 
+                            onValueChange={(val) => {
+                              // Prevent selecting coach_developer if limit reached
+                              if (val === 'coach_developer' && limits && !limits.admins.can_add) {
+                                toast.error(`Admin limit reached (${limits.admins.current}/${limits.admins.limit}). Please upgrade your subscription.`);
+                                return;
+                              }
+                              // Prevent selecting coach if limit reached
+                              if (val === 'coach' && limits && !limits.coaches.can_add) {
+                                toast.error(`Coach limit reached (${limits.coaches.current}/${limits.coaches.limit}). Please upgrade your subscription.`);
+                                return;
+                              }
+                              setInviteRole(val);
+                            }}
+                          >
+                            <SelectTrigger className="mt-1" data-testid="invite-role-select">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem 
+                                value="coach" 
+                                disabled={limits && !limits.coaches.can_add}
+                              >
+                                Coach {limits && !limits.coaches.can_add && '(Limit reached)'}
+                              </SelectItem>
+                              <SelectItem 
+                                value="coach_developer"
+                                disabled={limits && !limits.admins.can_add}
+                              >
+                                Coach Developer {limits && !limits.admins.can_add && '(Limit reached)'}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
+                          {/* Warning if selected role limit is reached */}
+                          {limits && inviteRole === 'coach' && !limits.coaches.can_add && (
+                            <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>Coach limit reached. Upgrade to invite more coaches.</span>
+                            </div>
+                          )}
+                          {limits && inviteRole === 'coach_developer' && !limits.admins.can_add && (
+                            <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>Admin limit reached. Upgrade to invite more admins.</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {inviteRole === 'coach' && coaches.length > 0 && (
+                          <div>
+                            <Label htmlFor="invite-coach">Link to Coach Profile (Optional)</Label>
+                            <Select value={inviteCoachId} onValueChange={setInviteCoachId}>
+                              <SelectTrigger className="mt-1" data-testid="invite-coach-select">
+                                <SelectValue placeholder="Select a coach profile..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No profile</SelectItem>
+                                {coaches.map(coach => (
+                                  <SelectItem key={coach.id} value={coach.id}>
+                                    {coach.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-slate-500 mt-1">
+                              If selected, the user will automatically be linked to this coach profile
+                            </p>
+                          </div>
+                        )}
+
+                        <Button 
+                          type="submit" 
+                          disabled={
+                            inviting || 
+                            (limits && inviteRole === 'coach' && !limits.coaches.can_add) ||
+                            (limits && inviteRole === 'coach_developer' && !limits.admins.can_add)
+                          } 
+                          data-testid="send-invite-btn"
+                        >
+                          {inviting ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Mail className="w-4 h-4 mr-2" />
+                          )}
+                          Send Invite
+                        </Button>
+                      </form>
+
+                      {/* Pending Invites */}
+                      {invites.length > 0 && (
+                        <div className="mt-6 border-t pt-6">
+                          <h4 className="font-medium text-slate-700 mb-3">Pending Invites</h4>
+                          <div className="space-y-2">
+                            {invites.map(invite => (
+                              <div key={invite.invite_id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                <div>
+                                  <p className="font-medium">{invite.email}</p>
+                                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                                    <Badge variant="outline">
+                                      {invite.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
+                                    </Badge>
+                                    {invite.coach_id && (
+                                      <span>→ {getCoachName(invite.coach_id)}</span>
+                                    )}
+                                    {invite.email_sent === false && (
+                                      <Badge variant="outline" className="text-amber-600 border-amber-300">
+                                        Email pending
+                                      </Badge>
+                                    )}
+                                    {invite.email_sent === true && (
+                                      <Badge variant="outline" className="text-green-600 border-green-300">
+                                        Email sent
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleResendInvite(invite.invite_id, invite.email)}
+                                    title="Resend invite email"
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-red-600">
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Invite?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will revoke the invite for {invite.email}.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteInvite(invite.invite_id)}>
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             </TabsContent>
 
             {/* Club Tab */}
-            <TabsContent value="club">
+            <TabsContent value="club" className="space-y-6">
+              {/* Subscription Management Card */}
+              {subscriptionStatus?.has_subscription && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      Subscription Management
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your subscription plan and billing
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Current Plan Info */}
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="text-sm text-slate-600">Current Plan</p>
+                        <p className="font-semibold text-slate-900">
+                          {subscriptionStatus.tier_name || subscriptionStatus.tier?.charAt(0).toUpperCase() + subscriptionStatus.tier?.slice(1) || 'Active'}
+                        </p>
+                      </div>
+                      <Badge 
+                        className={
+                          subscriptionStatus.status === 'active' ? 'bg-green-100 text-green-700' :
+                          subscriptionStatus.status === 'past_due' ? 'bg-amber-100 text-amber-700' :
+                          subscriptionStatus.status === 'canceled' ? 'bg-red-100 text-red-700' :
+                          'bg-slate-100 text-slate-700'
+                        }
+                      >
+                        {subscriptionStatus.status === 'active' ? 'Active' :
+                         subscriptionStatus.status === 'past_due' ? 'Past Due' :
+                         subscriptionStatus.status === 'canceled' ? 'Canceled' :
+                         subscriptionStatus.status}
+                      </Badge>
+                    </div>
+                    
+                    {/* Plan Benefits */}
+                    <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                      <p className="text-sm font-medium text-slate-700 mb-2">Your Plan Includes:</p>
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Users className="w-4 h-4 text-blue-500" />
+                          <span><strong>{subscriptionStatus.coaches_limit || limits?.coaches?.limit || 5}</strong> Coaches</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <UserPlus className="w-4 h-4 text-purple-500" />
+                          <span><strong>{subscriptionStatus.admins_limit || limits?.admins?.limit || 1}</strong> Coach {(subscriptionStatus.admins_limit || limits?.admins?.limit || 1) === 1 ? 'Educator' : 'Educators'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Database className="w-4 h-4 text-green-500" />
+                          <span>
+                            {(subscriptionStatus.tier === 'individual' || subscriptionStatus.tier === 'free') 
+                              ? <><strong>3 months</strong> data history</>
+                              : <><strong>Unlimited</strong> data history</>
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Billing Period */}
+                    {subscriptionStatus.current_period_end && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>
+                          {subscriptionStatus.cancel_at_period_end 
+                            ? `Cancels on ${new Date(subscriptionStatus.current_period_end).toLocaleDateString()}`
+                            : `Renews on ${new Date(subscriptionStatus.current_period_end).toLocaleDateString()}`
+                          }
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Warning for past due */}
+                    {subscriptionStatus.status === 'past_due' && (
+                      <div className="p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Your payment is past due. Please update your payment method.
+                      </div>
+                    )}
+                    
+                    {/* Manage Subscription Button */}
+                    <Button 
+                      onClick={handleManageSubscription}
+                      disabled={loadingBillingPortal}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      data-testid="manage-subscription-btn"
+                    >
+                      {loadingBillingPortal ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                      )}
+                      Manage Subscription
+                    </Button>
+                    
+                    <p className="text-xs text-slate-500 text-center">
+                      Update payment method, change plan, or cancel subscription
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* No subscription - show upgrade prompt */}
+              {subscriptionStatus && !subscriptionStatus.has_subscription && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                      <CreditCard className="w-5 h-5" />
+                      Subscription
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-4">
+                      <p className="text-sm text-slate-600 mb-4">
+                        Subscribe to a plan to unlock team management features.
+                      </p>
+                      <Button 
+                        onClick={() => openUpgradeModal()}
+                        data-testid="subscribe-btn"
+                      >
+                        <Crown className="w-4 h-4 mr-2" />
+                        View Plans
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Club / Organization Settings Card */}
               <Card>
                 <CardHeader>
                   <CardTitle className="font-['Manrope'] flex items-center gap-2">
@@ -999,41 +1015,6 @@ export default function UserSettings() {
                     ) : null}
                     Save Club Settings
                   </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Admin Tab */}
-            <TabsContent value="admin">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                    <Database className="w-5 h-5" />
-                    Admin Tools
-                  </CardTitle>
-                  <CardDescription>
-                    Advanced tools for data management and recovery
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {user?.email === 'joemorrisseyg@gmail.com' ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <h4 className="font-semibold text-amber-800 mb-2">Data Recovery Tool</h4>
-                        <p className="text-sm text-amber-700 mb-3">
-                          Export all locally stored data before migrating to the cloud database.
-                        </p>
-                        <Button onClick={() => navigate('/data-recovery')} data-testid="data-recovery-btn">
-                          <Database className="w-4 h-4 mr-2" />
-                          Open Data Recovery
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 text-center py-4">
-                      No admin tools available for your account.
-                    </p>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
