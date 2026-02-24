@@ -99,6 +99,15 @@ class SignupRequest(BaseModel):
     club_name: Optional[str] = None
     club_logo: Optional[str] = None
 
+class PaidSignupRequest(BaseModel):
+    """Signup request for users who paid via Stripe checkout"""
+    email: EmailStr
+    password: str
+    name: str
+    payment_session_id: str  # Stripe checkout session ID to verify payment
+    club_name: Optional[str] = None
+    club_logo: Optional[str] = None
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
