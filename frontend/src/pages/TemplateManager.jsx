@@ -501,8 +501,13 @@ export default function TemplateManager() {
                               className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0 max-w-xs"
                               data-testid={`template-name-${template.id}`}
                             />
-                            {template.id === 'default' && (
-                              <Badge variant="secondary">Default</Badge>
+                            {template.isDefault && (
+                              <Badge className="bg-amber-100 text-amber-700">Default</Badge>
+                            )}
+                            {template.observationContext && (
+                              <Badge variant="outline" className="capitalize">
+                                {template.observationContext}
+                              </Badge>
                             )}
                           </div>
                           <CardDescription className="mt-1">
@@ -519,6 +524,17 @@ export default function TemplateManager() {
                               )}
                             </Button>
                           </CollapsibleTrigger>
+                          {!template.isDefault && template.templateId && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleSetDefault(template)}
+                              title="Set as default"
+                              data-testid={`set-default-${template.id}`}
+                            >
+                              <Star className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"
@@ -527,7 +543,7 @@ export default function TemplateManager() {
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
-                          {template.id !== 'default' && (
+                          {!template.isDefault && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
