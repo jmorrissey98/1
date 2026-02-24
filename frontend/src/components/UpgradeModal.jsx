@@ -8,7 +8,8 @@ import { Switch } from './ui/switch';
 import { toast } from 'sonner';
 import { safePost } from '../lib/safeFetch';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+// Use relative URL - works in both preview and production environments
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const PRICING_TIERS = [
   {
