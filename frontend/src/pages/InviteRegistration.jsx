@@ -144,10 +144,18 @@ export default function InviteRegistration() {
         setAuthToken(result.data.token);
       }
       
-      toast.success('Account created successfully! Please sign in.');
+      toast.success('Account created successfully! Logging you in...');
       
-      // Navigate to login page (clearer UX than auto-login to landing page)
-      navigate('/login');
+      // Check auth to update the user context with the new user
+      await checkAuth();
+      
+      // Navigate based on role
+      const role = result.data?.role;
+      if (role === 'coach' && result.data?.linked_coach_id) {
+        navigate(`/coach-view/${result.data.linked_coach_id}`, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
       
     } catch (err) {
       toast.error('Registration failed. Please try again.');
