@@ -204,14 +204,19 @@ export default function InviteRegistration() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Pre-populated fields (read-only) */}
+            {/* Editable Name field */}
             <div className="space-y-4 pb-4 border-b border-slate-200">
               <div className="space-y-2">
-                <Label className="text-slate-500">Name</Label>
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-md">
-                  <span className="text-slate-700">{inviteData?.name || 'Not provided'}</span>
-                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />
-                </div>
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  data-testid="registration-name-input"
+                />
               </div>
               
               <div className="space-y-2">
