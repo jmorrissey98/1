@@ -3362,6 +3362,29 @@ async def get_subscription_status(request: Request):
                 )
         
         if not subscription:
+            # Fall back to organization's subscription_tier_id
+            org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+            if org and org.get("subscription_tier_id"):
+                tier_limits = {
+                    "individual": {"coaches": 5, "admins": 1},
+                    "developer": {"coaches": 10, "admins": 1},
+                    "club": {"coaches": 50, "admins": 10}
+                }
+                tier_id = org.get("subscription_tier_id")
+                limits = tier_limits.get(tier_id, tier_limits["individual"])
+                
+                return {
+                    "has_subscription": True,
+                    "status": "active",
+                    "tier": tier_id,
+                    "tier_name": tier_id.capitalize(),
+                    "current_period_start": org.get("created_at"),
+                    "current_period_end": None,
+                    "canceled_at": None,
+                    "coaches_limit": limits["coaches"],
+                    "admins_limit": limits["admins"]
+                }
+            
             return {
                 "has_subscription": False,
                 "status": None,
