@@ -539,7 +539,10 @@ async def signup_paid(signup_data: PaidSignupRequest, response: Response):
             }}
         )
         
-        logger.info(f"Created paid user {user_id} with tier {tier_id} and organization {org_id}")
+        # Bootstrap default templates for the new organization
+        await bootstrap_default_templates(org_id, user_id)
+        
+        logger.info(f"Created paid user {user_id} with tier {tier_id} and organization {org_id} with default templates")
         
         # Create session
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
