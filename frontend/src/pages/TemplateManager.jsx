@@ -548,7 +548,7 @@ export default function TemplateManager() {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => handleDelete(template.id)}
+                                    onClick={() => handleDelete(template.id, template)}
                                     className="bg-red-600 hover:bg-red-700"
                                     data-testid={`confirm-delete-${template.id}`}
                                   >
