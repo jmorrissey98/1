@@ -2219,8 +2219,13 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
             ]
         })
         
-        # Count coaches in this organization
-        coach_count = await db.coaches.count_documents({"created_by": owner_id})
+        # Count coach users (users with role="coach") in this organization
+        coach_count = await db.users.count_documents({
+            "$or": [
+                {"organization_id": org_id, "role": "coach"},
+                {"invited_by": owner_id, "role": "coach"}
+            ]
+        })
         
         # Count sessions
         session_count = await db.sessions.count_documents({"created_by": owner_id})
