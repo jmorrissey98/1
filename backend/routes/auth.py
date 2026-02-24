@@ -391,6 +391,159 @@ async def login(login_data: LoginRequest, response: Response):
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 
+@router.post("/signup-paid")
+async def signup_paid(signup_data: "PaidSignupRequest", response: Response):
+    """
+    Create a new account for users who paid via Stripe.
+    Verifies the payment session and creates the account with the appropriate tier.
+    """
+    import stripe
+    import os
+    from models import PaidSignupRequest
+    
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    stripe.api_key = STRIPE_SECRET_KEY
+    
+    try:
+        # Validate email and password
+        if not validate_email(signup_data.email):
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        is_valid, error_msg = validate_password(signup_data.password)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        email_lower = signup_data.email.lower()
+        
+        # Check if user already exists
+        existing_user = await db.users.find_one(
+            {"email": {"$regex": f"^{email_lower}$", "$options": "i"}}, 
+            {"_id": 0}
+        )
+        if existing_user:
+            raise HTTPException(status_code=400, detail="An account with this email already exists. Please sign in.")
+        
+        # Verify the Stripe payment session
+        try:
+            checkout_session = stripe.checkout.Session.retrieve(
+                signup_data.payment_session_id,
+                expand=['customer', 'subscription']
+            )
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe session retrieval error: {e}")
+            raise HTTPException(status_code=400, detail="Invalid or expired payment session")
+        
+        # Verify payment was successful
+        if checkout_session.payment_status != 'paid':
+            raise HTTPException(status_code=400, detail="Payment not completed. Please complete payment first.")
+        
+        # Get tier info from session metadata
+        tier_id = checkout_session.metadata.get('tier_id', 'individual') if checkout_session.metadata else 'individual'
+        
+        # Verify email matches the Stripe customer email (if available)
+        stripe_email = None
+        if checkout_session.customer_details and checkout_session.customer_details.email:
+            stripe_email = checkout_session.customer_details.email.lower()
+        
+        # Create the user account
+        password_hash = hash_password(signup_data.password)
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        session_token = secrets.token_urlsafe(32)
+        
+        # For paid users, they become coach_developers by default
+        user_role = "coach_developer"
+        linked_coach_id = None
+        
+        new_user = {
+            "user_id": user_id,
+            "email": signup_data.email,
+            "name": signup_data.name,
+            "password_hash": password_hash,
+            "picture": None,
+            "role": user_role,
+            "linked_coach_id": linked_coach_id,
+            "auth_provider": "email",
+            "stripe_customer_id": checkout_session.customer if isinstance(checkout_session.customer, str) else (checkout_session.customer.id if checkout_session.customer else None),
+            "subscription_tier": tier_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(new_user)
+        
+        # Create organization for the user
+        org_id = f"org_{uuid.uuid4().hex[:12]}"
+        org_doc = {
+            "org_id": org_id,
+            "owner_id": user_id,
+            "club_name": signup_data.club_name or f"{signup_data.name}'s Organization",
+            "club_logo": signup_data.club_logo,
+            "subscription_tier_id": tier_id,
+            "stripe_customer_id": checkout_session.customer if isinstance(checkout_session.customer, str) else (checkout_session.customer.id if checkout_session.customer else None),
+            "stripe_subscription_id": checkout_session.subscription if isinstance(checkout_session.subscription, str) else (checkout_session.subscription.id if checkout_session.subscription else None),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.organizations.insert_one(org_doc)
+        
+        # Update user with organization_id
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": {"organization_id": org_id}}
+        )
+        
+        # Update payment transaction to link to user
+        await db.payment_transactions.update_one(
+            {"session_id": signup_data.payment_session_id},
+            {"$set": {
+                "user_id": user_id,
+                "organization_id": org_id,
+                "account_created": True,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"Created paid user {user_id} with tier {tier_id} and organization {org_id}")
+        
+        # Create session
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": session_token,
+            "expires_at": expires_at.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=7 * 24 * 60 * 60,
+            path="/"
+        )
+        
+        return {
+            "user_id": user_id,
+            "email": signup_data.email,
+            "name": signup_data.name,
+            "role": user_role,
+            "linked_coach_id": linked_coach_id,
+            "organization_id": org_id,
+            "subscription_tier": tier_id,
+            "auth_provider": "email",
+            "token": session_token
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Paid signup error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
+
+
 @router.post("/forgot-password")
 async def forgot_password(forgot_data: ForgotPasswordRequest):
     """Request password reset email"""
