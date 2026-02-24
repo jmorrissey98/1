@@ -820,6 +820,10 @@ async def register_with_invite(request: Request, response: Response):
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
+        # Clear any existing session cookie first (important for invite flow)
+        response.delete_cookie(key="session_token", path="/")
+        
+        # Set the new user's session cookie
         response.set_cookie(
             key="session_token",
             value=session_token,
@@ -829,6 +833,8 @@ async def register_with_invite(request: Request, response: Response):
             max_age=7 * 24 * 60 * 60,
             path="/"
         )
+        
+        logger.info(f"New user registered via invite: {user_id} ({email})")
         
         return {
             "user_id": user_id,
