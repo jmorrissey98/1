@@ -4008,7 +4008,7 @@ app.include_router(api_router)
 # ============================================
 @app.on_event("startup")
 async def bootstrap_admin():
-    """Create default admin user if it doesn't exist"""
+    """Create default admin user if it doesn't exist, along with organization and templates"""
     admin_email = "hello@mycoachdeveloper.com"
     admin_password = "_mcDeveloper26!"
     
@@ -4024,6 +4024,28 @@ async def bootstrap_admin():
             updates["password_hash"] = hash_password(admin_password)
             logger.info(f"Setting admin user password: {admin_email}")
         
+        # Check if admin needs an organization
+        admin_user_id = existing_admin.get("user_id")
+        org_id = existing_admin.get("organization_id")
+        
+        if not org_id:
+            # Create an organization for the admin
+            org_id = f"org_{uuid.uuid4().hex[:12]}"
+            org_doc = {
+                "org_id": org_id,
+                "owner_id": admin_user_id,
+                "club_name": "My Coach Developer",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.organizations.insert_one(org_doc)
+            updates["organization_id"] = org_id
+            logger.info(f"Created organization for admin: {org_id}")
+            
+            # Bootstrap default templates for this organization
+            await bootstrap_default_templates(org_id, admin_user_id)
+            logger.info(f"Bootstrapped templates for admin org: {org_id}")
+        
         if updates:
             await db.users.update_one(
                 {"email": admin_email},
@@ -4034,9 +4056,20 @@ async def bootstrap_admin():
             logger.info(f"Admin user already configured: {admin_email} (role={existing_admin.get('role')})")
         return
     
-    # Create default admin user
+    # Create default admin user with organization
     admin_user_id = f"admin_{uuid.uuid4().hex[:12]}"
+    org_id = f"org_{uuid.uuid4().hex[:12]}"
     hashed_pw = hash_password(admin_password)
+    
+    # Create the organization first
+    org_doc = {
+        "org_id": org_id,
+        "owner_id": admin_user_id,
+        "club_name": "My Coach Developer",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.organizations.insert_one(org_doc)
     
     admin_doc = {
         "user_id": admin_user_id,
@@ -4044,12 +4077,16 @@ async def bootstrap_admin():
         "name": "Coach Developer Admin",
         "password_hash": hashed_pw,
         "role": "admin",
-        "organization_id": None,  # Admin is not tied to any organization
+        "organization_id": org_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.users.insert_one(admin_doc)
-    logger.info(f"Created default admin user: {admin_email}")
+    logger.info(f"Created default admin user: {admin_email} with org: {org_id}")
+    
+    # Bootstrap default templates for the admin organization
+    await bootstrap_default_templates(org_id, admin_user_id)
+    logger.info(f"Bootstrapped default templates for admin organization")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
