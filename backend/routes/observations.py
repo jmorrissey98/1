@@ -279,6 +279,9 @@ async def get_observation_session(session_id: str, request: Request):
         coach_reflection_shared=coach_reflection_shared,
         observer_reflection=observer_reflection,
         coach_reflection=coach_reflection,
+        # Reflection template IDs - now correctly returned
+        reflection_template_id=session.get("reflection_template_id"),
+        coach_reflection_template_id=session.get("coach_reflection_template_id"),
         other_reflection=other_reflection,
         other_reflection_status=other_reflection_status,
         other_user_name=other_user_name
