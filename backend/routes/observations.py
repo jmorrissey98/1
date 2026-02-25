@@ -60,6 +60,9 @@ class ObservationSessionCreate(BaseModel):
     # Structured reflection data
     observer_reflection: Optional[Any] = None
     coach_reflection: Optional[Any] = None
+    # Reflection template IDs - permanently linked to this observation
+    reflection_template_id: Optional[str] = None
+    coach_reflection_template_id: Optional[str] = None
 
 class ObservationSessionResponse(BaseModel):
     session_id: str
