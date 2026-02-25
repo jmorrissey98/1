@@ -807,6 +807,7 @@ async def require_coach(request: Request) -> "User":
                 new_coach = {
                     "id": coach_id,
                     "user_id": user.user_id,
+                    "organization_id": user.organization_id,  # Critical for data isolation
                     "name": user.name,
                     "email": user.email,
                     "photo": user.picture,
