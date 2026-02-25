@@ -45,9 +45,14 @@ export default function SessionSetup() {
   const [savingPart, setSavingPart] = useState(false);
   
   // Reflection template state (Phase 4)
+  // Observer reflection template (for coach developer's reflection)
   const [reflectionTemplates, setReflectionTemplates] = useState([]);
   const [selectedReflectionTemplateId, setSelectedReflectionTemplateId] = useState('default');
   const [enableObserverNotes, setEnableObserverNotes] = useState(true);
+  
+  // Coach reflection template (for the coach's reflection on their session)
+  const [coachReflectionTemplates, setCoachReflectionTemplates] = useState([]);
+  const [selectedCoachReflectionTemplateId, setSelectedCoachReflectionTemplateId] = useState('default');
 
   useEffect(() => {
     const initSession = async () => {
