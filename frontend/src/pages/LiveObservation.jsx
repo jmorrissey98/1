@@ -1022,30 +1022,47 @@ export default function LiveObservation() {
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
               {session.descriptorGroup2?.name || 'Descriptor Group 2'}
             </div>
-            {(session.descriptorGroup2?.descriptors || []).map((desc) => {
-              const isSelected = lastEvent?.descriptors2?.includes(desc.id);
+            {/* Adaptive grid for descriptor group 2 */}
+            {(() => {
+              const descriptors = session.descriptorGroup2?.descriptors || [];
+              const count = descriptors.length;
+              const useMultiColumn = count > 4;
+              const compactMode = count > 4;
+              
               return (
-                <button
-                  key={desc.id}
-                  onClick={() => handleDescriptorToggle(2, desc.id)}
-                  disabled={!lastEvent}
-                  className={cn(
-                    "w-full h-14 sm:h-16 lg:h-20 rounded-xl font-semibold text-sm sm:text-base transition-all",
-                    "border-2",
-                    !lastEvent && "opacity-40 cursor-not-allowed",
-                    isSelected
-                      ? "bg-green-500 text-white border-green-700 shadow-lg"
-                      : "bg-green-400 text-white border-transparent hover:bg-green-500 active:bg-green-600"
-                  )}
-                  data-testid={`desc2-btn-${desc.id}`}
-                >
-                  <span className="flex items-center justify-center gap-1 sm:gap-2">
-                    {isSelected && <Check className="w-3 sm:w-4 h-3 sm:h-4" />}
-                    {desc.name}
-                  </span>
-                </button>
+                <div className={cn(
+                  "grid gap-2",
+                  useMultiColumn ? "grid-cols-2" : "grid-cols-1"
+                )}>
+                  {descriptors.map((desc) => {
+                    const isSelected = lastEvent?.descriptors2?.includes(desc.id);
+                    return (
+                      <button
+                        key={desc.id}
+                        onClick={() => handleDescriptorToggle(2, desc.id)}
+                        disabled={!lastEvent}
+                        className={cn(
+                          "w-full rounded-xl font-semibold transition-all border-2",
+                          !lastEvent && "opacity-40 cursor-not-allowed",
+                          isSelected
+                            ? "bg-green-500 text-white border-green-700 shadow-lg"
+                            : "bg-green-400 text-white border-transparent hover:bg-green-500 active:bg-green-600",
+                          compactMode
+                            ? "h-12 sm:h-14 text-xs sm:text-sm"
+                            : "h-14 sm:h-16 lg:h-20 text-sm sm:text-base"
+                        )}
+                        data-testid={`desc2-btn-${desc.id}`}
+                      >
+                        <span className="flex items-center justify-center gap-1 sm:gap-2">
+                          {isSelected && <Check className="w-3 sm:w-4 h-3 sm:h-4" />}
+                          {desc.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               );
-            })}
+            })()}
           </div>
         </div>
       </main>
