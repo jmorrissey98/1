@@ -1,0 +1,87 @@
+{
+  "summary": "Verified critical coach data isolation bug fix. All 7 tests PASSED. The /api/coaches endpoint now correctly filters coaches by organization_id, preventing cross-organization data leakage.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "data_isolation_org_demo": {
+      "status": "PASS",
+      "details": "User sarah.mitchell@demo.mycoachdeveloper.com (org_demo_0725dd5e668a) sees exactly 10 coaches from their organization"
+    },
+    "data_isolation_org_4b76": {
+      "status": "PASS",
+      "details": "User joemorrisseyg@gmail.com (org_4b76a7344640) sees exactly 1 coach from their organization"
+    },
+    "data_isolation_org_5f00": {
+      "status": "PASS",
+      "details": "User hello@mycoachdeveloper.com (org_5f00565686b5) sees 0 coaches (correct - no coaches in this org)"
+    },
+    "cross_org_isolation": {
+      "status": "PASS",
+      "details": "No overlap between organizations - complete data isolation verified"
+    },
+    "coach_creation_org_id": {
+      "status": "PASS",
+      "details": "New coaches created are correctly scoped to the creator's organization"
+    },
+    "endpoint_auth": {
+      "status": "PASS",
+      "details": "GET /api/coaches returns 401 for unauthenticated requests"
+    },
+    "database_verification": {
+      "status": "PASS",
+      "details": "Database confirmed: org_demo has 10 coaches, org_4b76 has 1 coach, all with organization_id set"
+    }
+  },
+  "fix_verification": {
+    "bug_description": "Coaches from one organization were visible to users from other organizations due to missing organization_id filter in /api/coaches endpoint",
+    "root_cause": "The coaches collection was being queried without organization_id filter, returning all coaches globally",
+    "fix_applied": [
+      "Added organization_id filtering to GET /api/coaches endpoint query (routes/coaches.py line 96-98)",
+      "Added organization_id to coach profile creation paths (routes/coaches.py lines 49, 79, 234, 268)",
+      "Added organization_id to auto-created coach profiles in require_coach (server.py lines 810)",
+      "Migration script ran to backfill existing coaches with organization_id from linked users"
+    ],
+    "verification_method": "Logged in as users from 3 different organizations and verified each sees only their organization's coaches"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_coach_data_isolation.py",
+    "/app/test_reports/pytest/coach_data_isolation_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_coach_data_isolation.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "N/A - Backend only test as requested"
+  },
+  "test_credentials": {
+    "org_demo_0725dd5e668a": {
+      "email": "sarah.mitchell@demo.mycoachdeveloper.com",
+      "password": "TestPass123!",
+      "expected_coaches": 10
+    },
+    "org_4b76a7344640": {
+      "email": "joemorrisseyg@gmail.com",
+      "password": "TestPass123!",
+      "expected_coaches": 1
+    },
+    "org_5f00565686b5": {
+      "email": "hello@mycoachdeveloper.com",
+      "password": "_mcDeveloper26!",
+      "expected_coaches": 0
+    }
+  },
+  "seed_data_creation": "None - used existing production data across 3 organizations",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Coach data isolation fix is complete and verified. The key changes are in backend/routes/coaches.py (lines 96-98 for filtering, lines 49/79/234/268 for setting org_id on creation) and backend/server.py (line 810 for require_coach). Test file test_coach_data_isolation.py covers all isolation scenarios. Database has 11 total coaches: 10 in org_demo_0725dd5e668a, 1 in org_4b76a7344640, 0 in org_5f00565686b5."
+}
