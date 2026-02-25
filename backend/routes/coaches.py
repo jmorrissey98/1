@@ -185,7 +185,10 @@ async def create_coach_manually(request: Request):
     # Get the organization_id for proper data isolation
     org_id = user.organization_id
     if not org_id:
-        raise HTTPException(status_code=400, detail="User has no organization")
+        raise HTTPException(
+            status_code=400, 
+            detail="Your account is not linked to an organization. Please contact support or re-register."
+        )
     
     # Check subscription limit before creating coach
     limit_check = await check_coach_limit(user.user_id)
