@@ -465,26 +465,38 @@ export default function ReviewSession() {
   const loadReflectionTemplates = async () => {
     setLoadingTemplates(true);
     try {
-      // First, check if session has an assigned template (for coach reflections)
-      const savedTemplateId = session?.reflectionTemplateId || session?.reflection_template_id || session?.observerReflection?.templateId || session?.coachReflectionTemplateId;
+      // Determine which template ID to use based on who is viewing
+      let savedTemplateId;
       
-      if (savedTemplateId) {
-        // Load the assigned template directly (works for both coach and coach educator)
-        setSelectedTemplateId(savedTemplateId);
-        await loadTemplateDetails(savedTemplateId);
+      if (isCoachView) {
+        // Coach viewing their reflection - use the coach reflection template
+        savedTemplateId = session?.coachReflectionTemplateId || session?.coach_reflection_template_id;
         
-        // If session already has reflection responses, load them
+        // Also check for existing coach reflection responses
+        if (session?.coachReflection?.responses) {
+          setTemplateResponses(session.coachReflection.responses);
+        }
+      } else {
+        // Coach Developer viewing their observer reflection
+        savedTemplateId = session?.reflectionTemplateId || session?.reflection_template_id || session?.observerReflection?.templateId;
+        
+        // Load observer reflection responses
         if (session?.observerReflection?.responses) {
           setTemplateResponses(session.observerReflection.responses);
         }
+      }
+      
+      if (savedTemplateId) {
+        // Load the assigned template directly
+        setSelectedTemplateId(savedTemplateId);
+        await loadTemplateDetails(savedTemplateId);
         
-        // Also load the templates list for reference (if user is coach educator)
-        if (!isCoachView) {
-          const templates = await fetchReflectionTemplates('coach_educator');
-          setReflectionTemplates(templates);
-        }
+        // Also load the templates list for reference
+        const targetRole = isCoachView ? 'coach' : 'coach_educator';
+        const templates = await fetchReflectionTemplates(targetRole);
+        setReflectionTemplates(templates);
       } else {
-        // No assigned template - load appropriate templates based on role
+        // No assigned template - load appropriate templates based on role and find default
         const targetRole = isCoachView ? 'coach' : 'coach_educator';
         const templates = await fetchReflectionTemplates(targetRole);
         setReflectionTemplates(templates);
@@ -493,11 +505,6 @@ export default function ReviewSession() {
         if (defaultTemplate) {
           setSelectedTemplateId(defaultTemplate.template_id);
           await loadTemplateDetails(defaultTemplate.template_id);
-        }
-        
-        // If session already has reflection responses, load them
-        if (session?.observerReflection?.responses) {
-          setTemplateResponses(session.observerReflection.responses);
         }
       }
     } catch (err) {
