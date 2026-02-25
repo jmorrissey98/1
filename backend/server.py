@@ -3351,19 +3351,30 @@ async def stripe_webhook(request: Request):
             price_id = items[0].get("price", {}).get("id") if items else None
             product_id = items[0].get("price", {}).get("product") if items else None
             
-            # Find the tier based on product_id
+            # Find the tier based on product_id (check both monthly and annual products)
             new_tier_id = None
             new_tier_name = None
             new_coaches_limit = None
             new_admins_limit = None
+            billing_period = None
             
             if product_id:
                 for tier_id, tier_info in STRIPE_PRODUCTS.items():
-                    if tier_info["product_id"] == product_id:
+                    # Check monthly product
+                    if tier_info["prices"]["monthly"]["product_id"] == product_id:
                         new_tier_id = tier_id
                         new_tier_name = tier_info["name"]
                         new_coaches_limit = tier_info["coaches"]
                         new_admins_limit = tier_info["admins"]
+                        billing_period = "monthly"
+                        break
+                    # Check annual product
+                    if tier_info["prices"]["annual"]["product_id"] == product_id:
+                        new_tier_id = tier_id
+                        new_tier_name = tier_info["name"]
+                        new_coaches_limit = tier_info["coaches"]
+                        new_admins_limit = tier_info["admins"]
+                        billing_period = "annual"
                         break
             
             update_data = {
@@ -3379,7 +3390,9 @@ async def stripe_webhook(request: Request):
                 update_data["tier_name"] = new_tier_name
                 update_data["coaches_limit"] = new_coaches_limit
                 update_data["admins_limit"] = new_admins_limit
-                logger.info(f"Subscription {subscription.id} plan changed to {new_tier_name}")
+                if billing_period:
+                    update_data["billing_period"] = billing_period
+                logger.info(f"Subscription {subscription.id} plan changed to {new_tier_name} ({billing_period})")
             
             # Handle cancel_at_period_end
             if subscription.cancel_at_period_end:
