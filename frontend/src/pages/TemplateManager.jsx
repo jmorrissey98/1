@@ -335,10 +335,17 @@ export default function TemplateManager() {
 
   // Descriptor group functions
   const updateGroupName = (templateId, groupNum, name) => {
+    const key = `descriptorGroup${groupNum}`;
+    
+    // Update local state immediately for responsive UI
+    setTemplates(prev => prev.map(t => 
+      t.id === templateId ? { ...t, [key]: { ...t[key], name } } : t
+    ));
+    
+    // Debounce the actual save
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      const key = `descriptorGroup${groupNum}`;
-      saveAndRefresh({
+      debouncedSave(templateId, {
         ...template,
         [key]: { ...template[key], name }
       });
