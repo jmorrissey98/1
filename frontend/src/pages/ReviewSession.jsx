@@ -1768,116 +1768,95 @@ export default function ReviewSession() {
                     {(session.coachReflections || []).length > 0 && (
                       <div className="space-y-3 mb-4">
                         {session.coachReflections.map(r => (
-                      <div key={r.id} className="p-4 bg-green-50 rounded-lg space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-3 flex-1">
-                            {/* Self Rating */}
-                            {r.rating && (
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-1">Self Assessment</p>
-                                <div className="flex items-center gap-1">
-                                  {[1, 2, 3, 4, 5].map(n => (
-                                    <div 
-                                      key={n}
-                                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${
-                                        n <= r.rating 
-                                          ? 'bg-blue-500 text-white' 
-                                          : 'bg-slate-200 text-slate-400'
-                                      }`}
-                                    >
-                                      {n}
+                          <div key={r.id} className="p-4 bg-green-50 rounded-lg space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-3 flex-1">
+                                {r.rating && (
+                                  <div>
+                                    <p className="text-xs font-medium text-slate-500 mb-1">Self Assessment</p>
+                                    <div className="flex items-center gap-1">
+                                      {[1, 2, 3, 4, 5].map(n => (
+                                        <div 
+                                          key={n}
+                                          className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${
+                                            n <= r.rating 
+                                              ? 'bg-blue-500 text-white' 
+                                              : 'bg-slate-200 text-slate-400'
+                                          }`}
+                                        >
+                                          {n}
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
+                                  </div>
+                                )}
+                                {r.text && (
+                                  <div>
+                                    <p className="text-xs font-medium text-slate-500 mb-1">Reflection</p>
+                                    <p className="text-slate-700">{r.text}</p>
+                                  </div>
+                                )}
+                                <p className="text-xs text-slate-400 mt-2">{formatDateTime(r.timestamp)}</p>
                               </div>
-                            )}
-                            
-                            {/* Main Reflection */}
-                            {r.text && (
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-1">Reflection</p>
-                                <p className="text-slate-700">{r.text}</p>
-                              </div>
-                            )}
-                            
-                            {/* What Went Well */}
-                            {r.what_went_well && (
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-1">What went well</p>
-                                <p className="text-slate-700">{r.what_went_well}</p>
-                              </div>
-                            )}
-                            
-                            {/* Areas for Development */}
-                            {r.areas_for_development && (
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-1">Areas for development</p>
-                                <p className="text-slate-700">{r.areas_for_development}</p>
-                              </div>
-                            )}
-                            
-                            <p className="text-xs text-slate-400 mt-2">{formatDateTime(r.timestamp)}</p>
+                              {!r.source && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 text-slate-400 hover:text-red-600"
+                                  onClick={() => handleDeleteReflection('coach', r.id)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          {!r.source && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 text-slate-400 hover:text-red-600"
-                              onClick={() => handleDeleteReflection('coach', r.id)}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          )}
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Simple textarea for adding reflections */}
+                    <Textarea
+                      value={newCoachReflection}
+                      onChange={(e) => setNewCoachReflection(e.target.value)}
+                      placeholder="Add your reflection..."
+                      className="min-h-[80px] resize-y"
+                      data-testid="coach-reflection-textarea"
+                    />
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <Button 
+                        onClick={() => handleAddReflection('coach')} 
+                        variant="outline"
+                        disabled={!newCoachReflection.trim()}
+                        className="border-green-300 text-green-700 hover:bg-green-50"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Add Reflection
+                      </Button>
+                      
+                      {(session.coachReflections || []).length === 0 && (
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            {coachReflectionShared ? (
+                              <Eye className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <EyeOff className="w-4 h-4 text-slate-400" />
+                            )}
+                            <Label htmlFor="share-coach-reflection" className="text-sm font-medium cursor-pointer">
+                              Share with {session.observer_name || 'Coach Developers'}
+                            </Label>
+                          </div>
+                          <Switch
+                            id="share-coach-reflection"
+                            checked={coachReflectionShared}
+                            onCheckedChange={handleToggleCoachSharing}
+                            disabled={togglingShare}
+                            data-testid="toggle-coach-sharing-new"
+                          />
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-400 italic text-sm">No reflections yet</p>
-                )}
-                
-                {/* Coach can add reflections */}
-                <Textarea
-                  value={newCoachReflection}
-                  onChange={(e) => setNewCoachReflection(e.target.value)}
-                  placeholder="Add your reflection..."
-                  className="min-h-[80px] resize-y"
-                  data-testid="coach-reflection-textarea"
-                />
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <Button 
-                    onClick={() => handleAddReflection('coach')} 
-                    variant="outline"
-                    disabled={!newCoachReflection.trim()}
-                    className="border-green-300 text-green-700 hover:bg-green-50"
-                  >
-                    <Check className="w-4 h-4 mr-2" />
-                    Add Reflection
-                  </Button>
-                  
-                  {/* Sharing toggle for coach when adding first reflection */}
-                  {(session.coachReflections || []).length === 0 && (
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
-                      <div className="flex items-center gap-2">
-                        {coachReflectionShared ? (
-                          <Eye className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <EyeOff className="w-4 h-4 text-slate-400" />
-                        )}
-                        <Label htmlFor="share-coach-reflection" className="text-sm font-medium cursor-pointer">
-                          Share with {session.observer_name || 'Coach Developers'}
-                        </Label>
-                      </div>
-                      <Switch
-                        id="share-coach-reflection"
-                        checked={coachReflectionShared}
-                        onCheckedChange={handleToggleCoachSharing}
-                        disabled={togglingShare}
-                        data-testid="toggle-coach-sharing-new"
-                      />
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </CardContent>
             </Card>
             )}
