@@ -243,6 +243,24 @@ export default function SessionSetup() {
     }
   };
 
+  // Load coach reflection templates (for the coach's reflection on their session)
+  const loadCoachReflectionTemplates = async () => {
+    try {
+      const templates = await fetchReflectionTemplates('coach');
+      setCoachReflectionTemplates(templates);
+      
+      // Set default coach template if one exists
+      const defaultTemplate = templates.find(t => t.is_default);
+      if (defaultTemplate) {
+        setSelectedCoachReflectionTemplateId(defaultTemplate.template_id);
+        // Auto-save to session
+        updateSession({ coachReflectionTemplateId: defaultTemplate.template_id });
+      }
+    } catch (err) {
+      console.error('Failed to load coach reflection templates:', err);
+    }
+  };
+
   const handleTemplateChange = (templateId) => {
     setSelectedTemplate(templateId);
     const template = templates.find(t => t.id === templateId);
@@ -272,6 +290,12 @@ export default function SessionSetup() {
   const handleReflectionTemplateChange = (templateId) => {
     setSelectedReflectionTemplateId(templateId);
     updateSession({ reflectionTemplateId: templateId === 'default' ? null : templateId });
+  };
+
+  // Handle coach reflection template selection
+  const handleCoachReflectionTemplateChange = (templateId) => {
+    setSelectedCoachReflectionTemplateId(templateId);
+    updateSession({ coachReflectionTemplateId: templateId === 'default' ? null : templateId });
   };
 
   const handleNotesToggle = (enabled) => {
