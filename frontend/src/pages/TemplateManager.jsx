@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Copy, Trash2, Edit2, Check, X, GripVertical, ChevronDown, ChevronUp, Loader2, Globe, Eye, FileText, ClipboardList, Star } from 'lucide-react';
 import { Button } from '../components/ui/button';
