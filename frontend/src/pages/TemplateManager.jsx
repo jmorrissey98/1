@@ -297,11 +297,20 @@ export default function TemplateManager() {
   };
 
   const updateEventType = (templateId, eventId, name) => {
+    // Update local state immediately for responsive UI
+    setTemplates(prev => prev.map(t => {
+      if (t.id !== templateId) return t;
+      const events = t.eventTypes || t.interventionTypes || [];
+      const updatedEvents = events.map(e => e.id === eventId ? { ...e, name } : e);
+      return { ...t, eventTypes: updatedEvents, interventionTypes: updatedEvents };
+    }));
+    
+    // Debounce the actual save
     const template = templates.find(t => t.id === templateId);
     if (template) {
       const events = template.eventTypes || template.interventionTypes || [];
       const updatedEvents = events.map(e => e.id === eventId ? { ...e, name } : e);
-      saveAndRefresh({
+      debouncedSave(templateId, {
         ...template,
         eventTypes: updatedEvents,
         interventionTypes: updatedEvents
