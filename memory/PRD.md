@@ -529,6 +529,16 @@
 - [x] Moved "Invite New User" to collapsible section in "Users" tab (at top)
 - [x] Only 2 tabs remain: "Users" and "Club"
 
+### Phase 21: Critical Data Isolation Bug Fix (COMPLETED - February 25, 2026)
+- [x] **Fixed /api/coaches endpoint** - Now filters by organization_id to prevent cross-org data leakage
+- [x] **Added organization_id to coach profiles** - All coach creation paths now include organization_id
+- [x] **Migration for existing data** - Backfilled organization_id for existing coach profiles from linked users
+- [x] **Verified complete data isolation:**
+  - org_demo_0725dd5e668a sees only its 10 coaches
+  - org_4b76a7344640 sees only its 1 coach  
+  - org_5f00565686b5 sees 0 coaches (no coach profiles in that org)
+- [x] **No cross-organization data leakage** - 100% test pass rate
+
 ## Remaining Work / Backlog
 
 ### P1 - High Priority  
