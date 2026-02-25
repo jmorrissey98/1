@@ -3124,20 +3124,12 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
     cancel_url = f"{data.origin_url}?canceled=true"
     
     try:
-        # Get prices for this product from Stripe
-        prices = stripe.Price.list(product=product["product_id"], active=True)
+        # Use explicit Price ID from configuration - DO NOT dynamically search
+        price_config = product["prices"].get(data.billing_period)
+        if not price_config:
+            raise HTTPException(status_code=400, detail=f"No {data.billing_period} price configured for {data.tier_id}")
         
-        # Find the right price based on billing period
-        price_id = None
-        for price in prices.data:
-            if data.billing_period == "monthly" and price.recurring and price.recurring.interval == "month":
-                price_id = price.id
-                break
-            elif data.billing_period == "annual" and price.recurring and price.recurring.interval == "year":
-                price_id = price.id
-                break
-        
-        if not price_id:
+        price_id = price_config["price_id"]
             raise HTTPException(status_code=400, detail=f"No {data.billing_period} price found for this product")
         
         # Build checkout session params
