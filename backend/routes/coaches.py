@@ -46,6 +46,7 @@ async def list_all_coaches(request: Request):
             new_coach = {
                 "id": coach_id,
                 "user_id": user_id,
+                "organization_id": org_id,  # Critical for data isolation
                 "name": coach_user.get("name", "Unknown"),
                 "email": coach_user.get("email"),
                 "photo": coach_user.get("picture"),
@@ -74,6 +75,7 @@ async def list_all_coaches(request: Request):
                 new_coach = {
                     "id": linked_coach_id,
                     "user_id": user_id,
+                    "organization_id": org_id,  # Critical for data isolation
                     "name": coach_user.get("name", "Unknown"),
                     "email": coach_user.get("email"),
                     "photo": coach_user.get("picture"),
