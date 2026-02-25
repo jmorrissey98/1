@@ -27,7 +27,10 @@ async def list_all_coaches(request: Request):
     # Get the organization_id for proper data isolation
     org_id = user.organization_id
     if not org_id:
-        raise HTTPException(status_code=400, detail="User has no organization")
+        # Legacy user without organization - return empty list
+        # This can happen for users created before the organization system
+        logger.warning(f"User {user.email} has no organization_id - returning empty coach list")
+        return []
     
     # First, find any users with role='coach' IN THIS ORGANIZATION who don't have a coach profile
     # and create profiles for them (migration/sync)
