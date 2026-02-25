@@ -71,7 +71,7 @@ async def list_all_coaches(request: Request):
             )
             logger.info(f"Auto-created coach profile {coach_id} for existing user {coach_user.get('email')}")
         else:
-            # Ensure the coach profile exists
+            # Ensure the coach profile exists and has correct organization_id
             existing_profile = await db.coaches.find_one({"id": linked_coach_id}, {"_id": 0})
             if not existing_profile:
                 # Coach profile missing - create it
@@ -93,6 +93,13 @@ async def list_all_coaches(request: Request):
                 }
                 await db.coaches.insert_one(new_coach)
                 logger.info(f"Recreated missing coach profile {linked_coach_id} for user {coach_user.get('email')}")
+            elif not existing_profile.get("organization_id"):
+                # Coach profile exists but missing organization_id - update it
+                await db.coaches.update_one(
+                    {"id": linked_coach_id},
+                    {"$set": {"organization_id": org_id}}
+                )
+                logger.info(f"Updated coach profile {linked_coach_id} with organization_id {org_id}")
     
     # Now fetch coach profiles for this organization only
     # We filter by organization_id to ensure data isolation between organizations
