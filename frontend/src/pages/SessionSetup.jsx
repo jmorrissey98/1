@@ -679,11 +679,48 @@ export default function SessionSetup() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Reflection Template Selector */}
+            {/* Coach Reflection Template Selector - This is what the coach will see */}
             <div>
-              <Label htmlFor="reflection-template">Reflection Template</Label>
+              <Label htmlFor="coach-reflection-template">Coach Reflection Template</Label>
               <p className="text-sm text-slate-500 mb-2">
-                Select the template to use for your post-observation reflection
+                Select the template the coach will use for their reflection on this session
+              </p>
+              <Select 
+                value={selectedCoachReflectionTemplateId} 
+                onValueChange={handleCoachReflectionTemplateChange}
+              >
+                <SelectTrigger className="mt-1" data-testid="coach-reflection-template-select">
+                  <SelectValue placeholder="Select a reflection template for the coach" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">
+                    Use Default Template
+                  </SelectItem>
+                  {coachReflectionTemplates.map(t => (
+                    <SelectItem key={t.template_id} value={t.template_id}>
+                      {t.name} {t.is_default && '(Default)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {coachReflectionTemplates.length === 0 && (
+                <p className="text-sm text-slate-500 mt-2">
+                  No coach reflection templates yet.{' '}
+                  <button 
+                    className="text-blue-600 hover:underline" 
+                    onClick={() => navigate('/templates')}
+                  >
+                    Create one
+                  </button>
+                </p>
+              )}
+            </div>
+
+            {/* Observer Reflection Template Selector - This is for the coach developer */}
+            <div className="pt-4 border-t border-slate-200">
+              <Label htmlFor="reflection-template">Observer Reflection Template</Label>
+              <p className="text-sm text-slate-500 mb-2">
+                Select the template for your own post-observation reflection
               </p>
               <Select 
                 value={selectedReflectionTemplateId} 
@@ -705,7 +742,7 @@ export default function SessionSetup() {
               </Select>
               {reflectionTemplates.length === 0 && (
                 <p className="text-sm text-slate-500 mt-2">
-                  No reflection templates yet.{' '}
+                  No observer reflection templates yet.{' '}
                   <button 
                     className="text-blue-600 hover:underline" 
                     onClick={() => navigate('/templates')}
@@ -717,7 +754,7 @@ export default function SessionSetup() {
             </div>
 
             {/* Observer Notes Toggle */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
               <div>
                 <Label htmlFor="enable-notes" className="cursor-pointer">Enable Observer Notes</Label>
                 <p className="text-xs text-slate-500 mt-0.5">
