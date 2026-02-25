@@ -411,7 +411,16 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
         "coach_reflections": data.coach_reflections,
         "session_notes": data.session_notes,
         "ai_summary": data.ai_summary,
-        "attachments": data.attachments
+        "attachments": data.attachments,
+        # Reflection template IDs - permanently linked to this observation
+        "reflection_template_id": data.reflection_template_id,
+        "coach_reflection_template_id": data.coach_reflection_template_id,
+        # Structured reflection data
+        "observer_reflection": data.observer_reflection,
+        "coach_reflection": data.coach_reflection,
+        # Reflection sharing flags
+        "observer_reflection_shared": data.observer_reflection_shared,
+        "coach_reflection_shared": data.coach_reflection_shared
     }
     
     await db.observation_sessions.update_one(
