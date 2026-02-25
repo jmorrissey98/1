@@ -711,8 +711,18 @@ export default function ReviewSession() {
     // Ball rolling stats
     let ballRollingTime, ballNotRollingTime, totalTime;
     if (viewMode === 'whole') {
-      ballRollingTime = session.ballRollingTime || 0;
-      ballNotRollingTime = session.ballNotRollingTime || 0;
+      // Aggregate ball times from all parts for accuracy
+      // This ensures we get correct totals even if session-level data is stale
+      const parts = session.sessionParts || [];
+      if (parts.length > 0 && parts.some(p => (p.ballRollingTime || 0) > 0 || (p.ballNotRollingTime || 0) > 0)) {
+        // Sum up from parts for most accurate calculation
+        ballRollingTime = parts.reduce((sum, p) => sum + (p.ballRollingTime || 0), 0);
+        ballNotRollingTime = parts.reduce((sum, p) => sum + (p.ballNotRollingTime || 0), 0);
+      } else {
+        // Fall back to session-level data if parts don't have ball times
+        ballRollingTime = session.ballRollingTime || 0;
+        ballNotRollingTime = session.ballNotRollingTime || 0;
+      }
       // Use sum of ball times, not totalDuration (which may include pauses)
       totalTime = ballRollingTime + ballNotRollingTime;
     } else {
