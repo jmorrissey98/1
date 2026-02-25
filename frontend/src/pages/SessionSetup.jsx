@@ -72,6 +72,14 @@ export default function SessionSetup() {
             if (existing.plannedDate) {
               setSessionDate(existing.plannedDate);
             }
+            // Restore coach reflection template selection
+            if (existing.coachReflectionTemplateId) {
+              setSelectedCoachReflectionTemplateId(existing.coachReflectionTemplateId);
+            }
+            // Restore observer reflection template selection
+            if (existing.reflectionTemplateId) {
+              setSelectedReflectionTemplateId(existing.reflectionTemplateId);
+            }
           } else {
             toast.error('Session not found');
             navigate('/');
