@@ -231,6 +231,7 @@ async def create_coach_manually(request: Request):
         new_coach = {
             "id": coach_id,
             "user_id": existing_user.get("user_id"),
+            "organization_id": org_id,  # Critical for data isolation
             "name": name,
             "email": email,
             "photo": existing_user.get("picture"),
