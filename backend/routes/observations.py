@@ -98,6 +98,9 @@ class ObservationSessionResponse(BaseModel):
     # Structured reflection data
     observer_reflection: Optional[Any] = None
     coach_reflection: Optional[Any] = None
+    # Reflection template IDs - permanently linked to this observation
+    reflection_template_id: Optional[str] = None
+    coach_reflection_template_id: Optional[str] = None
     # Other user's reflection (for shared view)
     other_reflection: Optional[Any] = None
     other_reflection_status: Optional[str] = None  # "not_completed", "not_shared", "shared"
