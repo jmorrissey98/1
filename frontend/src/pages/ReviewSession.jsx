@@ -577,16 +577,26 @@ export default function ReviewSession() {
 
     setSavingReflection(true);
     try {
+      const reflectionData = {
+        templateId: currentTemplate.template_id,
+        templateName: currentTemplate.name,
+        responses: templateResponses,
+        completedAt: new Date().toISOString()
+      };
+      
+      // Save to different fields based on who is reflecting
       const updated = {
         ...session,
-        observerReflection: {
-          templateId: currentTemplate.template_id,
-          templateName: currentTemplate.name,
-          responses: templateResponses,
-          completedAt: new Date().toISOString()
-        },
         updatedAt: new Date().toISOString()
       };
+      
+      if (isCoachView) {
+        // Coach's reflection on their own session
+        updated.coachReflection = reflectionData;
+      } else {
+        // Coach Developer's observer reflection
+        updated.observerReflection = reflectionData;
+      }
       
       await saveSession(updated);
       toast.success('Reflection saved!');
