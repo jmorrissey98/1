@@ -929,23 +929,44 @@ export default function LiveObservation() {
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
               Coach Interventions
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
-              {(session.interventionTypes || session.eventTypes || []).map((eventType) => (
-                <button
-                  key={eventType.id}
-                  onClick={() => handleEventTap(eventType)}
-                  className={cn(
-                    "w-full h-16 sm:h-20 lg:h-24 rounded-xl font-bold text-sm sm:text-base lg:text-lg shadow-md transition-all",
-                    "bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-slate-900",
-                    "border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1",
-                    flashEvent === eventType.id && "event-logged"
-                  )}
-                  data-testid={`event-btn-${eventType.id}`}
-                >
-                  {eventType.name}
-                </button>
-              ))}
-            </div>
+            {/* Adaptive grid: 2 columns for 4+ buttons, smaller buttons when 5+ */}
+            {(() => {
+              const interventions = session.interventionTypes || session.eventTypes || [];
+              const count = interventions.length;
+              // Use 2 columns when 5+ items, or on mobile with 4+ items
+              const useMultiColumn = count > 4;
+              // Smaller buttons when 5+ items
+              const compactMode = count > 4;
+              
+              return (
+                <div className={cn(
+                  "grid gap-2",
+                  useMultiColumn 
+                    ? "grid-cols-2" 
+                    : "grid-cols-2 sm:grid-cols-1"
+                )}>
+                  {interventions.map((eventType) => (
+                    <button
+                      key={eventType.id}
+                      onClick={() => handleEventTap(eventType)}
+                      className={cn(
+                        "w-full rounded-xl font-bold shadow-md transition-all",
+                        "bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-slate-900",
+                        "border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1",
+                        flashEvent === eventType.id && "event-logged",
+                        // Adaptive sizing based on count
+                        compactMode 
+                          ? "h-12 sm:h-14 text-xs sm:text-sm" 
+                          : "h-16 sm:h-20 lg:h-24 text-sm sm:text-base lg:text-lg"
+                      )}
+                      data-testid={`event-btn-${eventType.id}`}
+                    >
+                      {eventType.name}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Column 2: Descriptor Group 1 (Blue) */}
