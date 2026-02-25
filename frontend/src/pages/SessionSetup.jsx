@@ -59,6 +59,7 @@ export default function SessionSetup() {
       setLoading(true);
       loadCoaches();
       loadReflectionTemplates();
+      loadCoachReflectionTemplates();
       
       if (isEditing) {
         // Load existing session from cloud
