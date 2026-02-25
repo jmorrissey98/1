@@ -3087,7 +3087,7 @@ STRIPE_PRODUCTS = {
         "prices": {
             "monthly": {
                 "product_id": "prod_TzxE3SVtpPojK3",
-                "price_id": "price_1T3yMN0YRwRcrAVx7HCM1c19",
+                "price_id": "price_1T3yMN0YRwRcrAVx7HCM1cI9",
                 "amount": 6000,  # £60.00 in pence
                 "currency": "gbp"
             },
