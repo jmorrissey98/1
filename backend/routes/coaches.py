@@ -89,8 +89,12 @@ async def list_all_coaches(request: Request):
                 await db.coaches.insert_one(new_coach)
                 logger.info(f"Recreated missing coach profile {linked_coach_id} for user {coach_user.get('email')}")
     
-    # Now fetch all coach profiles
-    coaches = await db.coaches.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    # Now fetch coach profiles for this organization only
+    # We filter by organization_id to ensure data isolation between organizations
+    coaches = await db.coaches.find(
+        {"organization_id": org_id}, 
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(200)
     
     # Batch fetch user accounts to avoid N+1 queries
     user_ids = [c.get("user_id") for c in coaches if c.get("user_id")]
