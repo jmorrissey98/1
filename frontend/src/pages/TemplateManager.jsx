@@ -489,9 +489,19 @@ export default function TemplateManager() {
   };
 
   const updateSessionPart = (templateId, partId, name) => {
+    // Update local state immediately for responsive UI
+    setTemplates(prev => prev.map(t => {
+      if (t.id !== templateId) return t;
+      return {
+        ...t,
+        sessionParts: (t.sessionParts || []).map(p => p.id === partId ? { ...p, name } : p)
+      };
+    }));
+    
+    // Debounce the actual save
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      saveAndRefresh({
+      debouncedSave(templateId, {
         ...template,
         sessionParts: (template.sessionParts || []).map(p => p.id === partId ? { ...p, name } : p)
       });
