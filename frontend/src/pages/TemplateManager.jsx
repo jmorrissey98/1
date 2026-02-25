@@ -44,6 +44,37 @@ export default function TemplateManager() {
   const [customPartName, setCustomPartName] = useState('');
   const [addAsGlobalDefault, setAddAsGlobalDefault] = useState(false);
   const [savingPart, setSavingPart] = useState(false);
+  
+  // Debounce refs for saving
+  const saveTimeoutRef = useRef({});
+  const pendingChangesRef = useRef({});
+
+  // Debounced save function - waits 800ms after last change before saving
+  const debouncedSave = useCallback((templateId, updatedTemplate) => {
+    // Store the pending changes
+    pendingChangesRef.current[templateId] = updatedTemplate;
+    
+    // Clear any existing timeout for this template
+    if (saveTimeoutRef.current[templateId]) {
+      clearTimeout(saveTimeoutRef.current[templateId]);
+    }
+    
+    // Set a new timeout
+    saveTimeoutRef.current[templateId] = setTimeout(async () => {
+      const templateToSave = pendingChangesRef.current[templateId];
+      if (templateToSave) {
+        await saveAndRefresh(templateToSave);
+        delete pendingChangesRef.current[templateId];
+      }
+    }, 800);
+  }, []);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(saveTimeoutRef.current).forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
 
   useEffect(() => {
     loadTemplates();
