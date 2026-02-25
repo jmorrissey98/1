@@ -265,7 +265,13 @@ const mapToApiFormat = (session) => ({
   coach_reflections: session.coachReflections || [],
   session_notes: session.sessionNotes || '',
   ai_summary: session.aiSummary || '',
-  attachments: session.attachments || []
+  attachments: session.attachments || [],
+  // Reflection template IDs - permanently linked to this observation
+  reflection_template_id: session.reflectionTemplateId || null,
+  coach_reflection_template_id: session.coachReflectionTemplateId || null,
+  // Structured reflection data
+  observer_reflection: session.observerReflection || null,
+  coach_reflection: session.coachReflection || null
 });
 
 // Check if online
