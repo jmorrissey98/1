@@ -666,7 +666,9 @@ export default function SessionSetup() {
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} {(t.isDefault || t.is_default) && '(Default)'}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
