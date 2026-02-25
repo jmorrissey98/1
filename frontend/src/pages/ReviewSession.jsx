@@ -696,7 +696,8 @@ export default function ReviewSession() {
     if (viewMode === 'whole') {
       ballRollingTime = session.ballRollingTime || 0;
       ballNotRollingTime = session.ballNotRollingTime || 0;
-      totalTime = session.totalDuration || 0;
+      // Use sum of ball times, not totalDuration (which may include pauses)
+      totalTime = ballRollingTime + ballNotRollingTime;
     } else {
       const part = (session.sessionParts || []).find(p => p.id === viewMode);
       ballRollingTime = part?.ballRollingTime || 0;
