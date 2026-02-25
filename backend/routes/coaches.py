@@ -18,15 +18,23 @@ router = APIRouter(prefix="/coaches", tags=["Coaches"])
 @router.get("")
 async def list_all_coaches(request: Request):
     """
-    List all coaches in the system.
-    Coach Developer only - returns all coach profiles.
+    List all coaches in the organization.
+    Coach Developer only - returns coach profiles for their organization.
     Also syncs users with role='coach' who don't have profiles yet.
     """
-    await require_coach_developer(request)
+    user = await require_coach_developer(request)
     
-    # First, find any users with role='coach' who don't have a coach profile
+    # Get the organization_id for proper data isolation
+    org_id = user.organization_id
+    if not org_id:
+        raise HTTPException(status_code=400, detail="User has no organization")
+    
+    # First, find any users with role='coach' IN THIS ORGANIZATION who don't have a coach profile
     # and create profiles for them (migration/sync)
-    coach_users = await db.users.find({"role": "coach"}, {"_id": 0}).to_list(200)
+    coach_users = await db.users.find(
+        {"role": "coach", "organization_id": org_id}, 
+        {"_id": 0}
+    ).to_list(200)
     
     for coach_user in coach_users:
         user_id = coach_user.get("user_id")
