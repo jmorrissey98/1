@@ -3038,25 +3038,62 @@ import stripe
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 stripe.api_key = STRIPE_SECRET_KEY
 
-# Product and Price IDs from Stripe Dashboard
+# Product and Price IDs from Stripe Dashboard (Updated Feb 2026)
+# Each tier has explicit monthly and annual price IDs - DO NOT dynamically lookup
 STRIPE_PRODUCTS = {
     "individual": {
-        "product_id": "prod_TzxFEJM4rt7UyV",
+        "product_id": "prod_TzxE3SVtpPojK3",
         "name": "Individual",
         "coaches": 5,
-        "admins": 1
+        "admins": 1,
+        "prices": {
+            "monthly": {
+                "price_id": "price_1T1xKf0YRwRcrAVx1mms3s6N",
+                "amount": 2000,  # £20.00 in pence
+                "currency": "gbp"
+            },
+            "annual": {
+                "price_id": "price_1T3yMN0YRwRcrAVx7HCM1c19",
+                "amount": 20000,  # £200.00 in pence
+                "currency": "gbp"
+            }
+        }
     },
     "developer": {
         "product_id": "prod_TzxEC0P2ychhee",
         "name": "Developer",
         "coaches": 10,
-        "admins": 1
+        "admins": 1,
+        "prices": {
+            "monthly": {
+                "price_id": "price_1T1xKX0YRwRcrAVxfhm6GAXI",
+                "amount": 3500,  # £35.00 in pence
+                "currency": "gbp"
+            },
+            "annual": {
+                "price_id": "price_1T4jkE0YRwRcrAVxAWcHnfkT",
+                "amount": 35000,  # £350.00 in pence
+                "currency": "gbp"
+            }
+        }
     },
     "club": {
-        "product_id": "prod_TzxE3SVtpPojK3",
+        "product_id": "prod_U2pPFRreuxQtxf",
         "name": "Club",
         "coaches": 50,
-        "admins": 10
+        "admins": 10,
+        "prices": {
+            "monthly": {
+                "price_id": "price_1T4jkp0YRwRtxfAVxAkntx6Q4",
+                "amount": 6000,  # £60.00 in pence
+                "currency": "gbp"
+            },
+            "annual": {
+                "price_id": "price_1T4jkp0YRwRcrAVxAkntx6Q4",
+                "amount": 60000,  # £600.00 in pence
+                "currency": "gbp"
+            }
+        }
     }
 }
 
