@@ -1577,14 +1577,17 @@ export default function ReviewSession() {
                   <div>
                     <CardTitle className="font-['Manrope'] flex items-center gap-2">
                       <User className="w-5 h-5 text-green-600" />
-                      My Reflections
+                      My Reflection
                     </CardTitle>
                     <CardDescription>
-                      Add your reflections on this session.
+                      {currentTemplate 
+                        ? `Complete your reflection using the "${currentTemplate.name}" template.`
+                        : 'Add your reflections on this session.'
+                      }
                     </CardDescription>
                   </div>
                   {/* Sharing toggle for coach */}
-                  {(session.coachReflections || []).length > 0 && (
+                  {(session.coachReflection || session.coachReflections?.length > 0) && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
                       <span className="text-xs text-slate-500">
                         {coachReflectionShared ? 'Shared' : 'Private'}
@@ -1600,9 +1603,171 @@ export default function ReviewSession() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(session.coachReflections || []).length > 0 ? (
-                  <div className="space-y-3">
-                    {session.coachReflections.map(r => (
+                {/* Show completed template reflection if it exists */}
+                {session.coachReflection?.responses && (
+                  <div className="p-4 bg-green-50 rounded-lg space-y-4">
+                    <div className="flex items-center gap-2 text-green-700 font-medium">
+                      <Check className="w-4 h-4" />
+                      Reflection completed
+                      {session.coachReflection.templateName && (
+                        <Badge variant="outline" className="text-xs">
+                          {session.coachReflection.templateName}
+                        </Badge>
+                      )}
+                    </div>
+                    {/* Display saved template responses */}
+                    {currentTemplate?.questions?.map(q => {
+                      const response = session.coachReflection.responses[q.question_id];
+                      if (!response || (Array.isArray(response) && response.length === 0)) return null;
+                      return (
+                        <div key={q.question_id} className="space-y-1">
+                          <p className="text-xs font-medium text-slate-600">{q.question_text}</p>
+                          <p className="text-slate-800">
+                            {Array.isArray(response) ? response.join(', ') : response}
+                          </p>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-slate-500">
+                      Completed: {formatDateTime(session.coachReflection.completedAt)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Show template form if template exists and reflection not yet completed */}
+                {currentTemplate && !session.coachReflection?.responses && (
+                  <div className="space-y-6">
+                    {currentTemplate.questions?.map((question) => (
+                      <div key={question.question_id} className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          {question.question_text}
+                          {question.required && <span className="text-red-500">*</span>}
+                        </Label>
+
+                        {/* Text Input */}
+                        {question.question_type === 'text' && (
+                          <Textarea
+                            value={templateResponses[question.question_id] || ''}
+                            onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
+                            placeholder="Enter your response..."
+                            className="min-h-[100px]"
+                            data-testid={`coach-reflection-q-${question.question_id}`}
+                          />
+                        )}
+
+                        {/* Radio/Single Select */}
+                        {question.question_type === 'radio' && (
+                          <div className="space-y-2">
+                            {question.options?.map((option) => (
+                              <label 
+                                key={option} 
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  templateResponses[question.question_id] === option
+                                    ? 'bg-blue-50 border-blue-300'
+                                    : 'hover:bg-slate-50'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={question.question_id}
+                                  checked={templateResponses[question.question_id] === option}
+                                  onChange={() => handleResponseChange(question.question_id, option)}
+                                  className="w-4 h-4"
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Scale/Rating */}
+                        {question.question_type === 'scale' && (
+                          <div className="flex gap-2 flex-wrap">
+                            {Array.from({ length: question.scale_max || 5 }, (_, i) => i + 1).map(n => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => handleResponseChange(question.question_id, n.toString())}
+                                className={`w-10 h-10 rounded-full border-2 font-medium transition-colors ${
+                                  templateResponses[question.question_id] === n.toString()
+                                    ? 'bg-blue-500 text-white border-blue-500'
+                                    : 'border-slate-300 hover:border-blue-400'
+                                }`}
+                              >
+                                {n}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Checkbox/Multi Select */}
+                        {question.question_type === 'checkbox' && (
+                          <div className="space-y-2">
+                            {question.options?.map((option) => (
+                              <label 
+                                key={option} 
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  (templateResponses[question.question_id] || []).includes(option)
+                                    ? 'bg-blue-50 border-blue-300'
+                                    : 'hover:bg-slate-50'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={(templateResponses[question.question_id] || []).includes(option)}
+                                  onChange={(e) => handleCheckboxChange(question.question_id, option, e.target.checked)}
+                                  className="w-4 h-4"
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Save Button */}
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="share-coach-reflection-template"
+                          checked={coachReflectionShared}
+                          onCheckedChange={handleToggleCoachSharing}
+                          disabled={togglingShare}
+                        />
+                        <Label htmlFor="share-coach-reflection-template" className="text-sm cursor-pointer">
+                          Share with {session.observer_name || 'Coach Developer'}
+                        </Label>
+                      </div>
+                      <Button 
+                        onClick={handleSaveTemplateReflection}
+                        disabled={savingReflection}
+                        className="bg-green-600 hover:bg-green-700"
+                        data-testid="save-coach-reflection-btn"
+                      >
+                        {savingReflection ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            Save Reflection
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show simple textarea only if no template assigned */}
+                {!currentTemplate && !session.coachReflection?.responses && (
+                  <>
+                    {/* Existing simple reflections */}
+                    {(session.coachReflections || []).length > 0 && (
+                      <div className="space-y-3 mb-4">
+                        {session.coachReflections.map(r => (
                       <div key={r.id} className="p-4 bg-green-50 rounded-lg space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-3 flex-1">
