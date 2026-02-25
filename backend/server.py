@@ -3130,7 +3130,6 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
             raise HTTPException(status_code=400, detail=f"No {data.billing_period} price configured for {data.tier_id}")
         
         price_id = price_config["price_id"]
-            raise HTTPException(status_code=400, detail=f"No {data.billing_period} price found for this product")
         
         # Build checkout session params
         checkout_params = {
