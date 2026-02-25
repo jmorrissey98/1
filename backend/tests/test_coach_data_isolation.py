@@ -51,7 +51,7 @@ class TestCoachDataIsolation:
         return s
 
     def login(self, session, email, password):
-        """Login and return session token"""
+        """Login and return session token, then fetch full user data via /api/auth/me"""
         response = session.post(f"{BASE_URL}/api/auth/login", json={
             "email": email,
             "password": password
@@ -63,7 +63,14 @@ class TestCoachDataIsolation:
         token = data.get("token")
         if token:
             session.headers.update({"Authorization": f"Bearer {token}"})
-        return data
+        
+        # Fetch full user data including organization_id via /api/auth/me
+        me_response = session.get(f"{BASE_URL}/api/auth/me")
+        if me_response.status_code == 200:
+            user_data = me_response.json()
+            return {"user": user_data, "token": token}
+        
+        return {"user": data, "token": token}
 
     def test_org_demo_sees_only_10_coaches(self, session):
         """User from org_demo_0725dd5e668a should see exactly 10 coaches"""
