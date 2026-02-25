@@ -365,11 +365,26 @@ export default function TemplateManager() {
   };
 
   const updateDescriptor = (templateId, groupNum, descId, name) => {
+    const key = `descriptorGroup${groupNum}`;
+    
+    // Update local state immediately for responsive UI
+    setTemplates(prev => prev.map(t => {
+      if (t.id !== templateId) return t;
+      const group = t[key] || { name: '', descriptors: [] };
+      return {
+        ...t,
+        [key]: {
+          ...group,
+          descriptors: (group.descriptors || []).map(d => d.id === descId ? { ...d, name } : d)
+        }
+      };
+    }));
+    
+    // Debounce the actual save
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      const key = `descriptorGroup${groupNum}`;
       const group = template[key] || { name: '', descriptors: [] };
-      saveAndRefresh({
+      debouncedSave(templateId, {
         ...template,
         [key]: {
           ...group,
