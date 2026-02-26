@@ -155,9 +155,13 @@ export default function AdminDashboard() {
     setCleanupResult(null);
     
     try {
-      const result = await safePost(`${API_URL}/api/admin/cleanup/user-by-email`, {
-        email: cleanupEmail.trim()
-      }, { method: 'DELETE' });
+      // Use safeFetch directly for DELETE with body
+      const result = await safeFetch(`${API_URL}/api/admin/cleanup/user-by-email`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: cleanupEmail.trim() })
+      });
       
       if (result.ok) {
         setCleanupResult(result.data);
