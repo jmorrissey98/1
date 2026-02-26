@@ -37,7 +37,6 @@ export default function UserSettings() {
   
   // Subscription status state
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
-  const [loadingBillingPortal, setLoadingBillingPortal] = useState(false);
   
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState('');
