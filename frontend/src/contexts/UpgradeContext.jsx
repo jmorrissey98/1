@@ -1,13 +1,19 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import { UpgradeModal } from '../components/UpgradeModal';
 
 const UpgradeContext = createContext(null);
 
-export function UpgradeProvider({ children, currentTier = null }) {
+export function UpgradeProvider({ children, onSubscriptionChange }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const openUpgradeModal = () => setIsOpen(true);
   const closeUpgradeModal = () => setIsOpen(false);
+
+  const handleSubscriptionChange = useCallback(() => {
+    if (onSubscriptionChange) {
+      onSubscriptionChange();
+    }
+  }, [onSubscriptionChange]);
 
   return (
     <UpgradeContext.Provider value={{ openUpgradeModal, closeUpgradeModal, isOpen }}>
@@ -15,7 +21,7 @@ export function UpgradeProvider({ children, currentTier = null }) {
       <UpgradeModal 
         open={isOpen} 
         onOpenChange={setIsOpen}
-        currentTier={currentTier}
+        onSubscriptionChange={handleSubscriptionChange}
       />
     </UpgradeContext.Provider>
   );
