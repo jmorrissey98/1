@@ -85,25 +85,9 @@ export default function UserSettings() {
     }
   };
   
-  const handleManageSubscription = async () => {
-    setLoadingBillingPortal(true);
-    try {
-      const result = await safePost(`${API_URL}/api/payments/billing-portal`, {
-        return_url: `${window.location.origin}/settings`
-      });
-      
-      if (result.ok && result.data?.url) {
-        // Redirect to Stripe Billing Portal
-        window.location.href = result.data.url;
-      } else {
-        toast.error(result.error || 'Failed to open billing portal');
-      }
-    } catch (err) {
-      console.error('Failed to create billing portal session:', err);
-      toast.error('Failed to open subscription management');
-    } finally {
-      setLoadingBillingPortal(false);
-    }
+  // Always open the upgrade modal instead of going directly to Stripe
+  const handleManageSubscription = () => {
+    openUpgradeModal();
   };
   
   useEffect(() => {
