@@ -276,9 +276,10 @@ class TestPaymentEndpoints:
         else:
             print("update-subscription endpoint exists and accepted the request")
     
-    def test_update_subscription_without_auth_returns_401(self, session):
+    def test_update_subscription_without_auth_returns_401(self):
         """Test that /api/payments/update-subscription without auth returns 401"""
-        response = session.post(
+        # Use a fresh request without any cookies
+        response = requests.post(
             f"{BASE_URL}/api/payments/update-subscription",
             json={
                 "tier_id": "developer",
