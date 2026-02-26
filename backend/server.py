@@ -3380,8 +3380,8 @@ STRIPE_PRODUCTS = {
     },
     "club": {
         "name": "Club",
-        "coaches": 50,
-        "admins": 10,
+        "coaches": 30,
+        "admins": 5,
         "prices": {
             "monthly": {
                 "product_id": "prod_TzxE3SVtpPojK3",
