@@ -2882,6 +2882,165 @@ async def admin_delete_organization(org_id: str, request: Request):
     }
 
 
+
+@api_router.delete("/admin/cleanup/coach-by-email")
+async def admin_cleanup_coach_by_email(request: Request):
+    """
+    Remove a coach profile by email address (Admin only).
+    Used to clean up orphaned coach profiles that block users from joining new clubs.
+    """
+    await require_admin(request)
+    
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # Find and delete coach profile(s) with this email
+    coach_result = await db.coaches.delete_many({
+        "email": {"$regex": f"^{email}$", "$options": "i"}
+    })
+    
+    # Also delete any pending invites for this email
+    invite_result = await db.invites.delete_many({
+        "email": {"$regex": f"^{email}$", "$options": "i"}
+    })
+    
+    # Check if there's a user with this email and unlink their coach profile
+    await db.users.update_many(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"$set": {"linked_coach_id": None}}
+    )
+    
+    logger.info(f"Cleaned up coach data for {email}: {coach_result.deleted_count} coach(es), {invite_result.deleted_count} invite(s)")
+    
+    return {
+        "message": f"Cleaned up coach data for {email}",
+        "coaches_deleted": coach_result.deleted_count,
+        "invites_deleted": invite_result.deleted_count
+    }
+
+
+@api_router.get("/admin/cleanup/orphaned-coaches")
+async def admin_find_orphaned_coaches(request: Request):
+    """
+    Find coach profiles that are orphaned (no matching user, or not visible in any club).
+    Admin only.
+    """
+    await require_admin(request)
+    
+    # Get all coach profiles
+    all_coaches = await db.coaches.find({}, {"_id": 0}).to_list(1000)
+    
+    orphaned = []
+    for coach in all_coaches:
+        coach_id = coach.get("id")
+        email = coach.get("email", "").lower()
+        user_id = coach.get("user_id")
+        org_id = coach.get("organization_id")
+        
+        is_orphaned = False
+        reason = []
+        
+        # Check 1: No organization_id
+        if not org_id:
+            is_orphaned = True
+            reason.append("no_organization")
+        else:
+            # Check if organization exists
+            org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0, "club_name": 1})
+            if not org:
+                is_orphaned = True
+                reason.append("organization_deleted")
+        
+        # Check 2: Has user_id but user doesn't exist
+        if user_id:
+            user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "email": 1})
+            if not user:
+                is_orphaned = True
+                reason.append("user_deleted")
+        
+        # Check 3: Has email but no user with that email exists and no user_id linked
+        if email and not user_id:
+            user_by_email = await db.users.find_one(
+                {"email": {"$regex": f"^{email}$", "$options": "i"}},
+                {"_id": 0}
+            )
+            if not user_by_email:
+                is_orphaned = True
+                reason.append("email_not_registered")
+        
+        if is_orphaned:
+            orphaned.append({
+                "id": coach_id,
+                "name": coach.get("name"),
+                "email": email,
+                "organization_id": org_id,
+                "user_id": user_id,
+                "reasons": reason
+            })
+    
+    return {
+        "total_coaches": len(all_coaches),
+        "orphaned_count": len(orphaned),
+        "orphaned_coaches": orphaned
+    }
+
+
+@api_router.post("/admin/cleanup/orphaned-coaches")
+async def admin_delete_orphaned_coaches(request: Request):
+    """
+    Delete all orphaned coach profiles (Admin only).
+    Use GET /admin/cleanup/orphaned-coaches first to preview what will be deleted.
+    """
+    await require_admin(request)
+    
+    # Get orphaned coaches using the same logic
+    all_coaches = await db.coaches.find({}, {"_id": 0}).to_list(1000)
+    
+    orphaned_ids = []
+    for coach in all_coaches:
+        coach_id = coach.get("id")
+        user_id = coach.get("user_id")
+        org_id = coach.get("organization_id")
+        email = coach.get("email", "").lower()
+        
+        is_orphaned = False
+        
+        # No organization
+        if not org_id:
+            is_orphaned = True
+        else:
+            org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+            if not org:
+                is_orphaned = True
+        
+        # User was deleted
+        if user_id:
+            user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+            if not user:
+                is_orphaned = True
+        
+        if is_orphaned and coach_id:
+            orphaned_ids.append(coach_id)
+    
+    # Delete orphaned coaches
+    if orphaned_ids:
+        result = await db.coaches.delete_many({"id": {"$in": orphaned_ids}})
+        deleted_count = result.deleted_count
+    else:
+        deleted_count = 0
+    
+    logger.info(f"Cleaned up {deleted_count} orphaned coach profiles")
+    
+    return {
+        "message": f"Deleted {deleted_count} orphaned coach profiles",
+        "deleted_count": deleted_count
+    }
+
+
+
 @api_router.get("/admin/subscription-tiers")
 async def admin_get_subscription_tiers(request: Request):
     """Get all subscription tiers with their limits (Admin only)"""
