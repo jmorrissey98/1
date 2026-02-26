@@ -85,6 +85,13 @@ export default function AdminDashboard() {
   const [editingOrgLimits, setEditingOrgLimits] = useState(null);
   const [orgLimitEdits, setOrgLimitEdits] = useState({});
   const [savingOrgLimits, setSavingOrgLimits] = useState(false);
+  
+  // Data cleanup states
+  const [cleanupEmail, setCleanupEmail] = useState('');
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState(null);
+  const [orphanedCoaches, setOrphanedCoaches] = useState(null);
+  const [loadingOrphaned, setLoadingOrphaned] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
