@@ -13,8 +13,18 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import axios from 'axios';
+import { getAuthToken } from '../../lib/safeFetch';
 
 const API = '/api';
+
+// Helper to get axios config with auth headers
+const getAxiosConfig = () => {
+  const token = getAuthToken();
+  return {
+    withCredentials: true,
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+  };
+};
 
 /**
  * CoachNotes component - Displays and manages notes for a coach profile.
