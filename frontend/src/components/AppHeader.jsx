@@ -56,11 +56,13 @@ export default function AppHeader() {
     try {
       // Call the backend to restore admin session
       const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/api/admin/exit-impersonation`, {
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
       
