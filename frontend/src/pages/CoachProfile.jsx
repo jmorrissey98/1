@@ -160,7 +160,7 @@ export default function CoachProfile() {
   const loadAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      const response = await axios.get(`${API}/coaches/${coachId}/analytics`, { withCredentials: true });
+      const response = await axios.get(`${API}/coaches/${coachId}/analytics`, getAxiosConfig());
       setAnalyticsData(response.data);
       
       // Extract data retention info if present
