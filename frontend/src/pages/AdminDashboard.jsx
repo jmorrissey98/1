@@ -55,8 +55,8 @@ const DEFAULT_TIERS = [
     name: 'Club',
     monthly_price: 60,
     annual_price: 600,
-    coaches_limit: 50,
-    admins_limit: 10,
+    coaches_limit: 30,
+    admins_limit: 5,
     data_retention_months: null,
     description: 'For organizations'
   }
