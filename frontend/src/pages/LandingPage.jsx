@@ -71,6 +71,36 @@ export default function LandingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingTier, setLoadingTier] = useState(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [pricingTiers, setPricingTiers] = useState(DEFAULT_PRICING_TIERS);
+
+  // Fetch pricing tiers from API
+  useEffect(() => {
+    const fetchPricingTiers = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/pricing/tiers`);
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API data to match frontend format
+          const transformedTiers = data.map(tier => ({
+            id: tier.tier_id,
+            name: tier.name,
+            subtitle: tier.subtitle || (tier.tier_id === 'individual' ? 'The Solo Developer' : tier.tier_id === 'developer' ? 'The Growth Specialist' : 'The Organization'),
+            monthlyPrice: tier.monthly_price,
+            annualPrice: tier.annual_price,
+            coaches: tier.coaches_limit,
+            admins: tier.admins_limit,
+            dataRetention: tier.data_retention_months ? `${tier.data_retention_months} months` : 'Unlimited',
+            popular: tier.tier_id === 'developer'
+          }));
+          setPricingTiers(transformedTiers);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pricing tiers:', err);
+        // Keep default tiers on error
+      }
+    };
+    fetchPricingTiers();
+  }, []);
 
   // Handle hash-based navigation (e.g., /#pricing)
   useEffect(() => {
