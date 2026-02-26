@@ -131,7 +131,7 @@ export default function CoachProfile() {
       
       // Load sessions for this coach from API
       try {
-        const sessionsResponse = await axios.get(`${API}/coaches/${coachId}/sessions`, { withCredentials: true });
+        const sessionsResponse = await axios.get(`${API}/coaches/${coachId}/sessions`, getAxiosConfig());
         // Handle new response format with data_retention info
         if (sessionsResponse.data?.sessions) {
           setSessions(sessionsResponse.data.sessions || []);
