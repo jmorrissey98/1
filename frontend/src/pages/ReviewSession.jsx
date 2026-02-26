@@ -621,9 +621,13 @@ export default function ReviewSession() {
   const handleToggleObserverSharing = async (checked) => {
     setTogglingShare(true);
     try {
+      const token = getAuthToken();
       const response = await fetch(`/api/observations/${sessionId}/observer-reflection-sharing`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         credentials: 'include',
         body: JSON.stringify({ shared: checked })
       });
