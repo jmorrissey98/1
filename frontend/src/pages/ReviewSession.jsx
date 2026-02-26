@@ -853,7 +853,7 @@ export default function ReviewSession() {
 
   const handleDeleteAttachment = async (attachmentId) => {
     try {
-      await axios.delete(`${API}/files/${attachmentId}`);
+      await axios.delete(`${API}/files/${attachmentId}`, getAxiosConfig());
     } catch (err) {
       console.warn('File may already be deleted');
     }
