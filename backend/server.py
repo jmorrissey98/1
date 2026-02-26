@@ -2552,8 +2552,15 @@ async def admin_impersonate_user(user_id: str, request: Request, response: Respo
 @api_router.post("/admin/exit-impersonation")
 async def admin_exit_impersonation(request: Request, response: Response):
     """Exit impersonation mode and restore admin session"""
-    # Get current session token
+    # Get current session token from either cookie or Authorization header
     current_session_token = request.cookies.get("session_token")
+    
+    # Check Authorization header as fallback
+    if not current_session_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            current_session_token = auth_header.split(" ")[1]
+    
     if not current_session_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
