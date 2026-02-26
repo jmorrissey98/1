@@ -3508,6 +3508,10 @@ async def get_subscription_details(request: Request):
                 tier_info = STRIPE_PRODUCTS.get(tier_id, {})
                 tier_name = tier_info.get("name", tier_id.title() if tier_id else "Unknown")
                 
+                # Use current tier limits from STRIPE_PRODUCTS
+                coaches_limit = tier_info.get("coaches", 5)
+                admins_limit = tier_info.get("admins", 1)
+                
                 return {
                     "has_subscription": True,
                     "tier": tier_id,
@@ -3519,8 +3523,8 @@ async def get_subscription_details(request: Request):
                     "customer_id": stripe_customer_id,
                     "current_period_end": None,
                     "cancel_at_period_end": False,
-                    "coaches_limit": tier_info.get("coaches", 50),
-                    "admins_limit": tier_info.get("admins", 10),
+                    "coaches_limit": coaches_limit,
+                    "admins_limit": admins_limit,
                     "is_stripe_managed": bool(stripe_sub_id)
                 }
         
