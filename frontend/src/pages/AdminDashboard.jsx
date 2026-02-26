@@ -1114,6 +1114,97 @@ export default function AdminDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Orphaned Users (missing organization_id) */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCog className="w-5 h-5 text-purple-500" />
+                  Fix Users Missing Organization Link
+                </CardTitle>
+                <CardDescription>
+                  Find users who cannot add coaches because their account is not linked to an organization.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button 
+                  onClick={handleFindOrphanedUsers}
+                  disabled={loadingOrphanedUsers}
+                  variant="outline"
+                  data-testid="find-orphaned-users-btn"
+                >
+                  {loadingOrphanedUsers ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Scanning...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 mr-2" />
+                      Find Users Without Organization
+                    </>
+                  )}
+                </Button>
+                
+                {orphanedUsers && (
+                  <div className="p-4 bg-slate-50 rounded-lg border">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-slate-900">Users Missing Organization</h4>
+                      <Badge variant={orphanedUsers.orphaned_count > 0 ? "destructive" : "secondary"}>
+                        {orphanedUsers.orphaned_count} found
+                      </Badge>
+                    </div>
+                    
+                    {orphanedUsers.orphaned_count > 0 ? (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {orphanedUsers.orphaned_users.map((user, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-white rounded border">
+                            <div>
+                              <span className="font-medium">{user.name || 'Unnamed'}</span>
+                              <span className="text-slate-500 ml-2 text-sm">({user.email})</span>
+                              <Badge variant="outline" className="ml-2 text-xs">{user.role}</Badge>
+                              {user.owned_organization && (
+                                <p className="text-xs text-green-600 mt-1">
+                                  Owns: {user.owned_organization.club_name || user.owned_organization.org_id}
+                                </p>
+                              )}
+                              {user.invite_organization_id && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                  Invited to: {user.invite_organization_id}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleFixUserOrg(
+                                user.email, 
+                                user.owned_organization?.org_id || user.invite_organization_id
+                              )}
+                              disabled={fixingUser === user.email || (!user.owned_organization && !user.invite_organization_id)}
+                              variant={user.owned_organization || user.invite_organization_id ? "default" : "outline"}
+                            >
+                              {fixingUser === user.email ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Check className="w-4 h-4 mr-1" />
+                                  Fix
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-green-600 flex items-center gap-2">
+                        <Check className="w-4 h-4" />
+                        All users have organization links
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
