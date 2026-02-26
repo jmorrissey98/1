@@ -880,7 +880,7 @@ export default function ReviewSession() {
       let coachTargets = null;
       if (session.coachId) {
         try {
-          const coachResponse = await axios.get(`${API}/coaches/${session.coachId}`);
+          const coachResponse = await axios.get(`${API}/coaches/${session.coachId}`, getAxiosConfig());
           const targets = coachResponse.data?.targets || [];
           coachTargets = targets
             .filter(t => t.status === 'active')
