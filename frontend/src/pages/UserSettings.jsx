@@ -850,16 +850,12 @@ export default function UserSettings() {
                       className="w-full bg-blue-600 hover:bg-blue-700"
                       data-testid="manage-subscription-btn"
                     >
-                      {loadingBillingPortal ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                      )}
+                      <CreditCard className="w-4 h-4 mr-2" />
                       Manage Subscription
                     </Button>
                     
                     <p className="text-xs text-slate-500 text-center">
-                      Update payment method, change plan, or cancel subscription
+                      Change plan, update payment method, or view invoices
                     </p>
                   </CardContent>
                 </Card>
