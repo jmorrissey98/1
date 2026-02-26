@@ -2623,7 +2623,7 @@ async def admin_exit_impersonation(request: Request, response: Response):
 
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, request: Request):
-    """Delete a user (Admin only)"""
+    """Delete a user (Admin only) - also cleans up associated coach profiles and invites"""
     await require_admin(request)
     
     # Find the user
@@ -2635,14 +2635,43 @@ async def admin_delete_user(user_id: str, request: Request):
     if user.get("role") == "admin":
         raise HTTPException(status_code=403, detail="Cannot delete admin users")
     
+    user_email = (user.get("email") or "").strip().lower()
+    linked_coach_id = user.get("linked_coach_id")
+    
     # Delete the user
     await db.users.delete_one({"user_id": user_id})
     
-    # If user was a coach, optionally delete their coach profile
-    if user.get("linked_coach_id"):
-        await db.coaches.delete_one({"coach_id": user.get("linked_coach_id")})
+    # Delete associated coach profile(s) - by linked_coach_id AND by email
+    coaches_deleted = 0
     
-    return {"message": "User deleted successfully", "user_id": user_id}
+    # Delete by linked_coach_id (correct field name is 'id', not 'coach_id')
+    if linked_coach_id:
+        result = await db.coaches.delete_one({"id": linked_coach_id})
+        coaches_deleted += result.deleted_count
+    
+    # Also delete any coach profiles with matching email (orphaned profiles)
+    if user_email:
+        result = await db.coaches.delete_many({
+            "email": {"$regex": f"^{user_email}$", "$options": "i"}
+        })
+        coaches_deleted += result.deleted_count
+    
+    # Delete any pending invites for this email
+    invites_deleted = 0
+    if user_email:
+        result = await db.invites.delete_many({
+            "email": {"$regex": f"^{user_email}$", "$options": "i"}
+        })
+        invites_deleted = result.deleted_count
+    
+    logger.info(f"Deleted user {user_id} ({user_email}), {coaches_deleted} coach profile(s), {invites_deleted} invite(s)")
+    
+    return {
+        "message": "User deleted successfully", 
+        "user_id": user_id,
+        "coaches_deleted": coaches_deleted,
+        "invites_deleted": invites_deleted
+    }
 
 @api_router.post("/admin/organizations/{org_id}/add-coach-developer")
 async def admin_add_coach_developer(org_id: str, request: Request):
