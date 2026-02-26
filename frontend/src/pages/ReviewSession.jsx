@@ -829,7 +829,11 @@ export default function ReviewSession() {
       formData.append('file', file);
       
       const response = await axios.post(`${API}/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        ...getAxiosConfig(),
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          ...(getAuthToken() ? { 'Authorization': `Bearer ${getAuthToken()}` } : {})
+        }
       });
       
       const attachment = response.data;
