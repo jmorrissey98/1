@@ -3465,6 +3465,11 @@ async def get_subscription_details(request: Request):
                         break
             
             tier_name = STRIPE_PRODUCTS.get(tier_id, {}).get("name", tier_id)
+            tier_info = STRIPE_PRODUCTS.get(tier_id, {})
+            
+            # Always use current tier limits from STRIPE_PRODUCTS (not stale subscription values)
+            coaches_limit = tier_info.get("coaches", 5)
+            admins_limit = tier_info.get("admins", 1)
             
             return {
                 "has_subscription": True,
@@ -3477,8 +3482,8 @@ async def get_subscription_details(request: Request):
                 "customer_id": subscription.get("customer_id"),
                 "current_period_end": subscription.get("current_period_end"),
                 "cancel_at_period_end": subscription.get("cancel_at_period_end", False),
-                "coaches_limit": subscription.get("coaches_limit"),
-                "admins_limit": subscription.get("admins_limit"),
+                "coaches_limit": coaches_limit,
+                "admins_limit": admins_limit,
                 "is_stripe_managed": True
             }
         
