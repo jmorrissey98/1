@@ -27,7 +27,7 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     TIER_LIMITS = {
         "individual": {"coaches": 5, "admins": 1},
         "developer": {"coaches": 10, "admins": 1},
-        "club": {"coaches": 50, "admins": 10}
+        "club": {"coaches": 30, "admins": 5}
     }
     
     # Find user's organization
