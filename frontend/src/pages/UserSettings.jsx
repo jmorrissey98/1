@@ -845,7 +845,6 @@ export default function UserSettings() {
                     {/* Manage Subscription Button */}
                     <Button 
                       onClick={handleManageSubscription}
-                      disabled={loadingBillingPortal}
                       className="w-full bg-blue-600 hover:bg-blue-700"
                       data-testid="manage-subscription-btn"
                     >
