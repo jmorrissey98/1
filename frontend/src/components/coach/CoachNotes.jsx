@@ -115,7 +115,7 @@ export default function CoachNotes({
       const response = await axios.put(
         `${API}/coaches/${coachId}/notes/${noteId}`,
         { text: editNoteText.trim(), is_private: editNotePrivate },
-        { withCredentials: true }
+        getAxiosConfig()
       );
       
       setNotes(prev => prev.map(n => n.note_id === noteId ? response.data : n));
