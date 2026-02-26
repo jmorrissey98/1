@@ -883,6 +883,182 @@ export default function AdminDashboard() {
               ))}
             </div>
           </TabsContent>
+
+          {/* Data Cleanup Tab */}
+          <TabsContent value="cleanup" className="space-y-6">
+            {/* Cleanup User by Email */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserX className="w-5 h-5 text-red-500" />
+                  Remove User by Email
+                </CardTitle>
+                <CardDescription>
+                  Completely remove a user account and all associated data. Use this when a coach needs to join a different organization.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Input
+                      type="email"
+                      placeholder="Enter email address to remove..."
+                      value={cleanupEmail}
+                      onChange={(e) => setCleanupEmail(e.target.value)}
+                      data-testid="cleanup-email-input"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleCleanupUser}
+                    disabled={cleanupLoading || !cleanupEmail.trim()}
+                    variant="destructive"
+                    data-testid="cleanup-user-btn"
+                  >
+                    {cleanupLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Removing...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Remove User
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
+                    <div className="text-sm text-amber-800">
+                      <p className="font-medium">This action will permanently delete:</p>
+                      <ul className="mt-1 ml-4 list-disc text-amber-700">
+                        <li>User account</li>
+                        <li>Coach profile(s)</li>
+                        <li>Pending invites</li>
+                        <li>User's reflections</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                {cleanupResult && (
+                  <div className="p-4 bg-slate-50 rounded-lg border">
+                    <h4 className="font-medium text-slate-900 mb-2">Cleanup Result</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <span className="text-slate-600">Email:</span>
+                      <span className="font-mono">{cleanupResult.email}</span>
+                      
+                      <span className="text-slate-600">User Deleted:</span>
+                      <span className={cleanupResult.user_deleted ? 'text-green-600' : 'text-slate-500'}>
+                        {cleanupResult.user_deleted ? 'Yes' : 'No'}
+                      </span>
+                      
+                      <span className="text-slate-600">Coaches Deleted:</span>
+                      <span>{cleanupResult.coaches_deleted}</span>
+                      
+                      <span className="text-slate-600">Invites Deleted:</span>
+                      <span>{cleanupResult.invites_deleted}</span>
+                      
+                      <span className="text-slate-600">Reflections Deleted:</span>
+                      <span>{cleanupResult.reflections_deleted}</span>
+                    </div>
+                    {cleanupResult.note && (
+                      <p className="mt-2 text-sm text-green-600">{cleanupResult.note}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Orphaned Coaches */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="w-5 h-5 text-orange-500" />
+                  Find Orphaned Coach Profiles
+                </CardTitle>
+                <CardDescription>
+                  Find coach profiles that are no longer associated with any user or organization.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleFindOrphaned}
+                    disabled={loadingOrphaned}
+                    variant="outline"
+                    data-testid="find-orphaned-btn"
+                  >
+                    {loadingOrphaned ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Scan for Orphaned Profiles
+                      </>
+                    )}
+                  </Button>
+                  
+                  {orphanedCoaches && orphanedCoaches.orphaned_count > 0 && (
+                    <Button 
+                      onClick={handleDeleteOrphaned}
+                      disabled={loadingOrphaned}
+                      variant="destructive"
+                      data-testid="delete-orphaned-btn"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete All Orphaned ({orphanedCoaches.orphaned_count})
+                    </Button>
+                  )}
+                </div>
+                
+                {orphanedCoaches && (
+                  <div className="p-4 bg-slate-50 rounded-lg border">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-slate-900">Scan Results</h4>
+                      <Badge variant={orphanedCoaches.orphaned_count > 0 ? "destructive" : "secondary"}>
+                        {orphanedCoaches.orphaned_count} orphaned
+                      </Badge>
+                    </div>
+                    
+                    <p className="text-sm text-slate-600 mb-3">
+                      Total coach profiles: {orphanedCoaches.total_coaches}
+                    </p>
+                    
+                    {orphanedCoaches.orphaned_count > 0 ? (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {orphanedCoaches.orphaned_coaches.map((coach, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border text-sm">
+                            <div>
+                              <span className="font-medium">{coach.name || 'Unnamed'}</span>
+                              <span className="text-slate-500 ml-2">({coach.email || 'No email'})</span>
+                            </div>
+                            <div className="flex gap-1">
+                              {coach.reasons.map((reason, i) => (
+                                <Badge key={i} variant="outline" className="text-xs">
+                                  {reason.replace(/_/g, ' ')}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-green-600 flex items-center gap-2">
+                        <Check className="w-4 h-4" />
+                        No orphaned coach profiles found
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
