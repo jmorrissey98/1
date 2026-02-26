@@ -85,7 +85,7 @@ export default function MyCoaches() {
       const result = await fetchCoaches();
       
       if (!result.ok) {
-        const errorMsg = result.error || 'Failed to load coaches';
+        const errorMsg = result.data?.detail || result.error || 'Failed to load coaches';
         throw new Error(errorMsg);
       }
       
