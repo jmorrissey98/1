@@ -191,6 +191,23 @@ async def create_coach_manually(request: Request):
     
     # Get the organization_id for proper data isolation
     org_id = user.organization_id
+    
+    # If no org_id on user, try to find one they own or are associated with
+    if not org_id:
+        # Check if user owns an organization
+        owned_org = await db.organizations.find_one(
+            {"owner_id": user.user_id},
+            {"_id": 0, "org_id": 1}
+        )
+        if owned_org:
+            org_id = owned_org.get("org_id")
+            # Update user with the org_id for future requests
+            await db.users.update_one(
+                {"user_id": user.user_id},
+                {"$set": {"organization_id": org_id}}
+            )
+            logger.info(f"Updated user {user.user_id} with organization_id {org_id}")
+    
     if not org_id:
         raise HTTPException(
             status_code=400, 
