@@ -139,13 +139,16 @@ export default function MyCoaches() {
       });
       
       if (!result.ok) {
+        // Get error message from API response
+        const errorMsg = result.data?.detail || result.error || 'Failed to create coach';
+        
         // Check if it's a limit error
-        if (result.error?.includes('limit reached') || result.status === 403) {
-          toast.error(result.error || 'Coach limit reached. Please upgrade your subscription.');
+        if (errorMsg.includes('limit reached') || result.status === 403) {
+          toast.error(errorMsg);
           loadLimits(); // Refresh limits
           return;
         }
-        throw new Error(result.error || 'Failed to create coach');
+        throw new Error(errorMsg);
       }
       
       let successMsg;
