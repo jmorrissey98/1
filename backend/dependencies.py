@@ -22,13 +22,30 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     Get subscription limits for a user's organization.
     Returns: (coaches_limit, admins_limit, tier_name)
     Checks for custom organization overrides first.
+    Fetches tier limits from DB, falling back to defaults.
     """
-    # Tier limits lookup
-    TIER_LIMITS = {
+    # Default tier limits (fallback if DB is empty)
+    DEFAULT_TIER_LIMITS = {
         "individual": {"coaches": 5, "admins": 1},
         "developer": {"coaches": 10, "admins": 1},
         "club": {"coaches": 30, "admins": 5}
     }
+    
+    # Try to fetch tier limits from database
+    db_tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(10)
+    TIER_LIMITS = {}
+    for tier in db_tiers:
+        tier_id = tier.get("tier_id")
+        if tier_id:
+            TIER_LIMITS[tier_id] = {
+                "coaches": tier.get("coaches_limit", DEFAULT_TIER_LIMITS.get(tier_id, {}).get("coaches", 5)),
+                "admins": tier.get("admins_limit", DEFAULT_TIER_LIMITS.get(tier_id, {}).get("admins", 1))
+            }
+    
+    # Merge with defaults for any missing tiers
+    for tier_id, defaults in DEFAULT_TIER_LIMITS.items():
+        if tier_id not in TIER_LIMITS:
+            TIER_LIMITS[tier_id] = defaults
     
     # Find user's organization
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
