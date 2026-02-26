@@ -131,7 +131,7 @@ export default function CoachNotes({
 
   const handleDeleteNote = async (noteId) => {
     try {
-      await axios.delete(`${API}/coaches/${coachId}/notes/${noteId}`, { withCredentials: true });
+      await axios.delete(`${API}/coaches/${coachId}/notes/${noteId}`, getAxiosConfig());
       setNotes(prev => prev.filter(n => n.note_id !== noteId));
       toast.success('Note deleted');
     } catch (err) {
