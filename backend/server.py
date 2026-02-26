@@ -4175,7 +4175,7 @@ async def get_subscription_status(request: Request):
                 tier_limits = {
                     "individual": {"coaches": 5, "admins": 1},
                     "developer": {"coaches": 10, "admins": 1},
-                    "club": {"coaches": 50, "admins": 10}
+                    "club": {"coaches": 30, "admins": 5}
                 }
                 tier_id = org.get("subscription_tier_id")
                 limits = tier_limits.get(tier_id, tier_limits["individual"])
