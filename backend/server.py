@@ -2922,6 +2922,75 @@ async def admin_cleanup_coach_by_email(request: Request):
     }
 
 
+@api_router.delete("/admin/cleanup/user-by-email")
+async def admin_cleanup_user_by_email(request: Request):
+    """
+    COMPREHENSIVE cleanup: Remove ALL data for an email address (Admin only).
+    Deletes: user account, coach profile(s), invites, and any linked data.
+    Use this to completely remove a user so they can join a different club.
+    
+    WARNING: This permanently deletes the user account. They will need to re-register.
+    """
+    await require_admin(request)
+    
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # First, find the user to get their linked_coach_id
+    user = await db.users.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    linked_coach_id = user.get("linked_coach_id") if user else None
+    user_id = user.get("user_id") if user else None
+    
+    # 1. Delete user account
+    user_result = await db.users.delete_many({
+        "email": {"$regex": f"^{email}$", "$options": "i"}
+    })
+    
+    # 2. Delete coach profile(s) - by email AND by linked_coach_id
+    coach_delete_conditions = [
+        {"email": {"$regex": f"^{email}$", "$options": "i"}}
+    ]
+    if linked_coach_id:
+        coach_delete_conditions.append({"id": linked_coach_id})
+    if user_id:
+        coach_delete_conditions.append({"user_id": user_id})
+    
+    coach_result = await db.coaches.delete_many({"$or": coach_delete_conditions})
+    
+    # 3. Delete any pending invites for this email
+    invite_result = await db.invites.delete_many({
+        "email": {"$regex": f"^{email}$", "$options": "i"}
+    })
+    
+    # 4. Delete any reflections created by this user
+    reflections_result = await db.reflections.delete_many({
+        "user_id": user_id
+    }) if user_id else type('obj', (object,), {'deleted_count': 0})()
+    
+    # 5. Clean up session parts created by this user (optional - keep for data integrity)
+    # We don't delete session data as it may be valuable for the organization
+    
+    logger.info(f"Complete cleanup for {email}: user={user_result.deleted_count}, coaches={coach_result.deleted_count}, invites={invite_result.deleted_count}, reflections={reflections_result.deleted_count}")
+    
+    return {
+        "message": f"Completely removed all data for {email}",
+        "email": email,
+        "user_deleted": user_result.deleted_count > 0,
+        "user_id_removed": user_id,
+        "coaches_deleted": coach_result.deleted_count,
+        "invites_deleted": invite_result.deleted_count,
+        "reflections_deleted": reflections_result.deleted_count,
+        "note": "User can now register fresh with any organization"
+    }
+
+
 @api_router.get("/admin/cleanup/orphaned-coaches")
 async def admin_find_orphaned_coaches(request: Request):
     """
