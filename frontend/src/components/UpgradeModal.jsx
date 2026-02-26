@@ -256,7 +256,7 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
 
   const getCurrentTierInfo = () => {
     if (!currentSubscription?.tier) return null;
-    return PRICING_TIERS.find(t => t.id === currentSubscription.tier);
+    return pricingTiers.find(t => t.id === currentSubscription.tier);
   };
 
   const getStatusBadge = () => {
