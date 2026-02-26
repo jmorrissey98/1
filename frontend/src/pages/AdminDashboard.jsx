@@ -229,6 +229,53 @@ export default function AdminDashboard() {
     }
   };
 
+  // Find orphaned users (missing organization_id)
+  const handleFindOrphanedUsers = async () => {
+    setLoadingOrphanedUsers(true);
+    setOrphanedUsers(null);
+    
+    try {
+      const result = await safeGet(`${API_URL}/api/admin/cleanup/orphaned-users`);
+      if (result.ok) {
+        setOrphanedUsers(result.data);
+      } else {
+        toast.error(result.data?.detail || 'Failed to find orphaned users');
+      }
+    } catch (err) {
+      toast.error('Failed to check for orphaned users');
+    } finally {
+      setLoadingOrphanedUsers(false);
+    }
+  };
+
+  // Fix a specific user's organization link
+  const handleFixUserOrg = async (email, orgId = null) => {
+    setFixingUser(email);
+    
+    try {
+      const result = await safePost(`${API_URL}/api/admin/cleanup/fix-user-organization`, {
+        email: email,
+        organization_id: orgId
+      });
+      
+      if (result.ok) {
+        if (result.data.updated) {
+          toast.success(`Fixed organization link for ${email}`);
+          // Refresh the orphaned users list
+          handleFindOrphanedUsers();
+        } else {
+          toast.info(result.data.message);
+        }
+      } else {
+        toast.error(result.data?.detail || 'Failed to fix user organization');
+      }
+    } catch (err) {
+      toast.error('Failed to fix user organization');
+    } finally {
+      setFixingUser(null);
+    }
+  };
+
   // Archive/Reinstate organization
   const handleArchiveOrg = async (orgId, isArchived) => {
     setArchivingOrg(orgId);
