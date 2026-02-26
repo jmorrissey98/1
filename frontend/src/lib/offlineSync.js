@@ -178,7 +178,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.CREATE_SESSION_PART:
         response = await fetch(`${API_URL}/api/session-parts`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -187,7 +187,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.CREATE_REFLECTION:
         response = await fetch(`${API_URL}/api/coach/reflections`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -196,7 +196,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.UPDATE_REFLECTION:
         response = await fetch(`${API_URL}/api/coach/reflections/${item.entityId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -205,7 +205,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.UPDATE_COACH_PROFILE:
         response = await fetch(`${API_URL}/api/coach/profile`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -214,7 +214,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.UPDATE_COACH_TARGETS:
         response = await fetch(`${API_URL}/api/coaches/${item.entityId}/targets`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
