@@ -9,8 +9,8 @@ import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Pricing tiers configuration
-const PRICING_TIERS = [
+// Default pricing tiers (will be overridden by API data)
+const DEFAULT_PRICING_TIERS = [
   {
     id: 'individual',
     name: 'Individual',
@@ -39,8 +39,8 @@ const PRICING_TIERS = [
     subtitle: 'The Organization',
     monthlyPrice: 60,
     annualPrice: 600,
-    coaches: 50,
-    admins: 10,
+    coaches: 30,
+    admins: 5,
     dataRetention: 'Unlimited',
     popular: false
   }
