@@ -649,9 +649,13 @@ export default function ReviewSession() {
   const handleToggleCoachSharing = async (checked) => {
     setTogglingShare(true);
     try {
+      const token = getAuthToken();
       const response = await fetch(`/api/observations/${sessionId}/coach-reflection-sharing`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         credentials: 'include',
         body: JSON.stringify({ shared: checked })
       });
