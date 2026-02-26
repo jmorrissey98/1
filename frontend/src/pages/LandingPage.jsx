@@ -377,7 +377,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {PRICING_TIERS.map((tier) => (
+            {pricingTiers.map((tier) => (
               <Card 
                 key={tier.id} 
                 className={`relative ${tier.popular ? 'border-2 border-blue-500 shadow-xl scale-105' : 'border-slate-200'}`}
