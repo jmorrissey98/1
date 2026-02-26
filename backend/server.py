@@ -2198,7 +2198,7 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
     default_tiers = {
         "individual": {"coaches_limit": 5, "admins_limit": 1, "data_retention_months": 3},
         "developer": {"coaches_limit": 10, "admins_limit": 1, "data_retention_months": None},
-        "club": {"coaches_limit": 50, "admins_limit": 10, "data_retention_months": None}
+        "club": {"coaches_limit": 30, "admins_limit": 5, "data_retention_months": None}
     }
     
     # Get user and coach counts for each organization
