@@ -3115,6 +3115,7 @@ class SubscriptionUpdateRequest(BaseModel):
 async def get_subscription_details(request: Request):
     """Get detailed subscription information for the current user's organization.
     Returns tier, billing period, status, and Stripe details.
+    Checks both subscriptions collection AND organization document for legacy data.
     """
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Payment system not configured")
@@ -3128,58 +3129,100 @@ async def get_subscription_details(request: Request):
             return {"has_subscription": False, "tier": None, "status": None}
         
         org_id = user_doc.get("organization_id")
+        org = None
+        
         if not org_id:
             # Check if user owns an organization
             org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
             if org:
                 org_id = org.get("org_id")
+        else:
+            org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
         
         if not org_id:
             return {"has_subscription": False, "tier": None, "status": None}
         
-        # Find active subscription
+        # First, check subscriptions collection (for Stripe-managed subscriptions)
         subscription = await db.subscriptions.find_one(
             {"organization_id": org_id},
             {"_id": 0}
         )
         
-        if not subscription:
-            return {"has_subscription": False, "tier": None, "status": None}
+        if subscription and subscription.get("subscription_id"):
+            # Found Stripe subscription
+            billing_period = "monthly"
+            price_id = subscription.get("price_id")
+            tier_id = subscription.get("tier_id")
+            
+            # Match price_id to determine billing period
+            if price_id:
+                for t_id, t_info in STRIPE_PRODUCTS.items():
+                    if t_info["prices"]["annual"]["price_id"] == price_id:
+                        billing_period = "annual"
+                        tier_id = t_id
+                        break
+                    elif t_info["prices"]["monthly"]["price_id"] == price_id:
+                        billing_period = "monthly"
+                        tier_id = t_id
+                        break
+            
+            tier_name = STRIPE_PRODUCTS.get(tier_id, {}).get("name", tier_id)
+            
+            return {
+                "has_subscription": True,
+                "tier": tier_id,
+                "tier_name": tier_name,
+                "billing_period": billing_period,
+                "status": subscription.get("status", "active"),
+                "price_id": price_id,
+                "subscription_id": subscription.get("subscription_id"),
+                "customer_id": subscription.get("customer_id"),
+                "current_period_end": subscription.get("current_period_end"),
+                "cancel_at_period_end": subscription.get("cancel_at_period_end", False),
+                "coaches_limit": subscription.get("coaches_limit"),
+                "admins_limit": subscription.get("admins_limit"),
+                "is_stripe_managed": True
+            }
         
-        # Determine billing period from price_id
-        billing_period = "monthly"
-        price_id = subscription.get("price_id")
-        tier_id = subscription.get("tier_id")
+        # Check organization document for legacy/manual subscription data
+        if org:
+            tier_id = org.get("subscription_tier_id") or org.get("subscription_tier")
+            stripe_sub_id = org.get("stripe_subscription_id")
+            stripe_customer_id = org.get("stripe_customer_id")
+            
+            if tier_id:
+                # Normalize tier_id to lowercase
+                tier_id = tier_id.lower() if tier_id else None
+                
+                # Validate tier exists
+                if tier_id not in STRIPE_PRODUCTS:
+                    # Try to match by name
+                    for t_id, t_info in STRIPE_PRODUCTS.items():
+                        if t_info["name"].lower() == tier_id:
+                            tier_id = t_id
+                            break
+                
+                tier_info = STRIPE_PRODUCTS.get(tier_id, {})
+                tier_name = tier_info.get("name", tier_id.title() if tier_id else "Unknown")
+                
+                return {
+                    "has_subscription": True,
+                    "tier": tier_id,
+                    "tier_name": tier_name,
+                    "billing_period": org.get("billing_period", "monthly"),
+                    "status": "active",  # Legacy subscriptions assumed active
+                    "price_id": None,
+                    "subscription_id": stripe_sub_id,
+                    "customer_id": stripe_customer_id,
+                    "current_period_end": None,
+                    "cancel_at_period_end": False,
+                    "coaches_limit": tier_info.get("coaches", 50),
+                    "admins_limit": tier_info.get("admins", 10),
+                    "is_stripe_managed": bool(stripe_sub_id)
+                }
         
-        # Match price_id to determine billing period
-        if price_id:
-            for t_id, t_info in STRIPE_PRODUCTS.items():
-                if t_info["prices"]["annual"]["price_id"] == price_id:
-                    billing_period = "annual"
-                    tier_id = t_id
-                    break
-                elif t_info["prices"]["monthly"]["price_id"] == price_id:
-                    billing_period = "monthly"
-                    tier_id = t_id
-                    break
+        return {"has_subscription": False, "tier": None, "status": None}
         
-        # Get tier display name
-        tier_name = STRIPE_PRODUCTS.get(tier_id, {}).get("name", tier_id)
-        
-        return {
-            "has_subscription": True,
-            "tier": tier_id,
-            "tier_name": tier_name,
-            "billing_period": billing_period,
-            "status": subscription.get("status", "unknown"),
-            "price_id": price_id,
-            "subscription_id": subscription.get("subscription_id"),
-            "customer_id": subscription.get("customer_id"),
-            "current_period_end": subscription.get("current_period_end"),
-            "cancel_at_period_end": subscription.get("cancel_at_period_end", False),
-            "coaches_limit": subscription.get("coaches_limit"),
-            "admins_limit": subscription.get("admins_limit")
-        }
     except Exception as e:
         logger.error(f"Error fetching subscription details: {e}")
         return {"has_subscription": False, "tier": None, "status": None, "error": str(e)}
