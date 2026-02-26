@@ -501,7 +501,7 @@ async def signup_paid(signup_data: PaidSignupRequest, response: Response):
         tier_limits = {
             "individual": {"coaches": 5, "admins": 1},
             "developer": {"coaches": 10, "admins": 1},
-            "club": {"coaches": 50, "admins": 10}
+            "club": {"coaches": 30, "admins": 5}
         }
         limits = tier_limits.get(tier_id, tier_limits["individual"])
         
