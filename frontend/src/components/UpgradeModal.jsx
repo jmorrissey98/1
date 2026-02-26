@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, Loader2, Check, X, ExternalLink, ArrowRight, AlertCircle } from 'lucide-react';
+import { Star, Loader2, Check, ExternalLink, ArrowRight, ArrowDown, ArrowUp, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from './ui/card';
@@ -9,6 +9,9 @@ import { toast } from 'sonner';
 import { safeGet, safePost } from '../lib/safeFetch';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+// Tier order for determining upgrade vs downgrade (index = rank)
+const TIER_RANK = { 'individual': 0, 'developer': 1, 'club': 2 };
 
 const PRICING_TIERS = [
   {
@@ -91,6 +94,38 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
     }
   };
 
+  const isUpgrade = (fromTier, toTier) => {
+    const fromRank = TIER_RANK[fromTier] ?? -1;
+    const toRank = TIER_RANK[toTier] ?? -1;
+    return toRank > fromRank;
+  };
+
+  const isDowngrade = (fromTier, toTier) => {
+    const fromRank = TIER_RANK[fromTier] ?? -1;
+    const toRank = TIER_RANK[toTier] ?? -1;
+    return toRank < fromRank;
+  };
+
+  const getDowngradeWarnings = (fromTier, toTier) => {
+    const fromInfo = PRICING_TIERS.find(t => t.id === fromTier);
+    const toInfo = PRICING_TIERS.find(t => t.id === toTier);
+    if (!fromInfo || !toInfo) return [];
+    
+    const warnings = [];
+    
+    if (toInfo.coaches < fromInfo.coaches) {
+      warnings.push(`Coach limit reduces from ${fromInfo.coaches} to ${toInfo.coaches}`);
+    }
+    if (toInfo.admins < fromInfo.admins) {
+      warnings.push(`Admin limit reduces from ${fromInfo.admins} to ${toInfo.admins}`);
+    }
+    if (toInfo.dataRetention !== fromInfo.dataRetention && toInfo.dataRetention !== 'Unlimited') {
+      warnings.push(`Data retention changes to ${toInfo.dataRetention}`);
+    }
+    
+    return warnings;
+  };
+
   const handleTierClick = (tier) => {
     const currentTier = currentSubscription?.tier;
     const currentBillingPeriod = currentSubscription?.billing_period;
@@ -98,13 +133,16 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
     
     // Check if this is the exact same plan (same tier AND billing period)
     const isSamePlan = tier.id === currentTier && newBillingPeriod === currentBillingPeriod;
+    const isSameTierDifferentBilling = tier.id === currentTier && newBillingPeriod !== currentBillingPeriod;
     
     if (isSamePlan) {
-      // Same plan - show manage billing option
-      setSelectedTier({ ...tier, action: 'manage' });
+      // Same plan - go to billing portal
+      handleManageBilling();
     } else if (currentSubscription?.has_subscription) {
-      // Different plan with existing subscription - show confirmation
-      setSelectedTier({ ...tier, action: 'change' });
+      // Different plan or different billing - show confirmation
+      const action = isSameTierDifferentBilling ? 'billing_change' : 
+                     isUpgrade(currentTier, tier.id) ? 'upgrade' : 'downgrade';
+      setSelectedTier({ ...tier, action });
       setShowConfirmation(true);
     } else {
       // No subscription - go to checkout
@@ -134,30 +172,27 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
     }
   };
 
-  const handleUpdateSubscription = async () => {
+  const handlePlanChange = async () => {
     if (!selectedTier) return;
     
+    // For plan changes, redirect to Stripe checkout to handle it properly
+    // This ensures Stripe handles proration and payment collection
     setLoadingTier(selectedTier.id);
     
     try {
-      const result = await safePost(`${API_URL}/api/payments/update-subscription`, {
+      const result = await safePost(`${API_URL}/api/payments/checkout`, {
         tier_id: selectedTier.id,
-        billing_period: isAnnual ? 'annual' : 'monthly'
+        billing_period: isAnnual ? 'annual' : 'monthly',
+        origin_url: window.location.origin + '/settings'
       });
       
-      if (result.ok && result.data?.success) {
-        toast.success(`Plan updated to ${selectedTier.name}!`);
-        setShowConfirmation(false);
-        onOpenChange(false);
-        // Trigger refresh of subscription data
-        if (onSubscriptionChange) {
-          onSubscriptionChange();
-        }
+      if (result.ok && (result.data?.url || result.data?.checkout_url)) {
+        window.location.href = result.data.url || result.data.checkout_url;
       } else {
-        toast.error(result.data?.detail || 'Failed to update subscription');
+        toast.error(result.data?.detail || 'Failed to process change');
       }
     } catch (err) {
-      toast.error('Failed to update subscription');
+      toast.error('Failed to process plan change');
     } finally {
       setLoadingTier(null);
     }
@@ -219,24 +254,73 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
     }
   };
 
+  const getButtonLabel = (tier) => {
+    if (!currentSubscription?.has_subscription) {
+      return 'Select Plan';
+    }
+    
+    const currentTier = currentSubscription.tier;
+    const currentBillingPeriod = currentSubscription.billing_period;
+    const newBillingPeriod = isAnnual ? 'annual' : 'monthly';
+    
+    if (tier.id === currentTier && newBillingPeriod === currentBillingPeriod) {
+      return 'Manage Billing';
+    }
+    
+    if (tier.id === currentTier) {
+      return newBillingPeriod === 'annual' ? 'Switch to Annual' : 'Switch to Monthly';
+    }
+    
+    if (isUpgrade(currentTier, tier.id)) {
+      return 'Upgrade';
+    }
+    
+    return 'Downgrade';
+  };
+
+  const getButtonStyle = (tier) => {
+    if (!currentSubscription?.has_subscription) {
+      return tier.popular ? 'bg-blue-500 hover:bg-blue-600' : 'bg-slate-900 hover:bg-slate-800';
+    }
+    
+    const currentTier = currentSubscription.tier;
+    const currentBillingPeriod = currentSubscription.billing_period;
+    const newBillingPeriod = isAnnual ? 'annual' : 'monthly';
+    
+    if (tier.id === currentTier && newBillingPeriod === currentBillingPeriod) {
+      return 'bg-emerald-600 hover:bg-emerald-700';
+    }
+    
+    if (isUpgrade(currentTier, tier.id)) {
+      return 'bg-green-600 hover:bg-green-700';
+    }
+    
+    if (isDowngrade(currentTier, tier.id)) {
+      return 'bg-orange-500 hover:bg-orange-600';
+    }
+    
+    return 'bg-blue-500 hover:bg-blue-600';
+  };
+
   // Confirmation dialog for plan changes
   if (showConfirmation && selectedTier) {
     const currentTierInfo = getCurrentTierInfo();
     const newPrice = isAnnual ? selectedTier.annualPrice : selectedTier.monthlyPrice;
-    const currentPrice = currentTierInfo 
-      ? (currentSubscription?.billing_period === 'annual' ? currentTierInfo.annualPrice : currentTierInfo.monthlyPrice)
-      : 0;
-    const isUpgrade = newPrice > currentPrice;
+    const isUpgradeAction = selectedTier.action === 'upgrade';
+    const isDowngradeAction = selectedTier.action === 'downgrade';
+    const downgradeWarnings = isDowngradeAction ? getDowngradeWarnings(currentSubscription.tier, selectedTier.id) : [];
     
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              Confirm Plan {isUpgrade ? 'Upgrade' : 'Change'}
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              {isUpgradeAction && <ArrowUp className="w-5 h-5 text-green-600" />}
+              {isDowngradeAction && <ArrowDown className="w-5 h-5 text-orange-600" />}
+              Confirm Plan {isUpgradeAction ? 'Upgrade' : isDowngradeAction ? 'Downgrade' : 'Change'}
             </DialogTitle>
             <DialogDescription>
-              Review your plan change before confirming
+              Review your plan change before proceeding to payment
             </DialogDescription>
           </DialogHeader>
           
@@ -252,19 +336,22 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
               </p>
               {currentTierInfo && (
                 <p className="text-sm text-slate-600">
-                  £{currentSubscription?.billing_period === 'annual' ? currentTierInfo.annualPrice : currentTierInfo.monthlyPrice}
-                  /{currentSubscription?.billing_period === 'annual' ? 'year' : 'month'}
+                  {currentTierInfo.coaches} coaches, {currentTierInfo.admins} admin(s)
                 </p>
               )}
             </div>
             
             {/* Arrow */}
             <div className="flex justify-center">
-              <ArrowRight className="w-5 h-5 text-slate-400" />
+              {isUpgradeAction ? (
+                <ArrowUp className="w-5 h-5 text-green-600" />
+              ) : (
+                <ArrowDown className="w-5 h-5 text-orange-600" />
+              )}
             </div>
             
             {/* New Plan */}
-            <div className={`p-4 rounded-lg ${isUpgrade ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+            <div className={`p-4 rounded-lg ${isUpgradeAction ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
               <p className="text-xs text-slate-500 uppercase font-medium mb-1">New Plan</p>
               <p className="font-semibold text-slate-900">
                 {selectedTier.name}
@@ -273,18 +360,35 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                 </span>
               </p>
               <p className="text-sm text-slate-600">
-                £{newPrice}/{isAnnual ? 'year' : 'month'}
+                £{newPrice}/{isAnnual ? 'year' : 'month'} • {selectedTier.coaches} coaches, {selectedTier.admins} admin(s)
               </p>
             </div>
             
+            {/* Downgrade Warnings */}
+            {isDowngradeAction && downgradeWarnings.length > 0 && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-red-800 mb-2">What you'll lose:</p>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {downgradeWarnings.map((warning, idx) => (
+                        <li key={idx}>• {warning}</li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-red-600 mt-2">
+                      If you have more coaches/admins than the new limit allows, some may lose access.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Proration Note */}
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
                 <AlertCircle className="w-4 h-4 inline mr-1" />
-                Stripe will calculate any billing adjustment automatically. 
-                {isUpgrade 
-                  ? " You'll be charged the prorated difference." 
-                  : " You may receive a credit for unused time."}
+                You'll be redirected to Stripe to confirm the change and handle any billing adjustments.
               </p>
             </div>
           </div>
@@ -298,9 +402,9 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
               Cancel
             </Button>
             <Button 
-              onClick={handleUpdateSubscription}
+              onClick={handlePlanChange}
               disabled={loadingTier !== null}
-              className={isUpgrade ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}
+              className={isUpgradeAction ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-500 hover:bg-orange-600'}
             >
               {loadingTier === selectedTier.id ? (
                 <>
@@ -308,7 +412,10 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                   Processing...
                 </>
               ) : (
-                `Confirm ${isUpgrade ? 'Upgrade' : 'Change'}`
+                <>
+                  Continue to Stripe
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -366,12 +473,14 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                 const currentBillingPeriod = currentSubscription?.billing_period;
                 const selectedBillingPeriod = isAnnual ? 'annual' : 'monthly';
                 const isExactCurrentPlan = isCurrentTier && currentBillingPeriod === selectedBillingPeriod;
+                const buttonLabel = getButtonLabel(tier);
+                const buttonStyle = getButtonStyle(tier);
                 
                 return (
                   <Card 
                     key={tier.id} 
                     className={`relative transition-all ${
-                      tier.popular ? 'border-2 border-blue-500 shadow-lg' : 'border-slate-200'
+                      tier.popular && !isCurrentTier ? 'border-2 border-blue-500 shadow-lg' : 'border-slate-200'
                     } ${
                       isCurrentTier ? 'ring-2 ring-emerald-500 ring-offset-2' : ''
                     }`}
@@ -426,57 +535,36 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                       </div>
                     </CardContent>
                     <CardFooter className="pt-2 flex flex-col gap-2">
-                      {isExactCurrentPlan ? (
-                        <>
-                          <Button 
-                            className="w-full bg-emerald-600 hover:bg-emerald-700"
-                            onClick={handleManageBilling}
-                            disabled={loadingBillingPortal}
-                            data-testid={`manage-billing-${tier.id}`}
-                          >
-                            {loadingBillingPortal ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                Loading...
-                              </>
-                            ) : (
-                              <>
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                Manage Billing
-                              </>
-                            )}
-                          </Button>
-                          <Button 
-                            variant="ghost"
-                            className="w-full text-slate-500"
-                            onClick={() => onOpenChange(false)}
-                          >
-                            Keep Current Plan
-                          </Button>
-                        </>
-                      ) : (
-                        <Button 
-                          className={`w-full ${
-                            tier.popular 
-                              ? 'bg-blue-500 hover:bg-blue-600' 
-                              : 'bg-slate-900 hover:bg-slate-800'
-                          }`}
-                          onClick={() => handleTierClick(tier)}
-                          disabled={loadingTier !== null}
-                          data-testid={`upgrade-select-${tier.id}`}
-                        >
-                          {loadingTier === tier.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                              Processing...
-                            </>
-                          ) : currentSubscription?.has_subscription ? (
-                            isCurrentTier ? 'Switch Billing' : 'Select Plan'
-                          ) : (
-                            'Select Plan'
-                          )}
-                        </Button>
-                      )}
+                      <Button 
+                        className={`w-full ${buttonStyle}`}
+                        onClick={() => handleTierClick(tier)}
+                        disabled={loadingTier !== null || loadingBillingPortal}
+                        data-testid={`plan-btn-${tier.id}`}
+                      >
+                        {loadingTier === tier.id || (isExactCurrentPlan && loadingBillingPortal) ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Loading...
+                          </>
+                        ) : isExactCurrentPlan ? (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            {buttonLabel}
+                          </>
+                        ) : buttonLabel === 'Upgrade' ? (
+                          <>
+                            <ArrowUp className="w-4 h-4 mr-2" />
+                            {buttonLabel}
+                          </>
+                        ) : buttonLabel === 'Downgrade' ? (
+                          <>
+                            <ArrowDown className="w-4 h-4 mr-2" />
+                            {buttonLabel}
+                          </>
+                        ) : (
+                          buttonLabel
+                        )}
+                      </Button>
                     </CardFooter>
                   </Card>
                 );
