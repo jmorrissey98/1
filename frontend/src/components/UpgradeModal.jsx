@@ -396,7 +396,7 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
                 <AlertCircle className="w-4 h-4 inline mr-1" />
-                You'll be redirected to Stripe to confirm the change and handle any billing adjustments.
+                Your subscription will be updated immediately. Any billing adjustments will be prorated.
               </p>
             </div>
           </div>
@@ -421,8 +421,8 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                 </>
               ) : (
                 <>
-                  Continue to Stripe
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <Check className="w-4 h-4 mr-2" />
+                  Confirm Change
                 </>
               )}
             </Button>
