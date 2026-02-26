@@ -2829,45 +2829,56 @@ async def admin_get_subscription_tiers(request: Request):
     """Get all subscription tiers with their limits (Admin only)"""
     await require_admin(request)
     
-    # Get tiers from database or return defaults
-    tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
+    # Default tiers - always return all three
+    default_tiers = [
+        {
+            "tier_id": "individual",
+            "name": "Individual",
+            "monthly_price": 20,
+            "annual_price": 200,
+            "coaches_limit": 5,
+            "admins_limit": 1,
+            "data_retention_months": 3,
+            "description": "For individual coach developers"
+        },
+        {
+            "tier_id": "developer",
+            "name": "Developer",
+            "monthly_price": 35,
+            "annual_price": 350,
+            "coaches_limit": 10,
+            "admins_limit": 1,
+            "data_retention_months": None,  # Unlimited
+            "description": "For growing teams"
+        },
+        {
+            "tier_id": "club",
+            "name": "Club",
+            "monthly_price": 60,
+            "annual_price": 600,
+            "coaches_limit": 30,
+            "admins_limit": 5,
+            "data_retention_months": None,  # Unlimited
+            "description": "For organizations"
+        }
+    ]
     
-    if not tiers:
-        # Return default tiers if none exist in DB
-        tiers = [
-            {
-                "tier_id": "individual",
-                "name": "Individual",
-                "monthly_price": 20,
-                "annual_price": 200,
-                "coaches_limit": 5,
-                "admins_limit": 1,
-                "data_retention_months": 3,
-                "description": "For individual coach developers"
-            },
-            {
-                "tier_id": "developer",
-                "name": "Developer",
-                "monthly_price": 35,
-                "annual_price": 350,
-                "coaches_limit": 10,
-                "admins_limit": 1,
-                "data_retention_months": None,  # Unlimited
-                "description": "For growing teams"
-            },
-            {
-                "tier_id": "club",
-                "name": "Club",
-                "monthly_price": 60,
-                "annual_price": 600,
-                "coaches_limit": 50,
-                "admins_limit": 10,
-                "data_retention_months": None,  # Unlimited
-                "description": "For organizations"
-            }
-        ]
+    # Get tiers from database
+    db_tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
+    db_tier_map = {t["tier_id"]: t for t in db_tiers} if db_tiers else {}
     
-    return tiers
+    # Merge DB values with defaults (DB values override defaults)
+    result = []
+    for default_tier in default_tiers:
+        tier_id = default_tier["tier_id"]
+        if tier_id in db_tier_map:
+            # Merge: start with default, update with DB values
+            merged_tier = {**default_tier, **db_tier_map[tier_id]}
+            result.append(merged_tier)
+        else:
+            result.append(default_tier)
+    
+    return result
 
 
 @api_router.put("/admin/subscription-tiers/{tier_id}")
