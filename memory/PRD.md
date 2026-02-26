@@ -576,10 +576,16 @@
 ### Bug Fixes
 1. **Subscription Update Bug (P0 - FIXED)** - Upgrading/downgrading plans was creating duplicate Stripe subscriptions instead of modifying existing ones. Fixed by changing frontend `UpgradeModal.jsx` to call `/api/payments/update-subscription` instead of `/api/payments/checkout` for plan changes.
 
-2. **401 Unauthorized Bug (P0 - FIXED)** - Coach profile pages returned 401 errors when navigating between views. Fixed by adding `getAxiosConfig()` helper function to include `Authorization: Bearer` header in all axios calls across:
+2. **401 Unauthorized Bug (P0 - FIXED)** - Coach profile pages and exit-impersonation returned 401 errors when navigating between views. Fixed by adding `getAxiosConfig()` helper function to include `Authorization: Bearer` header in all axios/fetch calls across:
    - `/app/frontend/src/pages/CoachProfile.jsx`
    - `/app/frontend/src/components/coach/CoachNotes.jsx`
    - `/app/frontend/src/pages/ReviewSession.jsx`
+   - `/app/frontend/src/components/AppHeader.jsx` (exit-impersonation)
+   - `/app/frontend/src/lib/offlineSync.js`
+
+3. **Exit Impersonation 401 Bug (P0 - FIXED)** - Admin users were getting logged out when exiting impersonation mode. Fixed by:
+   - Updating frontend `AppHeader.jsx` to include Authorization header in exit-impersonation API call
+   - Updating backend `server.py` to accept Authorization header for both `/api/admin/impersonate/{user_id}` and `/api/admin/exit-impersonation` endpoints
 
 ### Files Modified
 - `/app/frontend/src/components/UpgradeModal.jsx` - `handlePlanChange()` now uses update endpoint
