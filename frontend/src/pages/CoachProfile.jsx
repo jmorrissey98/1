@@ -33,6 +33,15 @@ import { getAuthToken } from '../lib/safeFetch';
 
 const API = '/api';
 
+// Helper to get axios config with auth headers
+const getAxiosConfig = () => {
+  const token = getAuthToken();
+  return {
+    withCredentials: true,
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+  };
+};
+
 // Color palette for charts
 const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
 
