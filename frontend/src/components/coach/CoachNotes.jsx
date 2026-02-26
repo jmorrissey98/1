@@ -69,7 +69,7 @@ export default function CoachNotes({
   const loadNotes = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API}/coaches/${coachId}/notes`, { withCredentials: true });
+      const response = await axios.get(`${API}/coaches/${coachId}/notes`, getAxiosConfig());
       setNotes(response.data || []);
     } catch (err) {
       console.error('Failed to load notes:', err);
