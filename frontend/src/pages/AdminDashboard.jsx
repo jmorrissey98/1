@@ -495,6 +495,10 @@ export default function AdminDashboard() {
               <CreditCard className="w-4 h-4 mr-2" />
               Subscription Tiers
             </TabsTrigger>
+            <TabsTrigger value="cleanup" data-testid="tab-cleanup">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Data Cleanup
+            </TabsTrigger>
           </TabsList>
 
           {/* Organizations Tab */}
