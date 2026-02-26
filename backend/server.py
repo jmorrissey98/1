@@ -3107,6 +3107,196 @@ class CheckoutRequest(BaseModel):
     origin_url: str
     coupon_code: Optional[str] = None  # Optional discount/promotion code
 
+class SubscriptionUpdateRequest(BaseModel):
+    tier_id: str
+    billing_period: str  # "monthly" or "annual"
+
+@api_router.get("/payments/subscription-details")
+async def get_subscription_details(request: Request):
+    """Get detailed subscription information for the current user's organization.
+    Returns tier, billing period, status, and Stripe details.
+    """
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    user = await require_coach_developer(request)
+    
+    try:
+        # Get user's organization
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+        if not user_doc:
+            return {"has_subscription": False, "tier": None, "status": None}
+        
+        org_id = user_doc.get("organization_id")
+        if not org_id:
+            # Check if user owns an organization
+            org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+            if org:
+                org_id = org.get("org_id")
+        
+        if not org_id:
+            return {"has_subscription": False, "tier": None, "status": None}
+        
+        # Find active subscription
+        subscription = await db.subscriptions.find_one(
+            {"organization_id": org_id},
+            {"_id": 0}
+        )
+        
+        if not subscription:
+            return {"has_subscription": False, "tier": None, "status": None}
+        
+        # Determine billing period from price_id
+        billing_period = "monthly"
+        price_id = subscription.get("price_id")
+        tier_id = subscription.get("tier_id")
+        
+        # Match price_id to determine billing period
+        if price_id:
+            for t_id, t_info in STRIPE_PRODUCTS.items():
+                if t_info["prices"]["annual"]["price_id"] == price_id:
+                    billing_period = "annual"
+                    tier_id = t_id
+                    break
+                elif t_info["prices"]["monthly"]["price_id"] == price_id:
+                    billing_period = "monthly"
+                    tier_id = t_id
+                    break
+        
+        # Get tier display name
+        tier_name = STRIPE_PRODUCTS.get(tier_id, {}).get("name", tier_id)
+        
+        return {
+            "has_subscription": True,
+            "tier": tier_id,
+            "tier_name": tier_name,
+            "billing_period": billing_period,
+            "status": subscription.get("status", "unknown"),
+            "price_id": price_id,
+            "subscription_id": subscription.get("subscription_id"),
+            "customer_id": subscription.get("customer_id"),
+            "current_period_end": subscription.get("current_period_end"),
+            "cancel_at_period_end": subscription.get("cancel_at_period_end", False),
+            "coaches_limit": subscription.get("coaches_limit"),
+            "admins_limit": subscription.get("admins_limit")
+        }
+    except Exception as e:
+        logger.error(f"Error fetching subscription details: {e}")
+        return {"has_subscription": False, "tier": None, "status": None, "error": str(e)}
+
+@api_router.post("/payments/update-subscription")
+async def update_subscription(data: SubscriptionUpdateRequest, request: Request):
+    """Update an existing subscription to a different plan.
+    Does NOT create a new subscription - updates the existing one.
+    """
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+    
+    # Validate tier
+    if data.tier_id not in STRIPE_PRODUCTS:
+        raise HTTPException(status_code=400, detail="Invalid pricing tier")
+    
+    # Validate billing period
+    if data.billing_period not in ["monthly", "annual"]:
+        raise HTTPException(status_code=400, detail="Invalid billing period")
+    
+    user = await require_coach_developer(request)
+    
+    try:
+        # Get user's organization
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        org_id = user_doc.get("organization_id")
+        if not org_id:
+            org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+            if org:
+                org_id = org.get("org_id")
+        
+        if not org_id:
+            raise HTTPException(status_code=400, detail="No organization found")
+        
+        # Find existing subscription
+        subscription = await db.subscriptions.find_one(
+            {"organization_id": org_id, "status": {"$in": ["active", "trialing", "past_due"]}},
+            {"_id": 0}
+        )
+        
+        if not subscription or not subscription.get("subscription_id"):
+            raise HTTPException(
+                status_code=400, 
+                detail="No active subscription to update. Please create a new subscription."
+            )
+        
+        stripe_subscription_id = subscription.get("subscription_id")
+        
+        # Get the new price ID
+        new_price_id = STRIPE_PRODUCTS[data.tier_id]["prices"][data.billing_period]["price_id"]
+        
+        # Retrieve the current subscription from Stripe
+        stripe_sub = stripe.Subscription.retrieve(stripe_subscription_id)
+        
+        # Get the subscription item ID (for updating)
+        if not stripe_sub.get("items") or not stripe_sub["items"].get("data"):
+            raise HTTPException(status_code=400, detail="Invalid subscription structure")
+        
+        subscription_item_id = stripe_sub["items"]["data"][0]["id"]
+        
+        # Update the subscription with the new price
+        # This handles proration automatically
+        updated_sub = stripe.Subscription.modify(
+            stripe_subscription_id,
+            items=[{
+                "id": subscription_item_id,
+                "price": new_price_id
+            }],
+            proration_behavior="create_prorations"  # Stripe handles proration
+        )
+        
+        # Get tier limits
+        tier_info = STRIPE_PRODUCTS[data.tier_id]
+        
+        # Update our database record
+        await db.subscriptions.update_one(
+            {"subscription_id": stripe_subscription_id},
+            {"$set": {
+                "tier_id": data.tier_id,
+                "tier_name": tier_info["name"],
+                "price_id": new_price_id,
+                "billing_period": data.billing_period,
+                "coaches_limit": tier_info["coaches"],
+                "admins_limit": tier_info["admins"],
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Also update organization's subscription_tier
+        await db.organizations.update_one(
+            {"org_id": org_id},
+            {"$set": {
+                "subscription_tier": data.tier_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"Subscription {stripe_subscription_id} updated to {data.tier_id} ({data.billing_period})")
+        
+        return {
+            "success": True,
+            "message": f"Subscription updated to {tier_info['name']} ({data.billing_period})",
+            "tier": data.tier_id,
+            "billing_period": data.billing_period,
+            "subscription_id": stripe_subscription_id
+        }
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error updating subscription: {e}")
+        raise HTTPException(status_code=400, detail=str(e.user_message or e))
+    except Exception as e:
+        logger.error(f"Error updating subscription: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update subscription")
+
 @api_router.post("/payments/checkout")
 async def create_checkout_session(data: CheckoutRequest, request: Request):
     """Create a Stripe checkout session for subscription"""
