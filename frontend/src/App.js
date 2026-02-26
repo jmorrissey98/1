@@ -308,8 +308,22 @@ function App() {
     // Listen for SW messages
     const handleSWMessage = (event) => {
       if (event.data && event.data.type === 'SW_UPDATED') {
-        console.log('[MCD] Service worker updated to version:', event.data.version);
-        setShowUpdate(true);
+        const newVersion = event.data.version;
+        const storedVersion = localStorage.getItem('mcd_sw_version');
+        
+        console.log('[MCD] SW version check - stored:', storedVersion, 'new:', newVersion);
+        
+        // Only show update banner if version actually changed
+        if (storedVersion && storedVersion !== newVersion) {
+          console.log('[MCD] New version detected, showing update banner');
+          setShowUpdate(true);
+        } else if (!storedVersion) {
+          // First visit - just store the version, don't show banner
+          console.log('[MCD] First visit, storing version');
+        }
+        
+        // Always update stored version
+        localStorage.setItem('mcd_sw_version', newVersion);
       }
     };
 
