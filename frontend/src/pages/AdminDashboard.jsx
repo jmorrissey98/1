@@ -144,6 +144,82 @@ export default function AdminDashboard() {
     loadData();
   }, [showArchived]);
 
+  // Cleanup user by email
+  const handleCleanupUser = async () => {
+    if (!cleanupEmail.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+    
+    setCleanupLoading(true);
+    setCleanupResult(null);
+    
+    try {
+      const result = await safePost(`${API_URL}/api/admin/cleanup/user-by-email`, {
+        email: cleanupEmail.trim()
+      }, { method: 'DELETE' });
+      
+      if (result.ok) {
+        setCleanupResult(result.data);
+        if (result.data.user_deleted || result.data.coaches_deleted > 0) {
+          toast.success(`Successfully cleaned up data for ${cleanupEmail}`);
+        } else {
+          toast.info(`No data found for ${cleanupEmail}`);
+        }
+        setCleanupEmail('');
+      } else {
+        toast.error(result.data?.detail || 'Cleanup failed');
+      }
+    } catch (err) {
+      toast.error('Failed to cleanup user data');
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
+  // Find orphaned coaches
+  const handleFindOrphaned = async () => {
+    setLoadingOrphaned(true);
+    setOrphanedCoaches(null);
+    
+    try {
+      const result = await safeGet(`${API_URL}/api/admin/cleanup/orphaned-coaches`);
+      if (result.ok) {
+        setOrphanedCoaches(result.data);
+      } else {
+        toast.error(result.data?.detail || 'Failed to find orphaned coaches');
+      }
+    } catch (err) {
+      toast.error('Failed to check for orphaned coaches');
+    } finally {
+      setLoadingOrphaned(false);
+    }
+  };
+
+  // Delete all orphaned coaches
+  const handleDeleteOrphaned = async () => {
+    if (!orphanedCoaches || orphanedCoaches.orphaned_count === 0) {
+      toast.info('No orphaned coaches to delete');
+      return;
+    }
+    
+    setLoadingOrphaned(true);
+    
+    try {
+      const result = await safePost(`${API_URL}/api/admin/cleanup/orphaned-coaches`, {});
+      if (result.ok) {
+        toast.success(`Deleted ${result.data.deleted_count} orphaned coach profiles`);
+        setOrphanedCoaches(null);
+      } else {
+        toast.error(result.data?.detail || 'Failed to delete orphaned coaches');
+      }
+    } catch (err) {
+      toast.error('Failed to delete orphaned coaches');
+    } finally {
+      setLoadingOrphaned(false);
+    }
+  };
+
   // Archive/Reinstate organization
   const handleArchiveOrg = async (orgId, isArchived) => {
     setArchivingOrg(orgId);
