@@ -165,8 +165,8 @@ async def get_organization_subscription(request: Request):
             return {
                 "tier": org.get("subscription_tier_id"),
                 "is_bootstrapped": False,
-                "coaches_limit": {"individual": 5, "developer": 10, "club": 50}.get(org.get("subscription_tier_id"), 5),
-                "admins_limit": {"individual": 1, "developer": 1, "club": 10}.get(org.get("subscription_tier_id"), 1)
+                "coaches_limit": {"individual": 5, "developer": 10, "club": 30}.get(org.get("subscription_tier_id"), 5),
+                "admins_limit": {"individual": 1, "developer": 1, "club": 5}.get(org.get("subscription_tier_id"), 1)
             }
     
     if subscription:
