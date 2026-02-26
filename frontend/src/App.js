@@ -345,8 +345,15 @@ function App() {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
     }
+    // Clear the update banner state
+    setShowUpdate(false);
     // Hard reload to get fresh content
     window.location.reload(true);
+  };
+
+  const dismissUpdate = () => {
+    // Just hide the banner without refreshing
+    setShowUpdate(false);
   };
 
   return (
