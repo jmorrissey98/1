@@ -386,7 +386,7 @@ function App() {
         </AuthProvider>
       </BrowserRouter>
       <Toaster position="bottom-left" richColors closeButton />
-      {showUpdate && <UpdateNotification onRefresh={handleRefresh} />}
+      {showUpdate && <UpdateNotification onRefresh={handleRefresh} onDismiss={dismissUpdate} />}
     </div>
   );
 }
