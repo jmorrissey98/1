@@ -541,7 +541,7 @@ export default function CoachProfile() {
         coach_name: coach.name,
         sessions_data: sessionsData,
         current_targets: (coach.targets || []).filter(t => t.status === 'active').map(t => t.text)
-      });
+      }, getAxiosConfig());
       
       const updated = {
         ...coach,
