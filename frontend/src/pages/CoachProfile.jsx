@@ -29,6 +29,7 @@ import { useUpgrade } from '../contexts/UpgradeContext';
 import { SessionFilters, applySessionFilters, calculateFilteredAnalytics } from '../components/SessionFilters';
 import CoachNotes from '../components/coach/CoachNotes';
 import axios from 'axios';
+import { getAuthToken } from '../lib/safeFetch';
 
 const API = '/api';
 
