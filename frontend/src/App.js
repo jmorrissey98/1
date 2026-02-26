@@ -280,7 +280,7 @@ function ExitImpersonationHandler() {
 }
 
 // Update notification component
-function UpdateNotification({ onRefresh }) {
+function UpdateNotification({ onRefresh, onDismiss }) {
   return (
     <div className="fixed bottom-20 right-4 z-50 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right">
       <RefreshCw className="w-5 h-5" />
@@ -290,6 +290,13 @@ function UpdateNotification({ onRefresh }) {
         className="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-blue-50"
       >
         Refresh
+      </button>
+      <button 
+        onClick={onDismiss}
+        className="text-white/70 hover:text-white text-lg leading-none px-1"
+        aria-label="Dismiss"
+      >
+        ×
       </button>
     </div>
   );
