@@ -505,7 +505,7 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
 
             {/* Pricing Cards */}
             <div className="grid md:grid-cols-3 gap-4 p-2">
-              {PRICING_TIERS.map((tier) => {
+              {pricingTiers.map((tier) => {
                 const isCurrentTier = tier.id === currentSubscription?.tier;
                 const currentBillingPeriod = currentSubscription?.billing_period;
                 const selectedBillingPeriod = isAnnual ? 'annual' : 'monthly';
