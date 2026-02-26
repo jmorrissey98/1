@@ -340,9 +340,11 @@ export default function CoachProfile() {
       const formData = new FormData();
       formData.append('file', file);
       
+      const token = getAuthToken();
       const response = await fetch(`${API}/upload`, {
         method: 'POST',
         credentials: 'include',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       });
       
