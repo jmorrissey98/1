@@ -92,6 +92,11 @@ export default function AdminDashboard() {
   const [cleanupResult, setCleanupResult] = useState(null);
   const [orphanedCoaches, setOrphanedCoaches] = useState(null);
   const [loadingOrphaned, setLoadingOrphaned] = useState(false);
+  
+  // Orphaned users states
+  const [orphanedUsers, setOrphanedUsers] = useState(null);
+  const [loadingOrphanedUsers, setLoadingOrphanedUsers] = useState(false);
+  const [fixingUser, setFixingUser] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
