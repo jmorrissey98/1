@@ -59,9 +59,37 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
   // Current subscription state
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [selectedTier, setSelectedTier] = useState(null);
+  const [pricingTiers, setPricingTiers] = useState(DEFAULT_PRICING_TIERS);
   
   // Confirmation step state
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Fetch pricing tiers from API
+  useEffect(() => {
+    const fetchPricingTiers = async () => {
+      try {
+        const result = await safeGet(`${API_URL}/api/pricing/tiers`);
+        if (result.ok && result.data) {
+          // Transform API data to match frontend format
+          const transformedTiers = result.data.map(tier => ({
+            id: tier.tier_id,
+            name: tier.name,
+            subtitle: tier.subtitle || (tier.tier_id === 'individual' ? 'The Solo Developer' : tier.tier_id === 'developer' ? 'The Growth Specialist' : 'The Organization'),
+            monthlyPrice: tier.monthly_price,
+            annualPrice: tier.annual_price,
+            coaches: tier.coaches_limit,
+            admins: tier.admins_limit,
+            dataRetention: tier.data_retention_months ? `${tier.data_retention_months} months` : 'Unlimited',
+            popular: tier.tier_id === 'developer'
+          }));
+          setPricingTiers(transformedTiers);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pricing tiers:', err);
+      }
+    };
+    fetchPricingTiers();
+  }, []);
 
   // Fetch current subscription when modal opens
   useEffect(() => {
