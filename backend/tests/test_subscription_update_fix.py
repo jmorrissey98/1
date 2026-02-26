@@ -195,7 +195,7 @@ class TestPaymentEndpoints:
     def auth_token(self, session, admin_credentials):
         """Get authentication token via login"""
         response = session.post(
-            f"{BASE_URL}/api/auth/email-login",
+            f"{BASE_URL}/api/auth/login",
             json=admin_credentials
         )
         
