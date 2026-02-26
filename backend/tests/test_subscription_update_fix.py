@@ -236,9 +236,10 @@ class TestPaymentEndpoints:
         assert "has_subscription" in data, "Response should have 'has_subscription' field"
         print(f"subscription-details response: has_subscription={data.get('has_subscription')}, tier={data.get('tier')}")
     
-    def test_subscription_details_without_auth_returns_401(self, session):
+    def test_subscription_details_without_auth_returns_401(self):
         """Test that /api/payments/subscription-details without auth returns 401"""
-        response = session.get(f"{BASE_URL}/api/payments/subscription-details")
+        # Use a fresh request without any cookies
+        response = requests.get(f"{BASE_URL}/api/payments/subscription-details")
         
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         print("subscription-details correctly returns 401 without auth")
