@@ -3336,6 +3336,9 @@ async def update_subscription(data: SubscriptionUpdateRequest, request: Request)
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error updating subscription: {e}")
         raise HTTPException(status_code=400, detail=str(e.user_message or e))
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is (e.g., 400 for no active subscription)
+        raise
     except Exception as e:
         logger.error(f"Error updating subscription: {e}")
         raise HTTPException(status_code=500, detail="Failed to update subscription")
