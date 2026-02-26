@@ -25,10 +25,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
 import { fetchReflectionTemplates, fetchReflectionTemplate } from '../lib/reflectionTemplatesApi';
 import axios from 'axios';
+import { getAuthToken } from '../lib/safeFetch';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
 const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
+
+// Helper to get axios config with auth headers
+const getAxiosConfig = () => {
+  const token = getAuthToken();
+  return {
+    withCredentials: true,
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+  };
+};
 
 // Format relative time (milliseconds to MM:SS)
 const formatRelativeTime = (ms) => {
