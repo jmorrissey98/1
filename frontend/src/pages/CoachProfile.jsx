@@ -457,7 +457,7 @@ export default function CoachProfile() {
   const saveCoach = async (updated) => {
     try {
       // Save to API
-      await axios.put(`${API}/coaches/${coachId}`, updated, { withCredentials: true });
+      await axios.put(`${API}/coaches/${coachId}`, updated, getAxiosConfig());
       setCoach(updated);
     } catch (err) {
       console.error('Failed to save coach:', err);
