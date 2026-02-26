@@ -136,8 +136,8 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
   };
 
   const getDowngradeWarnings = (fromTier, toTier) => {
-    const fromInfo = PRICING_TIERS.find(t => t.id === fromTier);
-    const toInfo = PRICING_TIERS.find(t => t.id === toTier);
+    const fromInfo = pricingTiers.find(t => t.id === fromTier);
+    const toInfo = pricingTiers.find(t => t.id === toTier);
     if (!fromInfo || !toInfo) return [];
     
     const warnings = [];
