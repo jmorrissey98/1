@@ -1,12 +1,24 @@
 // Offline Sync System for My Coach Developer
 // Manages offline queue and automatic synchronization
 
+import { getAuthToken } from './safeFetch';
+
 const SYNC_QUEUE_KEY = 'mcd_sync_queue';
 const SYNC_STATUS_KEY = 'mcd_sync_status';
 const LAST_SYNC_KEY = 'mcd_last_sync';
 
 // API base URL
 const API_URL = ''; // Relative URL - frontend and backend on same domain
+
+// Helper to build headers with auth token
+const buildHeaders = (contentType = 'application/json') => {
+  const token = getAuthToken();
+  const headers = { 'Content-Type': contentType };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 // Sync status enum
 export const SyncStatus = {
