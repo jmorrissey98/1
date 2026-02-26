@@ -93,9 +93,10 @@ class TestAuthAndCoachEndpoints:
 
     # ==================== COACHES ENDPOINT TESTS ====================
     
-    def test_coaches_endpoint_without_auth_returns_401(self, session):
+    def test_coaches_endpoint_without_auth_returns_401(self):
         """Test that /api/coaches without auth returns 401"""
-        response = session.get(f"{BASE_URL}/api/coaches")
+        # Use a fresh session without any cookies
+        response = requests.get(f"{BASE_URL}/api/coaches")
         
         assert response.status_code == 401, f"Expected 401 without auth, got {response.status_code}"
         print("GET /api/coaches correctly returns 401 without auth")
