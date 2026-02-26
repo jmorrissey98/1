@@ -175,21 +175,29 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
   const handlePlanChange = async () => {
     if (!selectedTier) return;
     
-    // For plan changes, redirect to Stripe checkout to handle it properly
-    // This ensures Stripe handles proration and payment collection
+    // Use the update-subscription endpoint to modify existing subscription
+    // This prevents creating duplicate subscriptions
     setLoadingTier(selectedTier.id);
     
     try {
-      const result = await safePost(`${API_URL}/api/payments/checkout`, {
+      const result = await safePost(`${API_URL}/api/payments/update-subscription`, {
         tier_id: selectedTier.id,
-        billing_period: isAnnual ? 'annual' : 'monthly',
-        origin_url: window.location.origin + '/settings'
+        billing_period: isAnnual ? 'annual' : 'monthly'
       });
       
-      if (result.ok && (result.data?.url || result.data?.checkout_url)) {
-        window.location.href = result.data.url || result.data.checkout_url;
+      if (result.ok && result.data?.success) {
+        toast.success(result.data.message || 'Subscription updated successfully');
+        // Refresh subscription status
+        await fetchCurrentSubscription();
+        // Close confirmation dialog
+        setShowConfirmation(false);
+        setSelectedTier(null);
+        // Notify parent component if callback provided
+        if (onSubscriptionChange) {
+          onSubscriptionChange();
+        }
       } else {
-        toast.error(result.data?.detail || 'Failed to process change');
+        toast.error(result.data?.detail || 'Failed to update subscription');
       }
     } catch (err) {
       toast.error('Failed to process plan change');
