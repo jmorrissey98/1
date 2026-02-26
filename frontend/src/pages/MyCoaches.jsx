@@ -184,7 +184,7 @@ export default function MyCoaches() {
       const result = await deleteCoach(coachToDelete.id, deleteUserToo);
       
       if (!result.ok) {
-        throw new Error(result.error || 'Failed to delete coach');
+        throw new Error(result.data?.detail || result.error || 'Failed to delete coach');
       }
       
       let msg;
