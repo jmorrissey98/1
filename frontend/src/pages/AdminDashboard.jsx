@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Building2, Users, UserPlus, Settings, RefreshCw, Loader2, AlertCircle, Shield, LogOut, 
   Edit2, Save, X, CreditCard, Database, ChevronDown, ChevronUp, Check, Archive, RotateCcw,
-  Filter, Clock, UserCog
+  Filter, Clock, UserCog, Trash2, Search, UserX, AlertTriangle
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
