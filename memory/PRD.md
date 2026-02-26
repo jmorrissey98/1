@@ -554,6 +554,9 @@
 - [ ] **Production sync failure** causing sessions to disappear (critical data loss bug)
 - [ ] Full audit for remaining localStorage usage
 - [ ] Ensure offline-to-online sync handles conflicts properly
+- [ ] Note position on timeline is incorrect (P1)
+- [ ] Production password reset email delays (P2)
+- [ ] "Body stream already read" console error (P3)
 
 ### P3 - Future
 - [ ] Export sessions as PDF reports
