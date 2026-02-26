@@ -38,7 +38,7 @@ class TestAuthAndCoachEndpoints:
     def auth_token(self, session, admin_credentials):
         """Get authentication token via login"""
         response = session.post(
-            f"{BASE_URL}/api/auth/email-login",
+            f"{BASE_URL}/api/auth/login",
             json=admin_credentials
         )
         
@@ -63,7 +63,7 @@ class TestAuthAndCoachEndpoints:
     def test_login_returns_valid_response(self, session, admin_credentials):
         """Test that login endpoint returns 200 and valid response"""
         response = session.post(
-            f"{BASE_URL}/api/auth/email-login",
+            f"{BASE_URL}/api/auth/login",
             json=admin_credentials
         )
         
@@ -77,7 +77,7 @@ class TestAuthAndCoachEndpoints:
     def test_login_returns_token_or_session(self, session, admin_credentials):
         """Test that login returns token for authentication"""
         response = session.post(
-            f"{BASE_URL}/api/auth/email-login",
+            f"{BASE_URL}/api/auth/login",
             json=admin_credentials
         )
         
@@ -118,7 +118,7 @@ class TestAuthAndCoachEndpoints:
         """Test that /api/coaches works with session cookie authentication"""
         # First login to get cookie
         login_response = session.post(
-            f"{BASE_URL}/api/auth/email-login",
+            f"{BASE_URL}/api/auth/login",
             json=admin_credentials
         )
         assert login_response.status_code == 200
