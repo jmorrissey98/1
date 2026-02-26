@@ -223,7 +223,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.UPDATE_COACH:
         response = await fetch(`${API_URL}/api/coaches/${item.entityId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -232,7 +232,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.SAVE_SESSION_TO_DB:
         response = await fetch(`${API_URL}/api/sessions`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -241,7 +241,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.CREATE_COACH:
         response = await fetch(`${API_URL}/api/coaches`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildHeaders(),
           credentials: 'include',
           body: JSON.stringify(item.data)
         });
@@ -250,6 +250,7 @@ const processQueueItem = async (item) => {
       case QueueItemType.DELETE_COACH:
         response = await fetch(`${API_URL}/api/coaches/${item.entityId}`, {
           method: 'DELETE',
+          headers: buildHeaders(),
           credentials: 'include'
         });
         break;
