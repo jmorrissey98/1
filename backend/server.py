@@ -2923,6 +2923,65 @@ async def admin_update_subscription_tier(tier_id: str, request: Request):
     }
 
 
+
+@api_router.get("/pricing/tiers")
+async def get_public_pricing_tiers():
+    """Get subscription tier pricing and limits (Public endpoint for landing page)"""
+    # Default tiers
+    default_tiers = [
+        {
+            "tier_id": "individual",
+            "name": "Individual",
+            "subtitle": "The Solo Developer",
+            "monthly_price": 20,
+            "annual_price": 200,
+            "coaches_limit": 5,
+            "admins_limit": 1,
+            "data_retention_months": 3,
+            "description": "For individual coach developers"
+        },
+        {
+            "tier_id": "developer",
+            "name": "Developer",
+            "subtitle": "The Growth Specialist",
+            "monthly_price": 35,
+            "annual_price": 350,
+            "coaches_limit": 10,
+            "admins_limit": 1,
+            "data_retention_months": None,
+            "description": "For growing teams"
+        },
+        {
+            "tier_id": "club",
+            "name": "Club",
+            "subtitle": "The Organization",
+            "monthly_price": 60,
+            "annual_price": 600,
+            "coaches_limit": 30,
+            "admins_limit": 5,
+            "data_retention_months": None,
+            "description": "For organizations"
+        }
+    ]
+    
+    # Get tiers from database to check for custom values
+    db_tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
+    db_tier_map = {t["tier_id"]: t for t in db_tiers} if db_tiers else {}
+    
+    # Merge DB values with defaults
+    result = []
+    for default_tier in default_tiers:
+        tier_id = default_tier["tier_id"]
+        if tier_id in db_tier_map:
+            merged_tier = {**default_tier, **db_tier_map[tier_id]}
+            result.append(merged_tier)
+        else:
+            result.append(default_tier)
+    
+    return result
+
+
+
 @api_router.get("/admin/organizations/{org_id}/limits")
 async def admin_get_org_limits(org_id: str, request: Request):
     """Get custom limits for an organization (Admin only)"""
