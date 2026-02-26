@@ -2991,6 +2991,144 @@ async def admin_cleanup_user_by_email(request: Request):
     }
 
 
+
+@api_router.get("/admin/cleanup/orphaned-users")
+async def admin_find_orphaned_users(request: Request):
+    """
+    Find users that are missing organization_id (Admin only).
+    These users cannot add coaches or perform organization-related actions.
+    """
+    await require_admin(request)
+    
+    # Find users without organization_id (excluding system admin)
+    orphaned_users = await db.users.find(
+        {
+            "$or": [
+                {"organization_id": None},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": ""}
+            ],
+            "role": {"$ne": "admin"}  # Exclude system admins
+        },
+        {"_id": 0, "user_id": 1, "email": 1, "name": 1, "role": 1}
+    ).to_list(100)
+    
+    # For each orphaned user, try to find their organization
+    results = []
+    for user in orphaned_users:
+        user_id = user.get("user_id")
+        email = user.get("email")
+        
+        # Check if they own an organization
+        owned_org = await db.organizations.find_one(
+            {"owner_id": user_id},
+            {"_id": 0, "org_id": 1, "club_name": 1}
+        )
+        
+        # Check if there's an invite for this email
+        invite = await db.invites.find_one(
+            {"email": {"$regex": f"^{email}$", "$options": "i"}, "used": True},
+            {"_id": 0, "organization_id": 1}
+        )
+        
+        results.append({
+            "user_id": user_id,
+            "email": email,
+            "name": user.get("name"),
+            "role": user.get("role"),
+            "owned_organization": owned_org,
+            "invite_organization_id": invite.get("organization_id") if invite else None
+        })
+    
+    return {
+        "orphaned_count": len(results),
+        "orphaned_users": results
+    }
+
+
+@api_router.post("/admin/cleanup/fix-user-organization")
+async def admin_fix_user_organization(request: Request):
+    """
+    Fix a user's organization_id by finding their owned organization or invite (Admin only).
+    """
+    await require_admin(request)
+    
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    force_org_id = body.get("organization_id")  # Optional: force a specific org_id
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # Find the user
+    user = await db.users.find_one(
+        {"email": {"$regex": f"^{email}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User not found: {email}")
+    
+    user_id = user.get("user_id")
+    current_org_id = user.get("organization_id")
+    
+    if current_org_id and not force_org_id:
+        return {
+            "message": "User already has an organization_id",
+            "email": email,
+            "organization_id": current_org_id,
+            "updated": False
+        }
+    
+    # Determine the organization_id
+    new_org_id = force_org_id
+    source = "forced"
+    
+    if not new_org_id:
+        # Check if they own an organization
+        owned_org = await db.organizations.find_one(
+            {"owner_id": user_id},
+            {"_id": 0, "org_id": 1}
+        )
+        if owned_org:
+            new_org_id = owned_org.get("org_id")
+            source = "owned_organization"
+    
+    if not new_org_id:
+        # Check if there's a used invite for this email
+        invite = await db.invites.find_one(
+            {"email": {"$regex": f"^{email}$", "$options": "i"}, "used": True},
+            {"_id": 0, "organization_id": 1}
+        )
+        if invite:
+            new_org_id = invite.get("organization_id")
+            source = "invite"
+    
+    if not new_org_id:
+        raise HTTPException(
+            status_code=400, 
+            detail="Could not determine organization_id. Please provide one manually."
+        )
+    
+    # Update the user
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"organization_id": new_org_id}}
+    )
+    
+    logger.info(f"Fixed organization_id for {email}: {new_org_id} (source: {source})")
+    
+    return {
+        "message": f"Successfully linked user to organization",
+        "email": email,
+        "user_id": user_id,
+        "organization_id": new_org_id,
+        "source": source,
+        "updated": True
+    }
+
+
+
 @api_router.get("/admin/cleanup/orphaned-coaches")
 async def admin_find_orphaned_coaches(request: Request):
     """
