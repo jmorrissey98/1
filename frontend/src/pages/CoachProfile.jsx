@@ -116,7 +116,7 @@ export default function CoachProfile() {
     setIsLoadingSessions(true);
     try {
       // Load from API instead of localStorage
-      const response = await axios.get(`${API}/coaches/${coachId}`, { withCredentials: true });
+      const response = await axios.get(`${API}/coaches/${coachId}`, getAxiosConfig());
       const loaded = response.data;
       
       if (!loaded) {
