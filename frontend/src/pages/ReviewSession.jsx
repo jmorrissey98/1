@@ -941,7 +941,7 @@ export default function ReviewSession() {
         coach_name: session.coachName || null,
         coach_targets: coachTargets,
         previous_sessions_summary: null
-      });
+      }, getAxiosConfig());
       
       const updated = {
         ...session,
