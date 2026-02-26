@@ -571,6 +571,22 @@
 - **Coach Developer:** joemorrisseyg@gmail.com / 12345
 - **Coach:** joe_morrissey@hotmail.co.uk / CoachTest123
 
+## Recent Updates (Feb 26, 2026)
+
+### Bug Fixes
+1. **Subscription Update Bug (P0 - FIXED)** - Upgrading/downgrading plans was creating duplicate Stripe subscriptions instead of modifying existing ones. Fixed by changing frontend `UpgradeModal.jsx` to call `/api/payments/update-subscription` instead of `/api/payments/checkout` for plan changes.
+
+2. **401 Unauthorized Bug (P0 - FIXED)** - Coach profile pages returned 401 errors when navigating between views. Fixed by adding `getAxiosConfig()` helper function to include `Authorization: Bearer` header in all axios calls across:
+   - `/app/frontend/src/pages/CoachProfile.jsx`
+   - `/app/frontend/src/components/coach/CoachNotes.jsx`
+   - `/app/frontend/src/pages/ReviewSession.jsx`
+
+### Files Modified
+- `/app/frontend/src/components/UpgradeModal.jsx` - `handlePlanChange()` now uses update endpoint
+- `/app/frontend/src/pages/CoachProfile.jsx` - Added auth token to all API calls
+- `/app/frontend/src/components/coach/CoachNotes.jsx` - Added auth token to all API calls
+- `/app/frontend/src/pages/ReviewSession.jsx` - Added auth token to all API calls
+
 ## 3rd Party Integrations
 - **Resend (Email API)** - Requires User API Key
 - **recharts** - Charting library for React
