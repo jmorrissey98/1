@@ -1,0 +1,85 @@
+{
+  "summary": "Backend API testing for subscription update bug fix and auth header fix. All 14 tests PASSED. The /api/payments/update-subscription endpoint exists and correctly rejects requests without active subscription with a 400 error. Auth endpoints work correctly with Authorization Bearer headers. Fixed a minor bug where HTTPException was being caught by generic exception handler (500 instead of 400).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/payments/update-subscription",
+        "issue": "Exception handler was catching HTTPException and returning 500 instead of proper error code",
+        "priority": "LOW",
+        "status": "FIXED"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "login_endpoint": {
+      "status": "PASS",
+      "details": "POST /api/auth/login returns 200 with token for valid credentials"
+    },
+    "coaches_with_auth_header": {
+      "status": "PASS",
+      "details": "GET /api/coaches returns 200 when Authorization: Bearer {token} header is provided"
+    },
+    "single_coach_with_auth_header": {
+      "status": "PASS",
+      "details": "GET /api/coaches/{coachId} returns 200 when Authorization: Bearer {token} header is provided"
+    },
+    "subscription_details_endpoint": {
+      "status": "PASS",
+      "details": "GET /api/payments/subscription-details returns 200 with has_subscription field"
+    },
+    "update_subscription_endpoint": {
+      "status": "PASS",
+      "details": "POST /api/payments/update-subscription exists and returns 400 'No active subscription to update' as expected"
+    },
+    "update_subscription_validation": {
+      "status": "PASS",
+      "details": "Endpoint validates tier_id and billing_period parameters correctly"
+    },
+    "auth_without_token": {
+      "status": "PASS",
+      "details": "Protected endpoints return 401 when no auth token is provided"
+    }
+  },
+  "bug_fixes_verified": {
+    "subscription_update_bug": {
+      "description": "Frontend UpgradeModal.jsx now calls /api/payments/update-subscription instead of /api/payments/checkout for plan changes",
+      "verification": "Endpoint exists and correctly handles plan updates (returns 400 if no active subscription)",
+      "status": "VERIFIED - code change confirmed in UpgradeModal.jsx handlePlanChange function"
+    },
+    "auth_header_fix": {
+      "description": "Axios calls now include Authorization: Bearer {token} header via getAxiosConfig() helper",
+      "verification": "GET /api/coaches and GET /api/coaches/{coachId} return 200 with proper auth headers",
+      "status": "VERIFIED - code change confirmed in CoachProfile.jsx, CoachNotes.jsx, ReviewSession.jsx"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_subscription_update_fix.py",
+    "/app/test_reports/pytest/subscription_update_fix_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_subscription_update_fix.py",
+    "/app/backend/server.py (minor fix: added HTTPException to exception handler re-raise)"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "N/A - Backend only test as requested"
+  },
+  "test_credentials": {
+    "admin": {
+      "email": "hello@mycoachdeveloper.com",
+      "password": "_mcDeveloper26!"
+    }
+  },
+  "seed_data_creation": "None - used existing admin account",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Both bug fixes are verified: 1) /api/payments/update-subscription endpoint exists and is used for plan changes (returns 400 if no active Stripe subscription), 2) Auth headers are correctly passed via getAxiosConfig() helper functions. The test file test_subscription_update_fix.py covers login, coaches endpoints with/without auth, and all payment endpoints. A minor bug was fixed in server.py where HTTPException was being caught by generic exception handler."
+}
