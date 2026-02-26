@@ -2831,6 +2831,16 @@ async def admin_delete_organization(org_id: str, request: Request):
     
     owner_id = org.get("owner_id")
     
+    # Get all user emails before deleting (for coach profile cleanup)
+    org_users = await db.users.find({
+        "$or": [
+            {"organization_id": org_id},
+            {"user_id": owner_id}
+        ],
+        "role": {"$ne": "admin"}
+    }, {"_id": 0, "email": 1}).to_list(1000)
+    user_emails = [u.get("email", "").lower() for u in org_users if u.get("email")]
+    
     # Delete all users in this organization
     delete_result = await db.users.delete_many({
         "$or": [
@@ -2840,8 +2850,25 @@ async def admin_delete_organization(org_id: str, request: Request):
         "role": {"$ne": "admin"}  # Never delete admins
     })
     
-    # Delete all coaches created by the owner
-    await db.coaches.delete_many({"created_by": owner_id})
+    # Delete all coaches in this organization (by organization_id, created_by, OR email)
+    coach_delete_conditions = [
+        {"organization_id": org_id},
+        {"created_by": owner_id}
+    ]
+    if user_emails:
+        coach_delete_conditions.append({
+            "email": {"$in": [{"$regex": f"^{e}$", "$options": "i"} for e in user_emails]}
+        })
+    
+    coaches_result = await db.coaches.delete_many({"$or": coach_delete_conditions})
+    
+    # Delete all invites for this organization
+    invites_result = await db.invites.delete_many({
+        "$or": [
+            {"organization_id": org_id},
+            {"invited_by": owner_id}
+        ]
+    })
     
     # Delete the organization
     await db.organizations.delete_one({"org_id": org_id})
@@ -2849,7 +2876,9 @@ async def admin_delete_organization(org_id: str, request: Request):
     return {
         "message": "Organization permanently deleted",
         "org_id": org_id,
-        "users_deleted": delete_result.deleted_count
+        "users_deleted": delete_result.deleted_count,
+        "coaches_deleted": coaches_result.deleted_count,
+        "invites_deleted": invites_result.deleted_count
     }
 
 
