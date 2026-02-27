@@ -39,6 +39,29 @@
   - `data_retention` object returned with session/analytics API responses
   - Hidden session count tracked for upgrade messaging
 
+
+### Subscription Cancellation & Entitlement (NEW - Feb 27, 2026)
+- **Cancellation does NOT block login** - Authentication is separate from entitlement
+- **Grace period during paid billing cycle** - If user cancels but billing period hasn't ended:
+  - Full app access continues until `currentPeriodEnd`
+  - No blocking modal shown
+- **Post-period cancellation blocking:**
+  - User can still log in
+  - App shows non-dismissible subscription modal
+  - Modal cannot be closed (no X, no escape, no click-outside)
+  - User must either select a plan or log out
+- **Entitlement rules (is_entitled = true):**
+  - `status = 'active'` or `status = 'trialing'`
+  - `cancel_at_period_end = true` AND `current_time < currentPeriodEnd`
+- **Entitlement rules (is_entitled = false):**
+  - No subscription exists
+  - `status = 'canceled'` AND `current_time >= currentPeriodEnd`
+  - `status in ['unpaid', 'incomplete', 'incomplete_expired', 'past_due']`
+- **Admin users bypass entitlement check**
+- **API Endpoint:** `GET /api/billing/entitlement` returns:
+  - `is_entitled`, `subscription_status`, `cancel_at_period_end`, `current_period_end`, `active_tier`, `reason`, `server_time`
+
+
 ### Coach Developer (Admin) Features
 - Create and manage observation sessions
 - View and manage coaches ("My Coaches")
