@@ -4263,6 +4263,10 @@ async def stripe_webhook(request: Request):
                 "last_synced_at": datetime.now(timezone.utc).isoformat()
             }
             
+            # Store price_id if available
+            if price_id:
+                update_data["price_id"] = price_id
+            
             # Update tier info if plan changed
             if new_tier_id:
                 update_data["tier_id"] = new_tier_id
