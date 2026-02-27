@@ -29,6 +29,10 @@ export function AuthProvider({ children }) {
       if (!token) {
         setUser(null);
         setLoading(false);
+        // Clear any stale impersonation data when no token
+        localStorage.removeItem('impersonating');
+        localStorage.removeItem('impersonated_user');
+        localStorage.removeItem('impersonated_by');
         return;
       }
       
@@ -40,12 +44,24 @@ export function AuthProvider({ children }) {
         // Clear invalid token
         if (result.status === 401) {
           clearAuthToken();
+          // Also clear impersonation data on auth failure
+          localStorage.removeItem('impersonating');
+          localStorage.removeItem('impersonated_user');
+          localStorage.removeItem('impersonated_by');
         }
       } else {
         setUser(result.data);
         // Identify user in analytics
         if (result.data?.user_id) {
           identifyUser(result.data.user_id);
+        }
+        
+        // If the auth response doesn't indicate impersonation, clear any stale impersonation data
+        // This handles the case where user logs in directly without going through impersonation
+        if (!result.data?.is_impersonating) {
+          localStorage.removeItem('impersonating');
+          localStorage.removeItem('impersonated_user');
+          localStorage.removeItem('impersonated_by');
         }
       }
     } catch (err) {
