@@ -304,6 +304,42 @@ function UpdateNotification({ onRefresh, onDismiss }) {
   );
 }
 
+/**
+ * EntitlementGate - Shows subscription required modal when user is not entitled
+ * Does not block login/authentication, only app access.
+ */
+function EntitlementGate({ children }) {
+  const { user } = useAuth();
+  const { isEntitled, loading, reason } = useEntitlement();
+  
+  // Don't show modal if not logged in or still loading
+  if (!user || loading) {
+    return children;
+  }
+  
+  // Admin users bypass entitlement check
+  if (user.role === 'admin') {
+    return children;
+  }
+  
+  // If entitled, render children normally
+  if (isEntitled) {
+    return children;
+  }
+  
+  // Not entitled - show blocking modal over a disabled background
+  return (
+    <>
+      {/* Render children but blur/disable them */}
+      <div className="pointer-events-none opacity-30 filter blur-sm">
+        {children}
+      </div>
+      {/* Show blocking subscription modal */}
+      <SubscriptionRequiredModal open={true} reason={reason} />
+    </>
+  );
+}
+
 function App() {
   const [showUpdate, setShowUpdate] = useState(false);
 
