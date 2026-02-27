@@ -4259,7 +4259,8 @@ async def stripe_webhook(request: Request):
                 "status": subscription.status,
                 "current_period_start": datetime.fromtimestamp(subscription.current_period_start, timezone.utc).isoformat(),
                 "current_period_end": datetime.fromtimestamp(subscription.current_period_end, timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat()
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "last_synced_at": datetime.now(timezone.utc).isoformat()
             }
             
             # Update tier info if plan changed
