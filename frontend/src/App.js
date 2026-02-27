@@ -370,21 +370,25 @@ function App() {
       <BrowserRouter>
         <AnalyticsTracker />
         <AuthProvider>
-          <SyncProvider>
-            <OrganizationProvider>
-              <CloudSyncProvider>
-                <UpgradeProvider>
-                  <AppHeader />
-                  <AppRouter />
-                  <OfflineIndicator />
-                  {/* Version indicator - visible in dev/debug */}
-                  <div className="fixed bottom-2 left-2 text-[10px] text-slate-400 opacity-50 hover:opacity-100 transition-opacity z-10">
-                    v{BUILD_VERSION}
-                  </div>
-                </UpgradeProvider>
-              </CloudSyncProvider>
-            </OrganizationProvider>
-          </SyncProvider>
+          <EntitlementProvider>
+            <SyncProvider>
+              <OrganizationProvider>
+                <CloudSyncProvider>
+                  <UpgradeProvider>
+                    <AppHeader />
+                    <EntitlementGate>
+                      <AppRouter />
+                    </EntitlementGate>
+                    <OfflineIndicator />
+                    {/* Version indicator - visible in dev/debug */}
+                    <div className="fixed bottom-2 left-2 text-[10px] text-slate-400 opacity-50 hover:opacity-100 transition-opacity z-10">
+                      v{BUILD_VERSION}
+                    </div>
+                  </UpgradeProvider>
+                </CloudSyncProvider>
+              </OrganizationProvider>
+            </SyncProvider>
+          </EntitlementProvider>
         </AuthProvider>
       </BrowserRouter>
       <Toaster position="bottom-left" richColors closeButton />
