@@ -90,6 +90,13 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
+      // Clear any leftover impersonation data from previous sessions
+      localStorage.removeItem('impersonating');
+      localStorage.removeItem('impersonated_user');
+      localStorage.removeItem('impersonated_by');
+      localStorage.removeItem('original_admin_token');
+      localStorage.removeItem('exiting_impersonation');
+      
       const result = await safePost(`${API_URL}/api/auth/login`, {
         email: signInEmail,
         password: signInPassword
