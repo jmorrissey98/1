@@ -3741,6 +3741,134 @@ async def get_subscription_details(request: Request):
         logger.error(f"Error fetching subscription details: {e}")
         return {"has_subscription": False, "tier": None, "status": None, "error": str(e)}
 
+
+
+@api_router.get("/billing/entitlement")
+async def get_billing_entitlement(request: Request):
+    """
+    Check if the current user/organization is entitled to use the app.
+    
+    Entitlement rules:
+    - subscription status is 'active' or 'trialing' -> entitled
+    - cancelAtPeriodEnd is true AND current time < currentPeriodEnd -> entitled
+    - no subscription OR status='canceled' AND time > currentPeriodEnd -> NOT entitled
+    - status is 'unpaid', 'incomplete', 'incomplete_expired', 'past_due' -> NOT entitled
+    
+    Returns server time to avoid client timezone issues.
+    """
+    try:
+        user = await require_auth(request)
+        org_id = user.organization_id
+        
+        # Get current server time
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
+        
+        # Default response (not entitled)
+        response = {
+            "is_entitled": False,
+            "subscription_status": None,
+            "cancel_at_period_end": False,
+            "current_period_end": None,
+            "active_tier": None,
+            "active_price_id": None,
+            "reason": "no_subscription",
+            "server_time": now_iso
+        }
+        
+        if not org_id:
+            response["reason"] = "no_organization"
+            logger.info(f"Entitlement check for {user.user_id}: NOT entitled (no organization)")
+            return response
+        
+        # Check subscriptions collection
+        subscription = await db.subscriptions.find_one(
+            {"organization_id": org_id},
+            {"_id": 0}
+        )
+        
+        if subscription and subscription.get("subscription_id"):
+            status = subscription.get("status", "").lower()
+            cancel_at_period_end = subscription.get("cancel_at_period_end", False)
+            current_period_end_str = subscription.get("current_period_end")
+            tier_id = subscription.get("tier_id")
+            price_id = subscription.get("price_id")
+            
+            # Parse current_period_end
+            current_period_end = None
+            if current_period_end_str:
+                try:
+                    current_period_end = datetime.fromisoformat(current_period_end_str.replace('Z', '+00:00'))
+                except:
+                    pass
+            
+            response["subscription_status"] = status
+            response["cancel_at_period_end"] = cancel_at_period_end
+            response["current_period_end"] = current_period_end_str
+            response["active_tier"] = tier_id
+            response["active_price_id"] = price_id
+            
+            # Entitlement logic
+            if status in ["active", "trialing"]:
+                response["is_entitled"] = True
+                response["reason"] = f"status_{status}"
+                logger.info(f"Entitlement check for {user.user_id}: entitled (status={status})")
+            elif cancel_at_period_end and current_period_end and now < current_period_end:
+                # User canceled but still within paid period
+                response["is_entitled"] = True
+                response["reason"] = "cancel_at_period_end_not_reached"
+                logger.info(f"Entitlement check for {user.user_id}: entitled (canceled but period not ended)")
+            elif status == "canceled":
+                response["is_entitled"] = False
+                response["reason"] = "subscription_canceled"
+                logger.info(f"Entitlement check for {user.user_id}: NOT entitled (canceled)")
+            elif status in ["unpaid", "incomplete", "incomplete_expired", "past_due"]:
+                response["is_entitled"] = False
+                response["reason"] = f"status_{status}"
+                logger.info(f"Entitlement check for {user.user_id}: NOT entitled (status={status})")
+            else:
+                # Unknown status - be conservative
+                response["is_entitled"] = False
+                response["reason"] = f"unknown_status_{status}"
+                logger.warning(f"Entitlement check for {user.user_id}: unknown status {status}")
+            
+            return response
+        
+        # Check legacy subscription on organization
+        org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+        if org:
+            tier_id = org.get("subscription_tier_id") or org.get("subscription_tier")
+            if tier_id:
+                # Legacy subscription - treat as entitled
+                response["is_entitled"] = True
+                response["subscription_status"] = "active"
+                response["active_tier"] = tier_id.lower() if tier_id else None
+                response["reason"] = "legacy_subscription"
+                logger.info(f"Entitlement check for {user.user_id}: entitled (legacy subscription)")
+                return response
+        
+        # No subscription found
+        response["reason"] = "no_subscription"
+        logger.info(f"Entitlement check for {user.user_id}: NOT entitled (no subscription)")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking entitlement: {e}")
+        # On error, don't block user but log it
+        return {
+            "is_entitled": True,  # Fail open to not block users on errors
+            "subscription_status": None,
+            "cancel_at_period_end": False,
+            "current_period_end": None,
+            "active_tier": None,
+            "reason": "error_fail_open",
+            "error": str(e),
+            "server_time": datetime.now(timezone.utc).isoformat()
+        }
+
+
 @api_router.post("/payments/update-subscription")
 async def update_subscription(data: SubscriptionUpdateRequest, request: Request):
     """Update an existing subscription to a different plan.
