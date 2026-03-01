@@ -397,6 +397,7 @@ export default function SessionCalendar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </PullToRefresh>
+    </SwipeablePageWrapper>
   );
 }
