@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getPendingChangeCount, processOfflineQueue, getSyncStatus, SyncStatus } from '../lib/cloudSessionService';
 import { cn } from '../lib/utils';
 
-export default function SyncStatusIndicator({ className, showDetails = false }) {
+export default function SyncStatusIndicator({ className, showDetails = false, showLabel = false }) {
   const { isCoach } = useAuth();
   const isCoachUser = isCoach && isCoach();
   
