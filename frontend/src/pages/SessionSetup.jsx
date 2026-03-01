@@ -210,10 +210,10 @@ export default function SessionSetup() {
     });
   };
 
-  // Load coaches from API instead of localStorage
+  // Load coaches from API with offline fallback
   const loadCoaches = async () => {
     try {
-      const result = await safeGet(`${API_URL}/api/coaches`);
+      const result = await fetchCoaches();
       if (result.ok && result.data) {
         setCoaches(result.data);
         
@@ -226,6 +226,10 @@ export default function SessionSetup() {
               name: `${coach.name} - ${new Date().toLocaleDateString()}`
             } : prev);
           }
+        }
+        
+        if (result.fromCache) {
+          console.log('[SessionSetup] Loaded coaches from offline cache');
         }
       }
     } catch (err) {
