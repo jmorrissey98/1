@@ -1069,21 +1069,21 @@ export default function LiveObservation() {
 
       {/* Last Event Panel (fixed at bottom) */}
       {lastEvent && (
-        <div className="bg-white border-t border-slate-200 px-4 py-3">
+        <div className="bg-white border-t border-slate-200 px-3 sm:px-4 py-2 sm:py-3">
           <div className="max-w-5xl mx-auto">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded bg-yellow-400" />
-                <span className="font-medium text-slate-900">{lastEvent.eventTypeName}</span>
-                <span className="text-sm text-slate-500 font-mono">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+                <div className="w-3 h-3 rounded bg-yellow-400 shrink-0" />
+                <span className="font-medium text-slate-900 text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">{lastEvent.eventTypeName}</span>
+                <span className="text-xs sm:text-sm text-slate-500 font-mono shrink-0">
                   {formatRelativeTime(lastEvent.relativeTimestamp || 0)}
                 </span>
                 {lastEvent.descriptors1.length > 0 && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     {lastEvent.descriptors1.map(d => {
                       const desc = session.descriptorGroup1.descriptors.find(x => x.id === d);
                       return desc && (
-                        <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100">
+                        <Badge key={d} className="bg-sky-100 text-sky-800 hover:bg-sky-100 text-xs">
                           {desc.name}
                         </Badge>
                       );
@@ -1091,11 +1091,11 @@ export default function LiveObservation() {
                   </div>
                 )}
                 {lastEvent.descriptors2.length > 0 && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     {lastEvent.descriptors2.map(d => {
                       const desc = session.descriptorGroup2.descriptors.find(x => x.id === d);
                       return desc && (
-                        <Badge key={d} className="bg-green-100 text-green-800 hover:bg-green-100">
+                        <Badge key={d} className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
                           {desc.name}
                         </Badge>
                       );
@@ -1103,18 +1103,18 @@ export default function LiveObservation() {
                   </div>
                 )}
                 {lastEvent.note && (
-                  <span className="text-sm text-slate-600 italic">"{lastEvent.note}"</span>
+                  <span className="text-xs sm:text-sm text-slate-600 italic truncate max-w-[150px] sm:max-w-none">"{lastEvent.note}"</span>
                 )}
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {showNoteInput ? (
                   <div className="flex items-center gap-2">
                     <Textarea
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       placeholder="Add a note..."
-                      className="w-48 h-10 text-sm resize-none"
+                      className="w-32 sm:w-48 h-10 text-sm resize-none"
                       data-testid="note-input"
                     />
                     <Button size="icon" variant="ghost" onClick={handleAddNote}>
@@ -1131,8 +1131,8 @@ export default function LiveObservation() {
                     onClick={() => setShowNoteInput(true)}
                     data-testid="add-note-btn"
                   >
-                    <MessageSquare className="w-4 h-4 mr-1" />
-                    Note
+                    <MessageSquare className="w-4 h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Note</span>
                   </Button>
                 )}
               </div>
