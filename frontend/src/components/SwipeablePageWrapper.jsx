@@ -106,25 +106,6 @@ export function SwipeablePageWrapper({ children, className }) {
       
       {/* Page content */}
       {children}
-      
-      {/* Navigation dots indicator - only show on mobile main pages */}
-      {isMobile && isMainPage && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-full px-3 py-1.5 z-40">
-          {MAIN_PAGES.map((page, index) => (
-            <button
-              key={page.path}
-              onClick={() => navigate(page.path)}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all",
-                index === currentIndex 
-                  ? "bg-white w-4" 
-                  : "bg-white/40 hover:bg-white/60"
-              )}
-              aria-label={`Go to ${page.name}`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
