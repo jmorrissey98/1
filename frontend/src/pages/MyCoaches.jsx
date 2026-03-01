@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Target, Calendar, ChevronRight, Loader2, CheckCircle, Clock, Plus, Trash2, AlertCircle, RefreshCw, WifiOff, Crown } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -15,6 +15,8 @@ import { fetchCoaches, createCoach, deleteCoach } from '../lib/offlineApi';
 import { isOnline, getPendingSyncCount } from '../lib/offlineSync';
 import { safeGet } from '../lib/safeFetch';
 import { useUpgrade } from '../contexts/UpgradeContext';
+import { PullToRefresh } from '../components/PullToRefresh';
+import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
