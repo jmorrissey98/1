@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
 import AppHeader from "./components/AppHeader";
 import { AnalyticsTracker } from "./hooks/useAnalytics";
+import { useDataPrefetch } from "./hooks/useDataPrefetch";
 import { Loader2, RefreshCw } from "lucide-react";
 import SubscriptionRequiredModal from "./components/modals/SubscriptionRequiredModal";
 import HomePage from "./pages/HomePage";
