@@ -1035,52 +1035,52 @@ export default function ReviewSession() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn" className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
+            <div className="min-w-0">
               {session.coachName ? (
                 <>
-                  <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.coachName}</h1>
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <span>{session.name}</span>
-                    <span>•</span>
-                    <span>{formatDateTime(session.createdAt)}</span>
+                  <h1 className="text-base sm:text-xl font-bold text-slate-900 font-['Manrope'] truncate">{session.coachName}</h1>
+                  <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-500 flex-wrap">
+                    <span className="truncate max-w-[100px] sm:max-w-none">{session.name}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline">{formatDateTime(session.createdAt)}</span>
                   </div>
                 </>
               ) : (
                 <>
-                  <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{session.name}</h1>
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <h1 className="text-base sm:text-xl font-bold text-slate-900 font-['Manrope'] truncate">{session.name}</h1>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
                     <span>{formatDateTime(session.createdAt)}</span>
                   </div>
                 </>
               )}
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportCSV} data-testid="export-csv-btn">
-              <Table className="w-4 h-4 mr-2" />
-              CSV
+          <div className="flex gap-1 sm:gap-2 shrink-0">
+            <Button variant="outline" onClick={handleExportCSV} data-testid="export-csv-btn" size="sm" className="px-2 sm:px-3">
+              <Table className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">CSV</span>
             </Button>
-            <Button onClick={handleExportPDF} data-testid="export-pdf-btn">
-              <FileText className="w-4 h-4 mr-2" />
-              PDF Report
+            <Button onClick={handleExportPDF} data-testid="export-pdf-btn" size="sm" className="px-2 sm:px-3">
+              <FileText className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">PDF Report</span>
             </Button>
           </div>
         </div>
       </header>
 
       {/* View Toggle - Only show parts that have data */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-3">
         <div className="max-w-6xl mx-auto">
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-thin">
             <button
               onClick={() => setViewMode('whole')}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                "px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap min-h-[36px]",
                 viewMode === 'whole'
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -1094,7 +1094,7 @@ export default function ReviewSession() {
                 key={part.id}
                 onClick={() => setViewMode(part.id)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                  "px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap min-h-[36px]",
                   viewMode === part.id
                     ? "bg-slate-900 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -1109,12 +1109,12 @@ export default function ReviewSession() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <Tabs defaultValue="summary" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
-            <TabsTrigger value="reflections" data-testid="tab-reflections">Reflections</TabsTrigger>
-            <TabsTrigger value="analysis" data-testid="tab-analysis">Session Analysis</TabsTrigger>
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <Tabs defaultValue="summary" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-3 h-auto">
+            <TabsTrigger value="summary" data-testid="tab-summary" className="text-xs sm:text-sm py-2">Summary</TabsTrigger>
+            <TabsTrigger value="reflections" data-testid="tab-reflections" className="text-xs sm:text-sm py-2">Reflections</TabsTrigger>
+            <TabsTrigger value="analysis" data-testid="tab-analysis" className="text-xs sm:text-sm py-2">Analysis</TabsTrigger>
           </TabsList>
 
           {/* Summary Tab */}
