@@ -183,7 +183,7 @@ export default function AppHeader() {
         </div>
       )}
       
-      <div className="bg-white border-b border-slate-200 px-4 py-2 sticky top-0 z-20">
+      <div className="bg-white border-b border-slate-200 px-4 py-2 sticky top-0 z-20 safe-area-top">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           {/* Left side - Club branding */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
