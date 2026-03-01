@@ -524,29 +524,29 @@ export default function TemplateManager() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn" className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">Templates</h1>
-              <p className="text-sm text-slate-500">Manage observation and reflection templates</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold text-slate-900 font-['Manrope']">Templates</h1>
+              <p className="text-xs sm:text-sm text-slate-500 truncate">Manage observation and reflection templates</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Top-level Tab Toggle */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6" data-testid="template-type-tabs">
-            <TabsTrigger value="observation" className="flex items-center gap-2" data-testid="observation-tab">
+          <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-auto" data-testid="template-type-tabs">
+            <TabsTrigger value="observation" className="flex items-center gap-1 sm:gap-2 py-2 text-xs sm:text-sm" data-testid="observation-tab">
               <Eye className="w-4 h-4" />
               Observation
             </TabsTrigger>
-            <TabsTrigger value="reflection" className="flex items-center gap-2" data-testid="reflection-tab">
+            <TabsTrigger value="reflection" className="flex items-center gap-1 sm:gap-2 py-2 text-xs sm:text-sm" data-testid="reflection-tab">
               <ClipboardList className="w-4 h-4" />
               Reflection
             </TabsTrigger>
