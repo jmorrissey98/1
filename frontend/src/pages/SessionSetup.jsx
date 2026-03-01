@@ -12,10 +12,10 @@ import { toast } from 'sonner';
 import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { fetchObservationTemplates, fetchDefaultObservationTemplate } from '../lib/observationTemplatesApi';
 import { fetchReflectionTemplates } from '../lib/reflectionTemplatesApi';
+import { fetchCoaches } from '../lib/offlineApi';
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
-import { safeGet } from '../lib/safeFetch';
 
 const API_URL = '';
 
