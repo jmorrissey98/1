@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, ChevronLeft, ChevronRight, Play, Eye, Calendar as CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -10,6 +10,8 @@ import { fetchCloudSessions, deleteCloudSession } from '../lib/cloudSessionServi
 import { cn } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 import { toast } from 'sonner';
+import { PullToRefresh } from '../components/PullToRefresh';
+import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
 
 export default function SessionCalendar() {
   const navigate = useNavigate();
