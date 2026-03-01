@@ -148,10 +148,16 @@ export default function HomePage() {
     }
   };
 
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    await loadSessions();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <SwipeablePageWrapper>
+      <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-slate-50">
+        {/* Main Content */}
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-16">
         {/* Create New Session */}
         <Card 
           className="mb-6 sm:mb-8 cursor-pointer hover:border-slate-400 transition-colors group"
