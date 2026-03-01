@@ -111,9 +111,9 @@ export default function UserSettings() {
           console.error('Failed to load subscription:', e);
         }
         
-        // Load coaches from API (not localStorage)
+        // Load coaches with offline support
         try {
-          const coachesResult = await safeGet(`${API_URL}/api/coaches`);
+          const coachesResult = await fetchCoaches();
           if (coachesResult.ok && coachesResult.data) {
             setCoaches(coachesResult.data);
           }
