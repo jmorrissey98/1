@@ -313,6 +313,9 @@ function EntitlementGate({ children }) {
   const { user } = useAuth();
   const { isEntitled, loading, reason } = useEntitlement();
   
+  // Prefetch data for offline usage
+  useDataPrefetch();
+  
   // Don't show modal if not logged in or still loading
   if (!user || loading) {
     return children;
