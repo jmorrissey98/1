@@ -224,6 +224,12 @@ export default function MyCoaches() {
     });
   };
 
+  // Pull-to-refresh handler - must be defined before any conditional returns
+  const handleRefresh = useCallback(async () => {
+    await loadCoaches();
+    await fetchLimits();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -231,12 +237,6 @@ export default function MyCoaches() {
       </div>
     );
   }
-
-  // Pull-to-refresh handler
-  const handleRefresh = useCallback(async () => {
-    await loadCoaches();
-    await fetchLimits();
-  }, []);
 
   return (
     <SwipeablePageWrapper>
