@@ -1122,8 +1122,8 @@ export default function ReviewSession() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <Tabs defaultValue="summary" className="space-y-4 sm:space-y-6">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6" ref={swipeRef}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-3 h-auto">
             <TabsTrigger value="summary" data-testid="tab-summary" className="text-xs sm:text-sm py-2">Summary</TabsTrigger>
             <TabsTrigger value="reflections" data-testid="tab-reflections" className="text-xs sm:text-sm py-2">Reflections</TabsTrigger>
