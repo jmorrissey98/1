@@ -630,44 +630,46 @@ export default function CoachProfile() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/coaches')} data-testid="back-btn">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/coaches')} data-testid="back-btn" className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               {/* Coach Photo */}
-              <div className="relative group">
+              <div className="relative group shrink-0">
                 {coach.photoUrl ? (
                   <img 
                     src={coach.photoUrl} 
                     alt={coach.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white shadow-sm"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                    <User className="w-6 h-6 text-slate-500" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                    <User className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500" />
                   </div>
                 )}
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">{coach.name}</h1>
-                {coach.role && <p className="text-sm text-slate-500">{coach.role}</p>}
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-slate-900 font-['Manrope'] truncate">{coach.name}</h1>
+                {coach.role && <p className="text-xs sm:text-sm text-slate-500 truncate">{coach.role}</p>}
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 shrink-0">
             <Button 
               variant="outline"
               onClick={() => navigate(`/session/new?coachId=${coachId}`)}
               data-testid="new-observation-btn"
+              size="sm"
+              className="px-2 sm:px-3"
             >
-              <Play className="w-4 h-4 mr-2" />
-              New Observation
+              <Play className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">New Observation</span>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" className="text-red-600">
+                <Button variant="ghost" className="text-red-600" size="sm">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -691,7 +693,7 @@ export default function CoachProfile() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Data Retention Upgrade Banner */}
         {dataRetention?.is_limited && dataRetention?.hidden_sessions_count > 0 && (
           <Card className="mb-6 border-amber-200 bg-amber-50">
