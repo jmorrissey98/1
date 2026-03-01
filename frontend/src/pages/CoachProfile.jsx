@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, Edit2, Trash2, Check, X, Target, Calendar, User, Sparkles, 
@@ -30,6 +30,7 @@ import { SessionFilters, applySessionFilters, calculateFilteredAnalytics } from 
 import CoachNotes from '../components/coach/CoachNotes';
 import axios from 'axios';
 import { getAuthToken } from '../lib/safeFetch';
+import { PullToRefresh } from '../components/PullToRefresh';
 
 const API = '/api';
 
