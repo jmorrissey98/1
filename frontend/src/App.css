@@ -1,5 +1,51 @@
 /* My Coach Developer - App Styles */
 
+/* iOS Safe Area Support for PWA */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* Apply safe area to body */
+body {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* Safe area utility classes */
+.safe-area-top {
+  padding-top: var(--sat);
+}
+
+.safe-area-bottom {
+  padding-bottom: var(--sab);
+}
+
+.safe-area-left {
+  padding-left: var(--sal);
+}
+
+.safe-area-right {
+  padding-right: var(--sar);
+}
+
+/* For PWA standalone mode - add extra top padding */
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: max(env(safe-area-inset-top, 20px), 20px);
+  }
+  
+  /* Ensure headers have safe area consideration */
+  .sticky-header-safe {
+    top: 0;
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
+  }
+}
+
 .App {
   min-height: 100vh;
 }
