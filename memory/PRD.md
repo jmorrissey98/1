@@ -621,6 +621,30 @@
 - **recharts** - Charting library for React
 - **Stripe** - Payment processing (Test Mode: sk_test_emergent)
 
+## Mobile Responsiveness (March 1, 2026)
+
+### AppHeader - Responsive Navigation
+- **Hamburger menu** visible on mobile (<768px viewport)
+- **Full navigation** visible on tablet/desktop (≥768px viewport)
+- **Side drawer (Sheet)** opens from right with:
+  - Navigation items (Home, My Coaches, Templates, Calendar, Settings)
+  - Sync status indicator
+  - User info (logged in as...)
+  - Log out button
+
+### Page-Specific Responsive Updates
+- **ReviewSession.jsx**: Compact header buttons (CSV icon-only, PDF icon-only on mobile)
+- **SessionSetup.jsx**: "Start" on mobile, "Start Observation" on desktop
+- **MyCoaches.jsx**: "+" button on mobile, "Add Coach" on desktop
+- **CoachProfile.jsx**: Play icon on mobile, "New Observation" on desktop
+- **LiveObservation.jsx**: Compact bottom panel, smaller badges on mobile
+- **TemplateManager.jsx**: Smaller tabs and padding on mobile
+
+### Breakpoints Used
+- `sm:` (640px) - For button text and minor sizing
+- `md:` (768px) - For navigation switch (hamburger vs full nav)
+- `lg:` (1024px) - For grid layouts
+
 ## Key Files Reference
 
 ### Phase 6 Files (New)
