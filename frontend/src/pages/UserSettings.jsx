@@ -1014,5 +1014,6 @@ export default function UserSettings() {
         )}
       </main>
     </div>
+    </SwipeablePageWrapper>
   );
 }
