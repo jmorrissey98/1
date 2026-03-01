@@ -24,6 +24,7 @@ import {
 } from '../lib/observationTemplatesApi';
 import { useAuth } from '../contexts/AuthContext';
 import ReflectionTemplatesSection from '../components/ReflectionTemplatesSection';
+import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
 
 export default function TemplateManager() {
   const navigate = useNavigate();
