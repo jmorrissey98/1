@@ -419,6 +419,18 @@ export default function ReviewSession() {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState('');
   
+  // Tab state for swipe navigation
+  const [activeTab, setActiveTab] = useState('summary');
+  const REVIEW_TABS = ['summary', 'reflections', 'analysis'];
+  
+  // Swipe navigation for tabs
+  const { ref: swipeRef } = useSwipeTabs({
+    tabs: REVIEW_TABS,
+    currentTab: activeTab,
+    setCurrentTab: setActiveTab,
+    enabled: typeof window !== 'undefined' && window.innerWidth < 768 // Only on mobile
+  });
+  
   // Reflection template state
   const [reflectionTemplates, setReflectionTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
