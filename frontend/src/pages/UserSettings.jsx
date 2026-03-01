@@ -17,6 +17,7 @@ import { useUpgrade } from '../contexts/UpgradeContext';
 import { storage } from '../lib/storage';
 import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 import { fetchCoaches } from '../lib/offlineApi';
+import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
 
 export default function UserSettings() {
   const navigate = useNavigate();
