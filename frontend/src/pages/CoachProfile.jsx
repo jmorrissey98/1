@@ -629,8 +629,9 @@ export default function CoachProfile() {
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
-    await loadCoachData();
-  }, [loadCoachData]);
+    await loadCoach();
+    await loadAnalytics();
+  }, []);
 
   return (
     <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-slate-50">
