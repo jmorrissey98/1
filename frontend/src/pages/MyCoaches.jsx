@@ -253,20 +253,20 @@ export default function MyCoaches() {
       
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn" className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 font-['Manrope']">My Coaches</h1>
-              <p className="text-sm text-slate-500">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold text-slate-900 font-['Manrope']">My Coaches</h1>
+              <p className="text-xs sm:text-sm text-slate-500 truncate">
                 Manage coach profiles and development
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Subscription Limit Indicator */}
             {limits && (
               <div className="hidden sm:flex items-center gap-2 text-sm">
@@ -293,11 +293,13 @@ export default function MyCoaches() {
               <DialogTrigger asChild>
                 <Button 
                   data-testid="add-coach-btn"
+                  size="sm"
+                  className="px-2 sm:px-3"
                   disabled={limits && !limits.coaches.can_add}
                   title={limits && !limits.coaches.can_add ? `Coach limit reached (${limits.coaches.current}/${limits.coaches.limit})` : undefined}
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Coach
+                  <Plus className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Add Coach</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
