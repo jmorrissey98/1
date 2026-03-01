@@ -1703,6 +1703,6 @@ export default function CoachProfile() {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+    </PullToRefresh>
   );
 }
