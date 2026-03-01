@@ -897,5 +897,6 @@ export default function TemplateManager() {
         </Dialog>
       </main>
     </div>
+    </SwipeablePageWrapper>
   );
 }
