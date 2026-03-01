@@ -576,6 +576,7 @@ export default function MyCoaches() {
           </div>
         )}
       </main>
-    </div>
+      </PullToRefresh>
+    </SwipeablePageWrapper>
   );
 }
