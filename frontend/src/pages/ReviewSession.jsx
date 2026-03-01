@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User, Filter, Star, ClipboardList, Share2, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -26,6 +26,7 @@ import { useCloudSync } from '../contexts/CloudSyncContext';
 import { fetchReflectionTemplates, fetchReflectionTemplate } from '../lib/reflectionTemplatesApi';
 import axios from 'axios';
 import { getAuthToken } from '../lib/safeFetch';
+import { useSwipeTabs } from '../hooks/useSwipeNavigation';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
