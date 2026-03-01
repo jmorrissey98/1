@@ -48,6 +48,25 @@ export function SwipeablePageWrapper({ children, className }) {
     threshold: 80
   });
   
+  // Track mobile viewport state
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
+  
+  // Update mobile state on resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Check on mount
+    checkMobile();
+    
+    // Listen for resize
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   // Update indicator based on swipe state
   useEffect(() => {
     if (isSwiping && swipeProgress > 0.3) {
@@ -60,9 +79,6 @@ export function SwipeablePageWrapper({ children, className }) {
       setShowIndicator({ direction: null, name: null });
     }
   }, [isSwiping, swipeDirection, swipeProgress, nextPage, prevPage]);
-
-  // Only show swipe indicators on mobile
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
     <div ref={ref} className={cn("min-h-screen relative", className)}>
