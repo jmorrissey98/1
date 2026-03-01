@@ -124,6 +124,11 @@ export default function SessionCalendar() {
     }
   };
 
+  // Pull-to-refresh handler - must be defined before any conditional returns
+  const handleRefresh = useCallback(async () => {
+    await loadSessions();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -131,11 +136,6 @@ export default function SessionCalendar() {
       </div>
     );
   }
-
-  // Pull-to-refresh handler
-  const handleRefresh = useCallback(async () => {
-    await loadSessions();
-  }, []);
 
   return (
     <SwipeablePageWrapper>
