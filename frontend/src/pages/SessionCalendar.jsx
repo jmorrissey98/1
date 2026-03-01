@@ -132,10 +132,16 @@ export default function SessionCalendar() {
     );
   }
 
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    await loadSessions();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 safe-area-top">
+    <SwipeablePageWrapper>
+      <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-slate-50">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-10 safe-area-top">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 sm:gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/')} data-testid="back-btn">
