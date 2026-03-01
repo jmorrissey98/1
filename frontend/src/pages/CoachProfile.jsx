@@ -611,6 +611,12 @@ export default function CoachProfile() {
     navigate('/coaches');
   };
 
+  // Pull-to-refresh handler - must be defined before any conditional returns
+  const handleRefresh = useCallback(async () => {
+    await loadCoach();
+    await loadAnalytics();
+  }, []);
+
   if (!coach) return null;
 
   const activeTargets = (coach.targets || []).filter(t => t.status === 'active');
@@ -626,12 +632,6 @@ export default function CoachProfile() {
     variety_percentage: 0,
     most_common_pattern: null
   };
-
-  // Pull-to-refresh handler
-  const handleRefresh = useCallback(async () => {
-    await loadCoach();
-    await loadAnalytics();
-  }, []);
 
   return (
     <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-slate-50">
