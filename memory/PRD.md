@@ -645,6 +645,26 @@
 - `md:` (768px) - For navigation switch (hamburger vs full nav)
 - `lg:` (1024px) - For grid layouts
 
+## Mobile Gestures (March 1, 2026)
+
+### Swipe Navigation
+- **Main App Pages**: Swipe left/right to navigate between Home ↔ Coaches ↔ Templates ↔ Calendar ↔ Settings
+- **Session Review Tabs**: Swipe left/right to switch between Summary ↔ Reflections ↔ Analysis tabs
+- **Visual Indicators**: Shows page name during swipe gesture with slide-in animation
+- **Navigation Dots**: Bottom-center pill showing current page position (5 dots for 5 main pages)
+- **Mobile Only**: Swipe features only active on viewports < 768px
+
+### Pull-to-Refresh
+- **Enabled Pages**: Home, My Coaches, Calendar, Coach Profile
+- **Visual States**: Pull → Release → Refreshing → Success
+- **Offline Indicator**: Shows "Offline - showing cached data" when not connected
+- **Resistance**: Natural pull resistance for smooth UX
+
+### Implementation Files
+- `/app/frontend/src/hooks/useSwipeNavigation.js` - Swipe detection hooks
+- `/app/frontend/src/components/PullToRefresh.jsx` - Pull-to-refresh component  
+- `/app/frontend/src/components/SwipeablePageWrapper.jsx` - Page wrapper with dots
+
 ## Key Files Reference
 
 ### Phase 6 Files (New)
