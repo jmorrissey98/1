@@ -423,12 +423,24 @@ export default function ReviewSession() {
   const [activeTab, setActiveTab] = useState('summary');
   const REVIEW_TABS = ['summary', 'reflections', 'analysis'];
   
+  // Track mobile viewport for swipe
+  const [isMobileForSwipe, setIsMobileForSwipe] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobileForSwipe(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   // Swipe navigation for tabs
   const { ref: swipeRef } = useSwipeTabs({
     tabs: REVIEW_TABS,
     currentTab: activeTab,
     setCurrentTab: setActiveTab,
-    enabled: typeof window !== 'undefined' && window.innerWidth < 768 // Only on mobile
+    enabled: isMobileForSwipe // Only on mobile
   });
   
   // Reflection template state
