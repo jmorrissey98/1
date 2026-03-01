@@ -1142,30 +1142,31 @@ export default function LiveObservation() {
       )}
 
       {/* Intervention Count Badge */}
-      <div className="fixed bottom-4 right-4 flex items-center gap-2">
+      <div className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1.5 sm:gap-2 z-10">
         {/* Notes Panel Toggle (Phase 4) - neutral theme */}
         {session.enableObserverNotes !== false && (
           <Button
             onClick={() => setShowNotesPanel(!showNotesPanel)}
             variant={showNotesPanel ? "default" : "outline"}
+            size="sm"
             className={cn(
               "shadow-lg",
               showNotesPanel ? "bg-slate-700 hover:bg-slate-800" : "bg-white hover:bg-slate-50 border-slate-300"
             )}
             data-testid="toggle-notes-panel"
           >
-            <StickyNote className="w-4 h-4 mr-2" />
-            Notes {observerNotes.length > 0 && `(${observerNotes.length})`}
+            <StickyNote className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Notes</span> {observerNotes.length > 0 && `(${observerNotes.length})`}
           </Button>
         )}
-        <Badge className="bg-slate-900 text-white text-lg px-3 py-1" data-testid="event-count-badge">
-          {session.events.length} interventions
+        <Badge className="bg-slate-900 text-white text-sm sm:text-lg px-2 sm:px-3 py-1" data-testid="event-count-badge">
+          {session.events.length} <span className="hidden sm:inline">interventions</span>
         </Badge>
       </div>
 
       {/* Observer Notes Panel (Phase 4) - neutral theme */}
       {showNotesPanel && session.enableObserverNotes !== false && (
-        <div className="fixed bottom-20 right-4 w-80 bg-white rounded-lg shadow-xl border border-slate-200 z-20" data-testid="notes-panel">
+        <div className="fixed bottom-16 sm:bottom-20 right-3 sm:right-4 w-[calc(100%-1.5rem)] sm:w-80 max-w-80 bg-white rounded-lg shadow-xl border border-slate-200 z-20" data-testid="notes-panel">
           <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-lg">
             <h3 className="font-semibold text-slate-700 flex items-center gap-2">
               <StickyNote className="w-4 h-4" />
