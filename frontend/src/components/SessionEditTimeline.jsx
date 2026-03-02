@@ -1008,37 +1008,56 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     setResizing({ partId, edge });
   };
 
-  // Handle mouse move for resizing
+  // Handle mouse move for resizing - maintains contiguous parts (no gaps/overlaps)
   useEffect(() => {
     if (!resizing) return;
 
     const handleMouseMove = (e) => {
       const newTimeMs = getTimeFromMousePosition(e.clientX);
-      const part = partTimings.find(p => p.id === resizing.partId);
-      if (!part) return;
-
-      // Calculate new start/end times
-      let newStartTime, newEndTime;
+      const partIndex = partTimings.findIndex(p => p.id === resizing.partId);
+      if (partIndex === -1) return;
+      
+      const part = partTimings[partIndex];
       const sessionStart = sessionStartMs || Date.now();
+      const minDuration = 60000; // Minimum 1 minute per part
 
       if (resizing.edge === 'start') {
-        // Dragging start edge - ensure it doesn't go past end
-        const maxStart = part.endMs - 60000; // Minimum 1 minute duration
-        const clampedMs = Math.min(Math.max(0, newTimeMs), maxStart);
-        newStartTime = new Date(sessionStart + clampedMs).toISOString();
-        newEndTime = part.endTime;
+        // Dragging START edge of current part
+        // This affects the END of the previous part (if exists)
+        const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
+        
+        // Clamp: can't go before previous part's start + minDuration, or past own end - minDuration
+        const minMs = prevPart ? prevPart.startMs + minDuration : 0;
+        const maxMs = part.endMs - minDuration;
+        const clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
+        
+        // Update current part's start
+        const newStartTime = new Date(sessionStart + clampedMs).toISOString();
+        onUpdatePart(part.id, { startTime: newStartTime });
+        
+        // Update previous part's end to match (contiguous)
+        if (prevPart) {
+          onUpdatePart(prevPart.id, { endTime: newStartTime });
+        }
       } else {
-        // Dragging end edge - ensure it doesn't go before start
-        const minEnd = part.startMs + 60000; // Minimum 1 minute duration
-        const clampedMs = Math.max(minEnd, Math.min(totalDurationMs, newTimeMs));
-        newStartTime = part.startTime;
-        newEndTime = new Date(sessionStart + clampedMs).toISOString();
+        // Dragging END edge of current part
+        // This affects the START of the next part (if exists)
+        const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
+        
+        // Clamp: can't go before own start + minDuration, or past next part's end - minDuration (or session end)
+        const minMs = part.startMs + minDuration;
+        const maxMs = nextPart ? nextPart.endMs - minDuration : totalDurationMs;
+        const clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
+        
+        // Update current part's end
+        const newEndTime = new Date(sessionStart + clampedMs).toISOString();
+        onUpdatePart(part.id, { endTime: newEndTime });
+        
+        // Update next part's start to match (contiguous)
+        if (nextPart) {
+          onUpdatePart(nextPart.id, { startTime: newEndTime });
+        }
       }
-
-      onUpdatePart(resizing.partId, {
-        startTime: newStartTime,
-        endTime: newEndTime
-      });
     };
 
     const handleMouseUp = () => {
@@ -1167,7 +1186,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
         <span className="text-blue-600 font-medium">Drag edges to adjust timing • Drag cards to reorder</span>
       </div>
       
-      {/* Visual Timeline with draggable edges */}
+      {/* Visual Timeline with draggable edges - parts are contiguous */}
       <div 
         ref={timelineRef}
         className={cn(
@@ -1179,46 +1198,55 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
           const leftPercent = (part.startMs / totalDurationMs) * 100;
           const widthPercent = Math.max(5, ((part.endMs - part.startMs) / totalDurationMs) * 100);
           const isResizing = resizing?.partId === part.id;
+          const isFirst = index === 0;
+          const isLast = index === partTimings.length - 1;
           
           return (
             <div
               key={part.id}
               className={cn(
-                "absolute top-2 bottom-2 flex flex-col items-center justify-center text-white text-xs font-medium transition-all rounded",
+                "absolute top-2 bottom-2 flex flex-col items-center justify-center text-white text-xs font-medium transition-all",
                 part.color,
-                isResizing && "ring-2 ring-blue-500 z-10"
+                isResizing && "ring-2 ring-blue-500 z-10",
+                !isFirst && "rounded-l-none", // No rounded corners between parts
+                !isLast && "rounded-r-none"
               )}
               style={{
                 left: `${leftPercent}%`,
                 width: `${widthPercent}%`,
-                minWidth: '60px'
+                minWidth: '60px',
+                borderRadius: `${isFirst ? '6px' : '0'} ${isLast ? '6px' : '0'} ${isLast ? '6px' : '0'} ${isFirst ? '6px' : '0'}`
               }}
             >
-              {/* Left resize handle - draggable */}
-              <div
-                onMouseDown={(e) => handleResizeStart(e, part.id, 'start')}
-                className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center"
-                title="Drag to adjust start time"
-              >
-                <div className="w-1.5 h-12 bg-white/40 rounded ml-0.5 group-hover:bg-white/80 group-hover:w-2 transition-all" />
-              </div>
+              {/* Drag handle between this part and previous (shared boundary) */}
+              {!isFirst && (
+                <div
+                  onMouseDown={(e) => handleResizeStart(e, part.id, 'start')}
+                  className="absolute -left-2 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center justify-center"
+                  title="Drag to adjust boundary"
+                >
+                  <div className="w-1 h-12 bg-white/60 rounded group-hover:bg-white group-hover:w-1.5 transition-all shadow-sm" />
+                </div>
+              )}
               
               {/* Part content */}
-              <div className="px-6 text-center">
+              <div className="px-4 text-center">
                 <span className="truncate font-semibold block">{part.name}</span>
                 <span className="text-[10px] opacity-80 block mt-0.5">
                   {formatTime(part.startMs)} → {formatTime(part.endMs)}
                 </span>
               </div>
               
-              {/* Right resize handle - draggable */}
-              <div
-                onMouseDown={(e) => handleResizeStart(e, part.id, 'end')}
-                className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center justify-end"
-                title="Drag to adjust end time"
-              >
-                <div className="w-1.5 h-12 bg-white/40 rounded mr-0.5 group-hover:bg-white/80 group-hover:w-2 transition-all" />
-              </div>
+              {/* Drag handle at the very end (only for last part) */}
+              {isLast && (
+                <div
+                  onMouseDown={(e) => handleResizeStart(e, part.id, 'end')}
+                  className="absolute -right-2 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center justify-center"
+                  title="Drag to adjust end time"
+                >
+                  <div className="w-1 h-12 bg-white/60 rounded group-hover:bg-white group-hover:w-1.5 transition-all shadow-sm" />
+                </div>
+              )}
             </div>
           );
         })}
