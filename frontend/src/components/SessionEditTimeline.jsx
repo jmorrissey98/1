@@ -188,12 +188,18 @@ export function SessionEditTimeline({
   };
 
   const handleDeletePart = (partId) => {
+    // Instead of removing the part entirely, mark it as unused and reset times
+    // This allows the part to be re-added later if needed
     setEditedSession(prev => ({
       ...prev,
-      sessionParts: (prev.sessionParts || []).filter(p => p.id !== partId)
+      sessionParts: (prev.sessionParts || []).map(p =>
+        p.id === partId 
+          ? { ...p, used: false, ballRollingTime: 0, ballNotRollingTime: 0, startTime: null, endTime: null }
+          : p
+      )
     }));
     setIsDirty(true);
-    toast.success('Session part removed');
+    toast.success('Session part removed from this session');
   };
 
   const handleReorderParts = (fromIndex, toIndex) => {
@@ -214,11 +220,37 @@ export function SessionEditTimeline({
 
   // Recalculate derived values before save
   const recalculateDerivedValues = (sessionData) => {
+    // Recalculate total duration from start/end times
     if (sessionData.startTime && sessionData.endTime) {
       const start = new Date(sessionData.startTime).getTime();
       const end = new Date(sessionData.endTime).getTime();
       sessionData.totalDuration = Math.max(0, (end - start) / 1000);
     }
+    
+    // Recalculate ball rolling times from session parts
+    // This ensures the session totals match the sum of all part times
+    const parts = sessionData.sessionParts || [];
+    const activeParts = parts.filter(p => 
+      p.used === true || 
+      p.startTime || 
+      (p.ballRollingTime && p.ballRollingTime > 0) || 
+      (p.ballNotRollingTime && p.ballNotRollingTime > 0)
+    );
+    
+    if (activeParts.length > 0) {
+      // Sum up ball times from all activated parts
+      let totalRolling = 0;
+      let totalNotRolling = 0;
+      
+      activeParts.forEach(part => {
+        totalRolling += part.ballRollingTime || 0;
+        totalNotRolling += part.ballNotRollingTime || 0;
+      });
+      
+      sessionData.ballRollingTime = totalRolling;
+      sessionData.ballNotRollingTime = totalNotRolling;
+    }
+    
     return sessionData;
   };
 
@@ -886,36 +918,45 @@ function BallRollingTimelineEditor({ session, onChange }) {
 
 /**
  * Session Parts Timeline Editor
- * Shows ONLY parts that were actually activated during the session
- * Parts are displayed based on their recorded start/end times or 'used' flag
+ * Full editing capability for session parts including:
+ * - Edit timings/duration (ball rolling and not rolling times)
+ * - Remove parts completely
+ * - Reorder parts via drag-and-drop
+ * - Add parts from inactive parts or create new ones
+ * All changes persist to session data and affect coach profiles/analytics
  */
-function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts, sessionStartTime }) {
+function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts, onAddPart, sessionStartTime, inactiveParts = [] }) {
   const [draggedPart, setDraggedPart] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [editingPartId, setEditingPartId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [editingTimes, setEditingTimes] = useState(null); // { partId, ballRollingTime, ballNotRollingTime }
+  const [showAddFromInactive, setShowAddFromInactive] = useState(false);
 
   const sessionStartMs = sessionStartTime ? new Date(sessionStartTime).getTime() : 0;
 
   // Filter to only show parts that were actually used during the session
   const activatedParts = parts.filter(part => {
-    // Part is considered activated if:
-    // 1. It has 'used: true' flag (explicitly marked as used during observation)
-    // 2. It has a startTime recorded (was started during observation)
-    // 3. It has any ball rolling/not rolling time recorded (had activity)
     const hasUsedFlag = part.used === true;
     const hasStartTime = !!part.startTime;
     const hasRollingTime = (part.ballRollingTime && part.ballRollingTime > 0);
     const hasNotRollingTime = (part.ballNotRollingTime && part.ballNotRollingTime > 0);
-    
     return hasUsedFlag || hasStartTime || hasRollingTime || hasNotRollingTime;
+  });
+
+  // Get inactive parts (parts that exist but weren't used)
+  const unusedParts = parts.filter(part => {
+    const hasUsedFlag = part.used === true;
+    const hasStartTime = !!part.startTime;
+    const hasRollingTime = (part.ballRollingTime && part.ballRollingTime > 0);
+    const hasNotRollingTime = (part.ballNotRollingTime && part.ballNotRollingTime > 0);
+    return !(hasUsedFlag || hasStartTime || hasRollingTime || hasNotRollingTime);
   });
 
   // Calculate part positions based on actual recorded times
   const getPartTimings = () => {
     if (activatedParts.length === 0) return [];
     
-    // Sort by start time if available, otherwise by order field
     const sortedParts = [...activatedParts].sort((a, b) => {
       if (a.startTime && b.startTime) {
         return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
@@ -923,7 +964,6 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       return (a.order || 0) - (b.order || 0);
     });
     
-    // Calculate total time to distribute parts proportionally
     const totalPartTime = sortedParts.reduce((sum, part) => {
       return sum + (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
     }, 0);
@@ -936,23 +976,18 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       let startMs, endMs;
       
       if (part.startTime && sessionStartMs) {
-        // Use actual recorded start time
         startMs = new Date(part.startTime).getTime() - sessionStartMs;
-        
         if (part.endTime) {
           endMs = new Date(part.endTime).getTime() - sessionStartMs;
         } else {
-          // Calculate end from duration
           endMs = startMs + (partTotalTime * 1000);
         }
       } else if (totalPartTime > 0) {
-        // Distribute proportionally based on recorded times
         const partWidthMs = (partTotalTime / totalPartTime) * totalDurationMs;
         startMs = currentPosition;
         endMs = currentPosition + partWidthMs;
         currentPosition = endMs;
       } else {
-        // Fallback: distribute evenly
         const partWidth = totalDurationMs / sortedParts.length;
         startMs = index * partWidth;
         endMs = (index + 1) * partWidth;
@@ -970,6 +1005,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
 
   const partTimings = getPartTimings();
 
+  // Drag handlers
   const handleDragStart = (e, index) => {
     setDraggedPart(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -997,6 +1033,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     setDragOverIndex(null);
   };
 
+  // Name editing
   const startEditing = (part) => {
     setEditingPartId(part.id);
     setEditingName(part.name);
@@ -1010,7 +1047,56 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     setEditingName('');
   };
 
+  // Time editing
+  const startEditingTimes = (part) => {
+    setEditingTimes({
+      partId: part.id,
+      ballRollingTime: part.ballRollingTime || 0,
+      ballNotRollingTime: part.ballNotRollingTime || 0
+    });
+  };
+
+  const savePartTimes = () => {
+    if (editingTimes) {
+      onUpdatePart(editingTimes.partId, {
+        ballRollingTime: editingTimes.ballRollingTime,
+        ballNotRollingTime: editingTimes.ballNotRollingTime,
+        used: true // Ensure it stays marked as used
+      });
+      toast.success('Part duration updated');
+    }
+    setEditingTimes(null);
+  };
+
+  // Activate an unused part
+  const handleActivatePart = (part) => {
+    onUpdatePart(part.id, {
+      used: true,
+      ballRollingTime: 60, // Default 1 minute rolling
+      ballNotRollingTime: 0
+    });
+    setShowAddFromInactive(false);
+    toast.success(`"${part.name}" added to session`);
+  };
+
+  // Parse MM:SS to seconds
+  const parseTimeInput = (value) => {
+    const parts = value.split(':');
+    if (parts.length === 2) {
+      const mins = parseInt(parts[0], 10) || 0;
+      const secs = parseInt(parts[1], 10) || 0;
+      return mins * 60 + secs;
+    }
+    return parseInt(value, 10) || 0;
+  };
+
   const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatTimeInput = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -1023,19 +1109,22 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
         <div className="text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-300">
           <p className="text-slate-600 font-medium">No session parts were activated</p>
           <p className="text-sm text-slate-500 mt-1">
-            Parts shown here reflect what was actually used during this observation
+            Add parts below to record them as part of this session
           </p>
         </div>
         
-        {/* Show all available parts that weren't used */}
-        {parts.length > 0 && (
+        {unusedParts.length > 0 && (
           <div className="mt-4">
-            <p className="text-xs font-medium text-slate-500 uppercase mb-2">Available Parts (Not Activated)</p>
+            <p className="text-xs font-medium text-slate-500 uppercase mb-2">Available Parts - Click to Activate</p>
             <div className="flex flex-wrap gap-2">
-              {parts.filter(p => !activatedParts.includes(p)).map((part, idx) => (
-                <Badge key={part.id} variant="outline" className="text-slate-400">
-                  {part.name}
-                </Badge>
+              {unusedParts.map((part) => (
+                <button
+                  key={part.id}
+                  onClick={() => handleActivatePart(part)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-green-100 hover:border-green-300 border rounded-md text-sm text-slate-600 hover:text-green-700 transition-colors"
+                >
+                  + {part.name}
+                </button>
               ))}
             </div>
           </div>
@@ -1047,15 +1136,16 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="text-xs text-slate-500 bg-blue-50 p-2 rounded border border-blue-100">
-        Showing {activatedParts.length} of {parts.length} parts that were activated during this session
+      <div className="text-xs text-slate-500 bg-blue-50 p-2 rounded border border-blue-100 flex items-center justify-between">
+        <span>Showing {activatedParts.length} of {parts.length} parts that were activated during this session</span>
+        <span className="text-blue-600 font-medium">Edit times to adjust duration • Drag to reorder</span>
       </div>
       
       {/* Visual Timeline */}
       <div className="relative h-16 bg-slate-100 rounded-lg overflow-hidden">
         {partTimings.map((part, index) => {
           const leftPercent = (part.startMs / totalDurationMs) * 100;
-          const widthPercent = ((part.endMs - part.startMs) / totalDurationMs) * 100;
+          const widthPercent = Math.max(5, ((part.endMs - part.startMs) / totalDurationMs) * 100);
           
           return (
             <div
@@ -1094,97 +1184,186 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
 
       {/* Part List for detailed editing */}
       <div className="space-y-2 mt-4">
-        <p className="text-sm font-medium text-slate-700">Activated Parts (drag to reorder)</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-slate-700">Activated Parts (drag to reorder)</p>
+          {unusedParts.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowAddFromInactive(!showAddFromInactive)}
+              className="text-xs"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add Existing Part
+            </Button>
+          )}
+        </div>
+        
+        {/* Add from inactive parts dropdown */}
+        {showAddFromInactive && unusedParts.length > 0 && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
+            <p className="text-xs font-medium text-green-700">Click a part to add it to this session:</p>
+            <div className="flex flex-wrap gap-2">
+              {unusedParts.map((part) => (
+                <button
+                  key={part.id}
+                  onClick={() => handleActivatePart(part)}
+                  className="px-3 py-1.5 bg-white hover:bg-green-100 border border-green-300 rounded-md text-sm text-green-700 transition-colors"
+                >
+                  + {part.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Activated parts list */}
         {activatedParts.map((part, index) => (
           <div
             key={part.id}
-            draggable
+            draggable={!editingTimes}
             onDragStart={(e) => handleDragStart(e, index)}
             onDragOver={(e) => handleDragOver(e, index)}
             onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
             className={cn(
-              "flex items-center gap-3 p-3 border rounded-lg bg-white transition-all",
+              "p-3 border rounded-lg bg-white transition-all",
               draggedPart === index && "opacity-50",
               dragOverIndex === index && "border-orange-400 bg-orange-50"
             )}
           >
-            <Move className="w-4 h-4 text-slate-400 cursor-grab" />
-            
-            <div className={cn("w-4 h-4 rounded", PART_COLORS[index % PART_COLORS.length])} />
-            
-            <Badge variant="outline" className="text-xs">
-              {index + 1}
-            </Badge>
-            
-            {editingPartId === part.id ? (
-              <div className="flex-1 flex items-center gap-2">
-                <Input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  className="h-8 text-sm"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') savePartName(part.id);
-                    if (e.key === 'Escape') setEditingPartId(null);
-                  }}
-                />
-                <Button size="sm" variant="ghost" onClick={() => savePartName(part.id)}>
-                  <Save className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditingPartId(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1">
-                  <span className="font-medium">{part.name}</span>
-                  {/* Show ball rolling breakdown */}
-                  {(part.ballRollingTime > 0 || part.ballNotRollingTime > 0) && (
-                    <div className="flex gap-3 text-xs text-slate-500 mt-0.5">
-                      {part.ballRollingTime > 0 && (
-                        <span className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-green-500 rounded" />
-                          {formatDuration(part.ballRollingTime)}
-                        </span>
-                      )}
-                      {part.ballNotRollingTime > 0 && (
-                        <span className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-red-400 rounded" />
-                          {formatDuration(part.ballNotRollingTime)}
-                        </span>
-                      )}
-                    </div>
-                  )}
+            {/* Part header row */}
+            <div className="flex items-center gap-3">
+              <Move className="w-4 h-4 text-slate-400 cursor-grab" />
+              <div className={cn("w-4 h-4 rounded", PART_COLORS[index % PART_COLORS.length])} />
+              <Badge variant="outline" className="text-xs">{index + 1}</Badge>
+              
+              {editingPartId === part.id ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <Input
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    className="h-8 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') savePartName(part.id);
+                      if (e.key === 'Escape') setEditingPartId(null);
+                    }}
+                  />
+                  <Button size="sm" variant="ghost" onClick={() => savePartName(part.id)}>
+                    <Save className="w-4 h-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingPartId(null)}>
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => startEditing(part)}>
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <span className="font-medium">{part.name}</span>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => startEditing(part)} title="Edit name">
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+              
+              {/* Delete button */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Remove part">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove Session Part?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will remove "{part.name}" from this session's data. The part's ball rolling time ({formatDuration(part.ballRollingTime || 0)}) and not rolling time ({formatDuration(part.ballNotRollingTime || 0)}) will be removed from session totals.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDeletePart(part.id)} className="bg-red-600 hover:bg-red-700">
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
             
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remove Session Part?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will remove "{part.name}" from the session. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDeletePart(part.id)} className="bg-red-600 hover:bg-red-700">
-                    Remove
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/* Time editing section */}
+            <div className="mt-3 pl-11">
+              {editingTimes?.partId === part.id ? (
+                <div className="flex flex-wrap items-center gap-3 p-2 bg-slate-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded" />
+                    <Label className="text-xs text-slate-600">Ball Rolling:</Label>
+                    <Input
+                      type="text"
+                      value={formatTimeInput(editingTimes.ballRollingTime)}
+                      onChange={(e) => setEditingTimes(prev => ({
+                        ...prev,
+                        ballRollingTime: parseTimeInput(e.target.value)
+                      }))}
+                      className="w-20 h-7 text-sm text-center font-mono"
+                      placeholder="MM:SS"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-400 rounded" />
+                    <Label className="text-xs text-slate-600">Not Rolling:</Label>
+                    <Input
+                      type="text"
+                      value={formatTimeInput(editingTimes.ballNotRollingTime)}
+                      onChange={(e) => setEditingTimes(prev => ({
+                        ...prev,
+                        ballNotRollingTime: parseTimeInput(e.target.value)
+                      }))}
+                      className="w-20 h-7 text-sm text-center font-mono"
+                      placeholder="MM:SS"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <span className="text-xs text-slate-500">
+                      Total: {formatDuration(editingTimes.ballRollingTime + editingTimes.ballNotRollingTime)}
+                    </span>
+                    <Button size="sm" onClick={savePartTimes} className="h-7 px-2">
+                      <Save className="w-3 h-3 mr-1" />
+                      Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingTimes(null)} className="h-7 px-2">
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex gap-3 text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded" />
+                      Rolling: {formatDuration(part.ballRollingTime || 0)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-red-400 rounded" />
+                      Not Rolling: {formatDuration(part.ballNotRollingTime || 0)}
+                    </span>
+                    <span className="text-slate-400">
+                      Total: {formatDuration((part.ballRollingTime || 0) + (part.ballNotRollingTime || 0))}
+                    </span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => startEditingTimes(part)}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <Clock className="w-3 h-3 mr-1" />
+                    Edit Times
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
