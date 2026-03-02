@@ -729,11 +729,15 @@ export default function ReviewSession() {
     const events = session.events || [];
     
     return parts.filter(part => {
+      // Check if part is explicitly marked as used
+      const isUsed = part.used === true;
+      // Check if part has timestamps (indicating it was active during session)
+      const hasTimestamps = !!part.startTime && !!part.endTime;
       // Check if part has any events
       const hasEvents = events.some(e => e.sessionPartId === part.id);
       // Check if part has ball rolling or stopped time
       const hasBallTime = (part.ballRollingTime || 0) > 0 || (part.ballNotRollingTime || 0) > 0;
-      return hasEvents || hasBallTime;
+      return isUsed || hasTimestamps || hasEvents || hasBallTime;
     });
   };
 

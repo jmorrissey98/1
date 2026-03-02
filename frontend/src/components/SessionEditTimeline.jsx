@@ -318,11 +318,68 @@ export function SessionEditTimeline({
     return sessionData;
   };
 
+  // Reassign interventions to parts based on their timestamps
+  const reassignInterventionsToParts = (sessionData) => {
+    const sessionStartMs = sessionData.startTime ? new Date(sessionData.startTime).getTime() : 0;
+    const parts = sessionData.sessionParts || [];
+    const events = sessionData.events || [];
+    
+    if (parts.length === 0 || events.length === 0) {
+      return sessionData;
+    }
+    
+    // Build part time ranges
+    const partRanges = parts
+      .filter(p => p.startTime && p.endTime)
+      .map(p => ({
+        id: p.id,
+        startMs: new Date(p.startTime).getTime() - sessionStartMs,
+        endMs: new Date(p.endTime).getTime() - sessionStartMs
+      }))
+      .sort((a, b) => a.startMs - b.startMs);
+    
+    // Reassign each event to the part containing its timestamp
+    const updatedEvents = events.map(event => {
+      // Get the event's relative timestamp
+      let eventMs;
+      if (event.relativeTimestamp !== undefined) {
+        eventMs = event.relativeTimestamp;
+      } else if (event.timestamp) {
+        eventMs = new Date(event.timestamp).getTime() - sessionStartMs;
+      } else {
+        return event; // No timestamp, can't assign
+      }
+      
+      // Find the part that contains this timestamp
+      const matchingPart = partRanges.find(p => 
+        eventMs >= p.startMs && eventMs < p.endMs
+      );
+      
+      // If found, assign to that part; otherwise, check if it's at the exact end of a part
+      if (matchingPart) {
+        return { ...event, sessionPartId: matchingPart.id };
+      } else {
+        // Check if event is at exact end boundary of any part
+        const atEndOfPart = partRanges.find(p => eventMs === p.endMs);
+        if (atEndOfPart) {
+          return { ...event, sessionPartId: atEndOfPart.id };
+        }
+      }
+      
+      // If no part matches, keep existing assignment or clear it
+      return { ...event, sessionPartId: null };
+    });
+    
+    return { ...sessionData, events: updatedEvents };
+  };
+
   // Save changes
   const handleSave = async () => {
     setSaving(true);
     try {
-      const finalSession = recalculateDerivedValues({ ...editedSession });
+      let finalSession = recalculateDerivedValues({ ...editedSession });
+      // Reassign interventions to parts based on timestamps
+      finalSession = reassignInterventionsToParts(finalSession);
       finalSession.lastEditedAt = new Date().toISOString();
       await onSave(finalSession);
       setIsDirty(false);
@@ -1107,8 +1164,10 @@ function SessionPartsTimelineEditor({
   
   // Initialize local part times from props when parts change
   useEffect(() => {
+    // Recalculate timings fresh to avoid stale closure issues
+    const freshTimings = getPartTimings();
     const initialTimes = {};
-    partTimings.forEach(part => {
+    freshTimings.forEach(part => {
       if (!localPartTimes[part.id]) {
         initialTimes[part.id] = { startMs: part.startMs, endMs: part.endMs };
       }
@@ -1116,7 +1175,7 @@ function SessionPartsTimelineEditor({
     if (Object.keys(initialTimes).length > 0) {
       setLocalPartTimes(prev => ({ ...prev, ...initialTimes }));
     }
-  }, [parts]); // Only re-init when parts prop changes
+  }, [parts, activatedParts.length]); // Re-init when parts change or count changes
   
   // Update a part's time and cascade to adjacent parts
   const updatePartTime = (partId, field, newMs) => {
