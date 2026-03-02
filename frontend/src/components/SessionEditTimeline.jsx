@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -723,6 +723,23 @@ function BallRollingTimelineEditor({ session, onChange }) {
     setSegments(newSegments);
   }, [session.ballRollingLog, session.startTime, session.endTime, totalMs, session.ballRollingTime, session.ballNotRollingTime]);
 
+  // Calculate rolling times from current segments (for live display)
+  const { rollingTime, notRollingTime } = useMemo(() => {
+    let rolling = 0;
+    let notRolling = 0;
+    
+    segments.forEach(seg => {
+      const duration = (seg.endMs - seg.startMs) / 1000;
+      if (seg.type === 'rolling') {
+        rolling += duration;
+      } else {
+        notRolling += duration;
+      }
+    });
+    
+    return { rollingTime: rolling, notRollingTime: notRolling };
+  }, [segments]);
+
   const handleDragStart = useCallback((index, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -941,9 +958,22 @@ function BallRollingTimelineEditor({ session, onChange }) {
           </span>
         </div>
         <div className="flex gap-4 text-slate-500">
-          <span>Total Rolling: {formatTime(session.ballRollingTime || 0)}</span>
-          <span>Total Not Rolling: {formatTime(session.ballNotRollingTime || 0)}</span>
+          <span>Total Rolling: {formatTime(rollingTime)}</span>
+          <span>Total Not Rolling: {formatTime(notRollingTime)}</span>
         </div>
+        {/* Live percentage display */}
+        {(() => {
+          const total = rollingTime + notRollingTime;
+          if (total === 0) return null;
+          const rollingPct = Math.round((rollingTime / total) * 100);
+          const stoppedPct = 100 - rollingPct;
+          return (
+            <div className="flex gap-4 text-sm font-medium mt-1">
+              <span className="text-green-600">Ball Rolling: {rollingPct}%</span>
+              <span className="text-red-500">Ball Stopped: {stoppedPct}%</span>
+            </div>
+          );
+        })()}
       </div>
       
       {/* Segment list - detailed view */}
