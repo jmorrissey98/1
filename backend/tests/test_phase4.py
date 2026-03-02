@@ -10,7 +10,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://timeline-edit-tool.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://session-parts-dev.preview.emergentagent.com').rstrip('/')
 
 class TestReflectionTemplatesAPI:
     """Test reflection templates endpoints"""

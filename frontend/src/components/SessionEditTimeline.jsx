@@ -1132,10 +1132,17 @@ function SessionPartsTimelineEditor({
 
   // Time editing - convert MM:SS to ISO timestamp
   const startEditingTimes = (part) => {
+    const partIndex = partTimings.findIndex(p => p.id === part.id);
     setEditingTimes({
       partId: part.id,
+      partIndex,
       startTime: formatTime(part.startMs),
-      endTime: formatTime(part.endMs)
+      endTime: formatTime(part.endMs),
+      startMs: part.startMs,
+      endMs: part.endMs,
+      // Store original values for comparison when saving
+      originalStartMs: part.startMs,
+      originalEndMs: part.endMs
     });
   };
 
@@ -1149,12 +1156,91 @@ function SessionPartsTimelineEditor({
     return 0;
   };
 
+  const formatMsToTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Update editing times with validation
+  const updateEditingTime = (field, value) => {
+    if (!editingTimes) return;
+    
+    const newMs = parseTimeToMs(value);
+    const { partIndex, startMs: currentStartMs, endMs: currentEndMs } = editingTimes;
+    const isFirstPart = partIndex === 0;
+    const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
+    const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
+    
+    if (field === 'start') {
+      // First part must start at 00:00
+      if (isFirstPart && newMs !== 0) {
+        return; // Silently prevent - input is disabled anyway
+      }
+      
+      // Start must be before current end (minimum 1 minute duration)
+      if (newMs >= currentEndMs - 60000) {
+        return;
+      }
+      
+      // Start can't be before 0
+      if (newMs < 0) {
+        return;
+      }
+      
+      setEditingTimes(prev => ({
+        ...prev,
+        startTime: value,
+        startMs: newMs
+      }));
+    } else {
+      // End must be after current start (minimum 1 minute duration)
+      if (newMs <= currentStartMs + 60000) {
+        return;
+      }
+      
+      // End can't exceed session duration
+      if (newMs > totalDurationMs) {
+        return;
+      }
+      
+      // If there's a next part, end can't exceed next part's end - 1 minute
+      if (nextPart && newMs > nextPart.endMs - 60000) {
+        return;
+      }
+      
+      setEditingTimes(prev => ({
+        ...prev,
+        endTime: value,
+        endMs: newMs
+      }));
+    }
+  };
+
+  // Increment/decrement time by given milliseconds
+  const adjustTime = (field, deltaMs) => {
+    if (!editingTimes) return;
+    
+    const currentMs = field === 'start' ? editingTimes.startMs : editingTimes.endMs;
+    const newMs = Math.max(0, currentMs + deltaMs);
+    const newTimeStr = formatMsToTime(newMs);
+    
+    updateEditingTime(field, newTimeStr);
+  };
+
   const savePartTimes = () => {
     if (!editingTimes) return;
     
     const sessionStart = sessionStartMs || Date.now();
-    const newStartMs = parseTimeToMs(editingTimes.startTime);
-    const newEndMs = parseTimeToMs(editingTimes.endTime);
+    const { partIndex, startMs: newStartMs, endMs: newEndMs, originalStartMs, originalEndMs } = editingTimes;
+    const isFirstPart = partIndex === 0;
+    
+    // Validate first part starts at 0
+    if (isFirstPart && newStartMs !== 0) {
+      toast.error('First part must start at 0:00');
+      return;
+    }
     
     // Validate times
     if (newEndMs <= newStartMs) {
@@ -1162,13 +1248,50 @@ function SessionPartsTimelineEditor({
       return;
     }
     
-    const newStartTime = new Date(sessionStart + newStartMs).toISOString();
-    const newEndTime = new Date(sessionStart + newEndMs).toISOString();
+    const updates = [];
+    const currentPart = partTimings[partIndex];
+    const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
+    const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
     
-    onUpdatePart(editingTimes.partId, {
-      startTime: newStartTime,
-      endTime: newEndTime
+    // Check if times actually changed from original values
+    const startChanged = newStartMs !== originalStartMs;
+    const endChanged = newEndMs !== originalEndMs;
+    
+    // Update current part
+    updates.push({
+      partId: currentPart.id,
+      changes: {
+        startTime: new Date(sessionStart + newStartMs).toISOString(),
+        endTime: new Date(sessionStart + newEndMs).toISOString()
+      }
     });
+    
+    // If start changed and there's a previous part, update its end to match
+    // This ensures parts remain contiguous with no gaps
+    if (startChanged && prevPart) {
+      updates.push({
+        partId: prevPart.id,
+        changes: {
+          endTime: new Date(sessionStart + newStartMs).toISOString()
+        }
+      });
+    }
+    
+    // If end changed and there's a next part, update its start to match
+    // This ensures parts remain contiguous with no overlaps
+    if (endChanged && nextPart) {
+      updates.push({
+        partId: nextPart.id,
+        changes: {
+          startTime: new Date(sessionStart + newEndMs).toISOString()
+        }
+      });
+    }
+    
+    // Apply all updates atomically
+    if (updates.length > 0) {
+      onUpdateMultipleParts(updates);
+    }
     
     setEditingTimes(null);
     toast.success('Part timing updated');
@@ -1542,33 +1665,124 @@ function SessionPartsTimelineEditor({
             {/* Time editing section */}
             <div className="mt-3 ml-8">
               {editingTimes?.partId === part.id ? (
-                <div className="flex flex-wrap items-center gap-3 p-2 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-slate-600">Start:</Label>
-                    <Input
-                      type="text"
-                      value={editingTimes.startTime}
-                      onChange={(e) => setEditingTimes(prev => ({
-                        ...prev,
-                        startTime: e.target.value
-                      }))}
-                      className="w-20 h-8 text-sm text-center font-mono"
-                      placeholder="MM:SS"
-                    />
+                <div className="flex flex-wrap items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                  {/* Start Time Input */}
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs text-slate-600 w-10">Start:</Label>
+                    <div className="flex items-center">
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-t border border-b-0 border-slate-300 bg-white"
+                          onClick={() => adjustTime('start', 1000)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            let delay = 200;
+                            const interval = setInterval(() => {
+                              adjustTime('start', 1000);
+                              delay = Math.max(50, delay * 0.9);
+                            }, delay);
+                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
+                            document.addEventListener('mouseup', clear);
+                          }}
+                          disabled={index === 0}
+                          title={index === 0 ? "First part must start at 0:00" : "Increase (+1 sec)"}
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-b border border-slate-300 bg-white"
+                          onClick={() => adjustTime('start', -1000)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            let delay = 200;
+                            const interval = setInterval(() => {
+                              adjustTime('start', -1000);
+                              delay = Math.max(50, delay * 0.9);
+                            }, delay);
+                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
+                            document.addEventListener('mouseup', clear);
+                          }}
+                          disabled={index === 0}
+                          title={index === 0 ? "First part must start at 0:00" : "Decrease (-1 sec)"}
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <Input
+                        type="text"
+                        value={editingTimes.startTime}
+                        onChange={(e) => updateEditingTime('start', e.target.value)}
+                        className={cn(
+                          "w-16 h-8 text-sm text-center font-mono rounded-l-none border-l-0",
+                          index === 0 && "bg-slate-100 text-slate-500"
+                        )}
+                        placeholder="MM:SS"
+                        disabled={index === 0}
+                        title={index === 0 ? "First part must start at 0:00" : ""}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-slate-600">End:</Label>
-                    <Input
-                      type="text"
-                      value={editingTimes.endTime}
-                      onChange={(e) => setEditingTimes(prev => ({
-                        ...prev,
-                        endTime: e.target.value
-                      }))}
-                      className="w-20 h-8 text-sm text-center font-mono"
-                      placeholder="MM:SS"
-                    />
+                  
+                  {/* End Time Input */}
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs text-slate-600 w-8">End:</Label>
+                    <div className="flex items-center">
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-t border border-b-0 border-slate-300 bg-white"
+                          onClick={() => adjustTime('end', 1000)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            let delay = 200;
+                            const interval = setInterval(() => {
+                              adjustTime('end', 1000);
+                              delay = Math.max(50, delay * 0.9);
+                            }, delay);
+                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
+                            document.addEventListener('mouseup', clear);
+                          }}
+                          title="Increase (+1 sec)"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-b border border-slate-300 bg-white"
+                          onClick={() => adjustTime('end', -1000)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            let delay = 200;
+                            const interval = setInterval(() => {
+                              adjustTime('end', -1000);
+                              delay = Math.max(50, delay * 0.9);
+                            }, delay);
+                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
+                            document.addEventListener('mouseup', clear);
+                          }}
+                          title="Decrease (-1 sec)"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <Input
+                        type="text"
+                        value={editingTimes.endTime}
+                        onChange={(e) => updateEditingTime('end', e.target.value)}
+                        className="w-16 h-8 text-sm text-center font-mono rounded-l-none border-l-0"
+                        placeholder="MM:SS"
+                      />
+                    </div>
                   </div>
+                  
+                  {/* Duration display */}
+                  <span className="text-xs text-slate-500">
+                    Duration: {formatDuration(editingTimes.endMs - editingTimes.startMs)}
+                  </span>
+                  
+                  {/* Save/Cancel buttons */}
                   <div className="flex items-center gap-1 ml-auto">
                     <Button size="sm" onClick={savePartTimes} className="h-8">
                       <Save className="w-3 h-3 mr-1" />
