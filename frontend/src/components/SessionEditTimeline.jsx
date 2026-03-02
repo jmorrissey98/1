@@ -63,6 +63,35 @@ export function SessionEditTimeline({
   const [editingPart, setEditingPart] = useState(null);
   const [showAddPartDialog, setShowAddPartDialog] = useState(false);
   const [newPartName, setNewPartName] = useState('');
+  const [availableParts, setAvailableParts] = useState({ defaults: [], historical: [] });
+
+  // Fetch default and historical session parts
+  useEffect(() => {
+    const fetchAvailableParts = async () => {
+      try {
+        const API_URL = process.env.REACT_APP_BACKEND_URL;
+        const token = localStorage.getItem('auth_token');
+        
+        // Fetch default parts
+        const defaultsRes = await fetch(`${API_URL}/api/session-parts/defaults`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const defaults = defaultsRes.ok ? await defaultsRes.json() : [];
+        
+        // Fetch historical parts
+        const historicalRes = await fetch(`${API_URL}/api/session-parts/historical`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const historical = historicalRes.ok ? await historicalRes.json() : [];
+        
+        setAvailableParts({ defaults, historical });
+      } catch (err) {
+        console.error('Failed to fetch available parts:', err);
+      }
+    };
+    
+    fetchAvailableParts();
+  }, []);
 
   // Initialize editable session from props
   useEffect(() => {
@@ -187,6 +216,19 @@ export function SessionEditTimeline({
     setIsDirty(true);
   };
 
+  // Update multiple parts atomically (for contiguous timeline editing)
+  const handleUpdateMultipleParts = (updates) => {
+    // updates is an array of { partId, changes }
+    setEditedSession(prev => ({
+      ...prev,
+      sessionParts: (prev.sessionParts || []).map(p => {
+        const partUpdate = updates.find(u => u.partId === p.id);
+        return partUpdate ? { ...p, ...partUpdate.changes } : p;
+      })
+    }));
+    setIsDirty(true);
+  };
+
   const handleDeletePart = (partId) => {
     // Instead of removing the part entirely, mark it as unused and reset times
     // This allows the part to be re-added later if needed
@@ -210,6 +252,47 @@ export function SessionEditTimeline({
       return { ...prev, sessionParts: parts };
     });
     setIsDirty(true);
+  };
+
+  // Add a new part (from defaults, historical, or custom name)
+  const handleAddNewPart = (partName, partId = null) => {
+    const sessionStartMs = editedSession.startTime ? new Date(editedSession.startTime).getTime() : Date.now();
+    
+    // Find the last activated part to calculate new part's position
+    const activeParts = (editedSession.sessionParts || []).filter(p => 
+      p.used === true || p.startTime || (p.ballRollingTime && p.ballRollingTime > 0)
+    );
+    
+    const lastPart = activeParts.length > 0 
+      ? activeParts.reduce((latest, p) => {
+          const pEnd = p.endTime ? new Date(p.endTime).getTime() : 0;
+          const latestEnd = latest.endTime ? new Date(latest.endTime).getTime() : 0;
+          return pEnd > latestEnd ? p : latest;
+        }, activeParts[0])
+      : null;
+    
+    const newStartMs = lastPart && lastPart.endTime 
+      ? new Date(lastPart.endTime).getTime() - sessionStartMs
+      : 0;
+    const newEndMs = Math.min(newStartMs + 300000, totalDurationMs); // 5 minutes default or until session end
+    
+    const newPart = {
+      id: partId || `part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: partName,
+      order: activeParts.length,
+      used: true,
+      startTime: new Date(sessionStartMs + newStartMs).toISOString(),
+      endTime: new Date(sessionStartMs + newEndMs).toISOString(),
+      ballRollingTime: 0,
+      ballNotRollingTime: 0
+    };
+    
+    setEditedSession(prev => ({
+      ...prev,
+      sessionParts: [...(prev.sessionParts || []), newPart]
+    }));
+    setIsDirty(true);
+    toast.success(`Added "${partName}" to session`);
   };
 
   // Ball rolling update handler
@@ -387,8 +470,11 @@ export function SessionEditTimeline({
             totalDurationMs={totalDurationMs}
             sessionStartTime={editedSession.startTime}
             onUpdatePart={handleUpdatePart}
+            onUpdateMultipleParts={handleUpdateMultipleParts}
             onDeletePart={handleDeletePart}
             onReorderParts={handleReorderParts}
+            availableParts={availableParts}
+            onAddNewPart={handleAddNewPart}
           />
         </CardContent>
       </Card>
@@ -921,19 +1007,30 @@ function BallRollingTimelineEditor({ session, onChange }) {
  * Edit start and end times of session parts by dragging on the timeline.
  * Ball rolling times are managed separately in the Ball Rolling section.
  * Features:
- * - Drag part edges to adjust start/end times
+ * - Drag part boundaries to adjust start/end times (contiguous - no gaps)
  * - Remove parts completely
  * - Reorder parts via drag-and-drop in list view
- * - Add parts from inactive parts
+ * - Add parts from defaults, historical, or custom name
  */
-function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts, sessionStartTime }) {
+function SessionPartsTimelineEditor({ 
+  parts, 
+  totalDurationMs, 
+  onUpdatePart, 
+  onUpdateMultipleParts, 
+  onDeletePart, 
+  onReorderParts, 
+  sessionStartTime,
+  availableParts = { defaults: [], historical: [] },
+  onAddNewPart
+}) {
   const timelineRef = useRef(null);
   const [draggedPart, setDraggedPart] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [editingPartId, setEditingPartId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [showAddFromInactive, setShowAddFromInactive] = useState(false);
-  const [resizing, setResizing] = useState(null); // { partId, edge: 'start' | 'end' }
+  const [showAddPartMenu, setShowAddPartMenu] = useState(false);
+  const [customPartName, setCustomPartName] = useState('');
+  const [resizing, setResizing] = useState(null);
 
   const sessionStartMs = sessionStartTime ? new Date(sessionStartTime).getTime() : 0;
 
@@ -1001,7 +1098,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     return Math.round(percent * totalDurationMs);
   }, [totalDurationMs]);
 
-  // Handle drag start for resizing part edges
+  // Handle drag start for resizing part boundaries
   const handleResizeStart = (e, partId, edge) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1021,42 +1118,49 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       const sessionStart = sessionStartMs || Date.now();
       const minDuration = 60000; // Minimum 1 minute per part
 
+      const updates = [];
+
       if (resizing.edge === 'start') {
-        // Dragging START edge of current part
-        // This affects the END of the previous part (if exists)
+        // Dragging the boundary between previous part and current part
         const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
         
-        // Clamp: can't go before previous part's start + minDuration, or past own end - minDuration
+        // Clamp the position
         const minMs = prevPart ? prevPart.startMs + minDuration : 0;
         const maxMs = part.endMs - minDuration;
         const clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
         
-        // Update current part's start
-        const newStartTime = new Date(sessionStart + clampedMs).toISOString();
-        onUpdatePart(part.id, { startTime: newStartTime });
+        const newBoundaryTime = new Date(sessionStart + clampedMs).toISOString();
         
-        // Update previous part's end to match (contiguous)
+        // Update current part's start
+        updates.push({ partId: part.id, changes: { startTime: newBoundaryTime } });
+        
+        // Update previous part's end to match
         if (prevPart) {
-          onUpdatePart(prevPart.id, { endTime: newStartTime });
+          updates.push({ partId: prevPart.id, changes: { endTime: newBoundaryTime } });
         }
       } else {
-        // Dragging END edge of current part
-        // This affects the START of the next part (if exists)
+        // Dragging the boundary between current part and next part (or session end)
         const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
         
-        // Clamp: can't go before own start + minDuration, or past next part's end - minDuration (or session end)
+        // Clamp the position
         const minMs = part.startMs + minDuration;
         const maxMs = nextPart ? nextPart.endMs - minDuration : totalDurationMs;
         const clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
         
-        // Update current part's end
-        const newEndTime = new Date(sessionStart + clampedMs).toISOString();
-        onUpdatePart(part.id, { endTime: newEndTime });
+        const newBoundaryTime = new Date(sessionStart + clampedMs).toISOString();
         
-        // Update next part's start to match (contiguous)
+        // Update current part's end
+        updates.push({ partId: part.id, changes: { endTime: newBoundaryTime } });
+        
+        // Update next part's start to match
         if (nextPart) {
-          onUpdatePart(nextPart.id, { startTime: newEndTime });
+          updates.push({ partId: nextPart.id, changes: { startTime: newBoundaryTime } });
         }
+      }
+
+      // Apply all updates atomically
+      if (updates.length > 0) {
+        onUpdateMultipleParts(updates);
       }
     };
 
@@ -1072,7 +1176,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing, partTimings, sessionStartMs, totalDurationMs, getTimeFromMousePosition, onUpdatePart]);
+  }, [resizing, partTimings, sessionStartMs, totalDurationMs, getTimeFromMousePosition, onUpdateMultipleParts]);
 
   // Drag handlers for reordering in list view
   const handleDragStart = (e, index) => {
@@ -1116,12 +1220,11 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     setEditingName('');
   };
 
-  // Activate an unused part
+  // Activate an unused part from the session's existing parts
   const handleActivatePart = (part) => {
-    // Add part at the end of the session with a default 5-minute duration
     const lastPart = partTimings[partTimings.length - 1];
     const newStartMs = lastPart ? lastPart.endMs : 0;
-    const newEndMs = Math.min(newStartMs + 300000, totalDurationMs); // 5 minutes or until session end
+    const newEndMs = Math.min(newStartMs + 300000, totalDurationMs);
     const sessionStart = sessionStartMs || Date.now();
 
     onUpdatePart(part.id, {
@@ -1129,9 +1232,43 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       startTime: new Date(sessionStart + newStartMs).toISOString(),
       endTime: new Date(sessionStart + newEndMs).toISOString()
     });
-    setShowAddFromInactive(false);
+    setShowAddPartMenu(false);
     toast.success(`"${part.name}" added to session`);
   };
+
+  // Add a part from defaults or historical
+  const handleAddFromList = (partInfo) => {
+    if (onAddNewPart) {
+      onAddNewPart(partInfo.name, partInfo.part_id);
+    }
+    setShowAddPartMenu(false);
+  };
+
+  // Add a custom-named part
+  const handleAddCustomPart = () => {
+    if (customPartName.trim() && onAddNewPart) {
+      onAddNewPart(customPartName.trim());
+      setCustomPartName('');
+      setShowAddPartMenu(false);
+    }
+  };
+
+  // Get parts that aren't already in this session
+  const getAvailablePartsToAdd = () => {
+    const currentPartNames = new Set(parts.map(p => p.name.toLowerCase()));
+    
+    const defaults = (availableParts.defaults || []).filter(
+      p => !currentPartNames.has(p.name.toLowerCase())
+    );
+    
+    const historical = (availableParts.historical || []).filter(
+      p => !currentPartNames.has(p.name.toLowerCase())
+    );
+    
+    return { defaults, historical };
+  };
+
+  const { defaults: availableDefaults, historical: availableHistorical } = getAvailablePartsToAdd();
 
   const formatDuration = (ms) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -1186,7 +1323,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
         <span className="text-blue-600 font-medium">Drag edges to adjust timing • Drag cards to reorder</span>
       </div>
       
-      {/* Visual Timeline with draggable edges - parts are contiguous */}
+      {/* Visual Timeline with draggable boundaries */}
       <div 
         ref={timelineRef}
         className={cn(
@@ -1194,6 +1331,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
           resizing && "cursor-ew-resize select-none"
         )}
       >
+        {/* Render parts */}
         {partTimings.map((part, index) => {
           const leftPercent = (part.startMs / totalDurationMs) * 100;
           const widthPercent = Math.max(5, ((part.endMs - part.startMs) / totalDurationMs) * 100);
@@ -1207,49 +1345,69 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
               className={cn(
                 "absolute top-2 bottom-2 flex flex-col items-center justify-center text-white text-xs font-medium transition-all",
                 part.color,
-                isResizing && "ring-2 ring-blue-500 z-10",
-                !isFirst && "rounded-l-none", // No rounded corners between parts
-                !isLast && "rounded-r-none"
+                isResizing && "ring-2 ring-blue-500 z-10"
               )}
               style={{
                 left: `${leftPercent}%`,
                 width: `${widthPercent}%`,
-                minWidth: '60px',
+                minWidth: '50px',
                 borderRadius: `${isFirst ? '6px' : '0'} ${isLast ? '6px' : '0'} ${isLast ? '6px' : '0'} ${isFirst ? '6px' : '0'}`
               }}
             >
-              {/* Drag handle between this part and previous (shared boundary) */}
-              {!isFirst && (
-                <div
-                  onMouseDown={(e) => handleResizeStart(e, part.id, 'start')}
-                  className="absolute -left-2 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center justify-center"
-                  title="Drag to adjust boundary"
-                >
-                  <div className="w-1 h-12 bg-white/60 rounded group-hover:bg-white group-hover:w-1.5 transition-all shadow-sm" />
-                </div>
-              )}
-              
               {/* Part content */}
-              <div className="px-4 text-center">
-                <span className="truncate font-semibold block">{part.name}</span>
-                <span className="text-[10px] opacity-80 block mt-0.5">
+              <div className="px-2 text-center pointer-events-none">
+                <span className="truncate font-semibold block text-[11px]">{part.name}</span>
+                <span className="text-[9px] opacity-80 block">
                   {formatTime(part.startMs)} → {formatTime(part.endMs)}
                 </span>
               </div>
-              
-              {/* Drag handle at the very end (only for last part) */}
-              {isLast && (
-                <div
-                  onMouseDown={(e) => handleResizeStart(e, part.id, 'end')}
-                  className="absolute -right-2 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center justify-center"
-                  title="Drag to adjust end time"
-                >
-                  <div className="w-1 h-12 bg-white/60 rounded group-hover:bg-white group-hover:w-1.5 transition-all shadow-sm" />
-                </div>
-              )}
             </div>
           );
         })}
+        
+        {/* Render draggable boundary handles BETWEEN parts */}
+        {partTimings.map((part, index) => {
+          if (index === 0) return null; // No handle before first part
+          
+          const boundaryPercent = (part.startMs / totalDurationMs) * 100;
+          const isActive = resizing?.partId === part.id && resizing?.edge === 'start';
+          
+          return (
+            <div
+              key={`boundary-${part.id}`}
+              onMouseDown={(e) => handleResizeStart(e, part.id, 'start')}
+              className={cn(
+                "absolute top-0 bottom-0 w-6 -ml-3 cursor-ew-resize z-30 flex items-center justify-center group",
+                isActive && "bg-blue-200/50"
+              )}
+              style={{ left: `${boundaryPercent}%` }}
+              title="Drag to adjust boundary"
+            >
+              <div className={cn(
+                "w-1.5 h-16 rounded-full transition-all shadow-md",
+                isActive ? "bg-blue-500 w-2" : "bg-white/80 group-hover:bg-white group-hover:w-2"
+              )} />
+            </div>
+          );
+        })}
+        
+        {/* Drag handle at the very end of last part */}
+        {partTimings.length > 0 && (
+          <div
+            onMouseDown={(e) => handleResizeStart(e, partTimings[partTimings.length - 1].id, 'end')}
+            className={cn(
+              "absolute top-0 bottom-0 w-6 -mr-3 cursor-ew-resize z-30 flex items-center justify-center group",
+              resizing?.edge === 'end' && "bg-blue-200/50"
+            )}
+            style={{ left: `${(partTimings[partTimings.length - 1].endMs / totalDurationMs) * 100}%`, marginLeft: '-12px' }}
+            title="Drag to adjust session end"
+          >
+            <div className={cn(
+              "w-1.5 h-16 rounded-full transition-all shadow-md",
+              resizing?.edge === 'end' ? "bg-blue-500 w-2" : "bg-white/80 group-hover:bg-white group-hover:w-2"
+            )} />
+          </div>
+        )}
       </div>
 
       {/* Time markers */}
@@ -1263,33 +1421,106 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       <div className="space-y-2 mt-4">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-slate-700">Session Parts</p>
-          {unusedParts.length > 0 && (
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setShowAddFromInactive(!showAddFromInactive)}
-              className="text-xs"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Add Part
-            </Button>
-          )}
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => setShowAddPartMenu(!showAddPartMenu)}
+            className="text-xs"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add Part
+          </Button>
         </div>
         
-        {/* Add from inactive parts dropdown */}
-        {showAddFromInactive && unusedParts.length > 0 && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-            <p className="text-xs font-medium text-green-700">Click a part to add it to this session:</p>
-            <div className="flex flex-wrap gap-2">
-              {unusedParts.map((part) => (
-                <button
-                  key={part.id}
-                  onClick={() => handleActivatePart(part)}
-                  className="px-3 py-1.5 bg-white hover:bg-green-100 border border-green-300 rounded-md text-sm text-green-700 transition-colors"
+        {/* Add Part Menu - shows defaults, historical, inactive, and custom input */}
+        {showAddPartMenu && (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-4">
+            {/* Inactive parts from current session (re-activate) */}
+            {unusedParts.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-slate-600 uppercase mb-2">From This Session (Inactive)</p>
+                <div className="flex flex-wrap gap-2">
+                  {unusedParts.map((part) => (
+                    <button
+                      key={part.id}
+                      onClick={() => handleActivatePart(part)}
+                      className="px-3 py-1.5 bg-white hover:bg-blue-50 border border-slate-300 hover:border-blue-400 rounded-md text-sm text-slate-700 hover:text-blue-700 transition-colors"
+                    >
+                      + {part.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Default parts */}
+            {availableDefaults.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-green-600 uppercase mb-2">Default Parts</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableDefaults.map((part) => (
+                    <button
+                      key={part.part_id}
+                      onClick={() => handleAddFromList(part)}
+                      className="px-3 py-1.5 bg-white hover:bg-green-50 border border-green-300 hover:border-green-500 rounded-md text-sm text-green-700 transition-colors"
+                    >
+                      + {part.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Historical parts from other observations */}
+            {availableHistorical.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-purple-600 uppercase mb-2">From Past Sessions</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableHistorical.slice(0, 10).map((part) => (
+                    <button
+                      key={part.part_id}
+                      onClick={() => handleAddFromList(part)}
+                      className="px-3 py-1.5 bg-white hover:bg-purple-50 border border-purple-300 hover:border-purple-500 rounded-md text-sm text-purple-700 transition-colors"
+                    >
+                      + {part.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Custom part name input */}
+            <div>
+              <p className="text-xs font-medium text-slate-600 uppercase mb-2">Add Custom Part</p>
+              <div className="flex gap-2">
+                <Input
+                  value={customPartName}
+                  onChange={(e) => setCustomPartName(e.target.value)}
+                  placeholder="Enter part name..."
+                  className="flex-1 h-9"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddCustomPart();
+                  }}
+                />
+                <Button 
+                  size="sm" 
+                  onClick={handleAddCustomPart}
+                  disabled={!customPartName.trim()}
                 >
-                  + {part.name}
-                </button>
-              ))}
+                  Add
+                </Button>
+              </div>
+            </div>
+            
+            <div className="pt-2 border-t">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => setShowAddPartMenu(false)}
+                className="w-full text-slate-500"
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         )}

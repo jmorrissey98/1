@@ -1410,6 +1410,35 @@ async def get_default_session_parts(request: Request):
         for p in parts
     ]
 
+@api_router.get("/session-parts/historical")
+async def get_historical_session_parts(request: Request):
+    """Get unique session parts used in past observations (for adding parts to edited sessions)"""
+    user = await require_auth(request)
+    
+    # Get all observations for this organization
+    observations = await db.observations.find(
+        {"organization_id": user.organization_id},
+        {"session_parts": 1, "_id": 0}
+    ).to_list(1000)
+    
+    # Extract unique part names from all observations
+    seen_names = set()
+    historical_parts = []
+    
+    for obs in observations:
+        for part in obs.get("session_parts", []):
+            part_name = part.get("name", "")
+            if part_name and part_name not in seen_names:
+                seen_names.add(part_name)
+                historical_parts.append({
+                    "part_id": part.get("id", f"hist_{uuid.uuid4().hex[:8]}"),
+                    "name": part_name,
+                    "is_default": False,
+                    "source": "historical"
+                })
+    
+    return historical_parts
+
 @api_router.post("/session-parts", response_model=SessionPartResponse)
 async def create_session_part(part_data: SessionPartCreate, request: Request):
     """Create a new session part (Coach Developer only for defaults)"""
