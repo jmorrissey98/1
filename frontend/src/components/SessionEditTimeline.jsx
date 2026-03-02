@@ -1099,74 +1099,121 @@ function SessionPartsTimelineEditor({
   }, [totalDurationMs]);
 
   // Handle drag start for resizing part boundaries
+  const dragStateRef = useRef(null);
+  const [dragPreview, setDragPreview] = useState(null); // Preview positions during drag
+  
   const handleResizeStart = (e, partId, edge) => {
     e.preventDefault();
     e.stopPropagation();
-    setResizing({ partId, edge });
+    
+    // Store the initial state for this drag operation
+    const currentTimings = getPartTimings();
+    const partIndex = currentTimings.findIndex(p => p.id === partId);
+    
+    if (partIndex === -1) return;
+    
+    // Store in ref for immediate access during drag
+    dragStateRef.current = {
+      partId, 
+      edge,
+      initialTimings: JSON.parse(JSON.stringify(currentTimings)), // Deep copy
+      partIndex,
+      lastClampedMs: null
+    };
+    
+    setResizing({ partId, edge, partIndex });
   };
 
   // Handle mouse move for resizing - maintains contiguous parts (no gaps/overlaps)
   useEffect(() => {
-    if (!resizing) return;
+    if (!resizing || !dragStateRef.current) return;
 
     const handleMouseMove = (e) => {
-      const newTimeMs = getTimeFromMousePosition(e.clientX);
-      const partIndex = partTimings.findIndex(p => p.id === resizing.partId);
-      if (partIndex === -1) return;
+      const dragState = dragStateRef.current;
+      if (!dragState) return;
       
-      const part = partTimings[partIndex];
-      const sessionStart = sessionStartMs || Date.now();
+      const newTimeMs = getTimeFromMousePosition(e.clientX);
+      const { initialTimings, partIndex, edge } = dragState;
+      
+      if (partIndex === -1 || !initialTimings[partIndex]) return;
+      
+      const part = initialTimings[partIndex];
       const minDuration = 60000; // Minimum 1 minute per part
 
-      const updates = [];
+      let clampedMs;
 
-      if (resizing.edge === 'start') {
-        // Dragging the boundary between previous part and current part
-        const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
-        
-        // Clamp the position
+      if (edge === 'start') {
+        const prevPart = partIndex > 0 ? initialTimings[partIndex - 1] : null;
         const minMs = prevPart ? prevPart.startMs + minDuration : 0;
         const maxMs = part.endMs - minDuration;
-        const clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
-        
-        const newBoundaryTime = new Date(sessionStart + clampedMs).toISOString();
-        
-        // Update current part's start
-        updates.push({ partId: part.id, changes: { startTime: newBoundaryTime } });
-        
-        // Update previous part's end to match
-        if (prevPart) {
-          updates.push({ partId: prevPart.id, changes: { endTime: newBoundaryTime } });
-        }
+        clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
       } else {
-        // Dragging the boundary between current part and next part (or session end)
-        const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
-        
-        // Clamp the position
+        const nextPart = partIndex < initialTimings.length - 1 ? initialTimings[partIndex + 1] : null;
         const minMs = part.startMs + minDuration;
         const maxMs = nextPart ? nextPart.endMs - minDuration : totalDurationMs;
-        const clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
-        
-        const newBoundaryTime = new Date(sessionStart + clampedMs).toISOString();
-        
-        // Update current part's end
-        updates.push({ partId: part.id, changes: { endTime: newBoundaryTime } });
-        
-        // Update next part's start to match
-        if (nextPart) {
-          updates.push({ partId: nextPart.id, changes: { startTime: newBoundaryTime } });
-        }
+        clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
       }
 
-      // Apply all updates atomically
-      if (updates.length > 0) {
-        onUpdateMultipleParts(updates);
-      }
+      // Store for use on mouseup
+      dragState.lastClampedMs = clampedMs;
+      
+      // Create preview timings for visual feedback
+      const previewTimings = initialTimings.map((p, idx) => {
+        if (edge === 'start') {
+          if (idx === partIndex) {
+            return { ...p, startMs: clampedMs };
+          }
+          if (idx === partIndex - 1) {
+            return { ...p, endMs: clampedMs };
+          }
+        } else {
+          if (idx === partIndex) {
+            return { ...p, endMs: clampedMs };
+          }
+          if (idx === partIndex + 1) {
+            return { ...p, startMs: clampedMs };
+          }
+        }
+        return p;
+      });
+      
+      setDragPreview(previewTimings);
     };
 
     const handleMouseUp = () => {
+      const dragState = dragStateRef.current;
+      
+      if (dragState && dragState.lastClampedMs !== null) {
+        const { initialTimings, partIndex, edge, lastClampedMs } = dragState;
+        const part = initialTimings[partIndex];
+        const sessionStart = sessionStartMs || Date.now();
+        
+        const updates = [];
+        const newBoundaryTime = new Date(sessionStart + lastClampedMs).toISOString();
+
+        if (edge === 'start') {
+          const prevPart = partIndex > 0 ? initialTimings[partIndex - 1] : null;
+          updates.push({ partId: part.id, changes: { startTime: newBoundaryTime } });
+          if (prevPart) {
+            updates.push({ partId: prevPart.id, changes: { endTime: newBoundaryTime } });
+          }
+        } else {
+          const nextPart = partIndex < initialTimings.length - 1 ? initialTimings[partIndex + 1] : null;
+          updates.push({ partId: part.id, changes: { endTime: newBoundaryTime } });
+          if (nextPart) {
+            updates.push({ partId: nextPart.id, changes: { startTime: newBoundaryTime } });
+          }
+        }
+
+        if (updates.length > 0) {
+          onUpdateMultipleParts(updates);
+          toast.success('Part timing updated');
+        }
+      }
+      
+      dragStateRef.current = null;
+      setDragPreview(null);
       setResizing(null);
-      toast.success('Part timing updated');
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -1176,7 +1223,10 @@ function SessionPartsTimelineEditor({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing, partTimings, sessionStartMs, totalDurationMs, getTimeFromMousePosition, onUpdateMultipleParts]);
+  }, [resizing, sessionStartMs, totalDurationMs, getTimeFromMousePosition, onUpdateMultipleParts]);
+  
+  // Use preview timings during drag, otherwise use calculated timings
+  const displayTimings = dragPreview || partTimings;
 
   // Drag handlers for reordering in list view
   const handleDragStart = (e, index) => {
@@ -1332,12 +1382,12 @@ function SessionPartsTimelineEditor({
         )}
       >
         {/* Render parts */}
-        {partTimings.map((part, index) => {
+        {displayTimings.map((part, index) => {
           const leftPercent = (part.startMs / totalDurationMs) * 100;
           const widthPercent = Math.max(5, ((part.endMs - part.startMs) / totalDurationMs) * 100);
           const isResizing = resizing?.partId === part.id;
           const isFirst = index === 0;
-          const isLast = index === partTimings.length - 1;
+          const isLast = index === displayTimings.length - 1;
           
           return (
             <div
@@ -1366,7 +1416,7 @@ function SessionPartsTimelineEditor({
         })}
         
         {/* Render draggable boundary handles BETWEEN parts */}
-        {partTimings.map((part, index) => {
+        {displayTimings.map((part, index) => {
           if (index === 0) return null; // No handle before first part
           
           const boundaryPercent = (part.startMs / totalDurationMs) * 100;
@@ -1392,14 +1442,14 @@ function SessionPartsTimelineEditor({
         })}
         
         {/* Drag handle at the very end of last part */}
-        {partTimings.length > 0 && (
+        {displayTimings.length > 0 && (
           <div
-            onMouseDown={(e) => handleResizeStart(e, partTimings[partTimings.length - 1].id, 'end')}
+            onMouseDown={(e) => handleResizeStart(e, displayTimings[displayTimings.length - 1].id, 'end')}
             className={cn(
               "absolute top-0 bottom-0 w-6 -mr-3 cursor-ew-resize z-30 flex items-center justify-center group",
               resizing?.edge === 'end' && "bg-blue-200/50"
             )}
-            style={{ left: `${(partTimings[partTimings.length - 1].endMs / totalDurationMs) * 100}%`, marginLeft: '-12px' }}
+            style={{ left: `${(displayTimings[displayTimings.length - 1].endMs / totalDurationMs) * 100}%`, marginLeft: '-12px' }}
             title="Drag to adjust session end"
           >
             <div className={cn(
