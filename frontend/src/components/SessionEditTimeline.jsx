@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
-import { Trash2, Edit2, Save, X, Clock, ChevronLeft, ChevronRight, GripVertical, AlertTriangle } from 'lucide-react';
+import { Trash2, Edit2, Save, X, Clock, Plus, GripVertical, AlertTriangle, Move } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, formatTime, generateId } from '../lib/utils';
 
@@ -25,31 +25,26 @@ const parseTimeToMs = (timeStr) => {
   if (!timeStr) return 0;
   const parts = timeStr.split(':').map(Number);
   if (parts.length === 2) {
-    // MM:SS
     return (parts[0] * 60 + parts[1]) * 1000;
   } else if (parts.length === 3) {
-    // HH:MM:SS
     return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
   }
   return 0;
 };
 
-// Format milliseconds to input-friendly HH:MM:SS
-const msToInputTime = (ms) => {
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
+// Session part colors for visual distinction
+const PART_COLORS = [
+  'bg-blue-400', 'bg-purple-400', 'bg-amber-400', 'bg-teal-400', 
+  'bg-pink-400', 'bg-indigo-400', 'bg-orange-400', 'bg-cyan-400'
+];
 
 /**
  * Session Edit Timeline Component
  * Allows editing of completed sessions including:
  * - Session start/end times
  * - Interventions (remove, change type, edit descriptors)
- * - Session parts/segments
- * - Ball rolling timeline
+ * - Session parts/segments with visual timeline
+ * - Ball rolling timeline (draggable)
  */
 export function SessionEditTimeline({
   session,
@@ -60,17 +55,14 @@ export function SessionEditTimeline({
   descriptorGroup2 = null,
   sessionParts = []
 }) {
-  // Editable session state
   const [editedSession, setEditedSession] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState(null);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
-  
-  // Ball rolling timeline state
-  const [draggingSegment, setDraggingSegment] = useState(null);
-  const timelineRef = useRef(null);
+  const [editingPart, setEditingPart] = useState(null);
+  const [showAddPartDialog, setShowAddPartDialog] = useState(false);
+  const [newPartName, setNewPartName] = useState('');
 
   // Initialize editable session from props
   useEffect(() => {
@@ -87,6 +79,7 @@ export function SessionEditTimeline({
   if (!editedSession) return null;
 
   const totalDuration = editedSession.totalDuration || 0;
+  const totalDurationMs = totalDuration * 1000;
   const sessionStartTime = editedSession.startTime ? new Date(editedSession.startTime) : null;
   const sessionEndTime = editedSession.endTime ? new Date(editedSession.endTime) : null;
 
@@ -97,32 +90,17 @@ export function SessionEditTimeline({
     setEditedSession(prev => {
       const updated = { ...prev, [field]: newTime.toISOString() };
       
-      // Recalculate total duration if both times are set
       if (updated.startTime && updated.endTime) {
         const start = new Date(updated.startTime);
         const end = new Date(updated.endTime);
-        const duration = (end - start) / 1000; // in seconds
+        const duration = (end - start) / 1000;
         
         if (duration < 0) {
           setShowTimeWarning(true);
-          return prev; // Don't allow end before start
+          return prev;
         }
         
         updated.totalDuration = duration;
-        
-        // Auto-adjust events that fall outside new time bounds
-        if (field === 'startTime') {
-          const diff = start.getTime() - new Date(prev.startTime).getTime();
-          updated.events = (prev.events || []).map(e => {
-            if (e.timestamp) {
-              const eventTime = new Date(e.timestamp).getTime();
-              const relativeTime = e.relativeTimestamp || 0;
-              // Keep relative times, they will be recalculated on save
-              return e;
-            }
-            return e;
-          });
-        }
       }
       
       setShowTimeWarning(false);
@@ -150,55 +128,56 @@ export function SessionEditTimeline({
       events: (prev.events || []).filter(e => e.id !== eventId)
     }));
     setIsDirty(true);
-    setDeleteConfirmEvent(null);
     toast.success('Intervention removed');
   };
 
   // Update event timestamp
   const handleEventTimestampChange = (eventId, newRelativeMs) => {
-    const sessionStart = new Date(editedSession.startTime).getTime();
-    const sessionEnd = new Date(editedSession.endTime).getTime();
-    const sessionDurationMs = sessionEnd - sessionStart;
-    
-    // Clamp to session bounds
+    const sessionDurationMs = totalDurationMs;
     const clampedMs = Math.max(0, Math.min(newRelativeMs, sessionDurationMs));
     
     setEditedSession(prev => {
+      const sessionStart = new Date(prev.startTime).getTime();
       const updatedEvents = (prev.events || []).map(e => {
         if (e.id === eventId) {
           const newTimestamp = new Date(sessionStart + clampedMs).toISOString();
-          return { 
-            ...e, 
-            relativeTimestamp: clampedMs,
-            timestamp: newTimestamp
-          };
+          return { ...e, relativeTimestamp: clampedMs, timestamp: newTimestamp };
         }
         return e;
       });
       
-      // Sort events by timestamp
       updatedEvents.sort((a, b) => (a.relativeTimestamp || 0) - (b.relativeTimestamp || 0));
-      
       return { ...prev, events: updatedEvents };
     });
     setIsDirty(true);
   };
 
-  // Update ball rolling segment
-  const handleBallRollingUpdate = (index, newEndTime) => {
-    setEditedSession(prev => {
-      const log = [...(prev.ballRollingLog || [])];
-      if (log[index]) {
-        // Update this segment's end (which is the next segment's start)
-        // Or recalculate ball rolling times based on the log
-      }
-      return prev;
-    });
+  // Session Parts handlers
+  const handleAddPart = () => {
+    if (!newPartName.trim()) return;
+    
+    const newPart = {
+      id: generateId(),
+      name: newPartName.trim(),
+      startTime: 0,
+      endTime: totalDurationMs,
+      used: false,
+      ballRollingTime: 0,
+      ballNotRollingTime: 0
+    };
+    
+    setEditedSession(prev => ({
+      ...prev,
+      sessionParts: [...(prev.sessionParts || []), newPart]
+    }));
+    
+    setNewPartName('');
+    setShowAddPartDialog(false);
     setIsDirty(true);
+    toast.success('Session part added');
   };
 
-  // Update session part
-  const handlePartUpdate = (partId, updates) => {
+  const handleUpdatePart = (partId, updates) => {
     setEditedSession(prev => ({
       ...prev,
       sessionParts: (prev.sessionParts || []).map(p =>
@@ -208,45 +187,38 @@ export function SessionEditTimeline({
     setIsDirty(true);
   };
 
+  const handleDeletePart = (partId) => {
+    setEditedSession(prev => ({
+      ...prev,
+      sessionParts: (prev.sessionParts || []).filter(p => p.id !== partId)
+    }));
+    setIsDirty(true);
+    toast.success('Session part removed');
+  };
+
+  const handleReorderParts = (fromIndex, toIndex) => {
+    setEditedSession(prev => {
+      const parts = [...(prev.sessionParts || [])];
+      const [moved] = parts.splice(fromIndex, 1);
+      parts.splice(toIndex, 0, moved);
+      return { ...prev, sessionParts: parts };
+    });
+    setIsDirty(true);
+  };
+
+  // Ball rolling update handler
+  const handleBallRollingUpdate = (updates) => {
+    setEditedSession(prev => ({ ...prev, ...updates }));
+    setIsDirty(true);
+  };
+
   // Recalculate derived values before save
   const recalculateDerivedValues = (sessionData) => {
-    const events = sessionData.events || [];
-    const ballRollingLog = sessionData.ballRollingLog || [];
-    
-    // Recalculate total duration from times
     if (sessionData.startTime && sessionData.endTime) {
       const start = new Date(sessionData.startTime).getTime();
       const end = new Date(sessionData.endTime).getTime();
       sessionData.totalDuration = Math.max(0, (end - start) / 1000);
     }
-    
-    // Recalculate ball rolling/not rolling times from log
-    if (ballRollingLog.length > 0) {
-      let ballRollingTime = 0;
-      let ballNotRollingTime = 0;
-      
-      const sortedLog = [...ballRollingLog].sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      
-      for (let i = 0; i < sortedLog.length; i++) {
-        const current = sortedLog[i];
-        const nextTimestamp = sortedLog[i + 1]?.timestamp || sessionData.endTime;
-        
-        if (nextTimestamp) {
-          const duration = (new Date(nextTimestamp).getTime() - new Date(current.timestamp).getTime()) / 1000;
-          if (current.state) {
-            ballRollingTime += duration;
-          } else {
-            ballNotRollingTime += duration;
-          }
-        }
-      }
-      
-      sessionData.ballRollingTime = ballRollingTime;
-      sessionData.ballNotRollingTime = ballNotRollingTime;
-    }
-    
     return sessionData;
   };
 
@@ -269,7 +241,7 @@ export function SessionEditTimeline({
 
   // Calculate position on timeline (0-100%)
   const getTimelinePosition = (ms) => {
-    const durationMs = (editedSession.totalDuration || 1) * 1000;
+    const durationMs = totalDurationMs || 1;
     return Math.min(100, Math.max(0, (ms / durationMs) * 100));
   };
 
@@ -278,7 +250,7 @@ export function SessionEditTimeline({
       {/* Edit Mode Header */}
       <Card className="border-orange-200 bg-orange-50">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Edit2 className="w-5 h-5 text-orange-600" />
               <CardTitle className="text-lg text-orange-900">Edit Mode</CardTitle>
@@ -289,14 +261,7 @@ export function SessionEditTimeline({
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={!isDirty || saving} className="bg-orange-600 hover:bg-orange-700">
-                {saving ? (
-                  <>Saving...</>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-1" />
-                    Save Changes
-                  </>
-                )}
+                {saving ? 'Saving...' : <><Save className="w-4 h-4 mr-1" />Save Changes</>}
               </Button>
             </div>
           </div>
@@ -345,9 +310,7 @@ export function SessionEditTimeline({
             <div className="space-y-2">
               <Label>Total Duration</Label>
               <div className="flex items-center h-10 px-3 border rounded-md bg-slate-50">
-                <span className="text-slate-700 font-mono">
-                  {formatTime(editedSession.totalDuration || 0)}
-                </span>
+                <span className="text-slate-700 font-mono">{formatTime(totalDuration)}</span>
               </div>
             </div>
           </div>
@@ -359,47 +322,41 @@ export function SessionEditTimeline({
         <CardHeader>
           <CardTitle className="text-base">Ball Rolling Timeline</CardTitle>
           <CardDescription>
-            Drag the segments to adjust ball rolling/not rolling periods
+            Drag the dividers to adjust ball rolling/not rolling periods
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <BallRollingTimelineEditor
             session={editedSession}
-            onChange={(updates) => {
-              setEditedSession(prev => ({ ...prev, ...updates }));
-              setIsDirty(true);
-            }}
+            onChange={handleBallRollingUpdate}
           />
-          <div className="flex justify-between mt-2 text-sm text-slate-500">
-            <span>Ball Rolling: {formatTime(editedSession.ballRollingTime || 0)}</span>
-            <span>Ball Not Rolling: {formatTime(editedSession.ballNotRollingTime || 0)}</span>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Session Parts */}
+      {/* Session Parts Timeline */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Session Parts</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Session Parts</CardTitle>
+              <CardDescription>
+                Visual timeline of session segments. Drag to reorder, click to edit.
+              </CardDescription>
+            </div>
+            <Button size="sm" onClick={() => setShowAddPartDialog(true)}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add Part
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {(editedSession.sessionParts || []).map((part, index) => (
-              <div key={part.id} className="flex items-center gap-3 p-2 border rounded-lg">
-                <Badge variant="outline">{index + 1}</Badge>
-                <Input
-                  value={part.name}
-                  onChange={(e) => handlePartUpdate(part.id, { name: e.target.value })}
-                  className="flex-1"
-                />
-                {part.used && (
-                  <span className="text-xs text-slate-500">
-                    {formatTime(part.ballRollingTime + part.ballNotRollingTime || 0)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+          <SessionPartsTimelineEditor
+            parts={editedSession.sessionParts || []}
+            totalDurationMs={totalDurationMs}
+            onUpdatePart={handleUpdatePart}
+            onDeletePart={handleDeletePart}
+            onReorderParts={handleReorderParts}
+          />
         </CardContent>
       </Card>
 
@@ -413,16 +370,14 @@ export function SessionEditTimeline({
         </CardHeader>
         <CardContent>
           {/* Visual Timeline */}
-          <div className="relative h-12 bg-slate-100 rounded-lg mb-4" ref={timelineRef}>
-            {/* Time markers */}
+          <div className="relative h-12 bg-slate-100 rounded-lg mb-4">
             <div className="absolute inset-0 flex justify-between px-2 items-end pb-1 text-xs text-slate-400">
               <span>0:00</span>
-              <span>{formatTime((editedSession.totalDuration || 0) / 2)}</span>
-              <span>{formatTime(editedSession.totalDuration || 0)}</span>
+              <span>{formatTime(totalDuration / 2)}</span>
+              <span>{formatTime(totalDuration)}</span>
             </div>
             
-            {/* Event markers */}
-            {(editedSession.events || []).map((event, idx) => {
+            {(editedSession.events || []).map((event) => {
               const position = getTimelinePosition(event.relativeTimestamp || 0);
               return (
                 <button
@@ -442,7 +397,7 @@ export function SessionEditTimeline({
 
           {/* Event List */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {(editedSession.events || []).map((event, idx) => (
+            {(editedSession.events || []).map((event) => (
               <div
                 key={event.id}
                 className={cn(
@@ -483,27 +438,21 @@ export function SessionEditTimeline({
                   </SelectContent>
                 </Select>
 
-                {/* Descriptors */}
                 <div className="flex-1 flex flex-wrap gap-1">
                   {(event.descriptors1 || []).map(d => {
                     const desc = descriptorGroup1?.descriptors?.find(x => x.id === d);
                     return desc && (
-                      <Badge key={d} className="bg-sky-100 text-sky-800 text-xs">
-                        {desc.name}
-                      </Badge>
+                      <Badge key={d} className="bg-sky-100 text-sky-800 text-xs">{desc.name}</Badge>
                     );
                   })}
                   {(event.descriptors2 || []).map(d => {
                     const desc = descriptorGroup2?.descriptors?.find(x => x.id === d);
                     return desc && (
-                      <Badge key={d} className="bg-green-100 text-green-800 text-xs">
-                        {desc.name}
-                      </Badge>
+                      <Badge key={d} className="bg-green-100 text-green-800 text-xs">{desc.name}</Badge>
                     );
                   })}
                 </div>
 
-                {/* Delete Button */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
@@ -536,6 +485,32 @@ export function SessionEditTimeline({
         </CardContent>
       </Card>
 
+      {/* Add Part Dialog */}
+      <Dialog open={showAddPartDialog} onOpenChange={setShowAddPartDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Session Part</DialogTitle>
+            <DialogDescription>
+              Add a new segment to the session timeline
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Part Name</Label>
+              <Input
+                value={newPartName}
+                onChange={(e) => setNewPartName(e.target.value)}
+                placeholder="e.g., Warm-up, Main Activity, Cool-down"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddPartDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddPart} disabled={!newPartName.trim()}>Add Part</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Event Dialog */}
       {editingEvent && (
         <EventEditDialog
@@ -553,63 +528,40 @@ export function SessionEditTimeline({
 }
 
 /**
- * Ball Rolling Timeline Editor
- * Allows dragging segments to adjust ball rolling/not rolling periods
+ * Ball Rolling Timeline Editor - FIXED VERSION
+ * Properly persists drag changes to the parent state
  */
 function BallRollingTimelineEditor({ session, onChange }) {
   const containerRef = useRef(null);
   const [segments, setSegments] = useState([]);
   const [dragging, setDragging] = useState(null);
+  const segmentsRef = useRef(segments);
 
-  // Build segments from ball rolling log
+  // Keep ref in sync with state
   useEffect(() => {
-    const log = session.ballRollingLog || [];
-    if (log.length === 0) {
-      // No log - create single segment based on ball rolling time
-      const totalMs = (session.totalDuration || 0) * 1000;
-      const rollingMs = (session.ballRollingTime || 0) * 1000;
-      
-      setSegments([
-        { id: 'rolling', type: 'rolling', start: 0, end: rollingMs },
-        { id: 'not_rolling', type: 'not_rolling', start: rollingMs, end: totalMs }
-      ]);
-      return;
-    }
-
-    // Build segments from log
-    const sessionStart = new Date(session.startTime).getTime();
-    const sessionEnd = new Date(session.endTime).getTime();
-    const totalMs = sessionEnd - sessionStart;
-    
-    const sortedLog = [...log].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-
-    const newSegments = [];
-    for (let i = 0; i < sortedLog.length; i++) {
-      const current = sortedLog[i];
-      const startMs = new Date(current.timestamp).getTime() - sessionStart;
-      const endMs = sortedLog[i + 1] 
-        ? new Date(sortedLog[i + 1].timestamp).getTime() - sessionStart
-        : totalMs;
-      
-      newSegments.push({
-        id: `seg_${i}`,
-        type: current.state ? 'rolling' : 'not_rolling',
-        start: Math.max(0, startMs),
-        end: Math.min(totalMs, endMs)
-      });
-    }
-    
-    setSegments(newSegments);
-  }, [session]);
+    segmentsRef.current = segments;
+  }, [segments]);
 
   const totalMs = (session.totalDuration || 1) * 1000;
 
-  const handleDragStart = (index, e) => {
+  // Build segments from session data
+  useEffect(() => {
+    const rollingMs = (session.ballRollingTime || 0) * 1000;
+    const notRollingMs = (session.ballNotRollingTime || 0) * 1000;
+    const total = rollingMs + notRollingMs || totalMs;
+    
+    // Simple two-segment model: rolling first, then not rolling
+    setSegments([
+      { id: 'rolling', type: 'rolling', start: 0, end: rollingMs },
+      { id: 'not_rolling', type: 'not_rolling', start: rollingMs, end: total }
+    ]);
+  }, [session.ballRollingTime, session.ballNotRollingTime, totalMs]);
+
+  const handleDragStart = useCallback((index, e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragging({ index, startX: e.clientX });
-  };
+  }, []);
 
   const handleDrag = useCallback((e) => {
     if (!dragging || !containerRef.current) return;
@@ -623,10 +575,9 @@ function BallRollingTimelineEditor({ session, onChange }) {
       const updated = [...prev];
       const seg = updated[dragging.index];
       if (seg && dragging.index < updated.length - 1) {
-        // Update this segment's end and next segment's start
         const nextSeg = updated[dragging.index + 1];
-        const minEnd = seg.start + 1000; // At least 1 second
-        const maxEnd = nextSeg.end - 1000;
+        const minEnd = seg.start + 1000;
+        const maxEnd = totalMs - 1000;
         const clampedEnd = Math.max(minEnd, Math.min(maxEnd, newEndMs));
         
         updated[dragging.index] = { ...seg, end: clampedEnd };
@@ -639,11 +590,13 @@ function BallRollingTimelineEditor({ session, onChange }) {
   const handleDragEnd = useCallback(() => {
     if (!dragging) return;
     
-    // Calculate new ball rolling times from segments
+    // Use the ref to get the latest segments state
+    const currentSegments = segmentsRef.current;
+    
     let rollingTime = 0;
     let notRollingTime = 0;
     
-    segments.forEach(seg => {
+    currentSegments.forEach(seg => {
       const duration = (seg.end - seg.start) / 1000;
       if (seg.type === 'rolling') {
         rollingTime += duration;
@@ -652,67 +605,329 @@ function BallRollingTimelineEditor({ session, onChange }) {
       }
     });
     
+    // IMPORTANT: Call onChange to persist changes to parent state
     onChange({
-      ballRollingTime: rollingTime,
-      ballNotRollingTime: notRollingTime
+      ballRollingTime: Math.max(0, rollingTime),
+      ballNotRollingTime: Math.max(0, notRollingTime)
     });
     
     setDragging(null);
-  }, [dragging, segments, onChange]);
+  }, [dragging, onChange]);
 
   useEffect(() => {
     if (dragging) {
-      window.addEventListener('mousemove', handleDrag);
-      window.addEventListener('mouseup', handleDragEnd);
+      const handleMouseMove = (e) => handleDrag(e);
+      const handleMouseUp = () => handleDragEnd();
+      
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      
       return () => {
-        window.removeEventListener('mousemove', handleDrag);
-        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
       };
     }
   }, [dragging, handleDrag, handleDragEnd]);
 
-  return (
-    <div 
-      ref={containerRef}
-      className="relative h-10 bg-slate-200 rounded-lg overflow-hidden cursor-pointer"
-    >
-      {segments.map((seg, index) => {
-        const leftPercent = (seg.start / totalMs) * 100;
-        const widthPercent = ((seg.end - seg.start) / totalMs) * 100;
+  // Touch support for mobile
+  const handleTouchStart = useCallback((index, e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    setDragging({ index, startX: touch.clientX });
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!dragging || !containerRef.current) return;
+    
+    const touch = e.touches[0];
+    const rect = containerRef.current.getBoundingClientRect();
+    const relativeX = touch.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (relativeX / rect.width) * 100));
+    const newEndMs = (percentage / 100) * totalMs;
+    
+    setSegments(prev => {
+      const updated = [...prev];
+      const seg = updated[dragging.index];
+      if (seg && dragging.index < updated.length - 1) {
+        const nextSeg = updated[dragging.index + 1];
+        const minEnd = seg.start + 1000;
+        const maxEnd = totalMs - 1000;
+        const clampedEnd = Math.max(minEnd, Math.min(maxEnd, newEndMs));
         
-        return (
-          <div
-            key={seg.id}
-            className={cn(
-              "absolute top-0 bottom-0 transition-colors",
-              seg.type === 'rolling' ? "bg-green-400" : "bg-red-300"
-            )}
-            style={{
-              left: `${leftPercent}%`,
-              width: `${widthPercent}%`
-            }}
-          >
-            {/* Drag handle at the end of segment (except last) */}
-            {index < segments.length - 1 && (
-              <div
-                className="absolute right-0 top-0 bottom-0 w-2 bg-slate-600 cursor-ew-resize hover:bg-slate-800 flex items-center justify-center"
-                onMouseDown={(e) => handleDragStart(index, e)}
-              >
-                <GripVertical className="w-3 h-3 text-white" />
-              </div>
-            )}
-          </div>
-        );
-      })}
+        updated[dragging.index] = { ...seg, end: clampedEnd };
+        updated[dragging.index + 1] = { ...nextSeg, start: clampedEnd };
+      }
+      return updated;
+    });
+  }, [dragging, totalMs]);
+
+  useEffect(() => {
+    if (dragging) {
+      const container = containerRef.current;
+      if (container) {
+        container.addEventListener('touchmove', handleTouchMove, { passive: false });
+        container.addEventListener('touchend', handleDragEnd);
+        
+        return () => {
+          container.removeEventListener('touchmove', handleTouchMove);
+          container.removeEventListener('touchend', handleDragEnd);
+        };
+      }
+    }
+  }, [dragging, handleTouchMove, handleDragEnd]);
+
+  return (
+    <div className="space-y-2">
+      {/* Timeline */}
+      <div 
+        ref={containerRef}
+        className="relative h-12 bg-slate-200 rounded-lg overflow-hidden select-none"
+      >
+        {segments.map((seg, index) => {
+          const leftPercent = (seg.start / totalMs) * 100;
+          const widthPercent = ((seg.end - seg.start) / totalMs) * 100;
+          
+          return (
+            <div
+              key={seg.id}
+              className={cn(
+                "absolute top-0 bottom-0 flex items-center justify-center text-white text-xs font-medium",
+                seg.type === 'rolling' ? "bg-green-500" : "bg-red-400"
+              )}
+              style={{
+                left: `${leftPercent}%`,
+                width: `${widthPercent}%`
+              }}
+            >
+              {widthPercent > 15 && formatRelativeTime((seg.end - seg.start))}
+              
+              {/* Drag handle at the end of segment (except last) */}
+              {index < segments.length - 1 && (
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-4 bg-slate-700 cursor-ew-resize hover:bg-slate-900 flex items-center justify-center z-10"
+                  onMouseDown={(e) => handleDragStart(index, e)}
+                  onTouchStart={(e) => handleTouchStart(index, e)}
+                >
+                  <GripVertical className="w-3 h-3 text-white" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
       
-      {/* Legend */}
-      <div className="absolute bottom-0 right-0 flex gap-2 p-1 text-xs">
-        <span className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-green-400 rounded" /> Rolling
-        </span>
-        <span className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-red-300 rounded" /> Not Rolling
-        </span>
+      {/* Legend - MOVED BELOW the timeline */}
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex gap-4">
+          <span className="flex items-center gap-1.5">
+            <div className="w-4 h-4 bg-green-500 rounded" />
+            <span className="text-slate-600">Ball Rolling</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <div className="w-4 h-4 bg-red-400 rounded" />
+            <span className="text-slate-600">Ball Not Rolling</span>
+          </span>
+        </div>
+        <div className="flex gap-4 text-slate-500">
+          <span>Rolling: {formatTime(session.ballRollingTime || 0)}</span>
+          <span>Not Rolling: {formatTime(session.ballNotRollingTime || 0)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Session Parts Timeline Editor
+ * Visual timeline with drag-and-drop reordering and duration editing
+ */
+function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts }) {
+  const [draggedPart, setDraggedPart] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [editingPartId, setEditingPartId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+
+  // Calculate part positions on timeline
+  const getPartTimings = () => {
+    if (parts.length === 0) return [];
+    
+    // Distribute parts evenly if no timing data
+    const partDuration = totalDurationMs / parts.length;
+    return parts.map((part, index) => ({
+      ...part,
+      startMs: index * partDuration,
+      endMs: (index + 1) * partDuration,
+      color: PART_COLORS[index % PART_COLORS.length]
+    }));
+  };
+
+  const partTimings = getPartTimings();
+
+  const handleDragStart = (e, index) => {
+    setDraggedPart(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedPart !== null && draggedPart !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e, toIndex) => {
+    e.preventDefault();
+    if (draggedPart !== null && draggedPart !== toIndex) {
+      onReorderParts(draggedPart, toIndex);
+    }
+    setDraggedPart(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedPart(null);
+    setDragOverIndex(null);
+  };
+
+  const startEditing = (part) => {
+    setEditingPartId(part.id);
+    setEditingName(part.name);
+  };
+
+  const savePartName = (partId) => {
+    if (editingName.trim()) {
+      onUpdatePart(partId, { name: editingName.trim() });
+    }
+    setEditingPartId(null);
+    setEditingName('');
+  };
+
+  if (parts.length === 0) {
+    return (
+      <div className="text-center py-8 text-slate-500">
+        <p>No session parts defined</p>
+        <p className="text-sm mt-1">Click "Add Part" to create segments</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Visual Timeline */}
+      <div className="relative h-16 bg-slate-100 rounded-lg overflow-hidden">
+        {partTimings.map((part, index) => {
+          const leftPercent = (part.startMs / totalDurationMs) * 100;
+          const widthPercent = ((part.endMs - part.startMs) / totalDurationMs) * 100;
+          
+          return (
+            <div
+              key={part.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+              className={cn(
+                "absolute top-0 bottom-0 flex items-center justify-center text-white text-xs font-medium cursor-move transition-all border-r-2 border-white",
+                part.color,
+                draggedPart === index && "opacity-50",
+                dragOverIndex === index && "ring-2 ring-orange-400"
+              )}
+              style={{
+                left: `${leftPercent}%`,
+                width: `${widthPercent}%`
+              }}
+            >
+              <span className="truncate px-2">{part.name}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Time markers */}
+      <div className="flex justify-between text-xs text-slate-400 px-1">
+        <span>0:00</span>
+        <span>{formatRelativeTime(totalDurationMs / 2)}</span>
+        <span>{formatRelativeTime(totalDurationMs)}</span>
+      </div>
+
+      {/* Part List for detailed editing */}
+      <div className="space-y-2 mt-4">
+        <p className="text-sm font-medium text-slate-700">Parts (drag to reorder)</p>
+        {parts.map((part, index) => (
+          <div
+            key={part.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
+            className={cn(
+              "flex items-center gap-3 p-3 border rounded-lg bg-white transition-all",
+              draggedPart === index && "opacity-50",
+              dragOverIndex === index && "border-orange-400 bg-orange-50"
+            )}
+          >
+            <Move className="w-4 h-4 text-slate-400 cursor-grab" />
+            
+            <div className={cn("w-4 h-4 rounded", PART_COLORS[index % PART_COLORS.length])} />
+            
+            <Badge variant="outline" className="text-xs">
+              {index + 1}
+            </Badge>
+            
+            {editingPartId === part.id ? (
+              <div className="flex-1 flex items-center gap-2">
+                <Input
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  className="h-8 text-sm"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') savePartName(part.id);
+                    if (e.key === 'Escape') setEditingPartId(null);
+                  }}
+                />
+                <Button size="sm" variant="ghost" onClick={() => savePartName(part.id)}>
+                  <Save className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditingPartId(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <span className="flex-1 font-medium">{part.name}</span>
+                <Button size="sm" variant="ghost" onClick={() => startEditing(part)}>
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove Session Part?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will remove "{part.name}" from the session. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDeletePart(part.id)} className="bg-red-600 hover:bg-red-700">
+                    Remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -720,7 +935,6 @@ function BallRollingTimelineEditor({ session, onChange }) {
 
 /**
  * Event Edit Dialog
- * Detailed editing of a single intervention event
  */
 function EventEditDialog({
   event,
@@ -738,15 +952,9 @@ function EventEditDialog({
     const current = editedEvent[key] || [];
     
     if (current.includes(descriptorId)) {
-      setEditedEvent(prev => ({
-        ...prev,
-        [key]: current.filter(d => d !== descriptorId)
-      }));
+      setEditedEvent(prev => ({ ...prev, [key]: current.filter(d => d !== descriptorId) }));
     } else {
-      setEditedEvent(prev => ({
-        ...prev,
-        [key]: [...current, descriptorId]
-      }));
+      setEditedEvent(prev => ({ ...prev, [key]: [...current, descriptorId] }));
     }
   };
 
@@ -755,24 +963,17 @@ function EventEditDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Intervention</DialogTitle>
-          <DialogDescription>
-            Modify the details of this intervention
-          </DialogDescription>
+          <DialogDescription>Modify the details of this intervention</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Intervention Type */}
           <div className="space-y-2">
             <Label>Intervention Type</Label>
             <Select
               value={editedEvent.eventTypeId}
               onValueChange={(value) => {
                 const type = interventionTypes.find(t => t.id === value);
-                setEditedEvent(prev => ({
-                  ...prev,
-                  eventTypeId: value,
-                  eventTypeName: type?.name || value
-                }));
+                setEditedEvent(prev => ({ ...prev, eventTypeId: value, eventTypeName: type?.name || value }));
               }}
             >
               <SelectTrigger>
@@ -786,7 +987,6 @@ function EventEditDialog({
             </Select>
           </div>
 
-          {/* Timestamp */}
           <div className="space-y-2">
             <Label>Timestamp (MM:SS)</Label>
             <Input
@@ -800,7 +1000,6 @@ function EventEditDialog({
             />
           </div>
 
-          {/* Session Part */}
           <div className="space-y-2">
             <Label>Session Part</Label>
             <Select
@@ -818,7 +1017,6 @@ function EventEditDialog({
             </Select>
           </div>
 
-          {/* Descriptor Group 1 */}
           {descriptorGroup1 && (
             <div className="space-y-2">
               <Label>{descriptorGroup1.name}</Label>
@@ -841,7 +1039,6 @@ function EventEditDialog({
             </div>
           )}
 
-          {/* Descriptor Group 2 */}
           {descriptorGroup2 && (
             <div className="space-y-2">
               <Label>{descriptorGroup2.name}</Label>
@@ -864,7 +1061,6 @@ function EventEditDialog({
             </div>
           )}
 
-          {/* Note */}
           <div className="space-y-2">
             <Label>Note</Label>
             <Input
@@ -877,9 +1073,7 @@ function EventEditDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => { onSave(editedEvent); onClose(); }}>
-            Save Changes
-          </Button>
+          <Button onClick={() => { onSave(editedEvent); onClose(); }}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

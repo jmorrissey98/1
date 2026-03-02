@@ -689,3 +689,51 @@
 - `/app/frontend/src/contexts/AuthContext.jsx` - Authentication context
 - `/app/frontend/src/components/ProtectedRoute.jsx` - Route protection
 - `/app/frontend/src/pages/InviteRegistration.jsx` - Invite registration
+
+
+## Post-Session Editing (March 2, 2026)
+
+### Edit Session Feature
+- **Access**: Only Coach Developers can edit completed sessions
+- **Button**: "Edit Session" button in session review header (orange with pencil icon)
+- **Tracking**: "Last edited: [date] by [user]" indicator displayed in header
+
+### Session Times Editor
+- Edit Start Time with datetime picker
+- Edit End Time with datetime picker
+- Total Duration auto-calculated
+- Validation prevents end time before start time
+
+### Ball Rolling Timeline Editor
+- Visual timeline with draggable divider
+- Green segment for ball rolling, red for not rolling
+- Drag handle between segments to adjust times
+- Touch support for mobile devices
+- Legend positioned BELOW timeline (not overlaid)
+- Real-time time display: "Rolling: MM:SS / Not Rolling: MM:SS"
+
+### Session Parts Timeline Editor
+- Visual timeline showing all session parts with colors
+- Add new parts via "Add Part" button and dialog
+- Edit part names inline (click edit icon)
+- Delete parts with confirmation dialog
+- Drag-and-drop reordering
+- Parts auto-distribute across session duration
+
+### Interventions Editor
+- Visual timeline showing event markers
+- Edit event timestamp (MM:SS format)
+- Change intervention type via dropdown
+- Edit descriptors (click to toggle)
+- Remove interventions with confirmation dialog
+- Edit session part assignment
+
+### Offline Caching (24-hour validity)
+- All scheduled sessions cached on app load
+- Sessions available when offline
+- Cache refreshes after 24 hours or on reconnection
+- Implementation: `/app/frontend/src/lib/scheduledSessionsCache.js`
+
+### Implementation Files
+- `/app/frontend/src/components/SessionEditTimeline.jsx` - Main editor component
+- `/app/backend/routes/observations.py` - Backend with edit tracking
