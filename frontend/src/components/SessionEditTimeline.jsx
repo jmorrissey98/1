@@ -373,11 +373,112 @@ export function SessionEditTimeline({
     return { ...sessionData, events: updatedEvents };
   };
 
+  // Recalculate ball rolling times for each part based on ballRollingLog
+  const recalculatePartBallRollingTimes = (sessionData) => {
+    const sessionStartMs = sessionData.startTime ? new Date(sessionData.startTime).getTime() : 0;
+    const parts = sessionData.sessionParts || [];
+    const ballRollingLog = sessionData.ballRollingLog || [];
+    
+    if (parts.length === 0) {
+      return sessionData;
+    }
+    
+    // Sort ball rolling log by timestamp
+    const sortedLog = [...ballRollingLog].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    // Build segments from ball rolling log (same logic as BallRollingTimelineEditor)
+    const segments = [];
+    const sessionEndMs = sessionData.endTime ? new Date(sessionData.endTime).getTime() : sessionStartMs + (sessionData.totalDuration || 0) * 1000;
+    const totalMs = sessionEndMs - sessionStartMs || 1;
+    
+    if (sortedLog.length === 0) {
+      // No log - assume all rolling or use existing session values
+      const existingRolling = sessionData.ballRollingTime || 0;
+      const existingNotRolling = sessionData.ballNotRollingTime || 0;
+      if (existingRolling > 0) {
+        segments.push({ type: 'rolling', startMs: 0, endMs: existingRolling * 1000 });
+      }
+      if (existingNotRolling > 0) {
+        segments.push({ type: 'not_rolling', startMs: existingRolling * 1000, endMs: (existingRolling + existingNotRolling) * 1000 });
+      }
+    } else {
+      const firstLogTime = new Date(sortedLog[0].timestamp).getTime();
+      const firstState = sortedLog[0].state;
+      
+      // Before first log entry
+      if (firstLogTime > sessionStartMs) {
+        segments.push({
+          type: firstState ? 'not_rolling' : 'rolling',
+          startMs: 0,
+          endMs: firstLogTime - sessionStartMs
+        });
+      }
+      
+      // Build segments from log
+      for (let i = 0; i < sortedLog.length; i++) {
+        const entry = sortedLog[i];
+        const entryTime = new Date(entry.timestamp).getTime();
+        const startMs = entryTime - sessionStartMs;
+        const nextEntry = sortedLog[i + 1];
+        const endMs = nextEntry 
+          ? new Date(nextEntry.timestamp).getTime() - sessionStartMs
+          : totalMs;
+        
+        segments.push({
+          type: entry.state ? 'rolling' : 'not_rolling',
+          startMs: Math.max(0, startMs),
+          endMs: Math.min(totalMs, endMs)
+        });
+      }
+    }
+    
+    // Calculate ball rolling time for each part
+    const updatedParts = parts.map(part => {
+      if (!part.startTime || !part.endTime) {
+        return part;
+      }
+      
+      const partStartMs = new Date(part.startTime).getTime() - sessionStartMs;
+      const partEndMs = new Date(part.endTime).getTime() - sessionStartMs;
+      
+      let partRollingMs = 0;
+      let partNotRollingMs = 0;
+      
+      // Calculate overlap of each segment with this part
+      segments.forEach(seg => {
+        // Find overlap between segment and part
+        const overlapStart = Math.max(seg.startMs, partStartMs);
+        const overlapEnd = Math.min(seg.endMs, partEndMs);
+        
+        if (overlapEnd > overlapStart) {
+          const overlapMs = overlapEnd - overlapStart;
+          if (seg.type === 'rolling') {
+            partRollingMs += overlapMs;
+          } else {
+            partNotRollingMs += overlapMs;
+          }
+        }
+      });
+      
+      return {
+        ...part,
+        ballRollingTime: Math.round(partRollingMs / 1000),
+        ballNotRollingTime: Math.round(partNotRollingMs / 1000)
+      };
+    });
+    
+    return { ...sessionData, sessionParts: updatedParts };
+  };
+
   // Save changes
   const handleSave = async () => {
     setSaving(true);
     try {
       let finalSession = recalculateDerivedValues({ ...editedSession });
+      // Recalculate ball rolling times for each part based on ballRollingLog
+      finalSession = recalculatePartBallRollingTimes(finalSession);
       // Reassign interventions to parts based on timestamps
       finalSession = reassignInterventionsToParts(finalSession);
       finalSession.lastEditedAt = new Date().toISOString();
