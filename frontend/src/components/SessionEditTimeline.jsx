@@ -353,6 +353,7 @@ export function SessionEditTimeline({
           <SessionPartsTimelineEditor
             parts={editedSession.sessionParts || []}
             totalDurationMs={totalDurationMs}
+            sessionStartTime={editedSession.startTime}
             onUpdatePart={handleUpdatePart}
             onDeletePart={handleDeletePart}
             onReorderParts={handleReorderParts}
@@ -528,8 +529,9 @@ export function SessionEditTimeline({
 }
 
 /**
- * Ball Rolling Timeline Editor - FIXED VERSION
- * Properly persists drag changes to the parent state
+ * Ball Rolling Timeline Editor - TIME-BASED VERSION
+ * Shows actual timestamped ON/OFF events from the session's ballRollingLog
+ * Each segment represents a period when ball was either rolling or not rolling
  */
 function BallRollingTimelineEditor({ session, onChange }) {
   const containerRef = useRef(null);
@@ -537,25 +539,96 @@ function BallRollingTimelineEditor({ session, onChange }) {
   const [dragging, setDragging] = useState(null);
   const segmentsRef = useRef(segments);
 
-  // Keep ref in sync with state
   useEffect(() => {
     segmentsRef.current = segments;
   }, [segments]);
 
-  const totalMs = (session.totalDuration || 1) * 1000;
+  const sessionStartMs = session.startTime ? new Date(session.startTime).getTime() : 0;
+  const sessionEndMs = session.endTime ? new Date(session.endTime).getTime() : sessionStartMs + (session.totalDuration || 0) * 1000;
+  const totalMs = sessionEndMs - sessionStartMs || 1;
 
-  // Build segments from session data
+  // Build segments from actual ballRollingLog timestamps
   useEffect(() => {
-    const rollingMs = (session.ballRollingTime || 0) * 1000;
-    const notRollingMs = (session.ballNotRollingTime || 0) * 1000;
-    const total = rollingMs + notRollingMs || totalMs;
+    const log = session.ballRollingLog || [];
     
-    // Simple two-segment model: rolling first, then not rolling
-    setSegments([
-      { id: 'rolling', type: 'rolling', start: 0, end: rollingMs },
-      { id: 'not_rolling', type: 'not_rolling', start: rollingMs, end: total }
-    ]);
-  }, [session.ballRollingTime, session.ballNotRollingTime, totalMs]);
+    if (log.length === 0) {
+      // No log entries - show a simple display based on total times recorded
+      const rollingMs = (session.ballRollingTime || 0) * 1000;
+      const notRollingMs = (session.ballNotRollingTime || 0) * 1000;
+      const actualTotalMs = rollingMs + notRollingMs;
+      
+      if (actualTotalMs === 0) {
+        // No ball time data at all
+        setSegments([
+          { id: 'seg_empty', type: 'not_rolling', startMs: 0, endMs: totalMs, timestamp: null }
+        ]);
+      } else if (rollingMs > 0 && notRollingMs > 0) {
+        // We have both times but no detailed log - show approximate split
+        setSegments([
+          { id: 'seg_0', type: 'rolling', startMs: 0, endMs: rollingMs, timestamp: session.startTime },
+          { id: 'seg_1', type: 'not_rolling', startMs: rollingMs, endMs: rollingMs + notRollingMs, timestamp: null }
+        ]);
+      } else if (rollingMs > 0) {
+        setSegments([
+          { id: 'seg_0', type: 'rolling', startMs: 0, endMs: rollingMs, timestamp: session.startTime }
+        ]);
+      } else {
+        setSegments([
+          { id: 'seg_0', type: 'not_rolling', startMs: 0, endMs: notRollingMs, timestamp: null }
+        ]);
+      }
+      return;
+    }
+
+    // Sort log by timestamp
+    const sortedLog = [...log].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    // Build segments from log entries
+    // Each log entry represents a STATE CHANGE - the timestamp is when the state changed TO the new value
+    const newSegments = [];
+    
+    const firstLogTime = new Date(sortedLog[0].timestamp).getTime();
+    const firstState = sortedLog[0].state;
+    
+    // Before the first log entry, the ball was in the OPPOSITE state
+    // (because the log records when the state CHANGED to a new value)
+    if (firstLogTime > sessionStartMs) {
+      newSegments.push({
+        id: 'seg_initial',
+        type: firstState ? 'not_rolling' : 'rolling', // Opposite of what it changed TO
+        startMs: 0,
+        endMs: firstLogTime - sessionStartMs,
+        timestamp: session.startTime
+      });
+    }
+
+    // Add segments for each log entry
+    // Each entry marks the START of a period in the recorded state
+    for (let i = 0; i < sortedLog.length; i++) {
+      const entry = sortedLog[i];
+      const entryTime = new Date(entry.timestamp).getTime();
+      const startMs = entryTime - sessionStartMs;
+      
+      // End time is either the next entry or session end
+      const nextEntry = sortedLog[i + 1];
+      const endMs = nextEntry 
+        ? new Date(nextEntry.timestamp).getTime() - sessionStartMs
+        : totalMs;
+      
+      newSegments.push({
+        id: `seg_${i}`,
+        type: entry.state ? 'rolling' : 'not_rolling',
+        startMs: Math.max(0, startMs),
+        endMs: Math.min(totalMs, endMs),
+        timestamp: entry.timestamp,
+        partId: entry.partId
+      });
+    }
+
+    setSegments(newSegments);
+  }, [session.ballRollingLog, session.startTime, session.endTime, totalMs, session.ballRollingTime, session.ballNotRollingTime]);
 
   const handleDragStart = useCallback((index, e) => {
     e.preventDefault();
@@ -576,28 +649,33 @@ function BallRollingTimelineEditor({ session, onChange }) {
       const seg = updated[dragging.index];
       if (seg && dragging.index < updated.length - 1) {
         const nextSeg = updated[dragging.index + 1];
-        const minEnd = seg.start + 1000;
-        const maxEnd = totalMs - 1000;
+        const minEnd = seg.startMs + 1000;
+        const maxEnd = nextSeg.endMs - 1000;
         const clampedEnd = Math.max(minEnd, Math.min(maxEnd, newEndMs));
         
-        updated[dragging.index] = { ...seg, end: clampedEnd };
-        updated[dragging.index + 1] = { ...nextSeg, start: clampedEnd };
+        // Update segment boundaries
+        updated[dragging.index] = { ...seg, endMs: clampedEnd };
+        updated[dragging.index + 1] = { ...nextSeg, startMs: clampedEnd };
+        
+        // Update timestamp for the boundary
+        const newTimestamp = new Date(sessionStartMs + clampedEnd).toISOString();
+        updated[dragging.index + 1] = { ...updated[dragging.index + 1], timestamp: newTimestamp };
       }
       return updated;
     });
-  }, [dragging, totalMs]);
+  }, [dragging, totalMs, sessionStartMs]);
 
   const handleDragEnd = useCallback(() => {
     if (!dragging) return;
     
-    // Use the ref to get the latest segments state
     const currentSegments = segmentsRef.current;
     
+    // Recalculate ball rolling times from segments
     let rollingTime = 0;
     let notRollingTime = 0;
     
     currentSegments.forEach(seg => {
-      const duration = (seg.end - seg.start) / 1000;
+      const duration = (seg.endMs - seg.startMs) / 1000;
       if (seg.type === 'rolling') {
         rollingTime += duration;
       } else {
@@ -605,14 +683,26 @@ function BallRollingTimelineEditor({ session, onChange }) {
       }
     });
     
-    // IMPORTANT: Call onChange to persist changes to parent state
+    // Rebuild ballRollingLog from segments
+    const newLog = [];
+    currentSegments.forEach((seg, index) => {
+      if (index > 0 || seg.timestamp) {
+        newLog.push({
+          timestamp: seg.timestamp || new Date(sessionStartMs + seg.startMs).toISOString(),
+          state: seg.type === 'rolling',
+          partId: seg.partId || null
+        });
+      }
+    });
+    
     onChange({
       ballRollingTime: Math.max(0, rollingTime),
-      ballNotRollingTime: Math.max(0, notRollingTime)
+      ballNotRollingTime: Math.max(0, notRollingTime),
+      ballRollingLog: newLog
     });
     
     setDragging(null);
-  }, [dragging, onChange]);
+  }, [dragging, onChange, sessionStartMs]);
 
   useEffect(() => {
     if (dragging) {
@@ -629,7 +719,7 @@ function BallRollingTimelineEditor({ session, onChange }) {
     }
   }, [dragging, handleDrag, handleDragEnd]);
 
-  // Touch support for mobile
+  // Touch support
   const handleTouchStart = useCallback((index, e) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -650,12 +740,12 @@ function BallRollingTimelineEditor({ session, onChange }) {
       const seg = updated[dragging.index];
       if (seg && dragging.index < updated.length - 1) {
         const nextSeg = updated[dragging.index + 1];
-        const minEnd = seg.start + 1000;
-        const maxEnd = totalMs - 1000;
+        const minEnd = seg.startMs + 1000;
+        const maxEnd = nextSeg.endMs - 1000;
         const clampedEnd = Math.max(minEnd, Math.min(maxEnd, newEndMs));
         
-        updated[dragging.index] = { ...seg, end: clampedEnd };
-        updated[dragging.index + 1] = { ...nextSeg, start: clampedEnd };
+        updated[dragging.index] = { ...seg, endMs: clampedEnd };
+        updated[dragging.index + 1] = { ...nextSeg, startMs: clampedEnd };
       }
       return updated;
     });
@@ -676,89 +766,206 @@ function BallRollingTimelineEditor({ session, onChange }) {
     }
   }, [dragging, handleTouchMove, handleDragEnd]);
 
+  // Format timestamp for display
+  const formatTimestamp = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="space-y-2">
-      {/* Timeline */}
-      <div 
-        ref={containerRef}
-        className="relative h-12 bg-slate-200 rounded-lg overflow-hidden select-none"
-      >
-        {segments.map((seg, index) => {
-          const leftPercent = (seg.start / totalMs) * 100;
-          const widthPercent = ((seg.end - seg.start) / totalMs) * 100;
-          
-          return (
-            <div
-              key={seg.id}
-              className={cn(
-                "absolute top-0 bottom-0 flex items-center justify-center text-white text-xs font-medium",
-                seg.type === 'rolling' ? "bg-green-500" : "bg-red-400"
-              )}
-              style={{
-                left: `${leftPercent}%`,
-                width: `${widthPercent}%`
-              }}
-            >
-              {widthPercent > 15 && formatRelativeTime((seg.end - seg.start))}
-              
-              {/* Drag handle at the end of segment (except last) */}
-              {index < segments.length - 1 && (
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-4 bg-slate-700 cursor-ew-resize hover:bg-slate-900 flex items-center justify-center z-10"
-                  onMouseDown={(e) => handleDragStart(index, e)}
-                  onTouchStart={(e) => handleTouchStart(index, e)}
-                >
-                  <GripVertical className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </div>
-          );
-        })}
+    <div className="space-y-3">
+      {/* Timeline with time markers */}
+      <div className="relative">
+        {/* Time markers above */}
+        <div className="flex justify-between text-xs text-slate-400 mb-1 px-1">
+          <span>0:00</span>
+          <span>{formatTimestamp(totalMs / 4)}</span>
+          <span>{formatTimestamp(totalMs / 2)}</span>
+          <span>{formatTimestamp(totalMs * 3 / 4)}</span>
+          <span>{formatTimestamp(totalMs)}</span>
+        </div>
+        
+        {/* Main timeline */}
+        <div 
+          ref={containerRef}
+          className="relative h-14 bg-slate-200 rounded-lg overflow-hidden select-none"
+        >
+          {segments.map((seg, index) => {
+            const leftPercent = (seg.startMs / totalMs) * 100;
+            const widthPercent = ((seg.endMs - seg.startMs) / totalMs) * 100;
+            
+            return (
+              <div
+                key={seg.id}
+                className={cn(
+                  "absolute top-0 bottom-0 flex flex-col items-center justify-center text-white text-xs font-medium",
+                  seg.type === 'rolling' ? "bg-green-500" : "bg-red-400"
+                )}
+                style={{
+                  left: `${leftPercent}%`,
+                  width: `${widthPercent}%`
+                }}
+              >
+                {/* Show time at start of segment */}
+                {widthPercent > 8 && (
+                  <span className="text-[10px] opacity-80">{formatTimestamp(seg.startMs)}</span>
+                )}
+                {widthPercent > 12 && (
+                  <span className="font-bold">{seg.type === 'rolling' ? 'ON' : 'OFF'}</span>
+                )}
+                {widthPercent > 15 && (
+                  <span className="text-[10px]">{formatTimestamp(seg.endMs - seg.startMs)}</span>
+                )}
+                
+                {/* Drag handle at segment boundary */}
+                {index < segments.length - 1 && (
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-4 bg-slate-700 cursor-ew-resize hover:bg-slate-900 flex items-center justify-center z-10"
+                    onMouseDown={(e) => handleDragStart(index, e)}
+                    onTouchStart={(e) => handleTouchStart(index, e)}
+                  >
+                    <GripVertical className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
       
-      {/* Legend - MOVED BELOW the timeline */}
-      <div className="flex items-center justify-between text-sm">
+      {/* Legend below timeline */}
+      <div className="flex items-center justify-between text-sm border-t pt-2">
         <div className="flex gap-4">
           <span className="flex items-center gap-1.5">
             <div className="w-4 h-4 bg-green-500 rounded" />
-            <span className="text-slate-600">Ball Rolling</span>
+            <span className="text-slate-600">Ball Rolling (ON)</span>
           </span>
           <span className="flex items-center gap-1.5">
             <div className="w-4 h-4 bg-red-400 rounded" />
-            <span className="text-slate-600">Ball Not Rolling</span>
+            <span className="text-slate-600">Ball Not Rolling (OFF)</span>
           </span>
         </div>
         <div className="flex gap-4 text-slate-500">
-          <span>Rolling: {formatTime(session.ballRollingTime || 0)}</span>
-          <span>Not Rolling: {formatTime(session.ballNotRollingTime || 0)}</span>
+          <span>Total Rolling: {formatTime(session.ballRollingTime || 0)}</span>
+          <span>Total Not Rolling: {formatTime(session.ballNotRollingTime || 0)}</span>
         </div>
       </div>
+      
+      {/* Segment list - detailed view */}
+      {segments.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <p className="text-xs font-medium text-slate-500 uppercase">Timeline Events</p>
+          <div className="grid gap-1 text-xs">
+            {segments.map((seg, index) => (
+              <div key={seg.id} className="flex items-center gap-2 px-2 py-1 bg-slate-50 rounded">
+                <span className="text-slate-400 w-6">{index + 1}.</span>
+                <span className="font-mono w-16">{formatTimestamp(seg.startMs)}</span>
+                <span className="text-slate-400">→</span>
+                <span className="font-mono w-16">{formatTimestamp(seg.endMs)}</span>
+                <Badge 
+                  className={cn(
+                    "text-xs",
+                    seg.type === 'rolling' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  )}
+                >
+                  {seg.type === 'rolling' ? 'Rolling' : 'Not Rolling'}
+                </Badge>
+                <span className="text-slate-400 ml-auto">
+                  ({formatTimestamp(seg.endMs - seg.startMs)})
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /**
  * Session Parts Timeline Editor
- * Visual timeline with drag-and-drop reordering and duration editing
+ * Shows ONLY parts that were actually activated during the session
+ * Parts are displayed based on their recorded start/end times or 'used' flag
  */
-function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts }) {
+function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts, sessionStartTime }) {
   const [draggedPart, setDraggedPart] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [editingPartId, setEditingPartId] = useState(null);
   const [editingName, setEditingName] = useState('');
 
-  // Calculate part positions on timeline
-  const getPartTimings = () => {
-    if (parts.length === 0) return [];
+  const sessionStartMs = sessionStartTime ? new Date(sessionStartTime).getTime() : 0;
+
+  // Filter to only show parts that were actually used during the session
+  const activatedParts = parts.filter(part => {
+    // Part is considered activated if:
+    // 1. It has 'used: true' flag (explicitly marked as used during observation)
+    // 2. It has a startTime recorded (was started during observation)
+    // 3. It has any ball rolling/not rolling time recorded (had activity)
+    const hasUsedFlag = part.used === true;
+    const hasStartTime = !!part.startTime;
+    const hasRollingTime = (part.ballRollingTime && part.ballRollingTime > 0);
+    const hasNotRollingTime = (part.ballNotRollingTime && part.ballNotRollingTime > 0);
     
-    // Distribute parts evenly if no timing data
-    const partDuration = totalDurationMs / parts.length;
-    return parts.map((part, index) => ({
-      ...part,
-      startMs: index * partDuration,
-      endMs: (index + 1) * partDuration,
-      color: PART_COLORS[index % PART_COLORS.length]
-    }));
+    return hasUsedFlag || hasStartTime || hasRollingTime || hasNotRollingTime;
+  });
+
+  // Calculate part positions based on actual recorded times
+  const getPartTimings = () => {
+    if (activatedParts.length === 0) return [];
+    
+    // Sort by start time if available, otherwise by order field
+    const sortedParts = [...activatedParts].sort((a, b) => {
+      if (a.startTime && b.startTime) {
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      }
+      return (a.order || 0) - (b.order || 0);
+    });
+    
+    // Calculate total time to distribute parts proportionally
+    const totalPartTime = sortedParts.reduce((sum, part) => {
+      return sum + (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
+    }, 0);
+    
+    let currentPosition = 0;
+    
+    return sortedParts.map((part, index) => {
+      const partTotalTime = (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
+      
+      let startMs, endMs;
+      
+      if (part.startTime && sessionStartMs) {
+        // Use actual recorded start time
+        startMs = new Date(part.startTime).getTime() - sessionStartMs;
+        
+        if (part.endTime) {
+          endMs = new Date(part.endTime).getTime() - sessionStartMs;
+        } else {
+          // Calculate end from duration
+          endMs = startMs + (partTotalTime * 1000);
+        }
+      } else if (totalPartTime > 0) {
+        // Distribute proportionally based on recorded times
+        const partWidthMs = (partTotalTime / totalPartTime) * totalDurationMs;
+        startMs = currentPosition;
+        endMs = currentPosition + partWidthMs;
+        currentPosition = endMs;
+      } else {
+        // Fallback: distribute evenly
+        const partWidth = totalDurationMs / sortedParts.length;
+        startMs = index * partWidth;
+        endMs = (index + 1) * partWidth;
+      }
+      
+      return {
+        ...part,
+        startMs: Math.max(0, startMs),
+        endMs: Math.min(totalDurationMs, endMs),
+        partTotalTime,
+        color: PART_COLORS[index % PART_COLORS.length]
+      };
+    });
   };
 
   const partTimings = getPartTimings();
@@ -803,17 +1010,47 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     setEditingName('');
   };
 
-  if (parts.length === 0) {
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Show message if no parts were activated
+  if (activatedParts.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500">
-        <p>No session parts defined</p>
-        <p className="text-sm mt-1">Click "Add Part" to create segments</p>
+      <div className="space-y-4">
+        <div className="text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+          <p className="text-slate-600 font-medium">No session parts were activated</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Parts shown here reflect what was actually used during this observation
+          </p>
+        </div>
+        
+        {/* Show all available parts that weren't used */}
+        {parts.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-medium text-slate-500 uppercase mb-2">Available Parts (Not Activated)</p>
+            <div className="flex flex-wrap gap-2">
+              {parts.filter(p => !activatedParts.includes(p)).map((part, idx) => (
+                <Badge key={part.id} variant="outline" className="text-slate-400">
+                  {part.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* Info banner */}
+      <div className="text-xs text-slate-500 bg-blue-50 p-2 rounded border border-blue-100">
+        Showing {activatedParts.length} of {parts.length} parts that were activated during this session
+      </div>
+      
       {/* Visual Timeline */}
       <div className="relative h-16 bg-slate-100 rounded-lg overflow-hidden">
         {partTimings.map((part, index) => {
@@ -829,7 +1066,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
               onDrop={(e) => handleDrop(e, index)}
               onDragEnd={handleDragEnd}
               className={cn(
-                "absolute top-0 bottom-0 flex items-center justify-center text-white text-xs font-medium cursor-move transition-all border-r-2 border-white",
+                "absolute top-0 bottom-0 flex flex-col items-center justify-center text-white text-xs font-medium cursor-move transition-all border-r-2 border-white",
                 part.color,
                 draggedPart === index && "opacity-50",
                 dragOverIndex === index && "ring-2 ring-orange-400"
@@ -839,7 +1076,10 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
                 width: `${widthPercent}%`
               }}
             >
-              <span className="truncate px-2">{part.name}</span>
+              <span className="truncate px-2 font-semibold">{part.name}</span>
+              {part.partTotalTime > 0 && (
+                <span className="text-[10px] opacity-80">{formatDuration(part.partTotalTime)}</span>
+              )}
             </div>
           );
         })}
@@ -848,14 +1088,14 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       {/* Time markers */}
       <div className="flex justify-between text-xs text-slate-400 px-1">
         <span>0:00</span>
-        <span>{formatRelativeTime(totalDurationMs / 2)}</span>
-        <span>{formatRelativeTime(totalDurationMs)}</span>
+        <span>{formatDuration(totalDurationMs / 2000)}</span>
+        <span>{formatDuration(totalDurationMs / 1000)}</span>
       </div>
 
       {/* Part List for detailed editing */}
       <div className="space-y-2 mt-4">
-        <p className="text-sm font-medium text-slate-700">Parts (drag to reorder)</p>
-        {parts.map((part, index) => (
+        <p className="text-sm font-medium text-slate-700">Activated Parts (drag to reorder)</p>
+        {activatedParts.map((part, index) => (
           <div
             key={part.id}
             draggable
@@ -898,7 +1138,26 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
               </div>
             ) : (
               <>
-                <span className="flex-1 font-medium">{part.name}</span>
+                <div className="flex-1">
+                  <span className="font-medium">{part.name}</span>
+                  {/* Show ball rolling breakdown */}
+                  {(part.ballRollingTime > 0 || part.ballNotRollingTime > 0) && (
+                    <div className="flex gap-3 text-xs text-slate-500 mt-0.5">
+                      {part.ballRollingTime > 0 && (
+                        <span className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded" />
+                          {formatDuration(part.ballRollingTime)}
+                        </span>
+                      )}
+                      {part.ballNotRollingTime > 0 && (
+                        <span className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-red-400 rounded" />
+                          {formatDuration(part.ballNotRollingTime)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Button size="sm" variant="ghost" onClick={() => startEditing(part)}>
                   <Edit2 className="w-4 h-4" />
                 </Button>
