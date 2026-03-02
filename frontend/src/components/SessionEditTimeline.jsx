@@ -310,29 +310,10 @@ export function SessionEditTimeline({
       sessionData.totalDuration = Math.max(0, (end - start) / 1000);
     }
     
-    // Recalculate ball rolling times from session parts
-    // This ensures the session totals match the sum of all part times
-    const parts = sessionData.sessionParts || [];
-    const activeParts = parts.filter(p => 
-      p.used === true || 
-      p.startTime || 
-      (p.ballRollingTime && p.ballRollingTime > 0) || 
-      (p.ballNotRollingTime && p.ballNotRollingTime > 0)
-    );
-    
-    if (activeParts.length > 0) {
-      // Sum up ball times from all activated parts
-      let totalRolling = 0;
-      let totalNotRolling = 0;
-      
-      activeParts.forEach(part => {
-        totalRolling += part.ballRollingTime || 0;
-        totalNotRolling += part.ballNotRollingTime || 0;
-      });
-      
-      sessionData.ballRollingTime = totalRolling;
-      sessionData.ballNotRollingTime = totalNotRolling;
-    }
+    // NOTE: Ball rolling times are NOT recalculated here because:
+    // 1. The BallRollingTimelineEditor directly updates ballRollingTime, ballNotRollingTime, and ballRollingLog
+    // 2. Those values are the source of truth when the user edits the ball rolling timeline
+    // 3. Recalculating from sessionParts would overwrite user's edits
     
     return sessionData;
   };
@@ -451,17 +432,11 @@ export function SessionEditTimeline({
       {/* Session Parts Timeline */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">Session Parts</CardTitle>
-              <CardDescription>
-                Visual timeline of session segments. Drag to reorder, click to edit.
-              </CardDescription>
-            </div>
-            <Button size="sm" onClick={() => setShowAddPartDialog(true)}>
-              <Plus className="w-4 h-4 mr-1" />
-              Add Part
-            </Button>
+          <div>
+            <CardTitle className="text-base">Session Parts</CardTitle>
+            <CardDescription>
+              Edit times below. Changes cascade to adjacent parts automatically.
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
