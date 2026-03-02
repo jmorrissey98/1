@@ -393,15 +393,34 @@ export function SessionEditTimeline({
     const sessionEndMs = sessionData.endTime ? new Date(sessionData.endTime).getTime() : sessionStartMs + (sessionData.totalDuration || 0) * 1000;
     const totalMs = sessionEndMs - sessionStartMs || 1;
     
+    // Get total ball rolling from session level
+    const sessionRollingMs = (sessionData.ballRollingTime || 0) * 1000;
+    const sessionNotRollingMs = (sessionData.ballNotRollingTime || 0) * 1000;
+    const sessionTotalBallMs = sessionRollingMs + sessionNotRollingMs;
+    
+    // Calculate rolling percentage from session level data
+    const rollingPct = sessionTotalBallMs > 0 ? sessionRollingMs / sessionTotalBallMs : 0.5;
+    
     if (sortedLog.length === 0) {
-      // No log - assume all rolling or use existing session values
-      const existingRolling = sessionData.ballRollingTime || 0;
-      const existingNotRolling = sessionData.ballNotRollingTime || 0;
-      if (existingRolling > 0) {
-        segments.push({ type: 'rolling', startMs: 0, endMs: existingRolling * 1000 });
-      }
-      if (existingNotRolling > 0) {
-        segments.push({ type: 'not_rolling', startMs: existingRolling * 1000, endMs: (existingRolling + existingNotRolling) * 1000 });
+      // No detailed log - distribute ball rolling proportionally across the session
+      // This ensures all parts get a proportional share of ball rolling time
+      if (sessionTotalBallMs > 0) {
+        // Create a single segment covering the whole session with the session's rolling state
+        // We'll use the percentage to calculate each part's rolling time
+        segments.push({ 
+          type: 'proportional', 
+          startMs: 0, 
+          endMs: totalMs,
+          rollingPct: rollingPct
+        });
+      } else {
+        // No ball time data - assume 50/50 split
+        segments.push({ 
+          type: 'proportional', 
+          startMs: 0, 
+          endMs: totalMs,
+          rollingPct: 0.5
+        });
       }
     } else {
       const firstLogTime = new Date(sortedLog[0].timestamp).getTime();
@@ -442,6 +461,7 @@ export function SessionEditTimeline({
       
       const partStartMs = new Date(part.startTime).getTime() - sessionStartMs;
       const partEndMs = new Date(part.endTime).getTime() - sessionStartMs;
+      const partDurationMs = partEndMs - partStartMs;
       
       let partRollingMs = 0;
       let partNotRollingMs = 0;
@@ -454,13 +474,24 @@ export function SessionEditTimeline({
         
         if (overlapEnd > overlapStart) {
           const overlapMs = overlapEnd - overlapStart;
-          if (seg.type === 'rolling') {
+          
+          if (seg.type === 'proportional') {
+            // Distribute based on session-level percentage
+            partRollingMs += overlapMs * seg.rollingPct;
+            partNotRollingMs += overlapMs * (1 - seg.rollingPct);
+          } else if (seg.type === 'rolling') {
             partRollingMs += overlapMs;
           } else {
             partNotRollingMs += overlapMs;
           }
         }
       });
+      
+      // If no segments overlapped, distribute based on session percentage
+      if (partRollingMs === 0 && partNotRollingMs === 0 && partDurationMs > 0) {
+        partRollingMs = partDurationMs * rollingPct;
+        partNotRollingMs = partDurationMs * (1 - rollingPct);
+      }
       
       return {
         ...part,
