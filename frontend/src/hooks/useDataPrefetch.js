@@ -5,6 +5,7 @@
  * - Coaches list
  * - Observation templates
  * - Reflection templates
+ * - Scheduled sessions (with 24-hour validity)
  */
 
 import { useEffect, useRef } from 'react';
@@ -12,6 +13,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchCoaches } from '../lib/offlineApi';
 import { fetchObservationTemplates } from '../lib/observationTemplatesApi';
 import { fetchReflectionTemplates } from '../lib/reflectionTemplatesApi';
+import { fetchCloudSessions } from '../lib/cloudSessionService';
+import { cacheScheduledSessions, isCacheStale } from '../lib/scheduledSessionsCache';
 
 export function useDataPrefetch() {
   const { user, loading: authLoading } = useAuth();
@@ -59,6 +62,22 @@ export function useDataPrefetch() {
         }
       } catch (err) {
         console.error('[DataPrefetch] Failed to prefetch reflection templates:', err);
+      }
+
+      // Prefetch scheduled sessions (only if cache is stale or empty)
+      if (isCacheStale()) {
+        try {
+          const sessionsResult = await fetchCloudSessions();
+          if (sessionsResult.success && sessionsResult.data) {
+            // Cache all sessions for offline access
+            cacheScheduledSessions(sessionsResult.data);
+            console.log(`[DataPrefetch] Cached ${sessionsResult.data.length} sessions for offline access`);
+          }
+        } catch (err) {
+          console.error('[DataPrefetch] Failed to prefetch sessions:', err);
+        }
+      } else {
+        console.log('[DataPrefetch] Session cache is still valid, skipping refresh');
       }
 
       console.log('[DataPrefetch] Data prefetch complete');

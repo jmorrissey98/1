@@ -271,7 +271,10 @@ const mapToApiFormat = (session) => ({
   coach_reflection_template_id: session.coachReflectionTemplateId || null,
   // Structured reflection data
   observer_reflection: session.observerReflection || null,
-  coach_reflection: session.coachReflection || null
+  coach_reflection: session.coachReflection || null,
+  // Edit tracking
+  last_edited_at: session.lastEditedAt || null,
+  last_edited_by: session.lastEditedBy || null
 });
 
 // Check if online
@@ -495,7 +498,11 @@ export const cloudToLocalSession = (cloudSession) => {
     // Shared reflections for other user
     other_reflection_status: cloudSession.other_reflection_status,
     other_reflection: cloudSession.other_reflection,
-    other_user_name: cloudSession.other_user_name
+    other_user_name: cloudSession.other_user_name,
+    // Edit tracking
+    lastEditedAt: cloudSession.last_edited_at,
+    lastEditedBy: cloudSession.last_edited_by,
+    lastEditedByName: cloudSession.last_edited_by_name
   };
 };
 

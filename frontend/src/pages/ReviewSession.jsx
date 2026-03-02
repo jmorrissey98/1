@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User, Filter, Star, ClipboardList, Share2, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Table, Circle, Square, Edit2, Check, X, Trash2, Sparkles, Loader2, StickyNote, ChevronDown, ChevronUp, Upload, Paperclip, User, Filter, Star, ClipboardList, Share2, Lock, Eye, EyeOff, Clock, Pencil } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -27,6 +27,7 @@ import { fetchReflectionTemplates, fetchReflectionTemplate } from '../lib/reflec
 import axios from 'axios';
 import { getAuthToken } from '../lib/safeFetch';
 import { useSwipeTabs } from '../hooks/useSwipeNavigation';
+import { SessionEditTimeline } from '../components/SessionEditTimeline';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
@@ -461,9 +462,14 @@ export default function ReviewSession() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   
+  // Edit mode state (only for Coach Developers on completed sessions)
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const isCoachView = user?.role === 'coach';
   // Coaches can view everything but only edit their own reflections
   const canEditObserverContent = !isCoachView;
+  // Can edit session: Coach Developer only, on completed sessions
+  const canEditSession = isCoachDeveloper && session?.status === 'completed';
 
   useEffect(() => {
     const loadSession = async () => {
@@ -1086,6 +1092,19 @@ export default function ReviewSession() {
             </div>
           </div>
           <div className="flex gap-1 sm:gap-2 shrink-0">
+            {/* Edit Session Button - Only for Coach Developers on completed sessions */}
+            {canEditSession && !isEditMode && (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditMode(true)} 
+                data-testid="edit-session-btn" 
+                size="sm" 
+                className="px-2 sm:px-3 border-orange-300 text-orange-600 hover:bg-orange-50"
+              >
+                <Pencil className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Edit Session</span>
+              </Button>
+            )}
             <Button variant="outline" onClick={handleExportCSV} data-testid="export-csv-btn" size="sm" className="px-2 sm:px-3">
               <Table className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">CSV</span>
@@ -1096,6 +1115,17 @@ export default function ReviewSession() {
             </Button>
           </div>
         </div>
+        
+        {/* Last Edited Indicator */}
+        {session.lastEditedAt && (
+          <div className="max-w-6xl mx-auto px-3 sm:px-4 pb-2">
+            <p className="text-xs text-slate-400 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Last edited: {formatDateTime(session.lastEditedAt)}
+              {session.lastEditedByName && ` by ${session.lastEditedByName}`}
+            </p>
+          </div>
+        )}
       </header>
 
       {/* View Toggle - Only show parts that have data */}
@@ -1133,7 +1163,30 @@ export default function ReviewSession() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Edit Mode - Show Timeline Editor */}
+      {isEditMode && (
+        <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <SessionEditTimeline
+            session={session}
+            interventionTypes={session.interventionTypes || session.eventTypes || []}
+            descriptorGroup1={session.descriptorGroup1}
+            descriptorGroup2={session.descriptorGroup2}
+            sessionParts={session.sessionParts || []}
+            onSave={async (editedSession) => {
+              // Save to cloud
+              await cloudSaveSession(editedSession);
+              // Update local state
+              setSession(editedSession);
+              setIsEditMode(false);
+              toast.success('Session updated successfully');
+            }}
+            onCancel={() => setIsEditMode(false)}
+          />
+        </main>
+      )}
+
+      {/* Main Content - Hide when in edit mode */}
+      {!isEditMode && (
       <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6" ref={swipeRef}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-3 h-auto">
@@ -2544,6 +2597,7 @@ export default function ReviewSession() {
           </TabsContent>
         </Tabs>
       </main>
+      )}
       
       {/* Note Dialog - shows when clicking a note on timeline */}
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>

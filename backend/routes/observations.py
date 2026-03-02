@@ -63,6 +63,9 @@ class ObservationSessionCreate(BaseModel):
     # Reflection template IDs - permanently linked to this observation
     reflection_template_id: Optional[str] = None
     coach_reflection_template_id: Optional[str] = None
+    # Edit tracking
+    last_edited_at: Optional[str] = None
+    last_edited_by: Optional[str] = None
 
 class ObservationSessionResponse(BaseModel):
     session_id: str
@@ -105,6 +108,10 @@ class ObservationSessionResponse(BaseModel):
     other_reflection: Optional[Any] = None
     other_reflection_status: Optional[str] = None  # "not_completed", "not_shared", "shared"
     other_user_name: Optional[str] = None
+    # Edit tracking
+    last_edited_at: Optional[str] = None
+    last_edited_by: Optional[str] = None
+    last_edited_by_name: Optional[str] = None
 
 
 @router.get("")
@@ -284,7 +291,11 @@ async def get_observation_session(session_id: str, request: Request):
         coach_reflection_template_id=session.get("coach_reflection_template_id"),
         other_reflection=other_reflection,
         other_reflection_status=other_reflection_status,
-        other_user_name=other_user_name
+        other_user_name=other_user_name,
+        # Edit tracking
+        last_edited_at=session.get("last_edited_at"),
+        last_edited_by=session.get("last_edited_by"),
+        last_edited_by_name=session.get("last_edited_by_name")
     )
 
 
@@ -390,6 +401,10 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
     
     now = datetime.now(timezone.utc).isoformat()
     
+    # Get user name for edit tracking
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "name": 1})
+    user_name = user_doc.get("name", "Unknown") if user_doc else "Unknown"
+    
     update_data = {
         "name": data.name,
         "coach_id": data.coach_id,
@@ -423,7 +438,11 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
         "coach_reflection": data.coach_reflection,
         # Reflection sharing flags
         "observer_reflection_shared": data.observer_reflection_shared,
-        "coach_reflection_shared": data.coach_reflection_shared
+        "coach_reflection_shared": data.coach_reflection_shared,
+        # Edit tracking - always update on PUT
+        "last_edited_at": now,
+        "last_edited_by": user.user_id,
+        "last_edited_by_name": user_name
     }
     
     await db.observation_sessions.update_one(
