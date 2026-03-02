@@ -1006,8 +1006,8 @@ function BallRollingTimelineEditor({ session, onChange }) {
  * Session Parts Timeline Editor
  * Visual timeline display with text-based editing below.
  * Features:
- * - Visual timeline showing part positions (display only)
- * - Text inputs for editing start/end times
+ * - Visual timeline showing part positions (updates in real-time)
+ * - All parts editable at once with immediate cascading
  * - Remove parts completely
  * - Reorder parts via up/down buttons
  * - Add parts from defaults, historical, or custom name
@@ -1029,7 +1029,15 @@ function SessionPartsTimelineEditor({
   const [editingName, setEditingName] = useState('');
   const [showAddPartMenu, setShowAddPartMenu] = useState(false);
   const [customPartName, setCustomPartName] = useState('');
-  const [editingTimes, setEditingTimes] = useState(null); // { partId, startTime, endTime }
+  
+  // Local state for all part times - allows real-time editing with cascading
+  const [localPartTimes, setLocalPartTimes] = useState({});
+  
+  // Local text state for inputs - allows free typing without immediate validation
+  const [inputValues, setInputValues] = useState({});
+  
+  // Hold-to-repeat refs
+  const holdIntervalRef = useRef(null);
 
   const sessionStartMs = sessionStartTime ? new Date(sessionStartTime).getTime() : 0;
 
@@ -1051,7 +1059,7 @@ function SessionPartsTimelineEditor({
     return !(hasUsedFlag || hasStartTime || hasRollingTime || hasNotRollingTime);
   });
 
-  // Calculate part positions based on actual recorded times
+  // Calculate part positions based on actual recorded times or local edits
   const getPartTimings = useCallback(() => {
     if (activatedParts.length === 0) return [];
     
@@ -1065,7 +1073,11 @@ function SessionPartsTimelineEditor({
     return sortedParts.map((part, index) => {
       let startMs, endMs;
       
-      if (part.startTime && sessionStartMs) {
+      // Use local edited times if available, otherwise use stored times
+      if (localPartTimes[part.id]) {
+        startMs = localPartTimes[part.id].startMs;
+        endMs = localPartTimes[part.id].endMs;
+      } else if (part.startTime && sessionStartMs) {
         startMs = new Date(part.startTime).getTime() - sessionStartMs;
         endMs = part.endTime 
           ? new Date(part.endTime).getTime() - sessionStartMs
@@ -1084,9 +1096,202 @@ function SessionPartsTimelineEditor({
         color: PART_COLORS[index % PART_COLORS.length]
       };
     });
-  }, [activatedParts, sessionStartMs, totalDurationMs]);
+  }, [activatedParts, sessionStartMs, totalDurationMs, localPartTimes]);
 
   const partTimings = getPartTimings();
+  
+  // Initialize local part times from props when parts change
+  useEffect(() => {
+    const initialTimes = {};
+    partTimings.forEach(part => {
+      if (!localPartTimes[part.id]) {
+        initialTimes[part.id] = { startMs: part.startMs, endMs: part.endMs };
+      }
+    });
+    if (Object.keys(initialTimes).length > 0) {
+      setLocalPartTimes(prev => ({ ...prev, ...initialTimes }));
+    }
+  }, [parts]); // Only re-init when parts prop changes
+  
+  // Update a part's time and cascade to adjacent parts
+  const updatePartTime = (partId, field, newMs) => {
+    const partIndex = partTimings.findIndex(p => p.id === partId);
+    if (partIndex === -1) return;
+    
+    const part = partTimings[partIndex];
+    const isFirstPart = partIndex === 0;
+    const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
+    const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
+    
+    // Get current times (from local state or calculated)
+    const currentStartMs = localPartTimes[partId]?.startMs ?? part.startMs;
+    const currentEndMs = localPartTimes[partId]?.endMs ?? part.endMs;
+    
+    const newTimes = { ...localPartTimes };
+    
+    if (field === 'start') {
+      // First part must start at 0
+      if (isFirstPart) return;
+      
+      // Clamp: can't go below 0, can't exceed end - 1 second
+      const clampedMs = Math.max(0, Math.min(newMs, currentEndMs - 1000));
+      
+      // Update this part's start
+      newTimes[partId] = { 
+        startMs: clampedMs, 
+        endMs: currentEndMs 
+      };
+      
+      // Cascade: update previous part's end to match
+      if (prevPart) {
+        const prevCurrentEnd = localPartTimes[prevPart.id]?.endMs ?? prevPart.endMs;
+        const prevCurrentStart = localPartTimes[prevPart.id]?.startMs ?? prevPart.startMs;
+        newTimes[prevPart.id] = {
+          startMs: prevCurrentStart,
+          endMs: clampedMs
+        };
+      }
+    } else {
+      // End time
+      // Clamp: can't go below start + 1 second, can't exceed session duration
+      const clampedMs = Math.max(currentStartMs + 1000, Math.min(newMs, totalDurationMs));
+      
+      // Update this part's end
+      newTimes[partId] = { 
+        startMs: currentStartMs, 
+        endMs: clampedMs 
+      };
+      
+      // Cascade: update next part's start to match
+      if (nextPart) {
+        const nextCurrentStart = localPartTimes[nextPart.id]?.startMs ?? nextPart.startMs;
+        const nextCurrentEnd = localPartTimes[nextPart.id]?.endMs ?? nextPart.endMs;
+        newTimes[nextPart.id] = {
+          startMs: clampedMs,
+          endMs: nextCurrentEnd
+        };
+      }
+    }
+    
+    setLocalPartTimes(newTimes);
+  };
+  
+  // Adjust time by delta (for up/down buttons)
+  const adjustPartTime = (partId, field, deltaMs) => {
+    const part = partTimings.find(p => p.id === partId);
+    if (!part) return;
+    
+    const currentMs = field === 'start' 
+      ? (localPartTimes[partId]?.startMs ?? part.startMs)
+      : (localPartTimes[partId]?.endMs ?? part.endMs);
+    
+    updatePartTime(partId, field, currentMs + deltaMs);
+    
+    // Also update the input display value
+    const newMs = currentMs + deltaMs;
+    const inputKey = `${partId}-${field}`;
+    setInputValues(prev => ({ ...prev, [inputKey]: formatDuration(newMs) }));
+  };
+  
+  // Handle text input change - just update local text state
+  const handleTimeInputChange = (partId, field, value) => {
+    const inputKey = `${partId}-${field}`;
+    setInputValues(prev => ({ ...prev, [inputKey]: value }));
+  };
+  
+  // Handle input blur - apply the change if valid
+  const handleTimeInputBlur = (partId, field) => {
+    const inputKey = `${partId}-${field}`;
+    const value = inputValues[inputKey];
+    
+    if (value) {
+      const ms = parseTimeStringToMs(value);
+      if (ms !== null) {
+        updatePartTime(partId, field, ms);
+      } else {
+        // Invalid format - reset to current value
+        const part = partTimings.find(p => p.id === partId);
+        if (part) {
+          const currentMs = field === 'start' 
+            ? (localPartTimes[partId]?.startMs ?? part.startMs)
+            : (localPartTimes[partId]?.endMs ?? part.endMs);
+          setInputValues(prev => ({ ...prev, [inputKey]: formatDuration(currentMs) }));
+        }
+      }
+    }
+  };
+  
+  // Get display value for an input
+  const getInputValue = (partId, field, currentMs) => {
+    const inputKey = `${partId}-${field}`;
+    // If we have a local text value, use it; otherwise format the ms value
+    return inputValues[inputKey] !== undefined ? inputValues[inputKey] : formatDuration(currentMs);
+  };
+  
+  // Parse MM:SS or M:SS to milliseconds
+  const parseTimeStringToMs = (timeStr) => {
+    if (!timeStr) return null;
+    const match = timeStr.match(/^(\d+):(\d{1,2})$/);
+    if (!match) return null;
+    const mins = parseInt(match[1], 10);
+    const secs = parseInt(match[2], 10);
+    if (secs >= 60) return null;
+    return (mins * 60 + secs) * 1000;
+  };
+  
+  // Save all local changes to the actual session data
+  const saveAllChanges = () => {
+    const updates = [];
+    const sessionStart = sessionStartMs || Date.now();
+    
+    partTimings.forEach(part => {
+      const localTime = localPartTimes[part.id];
+      if (localTime) {
+        updates.push({
+          partId: part.id,
+          changes: {
+            startTime: new Date(sessionStart + localTime.startMs).toISOString(),
+            endTime: new Date(sessionStart + localTime.endMs).toISOString()
+          }
+        });
+      }
+    });
+    
+    if (updates.length > 0) {
+      onUpdateMultipleParts(updates);
+      toast.success('Part times saved');
+    }
+  };
+  
+  // Check if there are unsaved local changes
+  const hasUnsavedChanges = Object.keys(localPartTimes).length > 0;
+  
+  // Hold-to-repeat handlers for up/down buttons
+  const startHoldRepeat = (partId, field, deltaMs) => {
+    // Initial adjustment
+    adjustPartTime(partId, field, deltaMs);
+    
+    // Start repeating after delay
+    let delay = 200;
+    const repeat = () => {
+      adjustPartTime(partId, field, deltaMs);
+      delay = Math.max(50, delay * 0.85); // Accelerate
+      holdIntervalRef.current = setTimeout(repeat, delay);
+    };
+    holdIntervalRef.current = setTimeout(repeat, 300);
+  };
+  
+  const stopHoldRepeat = () => {
+    if (holdIntervalRef.current) {
+      clearTimeout(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+  };
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopHoldRepeat();
+  }, []);
 
   // Drag handlers for reordering in list view
   const handleDragStart = (e, index) => {
@@ -1128,173 +1333,6 @@ function SessionPartsTimelineEditor({
     }
     setEditingPartId(null);
     setEditingName('');
-  };
-
-  // Time editing - convert MM:SS to ISO timestamp
-  const startEditingTimes = (part) => {
-    const partIndex = partTimings.findIndex(p => p.id === part.id);
-    setEditingTimes({
-      partId: part.id,
-      partIndex,
-      startTime: formatTime(part.startMs),
-      endTime: formatTime(part.endMs),
-      startMs: part.startMs,
-      endMs: part.endMs,
-      // Store original values for comparison when saving
-      originalStartMs: part.startMs,
-      originalEndMs: part.endMs
-    });
-  };
-
-  const parseTimeToMs = (timeStr) => {
-    const parts = timeStr.split(':');
-    if (parts.length === 2) {
-      const mins = parseInt(parts[0], 10) || 0;
-      const secs = parseInt(parts[1], 10) || 0;
-      return (mins * 60 + secs) * 1000;
-    }
-    return 0;
-  };
-
-  const formatMsToTime = (ms) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Update editing times with validation
-  const updateEditingTime = (field, value) => {
-    if (!editingTimes) return;
-    
-    const newMs = parseTimeToMs(value);
-    const { partIndex, startMs: currentStartMs, endMs: currentEndMs } = editingTimes;
-    const isFirstPart = partIndex === 0;
-    const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
-    const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
-    
-    if (field === 'start') {
-      // First part must start at 00:00
-      if (isFirstPart && newMs !== 0) {
-        return; // Silently prevent - input is disabled anyway
-      }
-      
-      // Start must be before current end (minimum 1 minute duration)
-      if (newMs >= currentEndMs - 60000) {
-        return;
-      }
-      
-      // Start can't be before 0
-      if (newMs < 0) {
-        return;
-      }
-      
-      setEditingTimes(prev => ({
-        ...prev,
-        startTime: value,
-        startMs: newMs
-      }));
-    } else {
-      // End must be after current start (minimum 1 minute duration)
-      if (newMs <= currentStartMs + 60000) {
-        return;
-      }
-      
-      // End can't exceed session duration
-      if (newMs > totalDurationMs) {
-        return;
-      }
-      
-      // If there's a next part, end can't exceed next part's end - 1 minute
-      if (nextPart && newMs > nextPart.endMs - 60000) {
-        return;
-      }
-      
-      setEditingTimes(prev => ({
-        ...prev,
-        endTime: value,
-        endMs: newMs
-      }));
-    }
-  };
-
-  // Increment/decrement time by given milliseconds
-  const adjustTime = (field, deltaMs) => {
-    if (!editingTimes) return;
-    
-    const currentMs = field === 'start' ? editingTimes.startMs : editingTimes.endMs;
-    const newMs = Math.max(0, currentMs + deltaMs);
-    const newTimeStr = formatMsToTime(newMs);
-    
-    updateEditingTime(field, newTimeStr);
-  };
-
-  const savePartTimes = () => {
-    if (!editingTimes) return;
-    
-    const sessionStart = sessionStartMs || Date.now();
-    const { partIndex, startMs: newStartMs, endMs: newEndMs, originalStartMs, originalEndMs } = editingTimes;
-    const isFirstPart = partIndex === 0;
-    
-    // Validate first part starts at 0
-    if (isFirstPart && newStartMs !== 0) {
-      toast.error('First part must start at 0:00');
-      return;
-    }
-    
-    // Validate times
-    if (newEndMs <= newStartMs) {
-      toast.error('End time must be after start time');
-      return;
-    }
-    
-    const updates = [];
-    const currentPart = partTimings[partIndex];
-    const prevPart = partIndex > 0 ? partTimings[partIndex - 1] : null;
-    const nextPart = partIndex < partTimings.length - 1 ? partTimings[partIndex + 1] : null;
-    
-    // Check if times actually changed from original values
-    const startChanged = newStartMs !== originalStartMs;
-    const endChanged = newEndMs !== originalEndMs;
-    
-    // Update current part
-    updates.push({
-      partId: currentPart.id,
-      changes: {
-        startTime: new Date(sessionStart + newStartMs).toISOString(),
-        endTime: new Date(sessionStart + newEndMs).toISOString()
-      }
-    });
-    
-    // If start changed and there's a previous part, update its end to match
-    // This ensures parts remain contiguous with no gaps
-    if (startChanged && prevPart) {
-      updates.push({
-        partId: prevPart.id,
-        changes: {
-          endTime: new Date(sessionStart + newStartMs).toISOString()
-        }
-      });
-    }
-    
-    // If end changed and there's a next part, update its start to match
-    // This ensures parts remain contiguous with no overlaps
-    if (endChanged && nextPart) {
-      updates.push({
-        partId: nextPart.id,
-        changes: {
-          startTime: new Date(sessionStart + newEndMs).toISOString()
-        }
-      });
-    }
-    
-    // Apply all updates atomically
-    if (updates.length > 0) {
-      onUpdateMultipleParts(updates);
-    }
-    
-    setEditingTimes(null);
-    toast.success('Part timing updated');
   };
 
   // Move part up in order
@@ -1564,257 +1602,230 @@ function SessionPartsTimelineEditor({
           </div>
         )}
 
-        {/* Activated parts list */}
-        {partTimings.map((part, index) => (
-          <div
-            key={part.id}
-            draggable={!editingTimes}
-            onDragStart={(e) => handleDragStart(e, index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDrop={(e) => handleDrop(e, index)}
-            onDragEnd={handleDragEnd}
-            className={cn(
-              "p-3 border rounded-lg bg-white transition-all",
-              draggedPart === index && "opacity-50",
-              dragOverIndex === index && "border-orange-400 bg-orange-50"
-            )}
-          >
-            {/* Part header row */}
-            <div className="flex items-center gap-2">
-              {/* Reorder buttons */}
-              <div className="flex flex-col gap-0.5">
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-5 w-5 p-0" 
-                  onClick={() => movePartUp(index)}
-                  disabled={index === 0}
-                  title="Move up"
-                >
-                  <ChevronUp className="w-3 h-3" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-5 w-5 p-0" 
-                  onClick={() => movePartDown(index)}
-                  disabled={index === partTimings.length - 1}
-                  title="Move down"
-                >
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </div>
-              
-              <div className={cn("w-4 h-4 rounded flex-shrink-0", part.color)} />
-              <Badge variant="outline" className="text-xs">{index + 1}</Badge>
-              
-              {editingPartId === part.id ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <Input
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    className="h-8 text-sm"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') savePartName(part.id);
-                      if (e.key === 'Escape') setEditingPartId(null);
-                    }}
-                  />
-                  <Button size="sm" variant="ghost" onClick={() => savePartName(part.id)}>
-                    <Save className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingPartId(null)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1">
-                    <span className="font-medium">{part.name}</span>
-                  </div>
-                  <Button size="sm" variant="ghost" onClick={() => startEditing(part)} title="Edit name">
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                </>
+        {/* Activated parts list - all times editable at once */}
+        {partTimings.map((part, index) => {
+          const currentStartMs = localPartTimes[part.id]?.startMs ?? part.startMs;
+          const currentEndMs = localPartTimes[part.id]?.endMs ?? part.endMs;
+          const isFirstPart = index === 0;
+          
+          return (
+            <div
+              key={part.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+              className={cn(
+                "p-3 border rounded-lg bg-white transition-all",
+                draggedPart === index && "opacity-50",
+                dragOverIndex === index && "border-orange-400 bg-orange-50"
               )}
-              
-              {/* Delete button */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Remove part">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Session Part?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will remove "{part.name}" from this session. You can add it back later if needed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDeletePart(part.id)} className="bg-red-600 hover:bg-red-700">
-                      Remove
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-            
-            {/* Time editing section */}
-            <div className="mt-3 ml-8">
-              {editingTimes?.partId === part.id ? (
-                <div className="flex flex-wrap items-center gap-4 p-3 bg-slate-50 rounded-lg">
-                  {/* Start Time Input */}
-                  <div className="flex items-center gap-1">
-                    <Label className="text-xs text-slate-600 w-10">Start:</Label>
-                    <div className="flex items-center">
-                      <div className="flex flex-col">
-                        <button
-                          type="button"
-                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-t border border-b-0 border-slate-300 bg-white"
-                          onClick={() => adjustTime('start', 1000)}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            let delay = 200;
-                            const interval = setInterval(() => {
-                              adjustTime('start', 1000);
-                              delay = Math.max(50, delay * 0.9);
-                            }, delay);
-                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
-                            document.addEventListener('mouseup', clear);
-                          }}
-                          disabled={index === 0}
-                          title={index === 0 ? "First part must start at 0:00" : "Increase (+1 sec)"}
-                        >
-                          <ChevronUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-b border border-slate-300 bg-white"
-                          onClick={() => adjustTime('start', -1000)}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            let delay = 200;
-                            const interval = setInterval(() => {
-                              adjustTime('start', -1000);
-                              delay = Math.max(50, delay * 0.9);
-                            }, delay);
-                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
-                            document.addEventListener('mouseup', clear);
-                          }}
-                          disabled={index === 0}
-                          title={index === 0 ? "First part must start at 0:00" : "Decrease (-1 sec)"}
-                        >
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <Input
-                        type="text"
-                        value={editingTimes.startTime}
-                        onChange={(e) => updateEditingTime('start', e.target.value)}
-                        className={cn(
-                          "w-16 h-8 text-sm text-center font-mono rounded-l-none border-l-0",
-                          index === 0 && "bg-slate-100 text-slate-500"
-                        )}
-                        placeholder="MM:SS"
-                        disabled={index === 0}
-                        title={index === 0 ? "First part must start at 0:00" : ""}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* End Time Input */}
-                  <div className="flex items-center gap-1">
-                    <Label className="text-xs text-slate-600 w-8">End:</Label>
-                    <div className="flex items-center">
-                      <div className="flex flex-col">
-                        <button
-                          type="button"
-                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-t border border-b-0 border-slate-300 bg-white"
-                          onClick={() => adjustTime('end', 1000)}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            let delay = 200;
-                            const interval = setInterval(() => {
-                              adjustTime('end', 1000);
-                              delay = Math.max(50, delay * 0.9);
-                            }, delay);
-                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
-                            document.addEventListener('mouseup', clear);
-                          }}
-                          title="Increase (+1 sec)"
-                        >
-                          <ChevronUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-b border border-slate-300 bg-white"
-                          onClick={() => adjustTime('end', -1000)}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            let delay = 200;
-                            const interval = setInterval(() => {
-                              adjustTime('end', -1000);
-                              delay = Math.max(50, delay * 0.9);
-                            }, delay);
-                            const clear = () => { clearInterval(interval); document.removeEventListener('mouseup', clear); };
-                            document.addEventListener('mouseup', clear);
-                          }}
-                          title="Decrease (-1 sec)"
-                        >
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <Input
-                        type="text"
-                        value={editingTimes.endTime}
-                        onChange={(e) => updateEditingTime('end', e.target.value)}
-                        className="w-16 h-8 text-sm text-center font-mono rounded-l-none border-l-0"
-                        placeholder="MM:SS"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Duration display */}
-                  <span className="text-xs text-slate-500">
-                    Duration: {formatDuration(editingTimes.endMs - editingTimes.startMs)}
-                  </span>
-                  
-                  {/* Save/Cancel buttons */}
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Button size="sm" onClick={savePartTimes} className="h-8">
-                      <Save className="w-3 h-3 mr-1" />
-                      Save
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingTimes(null)} className="h-8">
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <span className="font-mono">{formatTime(part.startMs)}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="font-mono">{formatTime(part.endMs)}</span>
-                    <span className="text-slate-400">({formatDuration(part.endMs - part.startMs)})</span>
-                  </div>
+            >
+              {/* Part header row */}
+              <div className="flex items-center gap-2">
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0.5">
                   <Button 
                     size="sm" 
-                    variant="outline" 
-                    onClick={() => startEditingTimes(part)}
-                    className="h-7 px-2 text-xs"
+                    variant="ghost" 
+                    className="h-5 w-5 p-0" 
+                    onClick={() => movePartUp(index)}
+                    disabled={index === 0}
+                    title="Move up"
                   >
-                    Edit Times
+                    <ChevronUp className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-5 w-5 p-0" 
+                    onClick={() => movePartDown(index)}
+                    disabled={index === partTimings.length - 1}
+                    title="Move down"
+                  >
+                    <ChevronDown className="w-3 h-3" />
                   </Button>
                 </div>
-              )}
+                
+                <div className={cn("w-4 h-4 rounded flex-shrink-0", part.color)} />
+                <Badge variant="outline" className="text-xs">{index + 1}</Badge>
+                
+                {editingPartId === part.id ? (
+                  <div className="flex-1 flex items-center gap-2">
+                    <Input
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      className="h-8 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') savePartName(part.id);
+                        if (e.key === 'Escape') setEditingPartId(null);
+                      }}
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => savePartName(part.id)}>
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingPartId(null)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1">
+                      <span className="font-medium">{part.name}</span>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => startEditing(part)} title="Edit name">
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+                
+                {/* Delete button */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Remove part">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Session Part?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove "{part.name}" from this session. You can add it back later if needed.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeletePart(part.id)} className="bg-red-600 hover:bg-red-700">
+                        Remove
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              
+              {/* Inline time editing - always visible */}
+              <div className="mt-3 ml-8 flex flex-wrap items-center gap-4 p-2 bg-slate-50 rounded-lg">
+                {/* Start Time Input */}
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs text-slate-600 w-10">Start:</Label>
+                  <div className="flex items-center">
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        className={cn(
+                          "h-4 w-6 flex items-center justify-center rounded-t border border-b-0 border-slate-300 bg-white",
+                          isFirstPart ? "opacity-30 cursor-not-allowed" : "hover:bg-slate-200"
+                        )}
+                        onMouseDown={(e) => {
+                          if (isFirstPart) return;
+                          e.preventDefault();
+                          startHoldRepeat(part.id, 'start', 1000);
+                        }}
+                        onMouseUp={stopHoldRepeat}
+                        onMouseLeave={stopHoldRepeat}
+                        disabled={isFirstPart}
+                        title={isFirstPart ? "First part must start at 0:00" : "Increase (+1 sec)"}
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        className={cn(
+                          "h-4 w-6 flex items-center justify-center rounded-b border border-slate-300 bg-white",
+                          isFirstPart ? "opacity-30 cursor-not-allowed" : "hover:bg-slate-200"
+                        )}
+                        onMouseDown={(e) => {
+                          if (isFirstPart) return;
+                          e.preventDefault();
+                          startHoldRepeat(part.id, 'start', -1000);
+                        }}
+                        onMouseUp={stopHoldRepeat}
+                        onMouseLeave={stopHoldRepeat}
+                        disabled={isFirstPart}
+                        title={isFirstPart ? "First part must start at 0:00" : "Decrease (-1 sec)"}
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <Input
+                      type="text"
+                      value={getInputValue(part.id, 'start', currentStartMs)}
+                      onChange={(e) => handleTimeInputChange(part.id, 'start', e.target.value)}
+                      onBlur={() => handleTimeInputBlur(part.id, 'start')}
+                      className={cn(
+                        "w-16 h-8 text-sm text-center font-mono rounded-l-none border-l-0",
+                        isFirstPart && "bg-slate-100 text-slate-500"
+                      )}
+                      placeholder="MM:SS"
+                      disabled={isFirstPart}
+                      title={isFirstPart ? "First part must start at 0:00" : ""}
+                    />
+                  </div>
+                </div>
+                
+                {/* End Time Input */}
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs text-slate-600 w-8">End:</Label>
+                  <div className="flex items-center">
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-t border border-b-0 border-slate-300 bg-white"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          startHoldRepeat(part.id, 'end', 1000);
+                        }}
+                        onMouseUp={stopHoldRepeat}
+                        onMouseLeave={stopHoldRepeat}
+                        title="Increase (+1 sec)"
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 rounded-b border border-slate-300 bg-white"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          startHoldRepeat(part.id, 'end', -1000);
+                        }}
+                        onMouseUp={stopHoldRepeat}
+                        onMouseLeave={stopHoldRepeat}
+                        title="Decrease (-1 sec)"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <Input
+                      type="text"
+                      value={getInputValue(part.id, 'end', currentEndMs)}
+                      onChange={(e) => handleTimeInputChange(part.id, 'end', e.target.value)}
+                      onBlur={() => handleTimeInputBlur(part.id, 'end')}
+                      className="w-16 h-8 text-sm text-center font-mono rounded-l-none border-l-0"
+                      placeholder="MM:SS"
+                    />
+                  </div>
+                </div>
+                
+                {/* Duration display */}
+                <span className="text-xs text-slate-500">
+                  Duration: {formatDuration(currentEndMs - currentStartMs)}
+                </span>
+              </div>
             </div>
+          );
+        })}
+        
+        {/* Save All Changes Button */}
+        {hasUnsavedChanges && (
+          <div className="flex justify-end pt-2 border-t">
+            <Button onClick={saveAllChanges} className="bg-orange-600 hover:bg-orange-700">
+              <Save className="w-4 h-4 mr-2" />
+              Save All Part Times
+            </Button>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
