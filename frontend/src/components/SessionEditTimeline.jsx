@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
-import { Trash2, Edit2, Save, X, Clock, Plus, GripVertical, AlertTriangle, Move } from 'lucide-react';
+import { Trash2, Edit2, Save, X, Clock, Plus, GripVertical, AlertTriangle, Move, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, formatTime, generateId } from '../lib/utils';
 
@@ -1004,12 +1004,12 @@ function BallRollingTimelineEditor({ session, onChange }) {
 
 /**
  * Session Parts Timeline Editor
- * Edit start and end times of session parts by dragging on the timeline.
- * Ball rolling times are managed separately in the Ball Rolling section.
+ * Visual timeline display with text-based editing below.
  * Features:
- * - Drag part boundaries to adjust start/end times (contiguous - no gaps)
+ * - Visual timeline showing part positions (display only)
+ * - Text inputs for editing start/end times
  * - Remove parts completely
- * - Reorder parts via drag-and-drop in list view
+ * - Reorder parts via up/down buttons
  * - Add parts from defaults, historical, or custom name
  */
 function SessionPartsTimelineEditor({ 
@@ -1023,14 +1023,13 @@ function SessionPartsTimelineEditor({
   availableParts = { defaults: [], historical: [] },
   onAddNewPart
 }) {
-  const timelineRef = useRef(null);
   const [draggedPart, setDraggedPart] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [editingPartId, setEditingPartId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [showAddPartMenu, setShowAddPartMenu] = useState(false);
   const [customPartName, setCustomPartName] = useState('');
-  const [resizing, setResizing] = useState(null);
+  const [editingTimes, setEditingTimes] = useState(null); // { partId, startTime, endTime }
 
   const sessionStartMs = sessionStartTime ? new Date(sessionStartTime).getTime() : 0;
 
@@ -1089,145 +1088,6 @@ function SessionPartsTimelineEditor({
 
   const partTimings = getPartTimings();
 
-  // Convert mouse position to milliseconds on timeline
-  const getTimeFromMousePosition = useCallback((clientX) => {
-    if (!timelineRef.current) return 0;
-    const rect = timelineRef.current.getBoundingClientRect();
-    const relativeX = clientX - rect.left;
-    const percent = Math.max(0, Math.min(1, relativeX / rect.width));
-    return Math.round(percent * totalDurationMs);
-  }, [totalDurationMs]);
-
-  // Handle drag start for resizing part boundaries
-  const dragStateRef = useRef(null);
-  const [dragPreview, setDragPreview] = useState(null); // Preview positions during drag
-  
-  const handleResizeStart = (e, partId, edge) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Store the initial state for this drag operation
-    const currentTimings = getPartTimings();
-    const partIndex = currentTimings.findIndex(p => p.id === partId);
-    
-    if (partIndex === -1) return;
-    
-    // Store in ref for immediate access during drag
-    dragStateRef.current = {
-      partId, 
-      edge,
-      initialTimings: JSON.parse(JSON.stringify(currentTimings)), // Deep copy
-      partIndex,
-      lastClampedMs: null
-    };
-    
-    setResizing({ partId, edge, partIndex });
-  };
-
-  // Handle mouse move for resizing - maintains contiguous parts (no gaps/overlaps)
-  useEffect(() => {
-    if (!resizing || !dragStateRef.current) return;
-
-    const handleMouseMove = (e) => {
-      const dragState = dragStateRef.current;
-      if (!dragState) return;
-      
-      const newTimeMs = getTimeFromMousePosition(e.clientX);
-      const { initialTimings, partIndex, edge } = dragState;
-      
-      if (partIndex === -1 || !initialTimings[partIndex]) return;
-      
-      const part = initialTimings[partIndex];
-      const minDuration = 60000; // Minimum 1 minute per part
-
-      let clampedMs;
-
-      if (edge === 'start') {
-        const prevPart = partIndex > 0 ? initialTimings[partIndex - 1] : null;
-        const minMs = prevPart ? prevPart.startMs + minDuration : 0;
-        const maxMs = part.endMs - minDuration;
-        clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
-      } else {
-        const nextPart = partIndex < initialTimings.length - 1 ? initialTimings[partIndex + 1] : null;
-        const minMs = part.startMs + minDuration;
-        const maxMs = nextPart ? nextPart.endMs - minDuration : totalDurationMs;
-        clampedMs = Math.max(minMs, Math.min(maxMs, newTimeMs));
-      }
-
-      // Store for use on mouseup
-      dragState.lastClampedMs = clampedMs;
-      
-      // Create preview timings for visual feedback
-      const previewTimings = initialTimings.map((p, idx) => {
-        if (edge === 'start') {
-          if (idx === partIndex) {
-            return { ...p, startMs: clampedMs };
-          }
-          if (idx === partIndex - 1) {
-            return { ...p, endMs: clampedMs };
-          }
-        } else {
-          if (idx === partIndex) {
-            return { ...p, endMs: clampedMs };
-          }
-          if (idx === partIndex + 1) {
-            return { ...p, startMs: clampedMs };
-          }
-        }
-        return p;
-      });
-      
-      setDragPreview(previewTimings);
-    };
-
-    const handleMouseUp = () => {
-      const dragState = dragStateRef.current;
-      
-      if (dragState && dragState.lastClampedMs !== null) {
-        const { initialTimings, partIndex, edge, lastClampedMs } = dragState;
-        const part = initialTimings[partIndex];
-        const sessionStart = sessionStartMs || Date.now();
-        
-        const updates = [];
-        const newBoundaryTime = new Date(sessionStart + lastClampedMs).toISOString();
-
-        if (edge === 'start') {
-          const prevPart = partIndex > 0 ? initialTimings[partIndex - 1] : null;
-          updates.push({ partId: part.id, changes: { startTime: newBoundaryTime } });
-          if (prevPart) {
-            updates.push({ partId: prevPart.id, changes: { endTime: newBoundaryTime } });
-          }
-        } else {
-          const nextPart = partIndex < initialTimings.length - 1 ? initialTimings[partIndex + 1] : null;
-          updates.push({ partId: part.id, changes: { endTime: newBoundaryTime } });
-          if (nextPart) {
-            updates.push({ partId: nextPart.id, changes: { startTime: newBoundaryTime } });
-          }
-        }
-
-        if (updates.length > 0) {
-          onUpdateMultipleParts(updates);
-          toast.success('Part timing updated');
-        }
-      }
-      
-      dragStateRef.current = null;
-      setDragPreview(null);
-      setResizing(null);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [resizing, sessionStartMs, totalDurationMs, getTimeFromMousePosition, onUpdateMultipleParts]);
-  
-  // Use preview timings during drag, otherwise use calculated timings
-  const displayTimings = dragPreview || partTimings;
-
   // Drag handlers for reordering in list view
   const handleDragStart = (e, index) => {
     setDraggedPart(index);
@@ -1268,6 +1128,64 @@ function SessionPartsTimelineEditor({
     }
     setEditingPartId(null);
     setEditingName('');
+  };
+
+  // Time editing - convert MM:SS to ISO timestamp
+  const startEditingTimes = (part) => {
+    setEditingTimes({
+      partId: part.id,
+      startTime: formatTime(part.startMs),
+      endTime: formatTime(part.endMs)
+    });
+  };
+
+  const parseTimeToMs = (timeStr) => {
+    const parts = timeStr.split(':');
+    if (parts.length === 2) {
+      const mins = parseInt(parts[0], 10) || 0;
+      const secs = parseInt(parts[1], 10) || 0;
+      return (mins * 60 + secs) * 1000;
+    }
+    return 0;
+  };
+
+  const savePartTimes = () => {
+    if (!editingTimes) return;
+    
+    const sessionStart = sessionStartMs || Date.now();
+    const newStartMs = parseTimeToMs(editingTimes.startTime);
+    const newEndMs = parseTimeToMs(editingTimes.endTime);
+    
+    // Validate times
+    if (newEndMs <= newStartMs) {
+      toast.error('End time must be after start time');
+      return;
+    }
+    
+    const newStartTime = new Date(sessionStart + newStartMs).toISOString();
+    const newEndTime = new Date(sessionStart + newEndMs).toISOString();
+    
+    onUpdatePart(editingTimes.partId, {
+      startTime: newStartTime,
+      endTime: newEndTime
+    });
+    
+    setEditingTimes(null);
+    toast.success('Part timing updated');
+  };
+
+  // Move part up in order
+  const movePartUp = (index) => {
+    if (index > 0) {
+      onReorderParts(index, index - 1);
+    }
+  };
+
+  // Move part down in order
+  const movePartDown = (index) => {
+    if (index < partTimings.length - 1) {
+      onReorderParts(index, index + 1);
+    }
   };
 
   // Activate an unused part from the session's existing parts
@@ -1370,32 +1288,24 @@ function SessionPartsTimelineEditor({
       {/* Info banner */}
       <div className="text-xs text-slate-500 bg-blue-50 p-2 rounded border border-blue-100 flex items-center justify-between">
         <span>Showing {activatedParts.length} of {parts.length} parts</span>
-        <span className="text-blue-600 font-medium">Drag edges to adjust timing • Drag cards to reorder</span>
+        <span className="text-blue-600 font-medium">Edit times below • Drag cards to reorder</span>
       </div>
       
-      {/* Visual Timeline with draggable boundaries */}
-      <div 
-        ref={timelineRef}
-        className={cn(
-          "relative h-24 bg-slate-100 rounded-lg",
-          resizing && "cursor-ew-resize select-none"
-        )}
-      >
+      {/* Visual Timeline (display only) */}
+      <div className="relative h-20 bg-slate-100 rounded-lg overflow-hidden">
         {/* Render parts */}
-        {displayTimings.map((part, index) => {
+        {partTimings.map((part, index) => {
           const leftPercent = (part.startMs / totalDurationMs) * 100;
           const widthPercent = Math.max(5, ((part.endMs - part.startMs) / totalDurationMs) * 100);
-          const isResizing = resizing?.partId === part.id;
           const isFirst = index === 0;
-          const isLast = index === displayTimings.length - 1;
+          const isLast = index === partTimings.length - 1;
           
           return (
             <div
               key={part.id}
               className={cn(
                 "absolute top-2 bottom-2 flex flex-col items-center justify-center text-white text-xs font-medium transition-all",
-                part.color,
-                isResizing && "ring-2 ring-blue-500 z-10"
+                part.color
               )}
               style={{
                 left: `${leftPercent}%`,
@@ -1405,7 +1315,7 @@ function SessionPartsTimelineEditor({
               }}
             >
               {/* Part content */}
-              <div className="px-2 text-center pointer-events-none">
+              <div className="px-2 text-center">
                 <span className="truncate font-semibold block text-[11px]">{part.name}</span>
                 <span className="text-[9px] opacity-80 block">
                   {formatTime(part.startMs)} → {formatTime(part.endMs)}
@@ -1414,50 +1324,6 @@ function SessionPartsTimelineEditor({
             </div>
           );
         })}
-        
-        {/* Render draggable boundary handles BETWEEN parts */}
-        {displayTimings.map((part, index) => {
-          if (index === 0) return null; // No handle before first part
-          
-          const boundaryPercent = (part.startMs / totalDurationMs) * 100;
-          const isActive = resizing?.partId === part.id && resizing?.edge === 'start';
-          
-          return (
-            <div
-              key={`boundary-${part.id}`}
-              onMouseDown={(e) => handleResizeStart(e, part.id, 'start')}
-              className={cn(
-                "absolute top-0 bottom-0 w-6 -ml-3 cursor-ew-resize z-30 flex items-center justify-center group",
-                isActive && "bg-blue-200/50"
-              )}
-              style={{ left: `${boundaryPercent}%` }}
-              title="Drag to adjust boundary"
-            >
-              <div className={cn(
-                "w-1.5 h-16 rounded-full transition-all shadow-md",
-                isActive ? "bg-blue-500 w-2" : "bg-white/80 group-hover:bg-white group-hover:w-2"
-              )} />
-            </div>
-          );
-        })}
-        
-        {/* Drag handle at the very end of last part */}
-        {displayTimings.length > 0 && (
-          <div
-            onMouseDown={(e) => handleResizeStart(e, displayTimings[displayTimings.length - 1].id, 'end')}
-            className={cn(
-              "absolute top-0 bottom-0 w-6 -mr-3 cursor-ew-resize z-30 flex items-center justify-center group",
-              resizing?.edge === 'end' && "bg-blue-200/50"
-            )}
-            style={{ left: `${(displayTimings[displayTimings.length - 1].endMs / totalDurationMs) * 100}%`, marginLeft: '-12px' }}
-            title="Drag to adjust session end"
-          >
-            <div className={cn(
-              "w-1.5 h-16 rounded-full transition-all shadow-md",
-              resizing?.edge === 'end' ? "bg-blue-500 w-2" : "bg-white/80 group-hover:bg-white group-hover:w-2"
-            )} />
-          </div>
-        )}
       </div>
 
       {/* Time markers */}
@@ -1579,7 +1445,7 @@ function SessionPartsTimelineEditor({
         {partTimings.map((part, index) => (
           <div
             key={part.id}
-            draggable={!resizing}
+            draggable={!editingTimes}
             onDragStart={(e) => handleDragStart(e, index)}
             onDragOver={(e) => handleDragOver(e, index)}
             onDrop={(e) => handleDrop(e, index)}
@@ -1591,9 +1457,32 @@ function SessionPartsTimelineEditor({
             )}
           >
             {/* Part header row */}
-            <div className="flex items-center gap-3">
-              <Move className="w-4 h-4 text-slate-400 cursor-grab" />
-              <div className={cn("w-4 h-4 rounded", part.color)} />
+            <div className="flex items-center gap-2">
+              {/* Reorder buttons */}
+              <div className="flex flex-col gap-0.5">
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-5 w-5 p-0" 
+                  onClick={() => movePartUp(index)}
+                  disabled={index === 0}
+                  title="Move up"
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-5 w-5 p-0" 
+                  onClick={() => movePartDown(index)}
+                  disabled={index === partTimings.length - 1}
+                  title="Move down"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </div>
+              
+              <div className={cn("w-4 h-4 rounded flex-shrink-0", part.color)} />
               <Badge variant="outline" className="text-xs">{index + 1}</Badge>
               
               {editingPartId === part.id ? (
@@ -1650,13 +1539,65 @@ function SessionPartsTimelineEditor({
               </AlertDialog>
             </div>
             
-            {/* Time display */}
-            <div className="mt-2 pl-11 flex items-center gap-4 text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span>{formatTime(part.startMs)} → {formatTime(part.endMs)}</span>
-                <span className="text-slate-400">({formatDuration(part.endMs - part.startMs)})</span>
-              </div>
+            {/* Time editing section */}
+            <div className="mt-3 ml-8">
+              {editingTimes?.partId === part.id ? (
+                <div className="flex flex-wrap items-center gap-3 p-2 bg-slate-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-slate-600">Start:</Label>
+                    <Input
+                      type="text"
+                      value={editingTimes.startTime}
+                      onChange={(e) => setEditingTimes(prev => ({
+                        ...prev,
+                        startTime: e.target.value
+                      }))}
+                      className="w-20 h-8 text-sm text-center font-mono"
+                      placeholder="MM:SS"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-slate-600">End:</Label>
+                    <Input
+                      type="text"
+                      value={editingTimes.endTime}
+                      onChange={(e) => setEditingTimes(prev => ({
+                        ...prev,
+                        endTime: e.target.value
+                      }))}
+                      className="w-20 h-8 text-sm text-center font-mono"
+                      placeholder="MM:SS"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Button size="sm" onClick={savePartTimes} className="h-8">
+                      <Save className="w-3 h-3 mr-1" />
+                      Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingTimes(null)} className="h-8">
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <span className="font-mono">{formatTime(part.startMs)}</span>
+                    <span className="text-slate-400">→</span>
+                    <span className="font-mono">{formatTime(part.endMs)}</span>
+                    <span className="text-slate-400">({formatDuration(part.endMs - part.startMs)})</span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => startEditingTimes(part)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Edit Times
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ))}
