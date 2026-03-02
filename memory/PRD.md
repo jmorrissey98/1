@@ -3,6 +3,17 @@
 ## Overview
 "My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
+## Recent Updates (March 2, 2026)
+
+### Post-Session Editing - Session Parts Timeline (NEW)
+- **Draggable Part Timing**: Coach Developers can edit completed session parts by dragging edge handles on the visual timeline
+- **Start/End Time Adjustment**: Drag left edge to change start time, drag right edge to change end time
+- **Minimum Duration**: Parts enforce 1-minute minimum duration to prevent accidental deletion
+- **Real-time Visual Updates**: Timeline proportions update instantly during drag operations
+- **Separation of Concerns**: Ball rolling times are edited in the Ball Rolling Timeline section only; Session Parts section focuses on part timing only
+- **Persistent Changes**: All edits save to database and affect coach profiles/analytics
+- **Features**: Add inactive parts, remove parts, reorder via drag-and-drop, edit part names
+
 **Production Domain:** mycoachdeveloper.com
 
 ## Core Features

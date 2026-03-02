@@ -918,20 +918,22 @@ function BallRollingTimelineEditor({ session, onChange }) {
 
 /**
  * Session Parts Timeline Editor
- * Full editing capability for session parts including:
- * - Edit timings/duration (ball rolling and not rolling times)
+ * Edit start and end times of session parts by dragging on the timeline.
+ * Ball rolling times are managed separately in the Ball Rolling section.
+ * Features:
+ * - Drag part edges to adjust start/end times
  * - Remove parts completely
- * - Reorder parts via drag-and-drop
- * - Add parts from inactive parts or create new ones
- * All changes persist to session data and affect coach profiles/analytics
+ * - Reorder parts via drag-and-drop in list view
+ * - Add parts from inactive parts
  */
-function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts, onAddPart, sessionStartTime, inactiveParts = [] }) {
+function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDeletePart, onReorderParts, sessionStartTime }) {
+  const timelineRef = useRef(null);
   const [draggedPart, setDraggedPart] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [editingPartId, setEditingPartId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [editingTimes, setEditingTimes] = useState(null); // { partId, ballRollingTime, ballNotRollingTime }
   const [showAddFromInactive, setShowAddFromInactive] = useState(false);
+  const [resizing, setResizing] = useState(null); // { partId, edge: 'start' | 'end' }
 
   const sessionStartMs = sessionStartTime ? new Date(sessionStartTime).getTime() : 0;
 
@@ -954,7 +956,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
   });
 
   // Calculate part positions based on actual recorded times
-  const getPartTimings = () => {
+  const getPartTimings = useCallback(() => {
     if (activatedParts.length === 0) return [];
     
     const sortedParts = [...activatedParts].sort((a, b) => {
@@ -964,30 +966,16 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       return (a.order || 0) - (b.order || 0);
     });
     
-    const totalPartTime = sortedParts.reduce((sum, part) => {
-      return sum + (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
-    }, 0);
-    
-    let currentPosition = 0;
-    
     return sortedParts.map((part, index) => {
-      const partTotalTime = (part.ballRollingTime || 0) + (part.ballNotRollingTime || 0);
-      
       let startMs, endMs;
       
       if (part.startTime && sessionStartMs) {
         startMs = new Date(part.startTime).getTime() - sessionStartMs;
-        if (part.endTime) {
-          endMs = new Date(part.endTime).getTime() - sessionStartMs;
-        } else {
-          endMs = startMs + (partTotalTime * 1000);
-        }
-      } else if (totalPartTime > 0) {
-        const partWidthMs = (partTotalTime / totalPartTime) * totalDurationMs;
-        startMs = currentPosition;
-        endMs = currentPosition + partWidthMs;
-        currentPosition = endMs;
+        endMs = part.endTime 
+          ? new Date(part.endTime).getTime() - sessionStartMs
+          : startMs + ((part.ballRollingTime || 0) + (part.ballNotRollingTime || 0)) * 1000;
       } else {
+        // Fallback: distribute evenly
         const partWidth = totalDurationMs / sortedParts.length;
         startMs = index * partWidth;
         endMs = (index + 1) * partWidth;
@@ -997,15 +985,77 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
         ...part,
         startMs: Math.max(0, startMs),
         endMs: Math.min(totalDurationMs, endMs),
-        partTotalTime,
         color: PART_COLORS[index % PART_COLORS.length]
       };
     });
-  };
+  }, [activatedParts, sessionStartMs, totalDurationMs]);
 
   const partTimings = getPartTimings();
 
-  // Drag handlers
+  // Convert mouse position to milliseconds on timeline
+  const getTimeFromMousePosition = useCallback((clientX) => {
+    if (!timelineRef.current) return 0;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const relativeX = clientX - rect.left;
+    const percent = Math.max(0, Math.min(1, relativeX / rect.width));
+    return Math.round(percent * totalDurationMs);
+  }, [totalDurationMs]);
+
+  // Handle drag start for resizing part edges
+  const handleResizeStart = (e, partId, edge) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing({ partId, edge });
+  };
+
+  // Handle mouse move for resizing
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e) => {
+      const newTimeMs = getTimeFromMousePosition(e.clientX);
+      const part = partTimings.find(p => p.id === resizing.partId);
+      if (!part) return;
+
+      // Calculate new start/end times
+      let newStartTime, newEndTime;
+      const sessionStart = sessionStartMs || Date.now();
+
+      if (resizing.edge === 'start') {
+        // Dragging start edge - ensure it doesn't go past end
+        const maxStart = part.endMs - 60000; // Minimum 1 minute duration
+        const clampedMs = Math.min(Math.max(0, newTimeMs), maxStart);
+        newStartTime = new Date(sessionStart + clampedMs).toISOString();
+        newEndTime = part.endTime;
+      } else {
+        // Dragging end edge - ensure it doesn't go before start
+        const minEnd = part.startMs + 60000; // Minimum 1 minute duration
+        const clampedMs = Math.max(minEnd, Math.min(totalDurationMs, newTimeMs));
+        newStartTime = part.startTime;
+        newEndTime = new Date(sessionStart + clampedMs).toISOString();
+      }
+
+      onUpdatePart(resizing.partId, {
+        startTime: newStartTime,
+        endTime: newEndTime
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+      toast.success('Part timing updated');
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing, partTimings, sessionStartMs, totalDurationMs, getTimeFromMousePosition, onUpdatePart]);
+
+  // Drag handlers for reordering in list view
   const handleDragStart = (e, index) => {
     setDraggedPart(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -1047,58 +1097,34 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     setEditingName('');
   };
 
-  // Time editing
-  const startEditingTimes = (part) => {
-    setEditingTimes({
-      partId: part.id,
-      ballRollingTime: part.ballRollingTime || 0,
-      ballNotRollingTime: part.ballNotRollingTime || 0
-    });
-  };
-
-  const savePartTimes = () => {
-    if (editingTimes) {
-      onUpdatePart(editingTimes.partId, {
-        ballRollingTime: editingTimes.ballRollingTime,
-        ballNotRollingTime: editingTimes.ballNotRollingTime,
-        used: true // Ensure it stays marked as used
-      });
-      toast.success('Part duration updated');
-    }
-    setEditingTimes(null);
-  };
-
   // Activate an unused part
   const handleActivatePart = (part) => {
+    // Add part at the end of the session with a default 5-minute duration
+    const lastPart = partTimings[partTimings.length - 1];
+    const newStartMs = lastPart ? lastPart.endMs : 0;
+    const newEndMs = Math.min(newStartMs + 300000, totalDurationMs); // 5 minutes or until session end
+    const sessionStart = sessionStartMs || Date.now();
+
     onUpdatePart(part.id, {
       used: true,
-      ballRollingTime: 60, // Default 1 minute rolling
-      ballNotRollingTime: 0
+      startTime: new Date(sessionStart + newStartMs).toISOString(),
+      endTime: new Date(sessionStart + newEndMs).toISOString()
     });
     setShowAddFromInactive(false);
     toast.success(`"${part.name}" added to session`);
   };
 
-  // Parse MM:SS to seconds
-  const parseTimeInput = (value) => {
-    const parts = value.split(':');
-    if (parts.length === 2) {
-      const mins = parseInt(parts[0], 10) || 0;
-      const secs = parseInt(parts[1], 10) || 0;
-      return mins * 60 + secs;
-    }
-    return parseInt(value, 10) || 0;
-  };
-
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+  const formatDuration = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatTimeInput = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+  const formatTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -1115,7 +1141,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
         
         {unusedParts.length > 0 && (
           <div className="mt-4">
-            <p className="text-xs font-medium text-slate-500 uppercase mb-2">Available Parts - Click to Activate</p>
+            <p className="text-xs font-medium text-slate-500 uppercase mb-2">Available Parts - Click to Add</p>
             <div className="flex flex-wrap gap-2">
               {unusedParts.map((part) => (
                 <button
@@ -1137,39 +1163,62 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
     <div className="space-y-4">
       {/* Info banner */}
       <div className="text-xs text-slate-500 bg-blue-50 p-2 rounded border border-blue-100 flex items-center justify-between">
-        <span>Showing {activatedParts.length} of {parts.length} parts that were activated during this session</span>
-        <span className="text-blue-600 font-medium">Edit times to adjust duration • Drag to reorder</span>
+        <span>Showing {activatedParts.length} of {parts.length} parts</span>
+        <span className="text-blue-600 font-medium">Drag edges to adjust timing • Drag cards to reorder</span>
       </div>
       
-      {/* Visual Timeline */}
-      <div className="relative h-16 bg-slate-100 rounded-lg overflow-hidden">
+      {/* Visual Timeline with draggable edges */}
+      <div 
+        ref={timelineRef}
+        className={cn(
+          "relative h-24 bg-slate-100 rounded-lg",
+          resizing && "cursor-ew-resize select-none"
+        )}
+      >
         {partTimings.map((part, index) => {
           const leftPercent = (part.startMs / totalDurationMs) * 100;
           const widthPercent = Math.max(5, ((part.endMs - part.startMs) / totalDurationMs) * 100);
+          const isResizing = resizing?.partId === part.id;
           
           return (
             <div
               key={part.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDrop={(e) => handleDrop(e, index)}
-              onDragEnd={handleDragEnd}
               className={cn(
-                "absolute top-0 bottom-0 flex flex-col items-center justify-center text-white text-xs font-medium cursor-move transition-all border-r-2 border-white",
+                "absolute top-2 bottom-2 flex flex-col items-center justify-center text-white text-xs font-medium transition-all rounded",
                 part.color,
-                draggedPart === index && "opacity-50",
-                dragOverIndex === index && "ring-2 ring-orange-400"
+                isResizing && "ring-2 ring-blue-500 z-10"
               )}
               style={{
                 left: `${leftPercent}%`,
-                width: `${widthPercent}%`
+                width: `${widthPercent}%`,
+                minWidth: '60px'
               }}
             >
-              <span className="truncate px-2 font-semibold">{part.name}</span>
-              {part.partTotalTime > 0 && (
-                <span className="text-[10px] opacity-80">{formatDuration(part.partTotalTime)}</span>
-              )}
+              {/* Left resize handle - draggable */}
+              <div
+                onMouseDown={(e) => handleResizeStart(e, part.id, 'start')}
+                className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center"
+                title="Drag to adjust start time"
+              >
+                <div className="w-1.5 h-12 bg-white/40 rounded ml-0.5 group-hover:bg-white/80 group-hover:w-2 transition-all" />
+              </div>
+              
+              {/* Part content */}
+              <div className="px-6 text-center">
+                <span className="truncate font-semibold block">{part.name}</span>
+                <span className="text-[10px] opacity-80 block mt-0.5">
+                  {formatTime(part.startMs)} → {formatTime(part.endMs)}
+                </span>
+              </div>
+              
+              {/* Right resize handle - draggable */}
+              <div
+                onMouseDown={(e) => handleResizeStart(e, part.id, 'end')}
+                className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize group z-20 flex items-center justify-end"
+                title="Drag to adjust end time"
+              >
+                <div className="w-1.5 h-12 bg-white/40 rounded mr-0.5 group-hover:bg-white/80 group-hover:w-2 transition-all" />
+              </div>
             </div>
           );
         })}
@@ -1178,14 +1227,14 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
       {/* Time markers */}
       <div className="flex justify-between text-xs text-slate-400 px-1">
         <span>0:00</span>
-        <span>{formatDuration(totalDurationMs / 2000)}</span>
-        <span>{formatDuration(totalDurationMs / 1000)}</span>
+        <span>{formatTime(totalDurationMs / 2)}</span>
+        <span>{formatTime(totalDurationMs)}</span>
       </div>
 
-      {/* Part List for detailed editing */}
+      {/* Part List for detailed view */}
       <div className="space-y-2 mt-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-slate-700">Activated Parts (drag to reorder)</p>
+          <p className="text-sm font-medium text-slate-700">Session Parts</p>
           {unusedParts.length > 0 && (
             <Button 
               size="sm" 
@@ -1194,7 +1243,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
               className="text-xs"
             >
               <Plus className="w-3 h-3 mr-1" />
-              Add Existing Part
+              Add Part
             </Button>
           )}
         </div>
@@ -1218,10 +1267,10 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
         )}
 
         {/* Activated parts list */}
-        {activatedParts.map((part, index) => (
+        {partTimings.map((part, index) => (
           <div
             key={part.id}
-            draggable={!editingTimes}
+            draggable={!resizing}
             onDragStart={(e) => handleDragStart(e, index)}
             onDragOver={(e) => handleDragOver(e, index)}
             onDrop={(e) => handleDrop(e, index)}
@@ -1235,7 +1284,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
             {/* Part header row */}
             <div className="flex items-center gap-3">
               <Move className="w-4 h-4 text-slate-400 cursor-grab" />
-              <div className={cn("w-4 h-4 rounded", PART_COLORS[index % PART_COLORS.length])} />
+              <div className={cn("w-4 h-4 rounded", part.color)} />
               <Badge variant="outline" className="text-xs">{index + 1}</Badge>
               
               {editingPartId === part.id ? (
@@ -1279,7 +1328,7 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remove Session Part?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will remove "{part.name}" from this session's data. The part's ball rolling time ({formatDuration(part.ballRollingTime || 0)}) and not rolling time ({formatDuration(part.ballNotRollingTime || 0)}) will be removed from session totals.
+                      This will remove "{part.name}" from this session. You can add it back later if needed.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -1292,77 +1341,13 @@ function SessionPartsTimelineEditor({ parts, totalDurationMs, onUpdatePart, onDe
               </AlertDialog>
             </div>
             
-            {/* Time editing section */}
-            <div className="mt-3 pl-11">
-              {editingTimes?.partId === part.id ? (
-                <div className="flex flex-wrap items-center gap-3 p-2 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded" />
-                    <Label className="text-xs text-slate-600">Ball Rolling:</Label>
-                    <Input
-                      type="text"
-                      value={formatTimeInput(editingTimes.ballRollingTime)}
-                      onChange={(e) => setEditingTimes(prev => ({
-                        ...prev,
-                        ballRollingTime: parseTimeInput(e.target.value)
-                      }))}
-                      className="w-20 h-7 text-sm text-center font-mono"
-                      placeholder="MM:SS"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-400 rounded" />
-                    <Label className="text-xs text-slate-600">Not Rolling:</Label>
-                    <Input
-                      type="text"
-                      value={formatTimeInput(editingTimes.ballNotRollingTime)}
-                      onChange={(e) => setEditingTimes(prev => ({
-                        ...prev,
-                        ballNotRollingTime: parseTimeInput(e.target.value)
-                      }))}
-                      className="w-20 h-7 text-sm text-center font-mono"
-                      placeholder="MM:SS"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1 ml-auto">
-                    <span className="text-xs text-slate-500">
-                      Total: {formatDuration(editingTimes.ballRollingTime + editingTimes.ballNotRollingTime)}
-                    </span>
-                    <Button size="sm" onClick={savePartTimes} className="h-7 px-2">
-                      <Save className="w-3 h-3 mr-1" />
-                      Save
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingTimes(null)} className="h-7 px-2">
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded" />
-                      Rolling: {formatDuration(part.ballRollingTime || 0)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-red-400 rounded" />
-                      Not Rolling: {formatDuration(part.ballNotRollingTime || 0)}
-                    </span>
-                    <span className="text-slate-400">
-                      Total: {formatDuration((part.ballRollingTime || 0) + (part.ballNotRollingTime || 0))}
-                    </span>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => startEditingTimes(part)}
-                    className="h-6 px-2 text-xs"
-                  >
-                    <Clock className="w-3 h-3 mr-1" />
-                    Edit Times
-                  </Button>
-                </div>
-              )}
+            {/* Time display */}
+            <div className="mt-2 pl-11 flex items-center gap-4 text-sm text-slate-600">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span>{formatTime(part.startMs)} → {formatTime(part.endMs)}</span>
+                <span className="text-slate-400">({formatDuration(part.endMs - part.startMs)})</span>
+              </div>
             </div>
           </div>
         ))}
