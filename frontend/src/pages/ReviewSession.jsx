@@ -764,39 +764,17 @@ export default function ReviewSession() {
     // Ball rolling stats
     let ballRollingTime, ballNotRollingTime, totalTime;
     if (viewMode === 'whole') {
-      // Get session-level ball rolling times
-      const sessionRolling = session.ballRollingTime || 0;
-      const sessionNotRolling = session.ballNotRollingTime || 0;
-      const sessionTotal = sessionRolling + sessionNotRolling;
+      // For whole session, ALWAYS use session-level ball rolling times
+      // These are the source of truth - directly edited by the ball rolling timeline editor
+      ballRollingTime = session.ballRollingTime || 0;
+      ballNotRollingTime = session.ballNotRollingTime || 0;
       
-      // Get summed ball rolling times from parts
-      const parts = session.sessionParts || [];
-      const activeParts = parts.filter(p => 
-        p.used === true || 
-        p.startTime || 
-        (p.ballRollingTime || 0) > 0 || 
-        (p.ballNotRollingTime || 0) > 0
-      );
-      const partsRolling = activeParts.reduce((sum, p) => sum + (p.ballRollingTime || 0), 0);
-      const partsNotRolling = activeParts.reduce((sum, p) => sum + (p.ballNotRollingTime || 0), 0);
-      const partsTotal = partsRolling + partsNotRolling;
-      
-      // Use session-level if BOTH rolling and not-rolling have reasonable values
-      // (i.e., not rolling time is more than 0 when we have multiple segments)
-      // Otherwise prefer parts data which is recalculated from ballRollingLog
-      if (sessionNotRolling > 0 && sessionTotal > 0) {
-        // Session-level data looks valid (has both rolling and not-rolling)
-        ballRollingTime = sessionRolling;
-        ballNotRollingTime = sessionNotRolling;
-      } else if (partsTotal > 0) {
-        // Use summed parts data
-        ballRollingTime = partsRolling;
-        ballNotRollingTime = partsNotRolling;
-      } else {
-        // Fall back to session-level even if incomplete
-        ballRollingTime = sessionRolling;
-        ballNotRollingTime = sessionNotRolling;
-      }
+      // Debug logging
+      console.log('[BallRolling Debug] Session level values:', {
+        ballRollingTime: session.ballRollingTime,
+        ballNotRollingTime: session.ballNotRollingTime,
+        total: ballRollingTime + ballNotRollingTime
+      });
       
       // Use sum of ball times, not totalDuration (which may include pauses)
       totalTime = ballRollingTime + ballNotRollingTime;
