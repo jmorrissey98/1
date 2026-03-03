@@ -716,6 +716,61 @@ export default function ReviewSession() {
     return (session.events || []).filter(e => e.sessionPartId === viewMode);
   };
 
+  // Get notes filtered by the selected part
+  const getFilteredNotes = () => {
+    if (!session) return [];
+    const notes = session.observerNotes || [];
+    if (viewMode === 'whole') return notes;
+    
+    // Filter notes by part - match by partId or by timestamp within part's time range
+    const selectedPart = (session.sessionParts || []).find(p => p.id === viewMode);
+    if (!selectedPart) return notes;
+    
+    const sessionStartMs = session.startTime ? new Date(session.startTime).getTime() : 0;
+    const partStartMs = selectedPart.startTime ? new Date(selectedPart.startTime).getTime() : 0;
+    const partEndMs = selectedPart.endTime ? new Date(selectedPart.endTime).getTime() : 0;
+    
+    return notes.filter(note => {
+      // If note has partId, use that
+      if (note.partId) {
+        return note.partId === viewMode;
+      }
+      // Otherwise filter by timestamp
+      const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
+      return noteTime >= partStartMs && noteTime < partEndMs;
+    });
+  };
+
+  // Get timeline range based on viewMode (whole session or specific part)
+  const getTimelineRange = () => {
+    if (!session) return { startMs: 0, endMs: 0, durationMs: 1 };
+    
+    const sessionStartMs = session.startTime ? new Date(session.startTime).getTime() : 0;
+    
+    if (viewMode === 'whole') {
+      // Use full session duration
+      const sessionDurationSec = session.totalDuration || session.total_duration || 0;
+      const events = session.events || [];
+      const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
+      const durationMs = Math.max(sessionDurationSec * 1000, maxEventTime) || 1;
+      return { startMs: 0, endMs: durationMs, durationMs };
+    }
+    
+    // Use selected part's time range
+    const selectedPart = (session.sessionParts || []).find(p => p.id === viewMode);
+    if (!selectedPart || !selectedPart.startTime || !selectedPart.endTime) {
+      // Fallback to full session
+      const sessionDurationSec = session.totalDuration || session.total_duration || 0;
+      return { startMs: 0, endMs: sessionDurationSec * 1000, durationMs: sessionDurationSec * 1000 || 1 };
+    }
+    
+    const partStartMs = new Date(selectedPart.startTime).getTime() - sessionStartMs;
+    const partEndMs = new Date(selectedPart.endTime).getTime() - sessionStartMs;
+    const durationMs = partEndMs - partStartMs;
+    
+    return { startMs: partStartMs, endMs: partEndMs, durationMs: durationMs || 1 };
+  };
+
   // Get unique session parts used in this session
   const getSessionParts = () => {
     if (!session) return [];
@@ -1362,62 +1417,65 @@ export default function ReviewSession() {
           {/* Reflections Tab - Restructured */}
           <TabsContent value="reflections" className="space-y-6">
             {/* Observer Notes Card - Only visible to coach developers (these are live observation notes) */}
-            {!isCoachView && (session.observerNotes || []).length > 0 && (
-              <Collapsible open={observerNotesExpanded} onOpenChange={setObserverNotesExpanded}>
-                <Card>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-slate-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="font-['Manrope'] flex items-center gap-2">
-                          <StickyNote className="w-5 h-5 text-purple-600" />
-                          Observer Notes
-                          <Badge variant="secondary" className="ml-2">
-                            {session.observerNotes.length}
-                          </Badge>
-                        </CardTitle>
-                        {observerNotesExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-slate-400" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-slate-400" />
-                        )}
-                      </div>
-                      <CardDescription>
-                        Private notes taken during the observation session.
-                      </CardDescription>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="space-y-3 pt-0">
-                      {session.observerNotes.map(note => {
-                        const part = (session.sessionParts || []).find(p => p.id === note.partId);
-                        // Calculate relative time from session start
-                        const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
-                        const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
-                        const noteRelativeMs = noteTime - sessionStartTime;
-                        
-                        return (
-                          <div key={note.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                            <p className="text-slate-700">{note.text}</p>
-                            <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                              <span className="text-purple-600 font-medium">
-                                {noteRelativeMs > 0 ? formatRelativeTime(noteRelativeMs) : '00:00'}
-                              </span>
-                              <span className="text-slate-400">into session</span>
-                              {part && (
-                                <>
-                                  <span>•</span>
-                                  <Badge variant="outline" className="text-xs">{part.name}</Badge>
-                                </>
-                              )}
+            {!isCoachView && (() => {
+              const filteredNotes = getFilteredNotes();
+              return filteredNotes.length > 0 && (
+                <Collapsible open={observerNotesExpanded} onOpenChange={setObserverNotesExpanded}>
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                            <StickyNote className="w-5 h-5 text-purple-600" />
+                            Observer Notes
+                            <Badge variant="secondary" className="ml-2">
+                              {filteredNotes.length}
+                            </Badge>
+                          </CardTitle>
+                          {observerNotesExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <CardDescription>
+                          Private notes taken during the observation session.
+                        </CardDescription>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-3 pt-0">
+                        {filteredNotes.map(note => {
+                          const part = (session.sessionParts || []).find(p => p.id === note.partId);
+                          // Calculate relative time from session start
+                          const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
+                          const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
+                          const noteRelativeMs = noteTime - sessionStartTime;
+                          
+                          return (
+                            <div key={note.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                              <p className="text-slate-700">{note.text}</p>
+                              <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
+                                <span className="text-purple-600 font-medium">
+                                  {noteRelativeMs > 0 ? formatRelativeTime(noteRelativeMs) : '00:00'}
+                                </span>
+                                <span className="text-slate-400">into session</span>
+                                {part && (
+                                  <>
+                                    <span>•</span>
+                                    <Badge variant="outline" className="text-xs">{part.name}</Badge>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            )}
+                          );
+                        })}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })()}
 
             {/* Observer Reflection Template Form - Only for coach developers to edit */}
             {canEditObserverContent && (
@@ -2319,67 +2377,73 @@ export default function ReviewSession() {
                   <>
                     {/* Density bar */}
                     <div className="relative">
-                      <div className="flex justify-between text-xs text-slate-500 mb-1">
-                        <span>00:00</span>
-                        <span>{(() => {
-                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                          const sessionDuration = session.totalDuration || session.total_duration || 0;
-                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                            ? sessionDuration 
-                            : maxEventTime;
-                          return formatRelativeTime(totalDuration);
-                        })()}</span>
-                      </div>
-                      
-                      <div 
-                        className="relative h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
-                        data-testid="density-bar"
-                      >
-                        {/* Ball rolling segments */}
-                        {(session.ballRollingLog || []).map((segment, idx) => {
-                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                          const sessionDuration = session.totalDuration || session.total_duration || 0;
-                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                            ? sessionDuration 
-                            : (maxEventTime || 1);
-                          const startPct = ((segment.start || 0) / totalDuration) * 100;
-                          const widthPct = ((segment.duration || 0) / totalDuration) * 100;
-                          return (
-                            <div
-                              key={`ball-${idx}`}
-                              className={cn(
-                                "absolute top-0 h-full opacity-20",
-                                segment.rolling ? "bg-green-400" : "bg-red-300"
-                              )}
-                              style={{
-                                left: `${startPct}%`,
-                                width: `${widthPct}%`
-                              }}
-                            />
-                          );
-                        })}
+                      {(() => {
+                        const timelineRange = getTimelineRange();
+                        const { startMs, endMs, durationMs } = timelineRange;
                         
-                        {/* Event markers */}
-                        {events.map((event, index) => {
-                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                          const sessionDuration = session.totalDuration || session.total_duration || 0;
-                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                            ? sessionDuration 
-                            : (maxEventTime || 1);
-                          const position = ((event.relativeTimestamp || 0) / totalDuration) * 100;
-                          const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
-                          const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
-                          const hasNote = event.note && event.note.trim().length > 0;
-                          
-                          return (
-                            <div
-                              key={event.id}
-                              className="absolute top-0 h-full group cursor-pointer"
-                              style={{
-                                left: `${Math.min(position, 98)}%`,
-                                width: '2px'
-                              }}
+                        // Filter notes for this part/view
+                        const filteredNotes = getFilteredNotes();
+                        
+                        return (
+                          <>
+                            <div className="flex justify-between text-xs text-slate-500 mb-1">
+                              <span>{formatRelativeTime(startMs)}</span>
+                              <span>{formatRelativeTime(endMs)}</span>
+                            </div>
+                            
+                            <div 
+                              className="relative h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
+                              data-testid="density-bar"
                             >
+                              {/* Ball rolling segments */}
+                              {(session.ballRollingLog || []).map((segment, idx) => {
+                                const segmentStartMs = segment.start || 0;
+                                const segmentEndMs = segmentStartMs + (segment.duration || 0);
+                                
+                                // Only show segments that overlap with the timeline range
+                                if (segmentEndMs < startMs || segmentStartMs > endMs) return null;
+                                
+                                // Clip segment to timeline range
+                                const clippedStart = Math.max(segmentStartMs, startMs);
+                                const clippedEnd = Math.min(segmentEndMs, endMs);
+                                const startPct = ((clippedStart - startMs) / durationMs) * 100;
+                                const widthPct = ((clippedEnd - clippedStart) / durationMs) * 100;
+                                
+                                return (
+                                  <div
+                                    key={`ball-${idx}`}
+                                    className={cn(
+                                      "absolute top-0 h-full opacity-20",
+                                      segment.rolling ? "bg-green-400" : "bg-red-300"
+                                    )}
+                                    style={{
+                                      left: `${startPct}%`,
+                                      width: `${widthPct}%`
+                                    }}
+                                  />
+                                );
+                              })}
+                              
+                              {/* Event markers */}
+                              {events.map((event, index) => {
+                                const eventTime = event.relativeTimestamp || 0;
+                                // Skip events outside the timeline range
+                                if (eventTime < startMs || eventTime > endMs) return null;
+                                
+                                const position = ((eventTime - startMs) / durationMs) * 100;
+                                const eventTypeIndex = (session.interventionTypes || []).findIndex(t => t.id === event.eventTypeId);
+                                const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
+                                const hasNote = event.note && event.note.trim().length > 0;
+                                
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className="absolute top-0 h-full group cursor-pointer"
+                                    style={{
+                                      left: `${Math.min(position, 98)}%`,
+                                      width: '2px'
+                                    }}
+                                  >
                               <div 
                                 className="w-full h-full transition-all group-hover:w-2"
                                 style={{ backgroundColor: color }}
@@ -2412,60 +2476,57 @@ export default function ReviewSession() {
                         })}
                         
                         {/* Observer Notes markers on timeline */}
-                        {(session.observerNotes || []).map((note, noteIdx) => {
-                          // Calculate relative position based on note timestamp and session start
-                          const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
-                          const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
-                          const noteRelativeMs = noteTime - sessionStartTime;
-                          
-                          // Only show if note is within session duration
-                          if (noteRelativeMs < 0) return null;
-                          
-                          const maxEventTime = Math.max(...events.map(e => e.relativeTimestamp || 0), 0);
-                          const sessionDuration = session.totalDuration || session.total_duration || 0;
-                          const totalDuration = (sessionDuration > 0 && sessionDuration >= maxEventTime) 
-                            ? sessionDuration 
-                            : (maxEventTime || 1);
-                          
-                          // Position as percentage
-                          const position = (noteRelativeMs / totalDuration) * 100;
-                          
-                          // Don't render if outside bounds
-                          if (position < 0 || position > 100) return null;
-                          
-                          return (
-                            <div
-                              key={`note-${note.id || noteIdx}`}
-                              className="absolute top-0 h-full group cursor-pointer"
-                              style={{
-                                left: `${Math.min(position, 98)}%`,
-                                width: '2px'
-                              }}
-                              onClick={() => {
-                                setSelectedNote({ ...note, relativeMs: noteRelativeMs });
-                                setNoteDialogOpen(true);
-                              }}
-                            >
-                              {/* Note marker line - dashed purple */}
-                              <div 
-                                className="w-full h-full border-l-2 border-dashed border-purple-500 opacity-60 group-hover:opacity-100"
-                              />
-                              {/* Note indicator at top */}
-                              <div className="absolute -top-5 left-1/2 -translate-x-1/2">
-                                <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors shadow-sm hover:scale-110">
-                                  <StickyNote className="w-3 h-3 text-white" />
-                                </div>
-                              </div>
-                              {/* Quick tooltip hint on hover */}
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-7 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                                <div className="bg-purple-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
-                                  <span className="text-purple-200">Click to view note</span>
-                                </div>
-                              </div>
+                              {filteredNotes.map((note, noteIdx) => {
+                                // Calculate relative position based on note timestamp and session start
+                                const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
+                                const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
+                                const noteRelativeMs = noteTime - sessionStartTime;
+                                
+                                // Skip notes outside the timeline range
+                                if (noteRelativeMs < startMs || noteRelativeMs > endMs) return null;
+                                
+                                // Position as percentage within the timeline range
+                                const position = ((noteRelativeMs - startMs) / durationMs) * 100;
+                                
+                                // Don't render if outside bounds
+                                if (position < 0 || position > 100) return null;
+                                
+                                return (
+                                  <div
+                                    key={`note-${note.id || noteIdx}`}
+                                    className="absolute top-0 h-full group cursor-pointer"
+                                    style={{
+                                      left: `${Math.min(position, 98)}%`,
+                                      width: '2px'
+                                    }}
+                                    onClick={() => {
+                                      setSelectedNote({ ...note, relativeMs: noteRelativeMs });
+                                      setNoteDialogOpen(true);
+                                    }}
+                                  >
+                                    {/* Note marker line - dashed purple */}
+                                    <div 
+                                      className="w-full h-full border-l-2 border-dashed border-purple-500 opacity-60 group-hover:opacity-100"
+                                    />
+                                    {/* Note indicator at top */}
+                                    <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                                      <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors shadow-sm hover:scale-110">
+                                        <StickyNote className="w-3 h-3 text-white" />
+                                      </div>
+                                    </div>
+                                    {/* Quick tooltip hint on hover */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-7 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                      <div className="bg-purple-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                                        <span className="text-purple-200">Click to view note</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          );
-                        })}
-                      </div>
+                          </>
+                        );
+                      })()}
                       
                       {/* Legend */}
                       <div className="flex flex-wrap gap-3 mt-2 text-xs">
@@ -2487,7 +2548,7 @@ export default function ReviewSession() {
                           </div>
                         ))}
                         {/* Notes legend item - show if any observer notes or event notes exist */}
-                        {(events.some(e => e.note && e.note.trim()) || (session.observerNotes || []).length > 0) && (
+                        {(events.some(e => e.note && e.note.trim()) || getFilteredNotes().length > 0) && (
                           <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center">
                               <StickyNote className="w-2 h-2 text-white" />
