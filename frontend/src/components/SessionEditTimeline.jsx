@@ -1440,27 +1440,34 @@ function SessionPartsTimelineEditor({
     const updates = [];
     const sessionStart = sessionStartMs || Date.now();
     
+    // Save times for ALL activated parts, using local times if available,
+    // otherwise using the calculated partTimings values
     partTimings.forEach(part => {
       const localTime = localPartTimes[part.id];
-      if (localTime) {
-        updates.push({
-          partId: part.id,
-          changes: {
-            startTime: new Date(sessionStart + localTime.startMs).toISOString(),
-            endTime: new Date(sessionStart + localTime.endMs).toISOString()
-          }
-        });
-      }
+      // Use local times if edited, otherwise use the part's current calculated times
+      const startMs = localTime?.startMs ?? part.startMs;
+      const endMs = localTime?.endMs ?? part.endMs;
+      
+      updates.push({
+        partId: part.id,
+        changes: {
+          startTime: new Date(sessionStart + startMs).toISOString(),
+          endTime: new Date(sessionStart + endMs).toISOString()
+        }
+      });
     });
     
     if (updates.length > 0) {
       onUpdateMultipleParts(updates);
+      // Clear local state since we've saved everything
+      setLocalPartTimes({});
+      setInputValues({});
       toast.success('Part times saved');
     }
   };
   
   // Check if there are unsaved local changes
-  const hasUnsavedChanges = Object.keys(localPartTimes).length > 0;
+  const hasUnsavedChanges = partTimings.length > 0;
   
   // Hold-to-repeat handlers for up/down buttons
   const startHoldRepeat = (partId, field, deltaMs) => {
