@@ -582,14 +582,14 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
     # If only 1 type used, variety is 0%
     # If 0 types/interventions, variety is 0%
     
-    # Get most common pattern
-    sorted_combos = sorted(intervention_combinations.items(), key=lambda x: -x[1])
+    # Get most common pattern - find the intervention TYPE with highest total count
+    # NOT the combination with highest count (which could give wrong results)
+    sorted_types = sorted(intervention_type_count.items(), key=lambda x: -x[1])
     most_common_pattern = None
-    if sorted_combos:
-        pattern_name = sorted_combos[0][0].split("|")[0]
+    if sorted_types:
         most_common_pattern = {
-            "pattern": pattern_name,
-            "count": sorted_combos[0][1]
+            "pattern": sorted_types[0][0],
+            "count": sorted_types[0][1]
         }
     
     return {
