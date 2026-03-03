@@ -49,6 +49,7 @@ class ObservationSessionCreate(BaseModel):
     active_part_id: Optional[str] = None
     events: Optional[List[Any]] = []
     ball_rolling_log: Optional[List[Any]] = []
+    observer_notes: Optional[List[Any]] = []  # Notes taken during observation
     observer_reflections: Optional[List[Any]] = []
     coach_reflections: Optional[List[Any]] = []
     session_notes: Optional[str] = ""
@@ -90,6 +91,7 @@ class ObservationSessionResponse(BaseModel):
     ball_not_rolling_time: float = 0
     events: List[Any] = []
     ball_rolling_log: List[Any] = []
+    observer_notes: List[Any] = []  # Notes taken during observation
     observer_reflections: List[Any] = []
     coach_reflections: List[Any] = []
     session_notes: str = ""
@@ -277,6 +279,7 @@ async def get_observation_session(session_id: str, request: Request):
         ball_not_rolling_time=session.get("ball_not_rolling_time", 0),
         events=session.get("events", []),
         ball_rolling_log=session.get("ball_rolling_log", []),
+        observer_notes=session.get("observer_notes", []),
         observer_reflections=session.get("observer_reflections", []),
         coach_reflections=coach_reflections,
         session_notes=session.get("session_notes", ""),
@@ -337,6 +340,7 @@ async def create_observation_session(data: ObservationSessionCreate, request: Re
         "active_part_id": data.active_part_id,
         "events": data.events,
         "ball_rolling_log": data.ball_rolling_log,
+        "observer_notes": data.observer_notes,
         "observer_reflections": data.observer_reflections,
         "coach_reflections": data.coach_reflections,
         "session_notes": data.session_notes,
@@ -425,6 +429,7 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
         "active_part_id": data.active_part_id,
         "events": data.events,
         "ball_rolling_log": data.ball_rolling_log,
+        "observer_notes": data.observer_notes,
         "observer_reflections": data.observer_reflections,
         "coach_reflections": data.coach_reflections,
         "session_notes": data.session_notes,
