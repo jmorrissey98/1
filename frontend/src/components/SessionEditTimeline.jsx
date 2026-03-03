@@ -310,10 +310,65 @@ export function SessionEditTimeline({
       sessionData.totalDuration = Math.max(0, (end - start) / 1000);
     }
     
-    // NOTE: Ball rolling times are NOT recalculated here because:
-    // 1. The BallRollingTimelineEditor directly updates ballRollingTime, ballNotRollingTime, and ballRollingLog
-    // 2. Those values are the source of truth when the user edits the ball rolling timeline
-    // 3. Recalculating from sessionParts would overwrite user's edits
+    // Recalculate session-level ball rolling times from ballRollingLog
+    // This ensures the saved values match what the editor displays
+    const ballRollingLog = sessionData.ballRollingLog || [];
+    if (ballRollingLog.length > 0 && sessionData.startTime && sessionData.endTime) {
+      const sessionStartMs = new Date(sessionData.startTime).getTime();
+      const sessionEndMs = new Date(sessionData.endTime).getTime();
+      const totalMs = sessionEndMs - sessionStartMs;
+      
+      // Sort log by timestamp
+      const sortedLog = [...ballRollingLog].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      // Build segments from log
+      const segments = [];
+      const firstLogTime = new Date(sortedLog[0].timestamp).getTime();
+      const firstState = sortedLog[0].state;
+      
+      // Before first log entry (assume opposite of first state)
+      if (firstLogTime > sessionStartMs) {
+        segments.push({
+          type: firstState ? 'not_rolling' : 'rolling',
+          startMs: 0,
+          endMs: firstLogTime - sessionStartMs
+        });
+      }
+      
+      // Build segments from log entries
+      for (let i = 0; i < sortedLog.length; i++) {
+        const entry = sortedLog[i];
+        const entryTime = new Date(entry.timestamp).getTime();
+        const startMs = entryTime - sessionStartMs;
+        const nextEntry = sortedLog[i + 1];
+        const endMs = nextEntry 
+          ? new Date(nextEntry.timestamp).getTime() - sessionStartMs
+          : totalMs;
+        
+        segments.push({
+          type: entry.state ? 'rolling' : 'not_rolling',
+          startMs: Math.max(0, startMs),
+          endMs: Math.min(totalMs, endMs)
+        });
+      }
+      
+      // Calculate totals from segments
+      let rollingMs = 0;
+      let notRollingMs = 0;
+      segments.forEach(seg => {
+        const duration = seg.endMs - seg.startMs;
+        if (seg.type === 'rolling') {
+          rollingMs += duration;
+        } else {
+          notRollingMs += duration;
+        }
+      });
+      
+      sessionData.ballRollingTime = rollingMs / 1000;
+      sessionData.ballNotRollingTime = notRollingMs / 1000;
+    }
     
     return sessionData;
   };

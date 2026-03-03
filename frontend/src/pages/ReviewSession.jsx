@@ -769,13 +769,6 @@ export default function ReviewSession() {
       ballRollingTime = session.ballRollingTime || 0;
       ballNotRollingTime = session.ballNotRollingTime || 0;
       
-      // Debug logging
-      console.log('[BallRolling Debug] Session level values:', {
-        ballRollingTime: session.ballRollingTime,
-        ballNotRollingTime: session.ballNotRollingTime,
-        total: ballRollingTime + ballNotRollingTime
-      });
-      
       // Use sum of ball times, not totalDuration (which may include pauses)
       totalTime = ballRollingTime + ballNotRollingTime;
     } else {
