@@ -764,12 +764,21 @@ export default function ReviewSession() {
     // Ball rolling stats
     let ballRollingTime, ballNotRollingTime, totalTime;
     if (viewMode === 'whole') {
-      // For whole session, ALWAYS use session-level ball rolling times
-      // These are the source of truth - directly edited by the ball rolling timeline editor
-      ballRollingTime = session.ballRollingTime || 0;
-      ballNotRollingTime = session.ballNotRollingTime || 0;
+      // For whole session, SUM ball rolling times from all active parts
+      // This is the most accurate representation of the entire session
+      const parts = session.sessionParts || [];
+      const activeParts = parts.filter(p => 
+        p.used === true || 
+        p.startTime || 
+        (p.ballRollingTime || 0) > 0 || 
+        (p.ballNotRollingTime || 0) > 0
+      );
       
-      // Use sum of ball times, not totalDuration (which may include pauses)
+      // Sum ball rolling times from all parts
+      ballRollingTime = activeParts.reduce((sum, p) => sum + (p.ballRollingTime || 0), 0);
+      ballNotRollingTime = activeParts.reduce((sum, p) => sum + (p.ballNotRollingTime || 0), 0);
+      
+      // Use sum of ball times
       totalTime = ballRollingTime + ballNotRollingTime;
     } else {
       const part = (session.sessionParts || []).find(p => p.id === viewMode);
