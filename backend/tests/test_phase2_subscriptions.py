@@ -37,8 +37,8 @@ class TestSubscriptionTiers:
         tier = SUBSCRIPTION_TIERS["individual_coach"]
         
         # Verify pricing
-        assert tier["pricing"]["monthly"] == 600  # £6
-        assert tier["pricing"]["annual"] == 6000  # £60
+        assert tier["pricing"]["monthly"] == 500  # £5
+        assert tier["pricing"]["annual"] == 5000  # £50
         assert tier["pricing"]["currency"] == "gbp"
         
         # Verify limits
@@ -54,8 +54,8 @@ class TestSubscriptionTiers:
         tier = SUBSCRIPTION_TIERS["coach_developer"]
         
         # Verify pricing
-        assert tier["pricing"]["monthly"] == 1000  # £10
-        assert tier["pricing"]["annual"] == 10000  # £100
+        assert tier["pricing"]["monthly"] == 1500  # £15
+        assert tier["pricing"]["annual"] == 15000  # £150
         
         # Verify limits
         assert tier["limits"]["max_coach_developers"] == 1
@@ -115,29 +115,27 @@ class TestStripePriceConfiguration:
         assert club_config["annual"]["amount"] == 60000
     
     def test_new_tiers_prices_pending(self):
-        """New tiers should have prices pending configuration"""
-        # Individual Coach
+        """New tiers should have Stripe prices configured"""
+        # Individual Coach - now configured
         individual = STRIPE_NEW_PRICE_IDS.get("individual_coach", {})
-        assert individual["monthly"]["price_id"] is None
-        assert individual["annual"]["price_id"] is None
-        assert individual["monthly"]["amount"] == 600
-        assert individual["annual"]["amount"] == 6000
+        assert individual["monthly"]["price_id"] == "price_1T7Kgy0YRwRcrAVxBwbIvDOD"
+        assert individual["annual"]["price_id"] == "price_1T7Kg80YRwRcrAVxMEuEDVjn"
+        assert individual["monthly"]["amount"] == 500
+        assert individual["annual"]["amount"] == 5000
         
-        # Coach Developer
+        # Coach Developer - now configured
         coach_dev = STRIPE_NEW_PRICE_IDS.get("coach_developer", {})
-        assert coach_dev["monthly"]["price_id"] is None
-        assert coach_dev["annual"]["price_id"] is None
-        assert coach_dev["monthly"]["amount"] == 1000
-        assert coach_dev["annual"]["amount"] == 10000
+        assert coach_dev["monthly"]["price_id"] == "price_1T7KeW0YRwRcrAVxg2SJo8RJ"
+        assert coach_dev["annual"]["price_id"] == "price_1T7KcY0YRwRcrAVxko7tQMGN"
+        assert coach_dev["monthly"]["amount"] == 1500
+        assert coach_dev["annual"]["amount"] == 15000
     
     def test_is_tier_stripe_ready(self):
         """Test stripe readiness check"""
-        # Club should be ready (has price IDs)
+        # All tiers should now be ready
         assert is_tier_stripe_ready("club") is True
-        
-        # New tiers should not be ready (pending price IDs)
-        assert is_tier_stripe_ready("individual_coach") is False
-        assert is_tier_stripe_ready("coach_developer") is False
+        assert is_tier_stripe_ready("individual_coach") is True
+        assert is_tier_stripe_ready("coach_developer") is True
     
     def test_get_stripe_price_id(self):
         """Test price ID retrieval"""
@@ -145,9 +143,9 @@ class TestStripePriceConfiguration:
         assert get_stripe_price_id("club", "monthly") is not None
         assert get_stripe_price_id("club", "annual") is not None
         
-        # New tiers don't have price IDs yet
-        assert get_stripe_price_id("individual_coach", "monthly") is None
-        assert get_stripe_price_id("coach_developer", "annual") is None
+        # New tiers now have price IDs
+        assert get_stripe_price_id("individual_coach", "monthly") == "price_1T7Kgy0YRwRcrAVxBwbIvDOD"
+        assert get_stripe_price_id("coach_developer", "annual") == "price_1T7KcY0YRwRcrAVxko7tQMGN"
 
 
 class TestTierHelperFunctions:
@@ -214,15 +212,15 @@ class TestSignupAndPricingHelpers:
         """Test pricing is converted from pence to pounds"""
         comparison = get_tier_comparison()
         
-        # Individual Coach: £6/month
+        # Individual Coach: £5/month
         individual = comparison[0]
-        assert individual["pricing"]["monthly"] == 6.0  # Pounds, not pence
-        assert individual["pricing"]["annual"] == 60.0
+        assert individual["pricing"]["monthly"] == 5.0  # Pounds, not pence
+        assert individual["pricing"]["annual"] == 50.0
         
-        # Coach Developer: £10/month
+        # Coach Developer: £15/month
         coach_dev = comparison[1]
-        assert coach_dev["pricing"]["monthly"] == 10.0
-        assert coach_dev["pricing"]["annual"] == 100.0
+        assert coach_dev["pricing"]["monthly"] == 15.0
+        assert coach_dev["pricing"]["annual"] == 150.0
         
         # Club: £60/month
         club = comparison[2]

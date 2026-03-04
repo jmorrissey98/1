@@ -54,23 +54,23 @@ STRIPE_NEW_PRICE_IDS = {
     "individual_coach": {
         "product_name": "Individual Coach",
         "monthly": {
-            "price_id": None,  # TODO: Add after creating in Stripe
-            "amount": 600,     # £6.00 in pence
+            "price_id": "price_1T7Kgy0YRwRcrAVxBwbIvDOD",
+            "amount": 500,     # £5.00 in pence
         },
         "annual": {
-            "price_id": None,  # TODO: Add after creating in Stripe
-            "amount": 6000,    # £60.00 in pence
+            "price_id": "price_1T7Kg80YRwRcrAVxMEuEDVjn",
+            "amount": 5000,    # £50.00 in pence
         }
     },
     "coach_developer": {
         "product_name": "Coach Developer",
         "monthly": {
-            "price_id": None,  # TODO: Add after creating in Stripe
-            "amount": 1000,    # £10.00 in pence
+            "price_id": "price_1T7KeW0YRwRcrAVxg2SJo8RJ",
+            "amount": 1500,    # £15.00 in pence
         },
         "annual": {
-            "price_id": None,  # TODO: Add after creating in Stripe
-            "amount": 10000,   # £100.00 in pence
+            "price_id": "price_1T7KcY0YRwRcrAVxko7tQMGN",
+            "amount": 15000,   # £150.00 in pence
         }
     },
     "club": {
@@ -125,8 +125,8 @@ SUBSCRIPTION_TIERS = {
             "max_observations_per_coach": None,  # Unlimited
         },
         "pricing": {
-            "monthly": 600,   # £6.00 in pence
-            "annual": 6000,   # £60.00 in pence
+            "monthly": 500,    # £5.00 in pence
+            "annual": 5000,    # £50.00 in pence
             "currency": "gbp"
         },
         "features": {
@@ -144,8 +144,8 @@ SUBSCRIPTION_TIERS = {
             "max_observations_per_coach": 10,  # 10 observations per coach
         },
         "pricing": {
-            "monthly": 1000,  # £10.00 in pence
-            "annual": 10000,  # £100.00 in pence
+            "monthly": 1500,   # £15.00 in pence
+            "annual": 15000,   # £150.00 in pence
             "currency": "gbp"
         },
         "features": {

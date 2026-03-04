@@ -3643,23 +3643,22 @@ STRIPE_PRODUCTS = {
         }
     },
     # New tier mappings (Phase 6)
-    # Note: individual_coach and coach_developer need Stripe products created
-    # Until then, they will show "not ready" and block checkout
+    # Stripe products created - ready for checkout
     "individual_coach": {
         "name": "Individual Coach",
         "coaches": 0,  # Self only
         "admins": 1,
         "prices": {
             "monthly": {
-                "product_id": None,  # TODO: Create in Stripe Dashboard
-                "price_id": None,    # TODO: Add after creating product
-                "amount": 600,       # £6.00 in pence
+                "product_id": None,
+                "price_id": "price_1T7Kgy0YRwRcrAVxBwbIvDOD",
+                "amount": 500,       # £5.00 in pence
                 "currency": "gbp"
             },
             "annual": {
                 "product_id": None,
-                "price_id": None,
-                "amount": 6000,      # £60.00 in pence
+                "price_id": "price_1T7Kg80YRwRcrAVxMEuEDVjn",
+                "amount": 5000,      # £50.00 in pence
                 "currency": "gbp"
             }
         }
@@ -3670,15 +3669,15 @@ STRIPE_PRODUCTS = {
         "admins": 1,
         "prices": {
             "monthly": {
-                "product_id": None,  # TODO: Create in Stripe Dashboard
-                "price_id": None,    # TODO: Add after creating product
-                "amount": 1000,      # £10.00 in pence
+                "product_id": None,
+                "price_id": "price_1T7KeW0YRwRcrAVxg2SJo8RJ",
+                "amount": 1500,      # £15.00 in pence
                 "currency": "gbp"
             },
             "annual": {
                 "product_id": None,
-                "price_id": None,
-                "amount": 10000,     # £100.00 in pence
+                "price_id": "price_1T7KcY0YRwRcrAVxko7tQMGN",
+                "amount": 15000,     # £150.00 in pence
                 "currency": "gbp"
             }
         }

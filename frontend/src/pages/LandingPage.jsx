@@ -15,26 +15,28 @@ const DEFAULT_PRICING_TIERS = [
     id: 'individual_coach',
     name: 'Individual Coach',
     subtitle: 'For Self-Development',
-    monthlyPrice: 6,
-    annualPrice: 60,
+    monthlyPrice: 5,
+    annualPrice: 50,
     coaches: 0, // Self only
     admins: 1,
     observationsPerCoach: null, // Unlimited
     dataRetention: 'Unlimited',
     popular: false,
+    stripeReady: true,
     features: ['Self-observation mode', 'Unlimited observations', 'Full history access']
   },
   {
     id: 'coach_developer',
     name: 'Coach Developer',
     subtitle: 'For Working with Coaches',
-    monthlyPrice: 10,
-    annualPrice: 100,
+    monthlyPrice: 15,
+    annualPrice: 150,
     coaches: null, // Unlimited
     admins: 1,
     observationsPerCoach: 10,
     dataRetention: 'Unlimited',
     popular: true,
+    stripeReady: true,
     features: ['Unlimited coaches', '10 observations per coach', 'Full history access']
   },
   {
@@ -48,6 +50,7 @@ const DEFAULT_PRICING_TIERS = [
     observationsPerCoach: null, // Unlimited
     dataRetention: 'Unlimited',
     popular: false,
+    stripeReady: true,
     features: ['Up to 5 coach developers', 'Up to 30 coaches', 'Unlimited observations']
   }
 ];

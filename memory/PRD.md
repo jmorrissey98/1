@@ -85,8 +85,8 @@
 
 | Tier | Monthly | Annual | Coach Devs | Coaches | Obs/Coach |
 |------|---------|--------|------------|---------|-----------|
-| Individual Coach | £6 | £60 | 1 | 0 (self only) | Unlimited |
-| Coach Developer | £10 | £100 | 1 | Unlimited | 10 |
+| Individual Coach | £5 | £50 | 1 | 0 (self only) | Unlimited |
+| Coach Developer | £15 | £150 | 1 | Unlimited | 10 |
 | Club | £60 | £600 | 5 | 30 | Unlimited |
 
 ### Post-Session Editing - Session Parts Timeline (March 2, 2026)
