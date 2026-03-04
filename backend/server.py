@@ -3525,18 +3525,28 @@ async def admin_update_org_tier(org_id: str, request: Request):
     if not new_tier:
         raise HTTPException(status_code=400, detail="tier_id is required")
     
-    valid_tiers = ["individual", "developer", "club"]
+    # Accept both new tier keys and legacy tier keys
+    valid_tiers = ["individual_coach", "coach_developer", "club", "individual", "developer"]
     if new_tier not in valid_tiers:
         raise HTTPException(status_code=400, detail=f"Invalid tier. Must be one of: {', '.join(valid_tiers)}")
     
+    # Determine if this is a legacy tier or new tier
+    is_legacy_tier = new_tier in ["individual", "developer"]
+    
     # Update organization's subscription tier
+    update_fields = {
+        "current_tier_key": new_tier,
+        "is_legacy_tier": is_legacy_tier,
+        "tier_updated_at": datetime.now(timezone.utc).isoformat(),
+        "tier_updated_by": "admin_manual"
+    }
+    
+    # Also maintain legacy field for backwards compatibility
+    update_fields["subscription_tier"] = new_tier
+    
     await db.organizations.update_one(
         {"org_id": org_id},
-        {"$set": {
-            "subscription_tier": new_tier,
-            "tier_updated_at": datetime.now(timezone.utc).isoformat(),
-            "tier_updated_by": "admin_manual"
-        }}
+        {"$set": update_fields}
     )
     
     # Also update the owner's user record
@@ -3550,7 +3560,8 @@ async def admin_update_org_tier(org_id: str, request: Request):
     return {
         "message": f"Organization tier updated to {new_tier}",
         "org_id": org_id,
-        "new_tier": new_tier
+        "new_tier": new_tier,
+        "is_legacy_tier": is_legacy_tier
     }
 
 

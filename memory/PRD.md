@@ -16,6 +16,14 @@
 - Monthly/Annual toggle working with "2 months free" badge
 - Verified working via screenshot testing
 
+**Admin Tier Change 400 Error Fix (COMPLETED - March 4, 2026)**
+- User reported changing org tier in Admin Dashboard failed with status 400
+- Root cause: Backend endpoint `/api/admin/organizations/{org_id}/tier` only accepted old tier keys (`individual`, `developer`, `club`)
+- Frontend was sending new tier keys (`individual_coach`, `coach_developer`, `club`) after Phase 5 update
+- Fixed backend to accept both new and legacy tier keys
+- Now also sets `current_tier_key` and `is_legacy_tier` fields for proper tier tracking
+- Verified working via curl testing
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**
