@@ -42,8 +42,17 @@
   - `POST /api/observations` - Now checks limits before completing
   - `PUT /api/observations/{session_id}` - Now checks limits before completing
 
+**Phase 4: Observation Flow UI Updates (COMPLETED - March 4, 2026)**
+- Created `frontend/src/lib/subscriptionApi.js` - Frontend API for subscription limits
+- Updated `SessionSetup.jsx` with observation limit display:
+  - Fetches observation limits for all coaches when page loads
+  - Shows observation count (e.g., "3/10") next to each coach in dropdown
+  - Displays warning when coach is approaching limit (2 observations remaining)
+  - Shows error alert when coach has reached limit
+  - Prevents starting observation when limit reached
+  - Coaches at limit are disabled in the dropdown
+
 **Upcoming Phases:**
-- Phase 4: Observation flow updates (UI)
 - Phase 5: UI limits visibility & admin controls
 - Phase 6: Landing page pricing update
 - Phase 7: Migration logic for legacy users
