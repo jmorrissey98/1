@@ -24,6 +24,13 @@
 - Now also sets `current_tier_key` and `is_legacy_tier` fields for proper tier tracking
 - Verified working via curl testing
 
+**Admin Tier Change Not Reflecting in User Account (COMPLETED - March 4, 2026)**
+- User reported that after changing tier in Admin Dashboard, the user account still showed the old tier
+- Root cause: Admin tier change only updated `organizations` collection, but `resolve_organization_entitlements()` reads from `subscriptions` collection first
+- Fixed: Admin tier change now updates BOTH `organizations` AND `subscriptions` collections
+- If no subscription record exists, it creates one with the new tier
+- Verified working via API testing - entitlements now correctly reflect admin-changed tier
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**

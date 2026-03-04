@@ -3533,21 +3533,59 @@ async def admin_update_org_tier(org_id: str, request: Request):
     # Determine if this is a legacy tier or new tier
     is_legacy_tier = new_tier in ["individual", "developer"]
     
+    now_iso = datetime.now(timezone.utc).isoformat()
+    
     # Update organization's subscription tier
-    update_fields = {
+    org_update_fields = {
         "current_tier_key": new_tier,
         "is_legacy_tier": is_legacy_tier,
-        "tier_updated_at": datetime.now(timezone.utc).isoformat(),
+        "subscription_tier": new_tier,
+        "tier_updated_at": now_iso,
         "tier_updated_by": "admin_manual"
     }
     
-    # Also maintain legacy field for backwards compatibility
-    update_fields["subscription_tier"] = new_tier
-    
     await db.organizations.update_one(
         {"org_id": org_id},
-        {"$set": update_fields}
+        {"$set": org_update_fields}
     )
+    
+    # CRITICAL: Also update the subscriptions collection (this is where entitlements are read from)
+    subscription_update_fields = {
+        "current_tier_key": new_tier,
+        "is_legacy_tier": is_legacy_tier,
+        "tier_id": new_tier,
+        "tier": new_tier,
+        "updated_at": now_iso,
+        "tier_updated_by": "admin_manual"
+    }
+    
+    # Try to update existing subscription, or create one if it doesn't exist
+    existing_sub = await db.subscriptions.find_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"_id": 0}
+    )
+    
+    if existing_sub:
+        # Update existing subscription
+        await db.subscriptions.update_one(
+            {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+            {"$set": subscription_update_fields}
+        )
+    else:
+        # Create new subscription record
+        new_subscription = {
+            "org_id": org_id,
+            "organization_id": org_id,
+            "current_tier_key": new_tier,
+            "is_legacy_tier": is_legacy_tier,
+            "tier_id": new_tier,
+            "tier": new_tier,
+            "status": "active",
+            "created_at": now_iso,
+            "updated_at": now_iso,
+            "tier_updated_by": "admin_manual"
+        }
+        await db.subscriptions.insert_one(new_subscription)
     
     # Also update the owner's user record
     owner_id = org.get("owner_id")
