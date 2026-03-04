@@ -11,7 +11,8 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+# Use localhost for backend testing
+BASE_URL = "http://localhost:8001"
 
 # Test credentials
 TEST_EMAIL = "hello@mycoachdeveloper.com"
