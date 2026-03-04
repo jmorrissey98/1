@@ -246,13 +246,19 @@ export default function SessionSetup() {
           }
         }
         
-        // If coach is preselected, set a default session name
+        // If coach is preselected, set a default session name with proper format
         if (preselectedCoachId) {
           const coach = result.data.find(c => c.id === preselectedCoachId);
           if (coach) {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const year = String(today.getFullYear()).slice(-2);
+            const autoName = `${coach.name} - ${day}/${month}/${year}`;
+            
             setSession(prev => prev ? {
               ...prev,
-              name: `${coach.name} - ${new Date().toLocaleDateString()}`
+              name: autoName
             } : prev);
           }
         }
@@ -315,14 +321,28 @@ export default function SessionSetup() {
       if (userResult.ok && userResult.data) {
         const userData = userResult.data;
         
+        // Helper to generate session name inline
+        const genName = (name) => {
+          if (!name) return '';
+          const today = new Date();
+          const day = String(today.getDate()).padStart(2, '0');
+          const month = String(today.getMonth() + 1).padStart(2, '0');
+          const year = String(today.getFullYear()).slice(-2);
+          return `${name} - ${day}/${month}/${year}`;
+        };
+        
         // If user has a linked coach, use that
         if (userData.linked_coach_id) {
           const coachResult = await safeGet(`${API_URL}/api/coaches/${userData.linked_coach_id}`);
           if (coachResult.ok && coachResult.data) {
-            setSelfCoachProfile(coachResult.data);
-            // Auto-select self as coach
+            const coachData = coachResult.data;
+            setSelfCoachProfile(coachData);
+            // Auto-select self as coach and auto-generate session name
             setSelectedCoachId(userData.linked_coach_id);
-            updateSession({ coachId: userData.linked_coach_id });
+            updateSession({ 
+              coachId: userData.linked_coach_id,
+              name: genName(coachData.name)
+            });
             return;
           }
         }
@@ -339,7 +359,8 @@ export default function SessionSetup() {
         setSelectedCoachId(selfCoach.id);
         updateSession({ 
           coachId: selfCoach.id,
-          coachName: selfCoach.name // Store name for display purposes
+          coachName: selfCoach.name,
+          name: genName(selfCoach.name) // Auto-generate session name
         });
       }
     } catch (err) {
@@ -375,7 +396,28 @@ export default function SessionSetup() {
 
   const handleCoachChange = (coachId) => {
     setSelectedCoachId(coachId);
-    updateSession({ coachId: coachId === 'none' ? null : coachId });
+    const coach = coaches.find(c => c.id === coachId);
+    const coachName = coach?.name || null;
+    
+    // Auto-generate session name: "Coach Name - DD/MM/YY"
+    const autoName = generateSessionName(coachName);
+    
+    updateSession({ 
+      coachId: coachId === 'none' ? null : coachId,
+      name: autoName
+    });
+  };
+  
+  // Generate session name in format "Coach Name - DD/MM/YY"
+  const generateSessionName = (coachName) => {
+    if (!coachName) return '';
+    
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = String(today.getFullYear()).slice(-2);
+    
+    return `${coachName} - ${day}/${month}/${year}`;
   };
 
   const handleContextChange = (context) => {
