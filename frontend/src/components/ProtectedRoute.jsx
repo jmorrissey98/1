@@ -7,7 +7,8 @@ export default function ProtectedRoute({
   children, 
   requireCoachDeveloper = false,
   requireCoach = false,
-  requireAdmin = false
+  requireAdmin = false,
+  allowCoachDeveloper = false  // Allow coach_developer role to access coach routes
 }) {
   const { user, loading, isCoachDeveloper, isAdmin, checkAuth } = useAuth();
   const location = useLocation();
@@ -76,8 +77,12 @@ export default function ProtectedRoute({
   }
 
   // Check coach role requirement
-  if (requireCoach && user.role !== 'coach') {
-    return <Navigate to="/" replace />;
+  // allowCoachDeveloper flag allows coach_developer role users to access coach routes (e.g., My Development)
+  if (requireCoach) {
+    const isAllowedRole = user.role === 'coach' || (allowCoachDeveloper && user.role === 'coach_developer');
+    if (!isAllowedRole) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   // Check coach developer role requirement (admins also have access)

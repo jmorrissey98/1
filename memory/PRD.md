@@ -5,6 +5,32 @@
 
 ## Recent Updates (March 4, 2026)
 
+### Bug Fixes (March 4, 2026 - Latest Session)
+
+**Demo Account Subscription Fix (COMPLETED)**
+- Created `/app/backend/scripts/bootstrap_demo_subscriptions.py` to assign active subscriptions to demo accounts
+- Fixed demo accounts that were showing "Subscription Required" modal incorrectly
+- All demo accounts now have proper subscription records in the database:
+  - `demo.coachdeveloper@mycoachdeveloper.com` - Coach Developer tier
+  - `demo.individualcoach@mycoachdeveloper.com` - Individual Coach tier  
+  - Riverside Football Academy (all users) - Club tier with password `Demo123!`
+
+**Navigation Tier-Based Filtering (COMPLETED)**
+- Updated `AppHeader.jsx` to show/hide navigation based on subscription tier
+- Individual Coach tier: "My Coaches" hidden, "My Development" visible
+- Coach Developer/Club tiers: Both "My Coaches" and "My Development" visible
+- Added subscription tier fetching in AppHeader via `/api/subscriptions/limits-summary`
+
+**My Development Route Access (COMPLETED)**  
+- Updated `ProtectedRoute.jsx` with new `allowCoachDeveloper` prop
+- `/coach/development` route now allows both `coach` and `coach_developer` roles
+- Individual Coach users can now access their development page
+
+**Settings Page Subscription Badge Fix (COMPLETED)**
+- Updated `UserSettings.jsx` to use `limits.tier_key` and `limits.tier_name` from limits API
+- Badge now correctly displays "Individual Coach", "Coach Developer", or "Club" 
+- Removed dependency on legacy `subscriptionTier` state that showed "Individual Plan"
+
 ### Subscription Restructure Project (In Progress)
 
 **Phase 1: Data Model & Entitlement System (COMPLETED)**

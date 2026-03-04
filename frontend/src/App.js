@@ -140,7 +140,7 @@ function AppRouter() {
         </ProtectedRoute>
       } />
       <Route path="/coach/development" element={
-        <ProtectedRoute requireCoach>
+        <ProtectedRoute requireCoach allowCoachDeveloper>
           <CoachMyDevelopment />
         </ProtectedRoute>
       } />
