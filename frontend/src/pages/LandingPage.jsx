@@ -4,45 +4,51 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Badge } from '../components/ui/badge';
-import { ChevronRight, Users, BarChart3, FileText, Star, Loader2 } from 'lucide-react';
+import { ChevronRight, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Default pricing tiers (will be overridden by API data)
+// Default pricing tiers - Updated for Phase 6 (new subscription model)
 const DEFAULT_PRICING_TIERS = [
   {
-    id: 'individual',
-    name: 'Individual',
-    subtitle: 'The Solo Developer',
-    monthlyPrice: 20,
-    annualPrice: 200,
-    coaches: 5,
+    id: 'individual_coach',
+    name: 'Individual Coach',
+    subtitle: 'For Self-Development',
+    monthlyPrice: 6,
+    annualPrice: 60,
+    coaches: 0, // Self only
     admins: 1,
-    dataRetention: '3 months',
-    popular: false
+    observationsPerCoach: null, // Unlimited
+    dataRetention: 'Unlimited',
+    popular: false,
+    features: ['Self-observation mode', 'Unlimited observations', 'Full history access']
   },
   {
-    id: 'developer',
-    name: 'Developer',
-    subtitle: 'The Growth Specialist',
-    monthlyPrice: 35,
-    annualPrice: 350,
-    coaches: 10,
+    id: 'coach_developer',
+    name: 'Coach Developer',
+    subtitle: 'For Working with Coaches',
+    monthlyPrice: 10,
+    annualPrice: 100,
+    coaches: null, // Unlimited
     admins: 1,
+    observationsPerCoach: 10,
     dataRetention: 'Unlimited',
-    popular: true
+    popular: true,
+    features: ['Unlimited coaches', '10 observations per coach', 'Full history access']
   },
   {
     id: 'club',
     name: 'Club',
-    subtitle: 'The Organization',
+    subtitle: 'For Organizations',
     monthlyPrice: 60,
     annualPrice: 600,
     coaches: 30,
     admins: 5,
+    observationsPerCoach: null, // Unlimited
     dataRetention: 'Unlimited',
-    popular: false
+    popular: false,
+    features: ['Up to 5 coach developers', 'Up to 30 coaches', 'Unlimited observations']
   }
 ];
 
@@ -77,20 +83,28 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchPricingTiers = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/pricing/tiers`);
+        // Use new pricing-comparison endpoint (Phase 6)
+        const response = await fetch(`${API_URL}/api/subscriptions/pricing-comparison`);
         if (response.ok) {
           const data = await response.json();
           // Transform API data to match frontend format
-          const transformedTiers = data.map(tier => ({
-            id: tier.tier_id,
+          const transformedTiers = data.tiers.map(tier => ({
+            id: tier.tier_key,
             name: tier.name,
-            subtitle: tier.subtitle || (tier.tier_id === 'individual' ? 'The Solo Developer' : tier.tier_id === 'developer' ? 'The Growth Specialist' : 'The Organization'),
-            monthlyPrice: tier.monthly_price,
-            annualPrice: tier.annual_price,
-            coaches: tier.coaches_limit,
-            admins: tier.admins_limit,
-            dataRetention: tier.data_retention_months ? `${tier.data_retention_months} months` : 'Unlimited',
-            popular: tier.tier_id === 'developer'
+            subtitle: tier.description || getDefaultSubtitle(tier.tier_key),
+            monthlyPrice: tier.pricing.monthly,
+            annualPrice: tier.pricing.annual,
+            coaches: tier.limits.coaches,
+            admins: tier.limits.coach_developers,
+            observationsPerCoach: tier.limits.observations_per_coach,
+            dataRetention: tier.features?.data_retention_months ? `${tier.features.data_retention_months} months` : 'Unlimited',
+            popular: tier.highlight || tier.tier_key === 'coach_developer',
+            stripeReady: tier.stripe_ready,  // Phase 6: Track if Stripe is configured
+            features: tier.features ? [
+              tier.features.self_observation && 'Self-observation mode',
+              tier.limits.observations_per_coach === null ? 'Unlimited observations' : `${tier.limits.observations_per_coach} observations per coach`,
+              tier.features.history_access === 'unlimited' && 'Full history access'
+            ].filter(Boolean) : []
           }));
           setPricingTiers(transformedTiers);
         }
@@ -99,6 +113,17 @@ export default function LandingPage() {
         // Keep default tiers on error
       }
     };
+    
+    // Helper function for default subtitles
+    const getDefaultSubtitle = (tierKey) => {
+      switch(tierKey) {
+        case 'individual_coach': return 'For Self-Development';
+        case 'coach_developer': return 'For Working with Coaches';
+        case 'club': return 'For Organizations';
+        default: return '';
+      }
+    };
+    
     fetchPricingTiers();
   }, []);
 
@@ -407,14 +432,40 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="border-t border-slate-100 pt-6 space-y-3">
+                    {/* Coach Developers */}
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Coach Developers</span>
-                      <span className="font-medium text-slate-900">Up to {tier.admins}</span>
+                      <span className="text-slate-600 flex items-center gap-1">
+                        <UserCog className="w-3.5 h-3.5" />
+                        Coach Developers
+                      </span>
+                      <span className="font-medium text-slate-900">
+                        {tier.admins === null ? 'Unlimited' : tier.admins === 1 ? '1' : `Up to ${tier.admins}`}
+                      </span>
                     </div>
+                    
+                    {/* Coaches */}
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Coaches</span>
-                      <span className="font-medium text-slate-900">Up to {tier.coaches}</span>
+                      <span className="text-slate-600 flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        Coaches
+                      </span>
+                      <span className={`font-medium ${tier.coaches === null ? 'text-green-600' : tier.coaches === 0 ? 'text-slate-500' : 'text-slate-900'}`}>
+                        {tier.coaches === null ? 'Unlimited' : tier.coaches === 0 ? 'Self only' : `Up to ${tier.coaches}`}
+                      </span>
                     </div>
+                    
+                    {/* Observations per Coach */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600 flex items-center gap-1">
+                        <Eye className="w-3.5 h-3.5" />
+                        Observations
+                      </span>
+                      <span className={`font-medium ${tier.observationsPerCoach === null ? 'text-green-600' : 'text-slate-900'}`}>
+                        {tier.observationsPerCoach === null ? 'Unlimited' : `${tier.observationsPerCoach}/coach`}
+                      </span>
+                    </div>
+                    
+                    {/* Data History */}
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Data History</span>
                       <span className={`font-medium ${tier.dataRetention === 'Unlimited' ? 'text-green-600' : 'text-slate-900'}`}>
@@ -422,12 +473,24 @@ export default function LandingPage() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Feature List */}
+                  {tier.features && tier.features.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                      {tier.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm text-slate-600">
+                          <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button 
-                    className={`w-full ${tier.popular ? 'bg-blue-500 hover:bg-blue-600' : 'bg-slate-900 hover:bg-slate-800'}`}
+                    className={`w-full ${tier.popular ? 'bg-blue-500 hover:bg-blue-600' : 'bg-slate-900 hover:bg-slate-800'} ${tier.stripeReady === false ? 'opacity-60' : ''}`}
                     onClick={() => handleSelectPlan(tier)}
-                    disabled={loadingTier !== null}
+                    disabled={loadingTier !== null || tier.stripeReady === false}
                     data-testid={`select-plan-${tier.id}`}
                   >
                     {loadingTier === tier.id ? (
@@ -435,6 +498,8 @@ export default function LandingPage() {
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         Processing...
                       </>
+                    ) : tier.stripeReady === false ? (
+                      'Coming Soon'
                     ) : (
                       'Get Started'
                     )}

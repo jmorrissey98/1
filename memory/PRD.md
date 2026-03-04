@@ -65,8 +65,20 @@
   - Admin can now set custom observation limits per organization (0 = unlimited)
 - Admin endpoint `PUT /api/subscriptions/admin/organization/{org_id}/limits` supports observation limits
 
+**Phase 6: Landing Page Pricing Update (COMPLETED - March 4, 2026)**
+- Updated `LandingPage.jsx` with new pricing structure:
+  - New default tiers: Individual Coach (£6/mo), Coach Developer (£10/mo), Club (£60/mo)
+  - Fetches live pricing from `/api/subscriptions/pricing-comparison` endpoint
+  - Shows observation limits per tier (e.g., "10/coach" or "Unlimited")
+  - Feature list with checkmarks for each tier
+  - "Coming Soon" state for tiers without Stripe configuration
+  - Disabled purchase button for unready tiers
+- Updated `server.py` STRIPE_PRODUCTS to include new tier mappings:
+  - `individual_coach` and `coach_developer` with placeholder price IDs
+  - Backend blocks checkout for tiers without Stripe price IDs configured
+  - Helpful error message directing users to Club tier or support
+
 **Upcoming Phases:**
-- Phase 6: Landing page pricing update
 - Phase 7: Migration logic for legacy users
 
 ### New Subscription Tiers

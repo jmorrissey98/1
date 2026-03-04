@@ -3582,7 +3582,9 @@ stripe.api_key = STRIPE_SECRET_KEY
 # Product and Price IDs from Stripe Dashboard (Updated Feb 2026)
 # Each tier has explicit monthly and annual price IDs - DO NOT dynamically lookup
 # Note: Monthly and Annual are separate Products in Stripe
+# Phase 6: Added mapping for new tier keys to Stripe products
 STRIPE_PRODUCTS = {
+    # Legacy tier mappings (still active for existing subscribers)
     "individual": {
         "name": "Individual",
         "coaches": 5,
@@ -3636,6 +3638,47 @@ STRIPE_PRODUCTS = {
                 "product_id": "prod_U2pPFRreuxQtxf",
                 "price_id": "price_1T4jkp0YRwRcrAVxAkntx6Q4",
                 "amount": 60000,  # £600.00 in pence
+                "currency": "gbp"
+            }
+        }
+    },
+    # New tier mappings (Phase 6)
+    # Note: individual_coach and coach_developer need Stripe products created
+    # Until then, they will show "not ready" and block checkout
+    "individual_coach": {
+        "name": "Individual Coach",
+        "coaches": 0,  # Self only
+        "admins": 1,
+        "prices": {
+            "monthly": {
+                "product_id": None,  # TODO: Create in Stripe Dashboard
+                "price_id": None,    # TODO: Add after creating product
+                "amount": 600,       # £6.00 in pence
+                "currency": "gbp"
+            },
+            "annual": {
+                "product_id": None,
+                "price_id": None,
+                "amount": 6000,      # £60.00 in pence
+                "currency": "gbp"
+            }
+        }
+    },
+    "coach_developer": {
+        "name": "Coach Developer",
+        "coaches": None,  # Unlimited
+        "admins": 1,
+        "prices": {
+            "monthly": {
+                "product_id": None,  # TODO: Create in Stripe Dashboard
+                "price_id": None,    # TODO: Add after creating product
+                "amount": 1000,      # £10.00 in pence
+                "currency": "gbp"
+            },
+            "annual": {
+                "product_id": None,
+                "price_id": None,
+                "amount": 10000,     # £100.00 in pence
                 "currency": "gbp"
             }
         }
@@ -4048,6 +4091,14 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
             raise HTTPException(status_code=400, detail=f"No {data.billing_period} price configured for {data.tier_id}")
         
         price_id = price_config["price_id"]
+        
+        # Phase 6: Check if Stripe price is configured for new tiers
+        if price_id is None:
+            logger.warning(f"Stripe price not configured for tier {data.tier_id} ({data.billing_period})")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"The {product['name']} tier is not yet available for purchase. Stripe products are being configured. Please contact support or try the Club tier."
+            )
         
         # Build checkout session params
         checkout_params = {
