@@ -589,7 +589,9 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
     
     # Calculate averages
     avg_per_session = round(total_interventions / total_sessions, 1) if total_sessions > 0 else 0
-    avg_ball_rolling = round((total_ball_rolling / total_duration) * 100) if total_duration > 0 else 0
+    # Fix: Calculate ball rolling percentage from ball rolling + ball stopped times, not total session duration
+    total_ball_time = total_ball_rolling + total_ball_stopped
+    avg_ball_rolling = round((total_ball_rolling / total_ball_time) * 100) if total_ball_time > 0 else 0
     
     # Build intervention distribution chart data
     intervention_chart_data = [
