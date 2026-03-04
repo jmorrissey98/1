@@ -467,14 +467,6 @@ export default function LandingPage() {
                         {tier.observationsPerCoach === null ? 'Unlimited' : `${tier.observationsPerCoach}/coach`}
                       </span>
                     </div>
-                    
-                    {/* Data History */}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Data History</span>
-                      <span className={`font-medium ${tier.dataRetention === 'Unlimited' ? 'text-green-600' : 'text-slate-900'}`}>
-                        {tier.dataRetention}
-                      </span>
-                    </div>
                   </div>
                   
                   {/* Feature List */}
