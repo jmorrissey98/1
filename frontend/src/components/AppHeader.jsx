@@ -161,14 +161,14 @@ export default function AppHeader() {
   const isIndividualCoachTier = subscriptionTier === 'individual_coach';
 
   // Navigation items for Coach Developer
-  // - Individual Coach tier: Hide "My Coaches", Add "My Development"
-  // - Coach Developer/Club tiers: Show "My Coaches", Add "My Development"
+  // - Individual Coach tier: Hide "My Coaches", Show "My Development"
+  // - Coach Developer/Club tiers: Show "My Coaches", Hide "My Development" (for now)
   const coachDevNavItems = [
     { label: 'Home', icon: Home, path: getHomePath(), testId: 'nav-home-btn' },
     // Only show My Coaches for Coach Developer and Club tiers (not Individual Coach)
     ...(!isIndividualCoachTier ? [{ label: 'My Coaches', icon: Users, path: '/coaches', testId: 'nav-my-coaches-btn' }] : []),
-    // Show My Development for all coach_developer role users (they can be observed too)
-    { label: 'My Development', icon: TrendingUp, path: '/coach/development', testId: 'nav-my-development-btn' },
+    // Show My Development ONLY for Individual Coach tier (hidden for Coach Developer/Club tiers for now)
+    ...(isIndividualCoachTier ? [{ label: 'My Development', icon: TrendingUp, path: '/coach/development', testId: 'nav-my-development-btn' }] : []),
     { label: 'Templates', icon: ClipboardList, path: '/templates', testId: 'nav-templates-btn' },
     { label: 'Calendar', icon: Calendar, path: '/calendar', testId: 'nav-calendar-btn' },
     { label: 'Settings', icon: Cog, path: '/settings', testId: 'nav-settings-btn' },

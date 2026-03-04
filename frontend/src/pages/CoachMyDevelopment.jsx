@@ -357,7 +357,13 @@ export default function CoachMyDevelopment() {
     );
   }
 
+  // For Individual Coach tier users (coach_developer role without linked_coach_id),
+  // use the current user's info for the profile display
   const profile = dashboard?.profile || {};
+  const displayName = profile.name || user?.name || 'Unknown';
+  const displayPhoto = profile.photo || user?.picture || null;
+  const displayInitial = displayName?.charAt(0)?.toUpperCase() || '?';
+  
   const achievedTargets = targets.filter(t => t.status === 'achieved');
   const activeTargets = targets.filter(t => t.status === 'active' || t.status === 'in_progress');
   const has_pending_reflection = dashboard?.has_pending_reflection || false;
@@ -442,15 +448,15 @@ export default function CoachMyDevelopment() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                    {profile.photo ? (
-                      <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {displayPhoto ? (
+                      <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-2xl font-medium text-slate-500">{profile.name?.charAt(0)}</span>
+                      <span className="text-2xl font-medium text-slate-500">{displayInitial}</span>
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-slate-900">{profile.name}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{displayName}</h3>
                     {profile.role_title && <p className="text-slate-600">{profile.role_title}</p>}
                     {(profile.age_group || profile.department) && (
                       <p className="text-sm text-slate-500">
