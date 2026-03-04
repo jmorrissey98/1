@@ -17,6 +17,7 @@ import { fetchBulkCoachObservationStatus, formatObservationLimit, getObservation
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
+import { safeGet } from '../lib/safeFetch';
 
 const API_URL = '';
 
@@ -62,6 +63,9 @@ export default function SessionSetup() {
   // Subscription tier state - Individual Coach tier doesn't need observer reflection templates
   const [subscriptionTier, setSubscriptionTier] = useState(null);
   const isIndividualCoachTier = subscriptionTier === 'individual_coach';
+  
+  // For Individual Coach tier: auto-assign self as the coach being observed
+  const [selfCoachProfile, setSelfCoachProfile] = useState(null);
 
   useEffect(() => {
     const initSession = async () => {
@@ -281,13 +285,18 @@ export default function SessionSetup() {
   };
   
   // Load subscription tier to determine which reflection templates to show
+  // For Individual Coach tier, also fetch/create self coach profile
   const loadSubscriptionTier = async () => {
     try {
       const result = await fetchLimitsSummary();
       if (result.ok && result.data) {
         setSubscriptionTier(result.data.tier_key);
-        // Only load observer reflection templates for non-Individual Coach tiers
-        if (result.data.tier_key !== 'individual_coach') {
+        
+        // For Individual Coach tier: fetch or create self as coach
+        if (result.data.tier_key === 'individual_coach') {
+          await loadSelfCoachProfile();
+        } else {
+          // Only load observer reflection templates for non-Individual Coach tiers
           loadReflectionTemplates();
         }
       }
@@ -295,6 +304,46 @@ export default function SessionSetup() {
       console.error('Failed to load subscription tier:', err);
       // Fallback: load templates anyway
       loadReflectionTemplates();
+    }
+  };
+  
+  // For Individual Coach tier: Get or create a coach profile for self-observation
+  const loadSelfCoachProfile = async () => {
+    try {
+      // First, check if user already has a linked coach profile
+      const userResult = await safeGet(`${API_URL}/api/auth/me`);
+      if (userResult.ok && userResult.data) {
+        const userData = userResult.data;
+        
+        // If user has a linked coach, use that
+        if (userData.linked_coach_id) {
+          const coachResult = await safeGet(`${API_URL}/api/coaches/${userData.linked_coach_id}`);
+          if (coachResult.ok && coachResult.data) {
+            setSelfCoachProfile(coachResult.data);
+            // Auto-select self as coach
+            setSelectedCoachId(userData.linked_coach_id);
+            updateSession({ coachId: userData.linked_coach_id });
+            return;
+          }
+        }
+        
+        // Otherwise, create a self-coach profile using user's name
+        // For Individual Coach tier, we create a coach profile that represents themselves
+        const selfCoach = {
+          id: `self_${userData.user_id}`,
+          name: userData.name || 'Self',
+          role_title: 'Individual Coach',
+          isSelf: true
+        };
+        setSelfCoachProfile(selfCoach);
+        setSelectedCoachId(selfCoach.id);
+        updateSession({ 
+          coachId: selfCoach.id,
+          coachName: selfCoach.name // Store name for display purposes
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load self coach profile:', err);
     }
   };
 
@@ -604,121 +653,123 @@ export default function SessionSetup() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Coach Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-['Manrope'] flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Coach
-            </CardTitle>
-            <CardDescription>
-              Select the coach being observed
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Select value={selectedCoachId} onValueChange={handleCoachChange}>
-              <SelectTrigger data-testid="coach-select" className={selectedCoachId === 'none' ? 'text-slate-400' : ''}>
-                <SelectValue placeholder="Select a coach..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none" className="text-slate-500">No linked coach</SelectItem>
-                {coaches.map(c => {
-                  const status = coachObservationStatus[c.id];
-                  const canObserve = canObserveCoach(status);
-                  const limitText = status ? formatObservationLimit(status) : '';
-                  const limitClass = status ? getObservationLimitClass(status) : '';
-                  
-                  return (
-                    <SelectItem 
-                      key={c.id} 
-                      value={c.id}
-                      disabled={!canObserve.allowed}
-                      className={!canObserve.allowed ? 'opacity-60' : ''}
-                    >
-                      <div className="flex items-center justify-between w-full gap-3">
-                        <span className={!canObserve.allowed ? 'text-slate-400' : ''}>
-                          {c.name}{c.role_title && ` - ${c.role_title}`}
-                        </span>
-                        {status && (
-                          <span className={cn("text-xs font-medium ml-auto", limitClass)}>
-                            {limitText}
+        {/* Coach Selection - Hidden for Individual Coach tier (auto-assigned to self) */}
+        {!isIndividualCoachTier && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Coach
+              </CardTitle>
+              <CardDescription>
+                Select the coach being observed
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Select value={selectedCoachId} onValueChange={handleCoachChange}>
+                <SelectTrigger data-testid="coach-select" className={selectedCoachId === 'none' ? 'text-slate-400' : ''}>
+                  <SelectValue placeholder="Select a coach..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" className="text-slate-500">No linked coach</SelectItem>
+                  {coaches.map(c => {
+                    const status = coachObservationStatus[c.id];
+                    const canObserve = canObserveCoach(status);
+                    const limitText = status ? formatObservationLimit(status) : '';
+                    const limitClass = status ? getObservationLimitClass(status) : '';
+                    
+                    return (
+                      <SelectItem 
+                        key={c.id} 
+                        value={c.id}
+                        disabled={!canObserve.allowed}
+                        className={!canObserve.allowed ? 'opacity-60' : ''}
+                      >
+                        <div className="flex items-center justify-between w-full gap-3">
+                          <span className={!canObserve.allowed ? 'text-slate-400' : ''}>
+                            {c.name}{c.role_title && ` - ${c.role_title}`}
                           </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            
-            {/* Phase 4: Show observation limit status for selected coach */}
-            {selectedCoachId && selectedCoachId !== 'none' && coachObservationStatus[selectedCoachId] && (
-              <div className="mt-2">
-                {(() => {
-                  const status = coachObservationStatus[selectedCoachId];
-                  const canObserve = canObserveCoach(status);
-                  const selectedCoach = coaches.find(c => c.id === selectedCoachId);
-                  
-                  if (!canObserve.allowed) {
-                    return (
-                      <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-red-800">Observation limit reached</p>
-                          <p className="text-sm text-red-600 mt-0.5">
-                            {selectedCoach?.name} has {status.current_count} of {status.limit} observations.
-                            Upgrade your subscription to continue observing this coach.
-                          </p>
+                          {status && (
+                            <span className={cn("text-xs font-medium ml-auto", limitClass)}>
+                              {limitText}
+                            </span>
+                          )}
                         </div>
-                      </div>
+                      </SelectItem>
                     );
-                  }
-                  
-                  if (canObserve.showWarning) {
-                    return (
-                      <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-amber-800">Approaching limit</p>
-                          <p className="text-sm text-amber-600 mt-0.5">{canObserve.reason}</p>
+                  })}
+                </SelectContent>
+              </Select>
+              
+              {/* Phase 4: Show observation limit status for selected coach */}
+              {selectedCoachId && selectedCoachId !== 'none' && coachObservationStatus[selectedCoachId] && (
+                <div className="mt-2">
+                  {(() => {
+                    const status = coachObservationStatus[selectedCoachId];
+                    const canObserve = canObserveCoach(status);
+                    const selectedCoach = coaches.find(c => c.id === selectedCoachId);
+                    
+                    if (!canObserve.allowed) {
+                      return (
+                        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-red-800">Observation limit reached</p>
+                            <p className="text-sm text-red-600 mt-0.5">
+                              {selectedCoach?.name} has {status.current_count} of {status.limit} observations.
+                              Upgrade your subscription to continue observing this coach.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }
-                  
-                  // Show normal status
-                  if (!status.is_unlimited && status.limit) {
-                    return (
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                        <TrendingUp className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm text-slate-600">
-                          {selectedCoach?.name}: <span className={cn("font-medium", getObservationLimitClass(status))}>
-                            {status.current_count} of {status.limit}
-                          </span> observations used
-                        </span>
-                      </div>
-                    );
-                  }
-                  
-                  return null;
-                })()}
-              </div>
-            )}
-            
-            {loadingLimits && (
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading observation limits...
-              </div>
-            )}
-            
-            {coaches.length === 0 && (
-              <p className="text-sm text-slate-500 mt-2">
-                No coaches yet. <button className="text-blue-600 hover:underline" onClick={() => navigate('/coaches')}>Add a coach</button> to track their development over time.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                      );
+                    }
+                    
+                    if (canObserve.showWarning) {
+                      return (
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Approaching limit</p>
+                            <p className="text-sm text-amber-600 mt-0.5">{canObserve.reason}</p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Show normal status
+                    if (!status.is_unlimited && status.limit) {
+                      return (
+                        <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                          <TrendingUp className="w-4 h-4 text-slate-500" />
+                          <span className="text-sm text-slate-600">
+                            {selectedCoach?.name}: <span className={cn("font-medium", getObservationLimitClass(status))}>
+                              {status.current_count} of {status.limit}
+                            </span> observations used
+                          </span>
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
+                </div>
+              )}
+              
+              {loadingLimits && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading observation limits...
+                </div>
+              )}
+              
+              {coaches.length === 0 && (
+                <p className="text-sm text-slate-500 mt-2">
+                  No coaches yet. <button className="text-blue-600 hover:underline" onClick={() => navigate('/coaches')}>Add a coach</button> to track their development over time.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Observation Context */}
         <Card>
