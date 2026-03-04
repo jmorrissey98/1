@@ -218,9 +218,9 @@ export default function AppHeader() {
       )}
       
       <div className="bg-white border-b border-slate-200 px-4 py-2 sticky top-0 z-20 safe-area-top">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Left side - Club branding */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0">
             {organization?.club_logo && (
               <img 
                 src={organization.club_logo} 
@@ -229,37 +229,40 @@ export default function AppHeader() {
               />
             )}
             {organization?.club_name && (
-              <span className="font-semibold text-slate-900 font-['Manrope'] text-sm sm:text-lg truncate max-w-[100px] sm:max-w-none">
+              <span className="font-semibold text-slate-900 font-['Manrope'] text-sm sm:text-base leading-tight max-w-[120px] sm:max-w-[180px] line-clamp-2">
                 {organization.club_name}
               </span>
             )}
-            <div className="hidden sm:block">
-              <SyncStatusIndicator />
-            </div>
           </div>
           
           {/* Desktop Navigation - Hidden on mobile */}
-          <div className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => (
-              <Button 
-                key={item.path}
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate(item.path)}
-                data-testid={item.testId}
-                className={location.pathname === item.path ? 'bg-slate-100' : ''}
-              >
-                <item.icon className="w-4 h-4 mr-1.5" />
-                {item.label}
-              </Button>
-            ))}
+          <div className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => {
+              // Settings and Calendar show only icons
+              const isIconOnly = item.label === 'Settings' || item.label === 'Calendar';
+              
+              return (
+                <Button 
+                  key={item.path}
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate(item.path)}
+                  data-testid={item.testId}
+                  className={`${location.pathname === item.path ? 'bg-slate-100' : ''} ${isIconOnly ? 'px-2' : ''}`}
+                  title={isIconOnly ? item.label : undefined}
+                >
+                  <item.icon className={`w-4 h-4 ${isIconOnly ? '' : 'mr-1.5'}`} />
+                  {!isIconOnly && item.label}
+                </Button>
+              );
+            })}
           </div>
           
           {/* Right side - Logo (desktop) + Hamburger (mobile) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* MCD Logo - Desktop only */}
             <div 
-              className="hidden sm:flex flex-col items-center cursor-pointer"
+              className="hidden lg:flex flex-col items-center cursor-pointer"
               onClick={() => navigate(getHomePath())}
               data-testid="mcd-app-logo"
             >
@@ -347,6 +350,11 @@ export default function AppHeader() {
             </Sheet>
           </div>
         </div>
+      </div>
+      
+      {/* Fixed Sync Status Indicator - Bottom Left */}
+      <div className="fixed bottom-4 left-4 z-50 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+        <SyncStatusIndicator />
       </div>
     </>
   );

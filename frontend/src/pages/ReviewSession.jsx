@@ -139,6 +139,9 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
         const row = { name: type.name };
         let total = 0;
         
+        // Count total events for this intervention type
+        const typeEventCount = events.filter(e => e.eventTypeId === type.id).length;
+        
         if (descriptorGroup1?.descriptors) {
           descriptorGroup1.descriptors.forEach(d => {
             const count = crossTab.data[`${type.id}-${d.id}`] || 0;
@@ -146,8 +149,16 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
             total += count;
           });
         }
-        row.total = total;
-        if (total > 0) stackedData.push(row);
+        
+        // If intervention has events but no descriptors, show as "No descriptor"
+        if (typeEventCount > 0 && total === 0) {
+          row['No descriptor'] = typeEventCount;
+          row.total = typeEventCount;
+          stackedData.push(row);
+        } else if (total > 0) {
+          row.total = total;
+          stackedData.push(row);
+        }
       });
     } else if (groupBy === 'content' && descriptorGroup1?.descriptors) {
       descriptorGroup1.descriptors.forEach(d => {
@@ -162,6 +173,20 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
         row.total = total;
         if (total > 0) stackedData.push(row);
       });
+      
+      // Add "No descriptor" row for events without this descriptor selected
+      const eventsWithoutDesc = events.filter(e => !e.descriptors1 || e.descriptors1.length === 0);
+      if (eventsWithoutDesc.length > 0) {
+        const row = { name: 'No descriptor selected' };
+        let total = 0;
+        interventionTypes.forEach(type => {
+          const count = eventsWithoutDesc.filter(e => e.eventTypeId === type.id).length;
+          row[type.name] = count;
+          total += count;
+        });
+        row.total = total;
+        if (total > 0) stackedData.push(row);
+      }
     } else if (groupBy === 'delivery' && descriptorGroup2?.descriptors) {
       descriptorGroup2.descriptors.forEach(d => {
         const row = { name: d.name };
@@ -175,6 +200,20 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
         row.total = total;
         if (total > 0) stackedData.push(row);
       });
+      
+      // Add "No descriptor" row for events without this descriptor selected
+      const eventsWithoutDesc = events.filter(e => !e.descriptors2 || e.descriptors2.length === 0);
+      if (eventsWithoutDesc.length > 0) {
+        const row = { name: 'No descriptor selected' };
+        let total = 0;
+        interventionTypes.forEach(type => {
+          const count = eventsWithoutDesc.filter(e => e.eventTypeId === type.id).length;
+          row[type.name] = count;
+          total += count;
+        });
+        row.total = total;
+        if (total > 0) stackedData.push(row);
+      }
     }
     
     return stackedData.sort((a, b) => b.total - a.total);
@@ -185,7 +224,17 @@ const InterventionAnalyticsModule = ({ events, interventionTypes, descriptorGrou
   // Get dimension labels for legend
   const getDimensionKeys = () => {
     if (groupBy === 'intervention') {
-      return (descriptorGroup1?.descriptors || []).map(d => d.name);
+      const keys = (descriptorGroup1?.descriptors || []).map(d => d.name);
+      // Check if any intervention has events without descriptors
+      const hasNoDescriptorEvents = interventionTypes.some(type => {
+        const typeEvents = events.filter(e => e.eventTypeId === type.id);
+        const hasDescriptors = typeEvents.some(e => e.descriptors1 && e.descriptors1.length > 0);
+        return typeEvents.length > 0 && !hasDescriptors;
+      });
+      if (hasNoDescriptorEvents) {
+        keys.push('No descriptor');
+      }
+      return keys;
     }
     return interventionTypes.map(t => t.name);
   };
