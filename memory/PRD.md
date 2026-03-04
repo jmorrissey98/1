@@ -18,8 +18,14 @@
 **Navigation Tier-Based Filtering (COMPLETED)**
 - Updated `AppHeader.jsx` to show/hide navigation based on subscription tier
 - Individual Coach tier: "My Coaches" hidden, "My Development" visible
-- Coach Developer/Club tiers: Both "My Coaches" and "My Development" visible
+- Coach Developer/Club tiers: "My Coaches" visible, "My Development" hidden (for now)
 - Added subscription tier fetching in AppHeader via `/api/subscriptions/limits-summary`
+
+**Reflection Templates Tier-Based Filtering (COMPLETED)**
+- Updated `ReflectionTemplatesSection.jsx` to only show "Coaches" reflection templates for Individual Coach tier
+- Individual Coach tier users don't see "Coach Developers" reflection tab
+- Updated `SessionSetup.jsx` to hide "Observer Reflection Template" selector for Individual Coach tier
+- Individual Coach users only see "Coach Reflection Template" when setting up observations
 
 **My Development Route Access (COMPLETED)**  
 - Updated `ProtectedRoute.jsx` with new `allowCoachDeveloper` prop

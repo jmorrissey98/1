@@ -17,14 +17,44 @@ import {
   createQuestion
 } from '../lib/reflectionTemplatesApi';
 import ReflectionTemplateBuilder from './ReflectionTemplateBuilder';
+import { fetchLimitsSummary } from '../lib/subscriptionApi';
 
 export default function ReflectionTemplatesSection() {
-  const [activeSubTab, setActiveSubTab] = useState('coach_educator');
+  // Check subscription tier to determine if coach educator templates should be shown
+  const [subscriptionTier, setSubscriptionTier] = useState(null);
+  const [tierLoading, setTierLoading] = useState(true);
+  
+  // Individual Coach tier only sees "coach" templates (no coach_educator)
+  const isIndividualCoachTier = subscriptionTier === 'individual_coach';
+  const defaultTab = isIndividualCoachTier ? 'coach' : 'coach_educator';
+  
+  const [activeSubTab, setActiveSubTab] = useState(defaultTab);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [showBuilder, setShowBuilder] = useState(false);
+
+  // Fetch subscription tier on mount
+  useEffect(() => {
+    const loadTier = async () => {
+      try {
+        const result = await fetchLimitsSummary();
+        if (result.ok && result.data) {
+          setSubscriptionTier(result.data.tier_key);
+          // Set default tab based on tier
+          if (result.data.tier_key === 'individual_coach') {
+            setActiveSubTab('coach');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch subscription tier:', err);
+      } finally {
+        setTierLoading(false);
+      }
+    };
+    loadTier();
+  }, []);
 
   useEffect(() => {
     loadTemplates();
@@ -154,26 +184,40 @@ export default function ReflectionTemplatesSection() {
 
   return (
     <div className="space-y-4">
-      {/* Sub-tabs for Coach Educators / Coaches */}
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="grid w-full grid-cols-2" data-testid="reflection-role-tabs">
-          <TabsTrigger value="coach_educator" data-testid="coach-educator-subtab">
-            Coach Educators
-          </TabsTrigger>
-          <TabsTrigger value="coach" data-testid="coach-subtab">
-            Coaches
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Description */}
-      <div className="bg-slate-100 rounded-lg p-4 text-sm text-slate-600">
-        {activeSubTab === 'coach_educator' ? (
-          <p>Templates for <strong>Coach Educators</strong> to reflect on their own coaching observations.</p>
-        ) : (
+      {/* Sub-tabs for Coach Educators / Coaches - Individual Coach tier only sees Coaches */}
+      {tierLoading ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+        </div>
+      ) : isIndividualCoachTier ? (
+        // Individual Coach tier: Only show Coaches tab (no toggle needed)
+        <div className="bg-slate-100 rounded-lg p-4 text-sm text-slate-600">
           <p>Templates for <strong>Coaches</strong> to complete their self-reflection after being observed.</p>
-        )}
-      </div>
+        </div>
+      ) : (
+        // Coach Developer / Club tiers: Show both tabs
+        <>
+          <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
+            <TabsList className="grid w-full grid-cols-2" data-testid="reflection-role-tabs">
+              <TabsTrigger value="coach_educator" data-testid="coach-educator-subtab">
+                Coach Developers
+              </TabsTrigger>
+              <TabsTrigger value="coach" data-testid="coach-subtab">
+                Coaches
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Description */}
+          <div className="bg-slate-100 rounded-lg p-4 text-sm text-slate-600">
+            {activeSubTab === 'coach_educator' ? (
+              <p>Templates for <strong>Coach Developers</strong> to reflect on their own coaching observations.</p>
+            ) : (
+              <p>Templates for <strong>Coaches</strong> to complete their self-reflection after being observed.</p>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Create Button */}
       <div className="flex justify-end">

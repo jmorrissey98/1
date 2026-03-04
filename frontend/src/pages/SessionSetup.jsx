@@ -13,7 +13,7 @@ import { storage, createSession, getDefaultTemplate, OBSERVATION_CONTEXTS } from
 import { fetchObservationTemplates, fetchDefaultObservationTemplate } from '../lib/observationTemplatesApi';
 import { fetchReflectionTemplates } from '../lib/reflectionTemplatesApi';
 import { fetchCoaches } from '../lib/offlineApi';
-import { fetchBulkCoachObservationStatus, formatObservationLimit, getObservationLimitClass, canObserveCoach } from '../lib/subscriptionApi';
+import { fetchBulkCoachObservationStatus, formatObservationLimit, getObservationLimitClass, canObserveCoach, fetchLimitsSummary } from '../lib/subscriptionApi';
 import { generateId, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
@@ -58,12 +58,16 @@ export default function SessionSetup() {
   // Phase 4: Observation limits state
   const [coachObservationStatus, setCoachObservationStatus] = useState({}); // Map of coach_id -> status
   const [loadingLimits, setLoadingLimits] = useState(false);
+  
+  // Subscription tier state - Individual Coach tier doesn't need observer reflection templates
+  const [subscriptionTier, setSubscriptionTier] = useState(null);
+  const isIndividualCoachTier = subscriptionTier === 'individual_coach';
 
   useEffect(() => {
     const initSession = async () => {
       setLoading(true);
       loadCoaches();
-      loadReflectionTemplates();
+      loadSubscriptionTier();
       loadCoachReflectionTemplates();
       
       if (isEditing) {
@@ -262,7 +266,7 @@ export default function SessionSetup() {
 
   const loadReflectionTemplates = async () => {
     try {
-      // Load coach educator reflection templates
+      // Load coach educator reflection templates (only for non-Individual Coach tiers)
       const templates = await fetchReflectionTemplates('coach_educator');
       setReflectionTemplates(templates);
       
@@ -273,6 +277,24 @@ export default function SessionSetup() {
       }
     } catch (err) {
       console.error('Failed to load reflection templates:', err);
+    }
+  };
+  
+  // Load subscription tier to determine which reflection templates to show
+  const loadSubscriptionTier = async () => {
+    try {
+      const result = await fetchLimitsSummary();
+      if (result.ok && result.data) {
+        setSubscriptionTier(result.data.tier_key);
+        // Only load observer reflection templates for non-Individual Coach tiers
+        if (result.data.tier_key !== 'individual_coach') {
+          loadReflectionTemplates();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load subscription tier:', err);
+      // Fallback: load templates anyway
+      loadReflectionTemplates();
     }
   };
 
@@ -847,42 +869,44 @@ export default function SessionSetup() {
               )}
             </div>
 
-            {/* Observer Reflection Template Selector - This is for the coach developer */}
-            <div className="pt-4 border-t border-slate-200">
-              <Label htmlFor="reflection-template">Observer Reflection Template</Label>
-              <p className="text-sm text-slate-500 mb-2">
-                Select the template for your own post-observation reflection
-              </p>
-              <Select 
-                value={selectedReflectionTemplateId} 
-                onValueChange={handleReflectionTemplateChange}
-              >
-                <SelectTrigger className="mt-1" data-testid="reflection-template-select">
-                  <SelectValue placeholder="Select a reflection template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">
-                    Use Default Template
-                  </SelectItem>
-                  {reflectionTemplates.map(t => (
-                    <SelectItem key={t.template_id} value={t.template_id}>
-                      {t.name} {t.is_default && '(Default)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {reflectionTemplates.length === 0 && (
-                <p className="text-sm text-slate-500 mt-2">
-                  No observer reflection templates yet.{' '}
-                  <button 
-                    className="text-blue-600 hover:underline" 
-                    onClick={() => navigate('/templates')}
-                  >
-                    Create one
-                  </button>
+            {/* Observer Reflection Template Selector - Only for Coach Developer/Club tiers */}
+            {!isIndividualCoachTier && (
+              <div className="pt-4 border-t border-slate-200">
+                <Label htmlFor="reflection-template">Observer Reflection Template</Label>
+                <p className="text-sm text-slate-500 mb-2">
+                  Select the template for your own post-observation reflection
                 </p>
-              )}
-            </div>
+                <Select 
+                  value={selectedReflectionTemplateId} 
+                  onValueChange={handleReflectionTemplateChange}
+                >
+                  <SelectTrigger className="mt-1" data-testid="reflection-template-select">
+                    <SelectValue placeholder="Select a reflection template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">
+                      Use Default Template
+                    </SelectItem>
+                    {reflectionTemplates.map(t => (
+                      <SelectItem key={t.template_id} value={t.template_id}>
+                        {t.name} {t.is_default && '(Default)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {reflectionTemplates.length === 0 && (
+                  <p className="text-sm text-slate-500 mt-2">
+                    No observer reflection templates yet.{' '}
+                    <button 
+                      className="text-blue-600 hover:underline" 
+                      onClick={() => navigate('/templates')}
+                    >
+                      Create one
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Observer Notes Toggle */}
             <div className="flex items-center justify-between pt-4 border-t border-slate-200">
