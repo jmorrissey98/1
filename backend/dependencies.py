@@ -9,6 +9,15 @@ import uuid
 from database import db, logger
 from models import User
 
+# Import new subscription config for limit resolution
+from subscription_config import (
+    SUBSCRIPTION_TIERS,
+    LEGACY_TIER_MAPPING,
+    resolve_organization_entitlements,
+    check_observation_limit,
+    get_tier_config
+)
+
 # Default limits for free tier / no subscription
 DEFAULT_COACHES_LIMIT = 5
 DEFAULT_ADMINS_LIMIT = 1
@@ -355,6 +364,213 @@ async def require_admin_slot(request: Request) -> None:
             status_code=403, 
             detail=result["message"]
         )
+
+
+# ============================================
+# PHASE 3: OBSERVATION LIMIT ENFORCEMENT
+# ============================================
+
+async def get_user_organization_id(user: User) -> Optional[str]:
+    """
+    Get the organization ID for a user.
+    Handles both org owners and members.
+    """
+    # First check if user has organization_id set directly
+    if user.organization_id:
+        return user.organization_id
+    
+    # Check if user owns an organization
+    org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+    if org:
+        return org.get("org_id")
+    
+    return None
+
+
+async def check_observation_limit_for_coach(user: User, coach_id: str) -> Dict[str, Any]:
+    """
+    Check if an observation can be created/completed for a specific coach.
+    Uses the new entitlement system from subscription_config.
+    
+    Returns:
+        {
+            "can_observe": bool,
+            "current_count": int,
+            "limit": int or None (None = unlimited),
+            "is_unlimited": bool,
+            "message": str or None,
+            "tier_key": str
+        }
+    """
+    org_id = await get_user_organization_id(user)
+    
+    if not org_id:
+        # No organization - use default coach_developer limits
+        logger.warning(f"User {user.email} has no organization - using default limits")
+        return {
+            "can_observe": True,  # Allow by default if no org
+            "current_count": 0,
+            "limit": 10,  # Default coach_developer limit
+            "is_unlimited": False,
+            "message": None,
+            "tier_key": "coach_developer"
+        }
+    
+    # Use the new entitlement check from subscription_config
+    result = await check_observation_limit(db, org_id, coach_id)
+    return result
+
+
+async def require_observation_slot(request: Request, coach_id: str) -> Dict[str, Any]:
+    """
+    Dependency that checks if user can complete an observation for a coach.
+    Raises HTTPException if limit reached.
+    
+    Returns the limit check result if allowed.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    result = await check_observation_limit_for_coach(user, coach_id)
+    
+    if not result["can_observe"]:
+        raise HTTPException(
+            status_code=403,
+            detail=result["message"] or "Observation limit reached for this coach. Please upgrade your subscription."
+        )
+    
+    return result
+
+
+async def enforce_observation_limit_on_completion(
+    user: User,
+    coach_id: str,
+    session_id: str
+) -> Dict[str, Any]:
+    """
+    Enforce observation limit when completing a session.
+    Called from the observation routes when status changes to 'completed'.
+    
+    This checks if the completion would exceed the limit.
+    
+    Args:
+        user: The authenticated user (coach developer)
+        coach_id: The coach being observed
+        session_id: The session being completed
+    
+    Returns:
+        {"allowed": bool, "limit_info": {...}, "message": str or None}
+    """
+    if not coach_id:
+        # No coach assigned - no limit to check
+        return {
+            "allowed": True,
+            "limit_info": None,
+            "message": None
+        }
+    
+    # Check if this session is already counted (already completed)
+    existing_session = await db.observation_sessions.find_one(
+        {"session_id": session_id},
+        {"_id": 0, "status": 1}
+    )
+    
+    if existing_session and existing_session.get("status") == "completed":
+        # Already completed - don't double-count
+        return {
+            "allowed": True,
+            "limit_info": None,
+            "message": "Session already completed"
+        }
+    
+    # Check the observation limit
+    limit_result = await check_observation_limit_for_coach(user, coach_id)
+    
+    if not limit_result["can_observe"]:
+        return {
+            "allowed": False,
+            "limit_info": limit_result,
+            "message": limit_result.get("message")
+        }
+    
+    return {
+        "allowed": True,
+        "limit_info": limit_result,
+        "message": None
+    }
+
+
+async def get_limits_summary_for_user(user: User) -> Dict[str, Any]:
+    """
+    Get a complete summary of limits for a user's organization.
+    Uses the new entitlement system.
+    
+    Returns combined info about coach, coach developer, and observation limits.
+    """
+    org_id = await get_user_organization_id(user)
+    
+    if not org_id:
+        # Return defaults
+        return {
+            "tier_key": "coach_developer",
+            "tier_name": "Coach Developer",
+            "coaches": {
+                "current": 0,
+                "limit": None,  # Unlimited for coach_developer
+                "is_unlimited": True
+            },
+            "coach_developers": {
+                "current": 1,
+                "limit": 1,
+                "is_unlimited": False
+            },
+            "observations_per_coach": {
+                "limit": 10,
+                "is_unlimited": False
+            },
+            "is_legacy": False
+        }
+    
+    # Get resolved entitlements
+    entitlements = await resolve_organization_entitlements(db, org_id)
+    limits = entitlements["limits"]
+    
+    # Get current usage counts
+    coach_developer_count = await db.users.count_documents({
+        "organization_id": org_id,
+        "role": "coach_developer"
+    })
+    
+    coach_count = await db.coaches.count_documents({
+        "organization_id": org_id
+    })
+    
+    return {
+        "org_id": org_id,
+        "tier_key": entitlements["tier_key"],
+        "tier_name": entitlements["tier_name"],
+        "is_legacy": entitlements["is_legacy"],
+        "coaches": {
+            "current": coach_count,
+            "limit": limits["max_coaches"],
+            "is_unlimited": limits["max_coaches"] is None,
+            "can_add": limits["max_coaches"] is None or coach_count < limits["max_coaches"]
+        },
+        "coach_developers": {
+            "current": coach_developer_count,
+            "limit": limits["max_coach_developers"],
+            "is_unlimited": False,  # Coach developers always have a limit
+            "can_add": coach_developer_count < limits["max_coach_developers"]
+        },
+        "observations_per_coach": {
+            "limit": limits["max_observations_per_coach"],
+            "is_unlimited": limits["max_observations_per_coach"] is None
+        },
+        "features": entitlements["features"],
+        "current_period_end": entitlements.get("current_period_end"),
+        "pending_tier_key": entitlements.get("pending_tier_key")
+    }
 
 
 async def get_current_user(request: Request) -> Optional[User]:

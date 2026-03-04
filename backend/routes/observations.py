@@ -10,7 +10,12 @@ import sys
 sys.path.insert(0, '/app/backend')
 
 from database import db, logger
-from dependencies import require_auth, require_coach_developer
+from dependencies import (
+    require_auth, 
+    require_coach_developer,
+    enforce_observation_limit_on_completion,
+    check_observation_limit_for_coach
+)
 
 router = APIRouter(prefix="/observations", tags=["Observations"])
 
@@ -317,6 +322,31 @@ async def create_observation_session(data: ObservationSessionCreate, request: Re
     
     logger.info(f"Creating/updating observation session: {data.session_id}, status: {data.status}")
     
+    # Check if session already exists (upsert)
+    existing = await db.observation_sessions.find_one({"session_id": data.session_id})
+    
+    # PHASE 3: Enforce observation limit when completing a session
+    # Only check if:
+    # 1. There's a coach assigned
+    # 2. The new status is "completed"
+    # 3. The session wasn't already completed before
+    is_becoming_completed = (
+        data.status == "completed" and 
+        data.coach_id and
+        (not existing or existing.get("status") != "completed")
+    )
+    
+    if is_becoming_completed:
+        limit_check = await enforce_observation_limit_on_completion(
+            user, data.coach_id, data.session_id
+        )
+        if not limit_check["allowed"]:
+            logger.warning(f"Observation limit reached for coach {data.coach_id}: {limit_check['message']}")
+            raise HTTPException(
+                status_code=403,
+                detail=limit_check["message"] or "Observation limit reached for this coach. Please upgrade your subscription."
+            )
+    
     session_doc = {
         "session_id": data.session_id,
         "name": data.name,
@@ -357,8 +387,6 @@ async def create_observation_session(data: ObservationSessionCreate, request: Re
         "coach_reflection_shared": data.coach_reflection_shared
     }
     
-    # Check if session already exists (upsert)
-    existing = await db.observation_sessions.find_one({"session_id": data.session_id})
     if existing:
         # Update existing session
         await db.observation_sessions.update_one(
@@ -402,6 +430,25 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
     
     if not existing:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    # PHASE 3: Enforce observation limit when completing a session
+    # Only check if status is changing TO "completed" and wasn't completed before
+    is_becoming_completed = (
+        data.status == "completed" and 
+        data.coach_id and
+        existing.get("status") != "completed"
+    )
+    
+    if is_becoming_completed:
+        limit_check = await enforce_observation_limit_on_completion(
+            user, data.coach_id, session_id
+        )
+        if not limit_check["allowed"]:
+            logger.warning(f"Observation limit reached for coach {data.coach_id}: {limit_check['message']}")
+            raise HTTPException(
+                status_code=403,
+                detail=limit_check["message"] or "Observation limit reached for this coach. Please upgrade your subscription."
+            )
     
     now = datetime.now(timezone.utc).isoformat()
     

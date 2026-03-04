@@ -33,6 +33,7 @@ from subscription_config import (
     get_available_tiers_for_signup,
     get_tier_comparison
 )
+from dependencies import get_limits_summary_for_user
 
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
@@ -316,6 +317,25 @@ async def check_coaches_observation_limits(request: Request):
     result = await get_all_coaches_observation_status(db, org_id, coach_ids)
     
     return result
+
+
+@router.get("/limits-summary")
+async def get_organization_limits_summary(request: Request):
+    """
+    Get a complete summary of all limits for the current user's organization.
+    This is the primary endpoint for the frontend to check all limits at once.
+    
+    Returns:
+        - tier_key and tier_name
+        - coaches: current count, limit, can_add, is_unlimited
+        - coach_developers: current count, limit, can_add
+        - observations_per_coach: limit, is_unlimited
+        - features: data_retention, history_access, etc.
+        - is_legacy: whether on a legacy tier
+    """
+    user = await require_auth(request)
+    summary = await get_limits_summary_for_user(user)
+    return summary
 
 
 @router.get("/coach/{coach_id}/observation-count")

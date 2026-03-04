@@ -28,8 +28,21 @@
   - `GET /api/subscriptions/migration/bulk-status` - Migration dashboard data
   - `PUT /api/subscriptions/admin/stripe/price` - Set Stripe price IDs
 
+**Phase 3: Backend Enforcement of Limits (COMPLETED - March 4, 2026)**
+- Observation limit enforcement when completing sessions
+- Only enforced when status changes TO "completed" (not for draft/active/planned)
+- Per-coach observation counting (10 per coach for Coach Developer tier)
+- Limit check functions in `backend/dependencies.py`:
+  - `check_observation_limit_for_coach()` - Check if observation is allowed
+  - `enforce_observation_limit_on_completion()` - Enforce during session completion
+  - `get_limits_summary_for_user()` - Get complete limits overview
+- New API endpoint:
+  - `GET /api/subscriptions/limits-summary` - Complete limits dashboard for frontend
+- Modified routes:
+  - `POST /api/observations` - Now checks limits before completing
+  - `PUT /api/observations/{session_id}` - Now checks limits before completing
+
 **Upcoming Phases:**
-- Phase 3: Backend enforcement of limits
 - Phase 4: Observation flow updates (UI)
 - Phase 5: UI limits visibility & admin controls
 - Phase 6: Landing page pricing update
