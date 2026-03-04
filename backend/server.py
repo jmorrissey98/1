@@ -5206,7 +5206,7 @@ allowed_origins = [
     "https://www.mycoachdeveloper.com",
     "http://localhost:3000",
     "http://localhost:8001",
-    "https://stripe-migration-1.preview.emergentagent.com",
+    "https://limits-phase.preview.emergentagent.com",
 ]
 
 # Add APP_URL if set and not empty

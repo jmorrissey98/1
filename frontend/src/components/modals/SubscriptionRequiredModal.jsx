@@ -15,47 +15,53 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
-import { Loader2, Check, LogOut, AlertTriangle, CreditCard } from 'lucide-react';
+import { Loader2, Check, LogOut, AlertTriangle, CreditCard, Eye, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeGet, safePost } from '../../lib/safeFetch';
 import { useAuth } from '../../contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Default pricing tiers (will be overridden by API data)
+// Default pricing tiers - Updated for new subscription model
 const DEFAULT_PRICING_TIERS = [
   {
-    id: 'individual',
-    name: 'Individual',
-    subtitle: 'The Solo Developer',
-    monthlyPrice: 20,
-    annualPrice: 200,
-    coaches: 5,
+    id: 'individual_coach',
+    name: 'Individual Coach',
+    subtitle: 'For Self-Development',
+    monthlyPrice: 5,
+    annualPrice: 50,
+    coaches: 0,
     admins: 1,
-    dataRetention: '3 months',
-    popular: false
+    observationsPerCoach: null,
+    dataRetention: 'Unlimited',
+    popular: false,
+    features: ['Self-observation mode', 'Unlimited observations', 'Full history access']
   },
   {
-    id: 'developer',
-    name: 'Developer',
-    subtitle: 'The Growth Specialist',
-    monthlyPrice: 35,
-    annualPrice: 350,
-    coaches: 10,
+    id: 'coach_developer',
+    name: 'Coach Developer',
+    subtitle: 'For Working with Coaches',
+    monthlyPrice: 15,
+    annualPrice: 150,
+    coaches: null,
     admins: 1,
+    observationsPerCoach: 10,
     dataRetention: 'Unlimited',
-    popular: true
+    popular: true,
+    features: ['Unlimited coaches', '10 observations per coach', 'Full history access']
   },
   {
     id: 'club',
     name: 'Club',
-    subtitle: 'The Organization',
+    subtitle: 'For Organizations',
     monthlyPrice: 60,
     annualPrice: 600,
     coaches: 30,
     admins: 5,
+    observationsPerCoach: null,
     dataRetention: 'Unlimited',
-    popular: false
+    popular: false,
+    features: ['Up to 5 coach developers', 'Up to 30 coaches', 'Unlimited observations']
   }
 ];
 
@@ -69,18 +75,25 @@ export function SubscriptionRequiredModal({ open, reason }) {
   useEffect(() => {
     const fetchPricingTiers = async () => {
       try {
-        const result = await safeGet(`${API_URL}/api/pricing/tiers`);
-        if (result.ok && result.data) {
-          const transformedTiers = result.data.map(tier => ({
-            id: tier.tier_id,
+        // Use new pricing-comparison endpoint
+        const result = await safeGet(`${API_URL}/api/subscriptions/pricing-comparison`);
+        if (result.ok && result.data?.tiers) {
+          const transformedTiers = result.data.tiers.map(tier => ({
+            id: tier.tier_key,
             name: tier.name,
-            subtitle: tier.subtitle || (tier.tier_id === 'individual' ? 'The Solo Developer' : tier.tier_id === 'developer' ? 'The Growth Specialist' : 'The Organization'),
-            monthlyPrice: tier.monthly_price,
-            annualPrice: tier.annual_price,
-            coaches: tier.coaches_limit,
-            admins: tier.admins_limit,
-            dataRetention: tier.data_retention_months ? `${tier.data_retention_months} months` : 'Unlimited',
-            popular: tier.tier_id === 'developer'
+            subtitle: tier.description || getDefaultSubtitle(tier.tier_key),
+            monthlyPrice: tier.pricing.monthly,
+            annualPrice: tier.pricing.annual,
+            coaches: tier.limits.coaches,
+            admins: tier.limits.coach_developers,
+            observationsPerCoach: tier.limits.observations_per_coach,
+            dataRetention: 'Unlimited',
+            popular: tier.highlight || tier.tier_key === 'coach_developer',
+            features: tier.features ? [
+              tier.features.self_observation && 'Self-observation mode',
+              tier.limits.observations_per_coach === null ? 'Unlimited observations' : `${tier.limits.observations_per_coach} observations per coach`,
+              tier.features.history_access === 'unlimited' && 'Full history access'
+            ].filter(Boolean) : []
           }));
           setPricingTiers(transformedTiers);
         }
@@ -88,6 +101,16 @@ export function SubscriptionRequiredModal({ open, reason }) {
         console.error('Failed to fetch pricing tiers:', err);
       }
     };
+    
+    const getDefaultSubtitle = (tierKey) => {
+      switch(tierKey) {
+        case 'individual_coach': return 'For Self-Development';
+        case 'coach_developer': return 'For Working with Coaches';
+        case 'club': return 'For Organizations';
+        default: return '';
+      }
+    };
+    
     if (open) {
       fetchPricingTiers();
     }
@@ -209,17 +232,30 @@ export function SubscriptionRequiredModal({ open, reason }) {
                 </div>
                 
                 <div className="space-y-2 text-sm text-left mb-4">
+                  {/* Coach limit display - varies by tier */}
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    <span>Up to {tier.coaches} coaches</span>
+                    <span>
+                      {tier.coaches === 0 
+                        ? 'Self-observation mode' 
+                        : tier.coaches === null 
+                          ? 'Unlimited coaches' 
+                          : `Up to ${tier.coaches} coaches`}
+                    </span>
                   </div>
+                  {/* Coach developer limit */}
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    <span>Up to {tier.admins} coach {tier.admins === 1 ? 'developer' : 'developers'}</span>
+                    <span>{tier.admins} coach {tier.admins === 1 ? 'developer' : 'developers'}</span>
                   </div>
+                  {/* Observation limit display */}
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    <span>{tier.dataRetention} data retention</span>
+                    <span>
+                      {tier.observationsPerCoach === null 
+                        ? 'Unlimited observations' 
+                        : `${tier.observationsPerCoach} observations/coach`}
+                    </span>
                   </div>
                 </div>
               </CardContent>
