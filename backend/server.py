@@ -1032,6 +1032,13 @@ try:
 except Exception as e:
     logger.warning(f"Could not load modular organization routes: {e}. Using inline routes.")
 
+try:
+    from routes.subscriptions import router as subscriptions_router
+    api_router.include_router(subscriptions_router)
+    logger.info("Subscriptions routes loaded from routes/subscriptions.py")
+except Exception as e:
+    logger.warning(f"Could not load subscriptions routes: {e}")
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():

@@ -3,9 +3,47 @@
 ## Overview
 "My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
-## Recent Updates (March 2, 2026)
+## Recent Updates (March 4, 2026)
 
-### Post-Session Editing - Session Parts Timeline (NEW)
+### Subscription Restructure Project (In Progress)
+
+**Phase 1: Data Model & Entitlement System (COMPLETED)**
+- New subscription tiers: `individual_coach`, `coach_developer`, `club`
+- Entitlement resolution engine in `backend/subscription_config.py`
+- Legacy tier mapping for safe migration
+- API endpoints: `/api/subscriptions/tiers`, `/api/subscriptions/entitlements`
+
+**Phase 2: Stripe Plan Mapping (COMPLETED - March 4, 2026)**
+- Stripe price configuration structure for new tiers
+- Placeholder price IDs for `individual_coach` and `coach_developer` (to be filled after Stripe setup)
+- Club tier reuses existing Stripe price IDs
+- Migration helper functions for subscription documents
+- New migration fields: `current_tier_key`, `is_legacy_tier`, `legacy_tier_key`, `current_period_end`, `pending_tier_key`
+- New API endpoints:
+  - `GET /api/subscriptions/stripe/config` - View Stripe price configuration
+  - `GET /api/subscriptions/available-tiers` - Tiers available for signup
+  - `GET /api/subscriptions/pricing-comparison` - Pricing page data
+  - `GET /api/subscriptions/migration/check/{org_id}` - Check migration status
+  - `POST /api/subscriptions/migration/apply/{org_id}` - Apply migration fields
+  - `GET /api/subscriptions/migration/bulk-status` - Migration dashboard data
+  - `PUT /api/subscriptions/admin/stripe/price` - Set Stripe price IDs
+
+**Upcoming Phases:**
+- Phase 3: Backend enforcement of limits
+- Phase 4: Observation flow updates (UI)
+- Phase 5: UI limits visibility & admin controls
+- Phase 6: Landing page pricing update
+- Phase 7: Migration logic for legacy users
+
+### New Subscription Tiers
+
+| Tier | Monthly | Annual | Coach Devs | Coaches | Obs/Coach |
+|------|---------|--------|------------|---------|-----------|
+| Individual Coach | £6 | £60 | 1 | 0 (self only) | Unlimited |
+| Coach Developer | £10 | £100 | 1 | Unlimited | 10 |
+| Club | £60 | £600 | 5 | 30 | Unlimited |
+
+### Post-Session Editing - Session Parts Timeline (March 2, 2026)
 - **Draggable Part Timing**: Coach Developers can edit completed session parts by dragging edge handles on the visual timeline
 - **Start/End Time Adjustment**: Drag left edge to change start time, drag right edge to change end time
 - **Minimum Duration**: Parts enforce 1-minute minimum duration to prevent accidental deletion
