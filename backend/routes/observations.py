@@ -142,6 +142,14 @@ async def list_observation_sessions(request: Request):
     
     result = []
     for s in sessions:
+        # Calculate total time from ball rolling + ball stopped (same as ReviewSession)
+        ball_rolling_time = s.get("ball_rolling_time", 0)
+        ball_not_rolling_time = s.get("ball_not_rolling_time", 0)
+        total_ball_time = ball_rolling_time + ball_not_rolling_time
+        
+        # Use ball time if available, otherwise fallback to total_duration
+        display_duration = total_ball_time if total_ball_time > 0 else s.get("total_duration", 0)
+        
         result.append(SessionListItem(
             session_id=s.get("session_id"),
             name=s.get("name", "Untitled"),
@@ -152,7 +160,7 @@ async def list_observation_sessions(request: Request):
             planned_date=s.get("planned_date"),
             created_at=s.get("created_at", ""),
             updated_at=s.get("updated_at", ""),
-            total_duration=s.get("total_duration", 0),
+            total_duration=display_duration,
             event_count=len(s.get("events", []))
         ))
     
