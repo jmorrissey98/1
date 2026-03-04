@@ -118,6 +118,11 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Update user data in context (e.g., after profile photo change)
+  const updateUser = (updates) => {
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+  };
+
   const isCoachDeveloper = () => {
     // Admin users have coach developer privileges
     return user?.role === USER_ROLES.COACH_DEVELOPER || user?.role === 'admin';
@@ -140,6 +145,7 @@ export function AuthProvider({ children }) {
       logout,
       processSessionId,
       checkAuth,
+      updateUser,
       isCoachDeveloper,
       isCoach,
       isAdmin,

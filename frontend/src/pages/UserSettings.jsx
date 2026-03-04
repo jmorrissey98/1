@@ -24,7 +24,7 @@ import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 
 export default function UserSettings() {
   const navigate = useNavigate();
-  const { user, logout, isCoachDeveloper } = useAuth();
+  const { user, logout, isCoachDeveloper, updateUser } = useAuth();
   const { organization, updateOrganization, refreshOrganization } = useOrganization();
   const { openUpgradeModal } = useUpgrade();
   const API_URL = ''; // Relative URL - frontend and backend on same domain
@@ -79,6 +79,8 @@ export default function UserSettings() {
       throw new Error(result.data?.detail || 'Failed to update photo');
     }
     setUserPhoto(photoData || null);
+    // Also update the auth context so the photo shows everywhere
+    updateUser({ picture: photoData || null });
   };
   
   const loadLimits = async () => {

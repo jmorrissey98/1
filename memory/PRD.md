@@ -59,6 +59,16 @@
 - Increased hero section top padding on mobile (pt-36 vs pt-32)
 - Verified working via mobile viewport screenshot testing
 
+**Profile Photo Not Syncing Across Pages (COMPLETED - March 4, 2026)**
+- User reported profile photo showed in Team Members list but not in "Your Account" section at top of Settings
+- Also not showing in "My Development" page after upload
+- Root cause: Auth context (`user.picture`) wasn't being updated when photo was uploaded
+- Fixed: Added `updateUser()` function to AuthContext to allow updating user data
+- Updated UserSettings.jsx and CoachMyDevelopment.jsx to call `updateUser({ picture: photoData })` after upload
+- Now photo syncs immediately across all pages without requiring page refresh
+- Verified: Settings page shows same photo in both "Your Account" and "Team Members" sections
+- Verified: My Development page shows photo correctly
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**

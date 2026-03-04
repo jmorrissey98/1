@@ -35,7 +35,7 @@ const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#E
 
 export default function CoachMyDevelopment() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { openUpgradeModal } = useUpgrade();
   
   // Loading states
@@ -372,6 +372,8 @@ export default function CoachMyDevelopment() {
       throw new Error(result.data?.detail || 'Failed to update photo');
     }
     setDisplayPhoto(photoData || null);
+    // Also update auth context so photo shows everywhere
+    updateUser({ picture: photoData || null });
   };
   
   const achievedTargets = targets.filter(t => t.status === 'achieved');
