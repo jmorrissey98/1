@@ -89,6 +89,7 @@ async def create_invite(invite_data: InviteCreate, request: Request):
             "role": invite_data.role,
             "coach_id": invite_data.coach_id,
             "invited_by": user.user_id,
+            "organization_id": user.organization_id,  # CRITICAL: Store org for data isolation
             "created_at": datetime.now(timezone.utc).isoformat(),
             "used": False
         }
@@ -141,10 +142,20 @@ async def create_invite(invite_data: InviteCreate, request: Request):
 
 @router.get("", response_model=List[InviteResponse])
 async def list_invites(request: Request):
-    """List all pending invites (Coach Developer only)"""
-    await require_coach_developer(request)
+    """List all pending invites for the user's organization (Coach Developer only)"""
+    user = await require_coach_developer(request)
     
-    invites = await db.invites.find({"used": False}, {"_id": 0}).to_list(100)
+    # CRITICAL: Filter by organization_id for data isolation
+    # Include invites without org_id that were invited_by this user (legacy data)
+    query = {
+        "used": False,
+        "$or": [
+            {"organization_id": user.organization_id},
+            {"organization_id": {"$exists": False}, "invited_by": user.user_id}
+        ]
+    }
+    
+    invites = await db.invites.find(query, {"_id": 0}).to_list(100)
     return [
         InviteResponse(
             invite_id=inv["invite_id"],
@@ -160,10 +171,19 @@ async def list_invites(request: Request):
 
 @router.delete("/{invite_id}")
 async def delete_invite(invite_id: str, request: Request):
-    """Delete an invite (Coach Developer only)"""
-    await require_coach_developer(request)
+    """Delete an invite (Coach Developer only) - only for own organization"""
+    user = await require_coach_developer(request)
     
-    result = await db.invites.delete_one({"invite_id": invite_id})
+    # CRITICAL: Only delete invites from the user's organization
+    query = {
+        "invite_id": invite_id,
+        "$or": [
+            {"organization_id": user.organization_id},
+            {"organization_id": {"$exists": False}, "invited_by": user.user_id}
+        ]
+    }
+    
+    result = await db.invites.delete_one(query)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Invite not found")
     return {"status": "deleted"}
@@ -171,11 +191,20 @@ async def delete_invite(invite_id: str, request: Request):
 
 @router.delete("/by-email/{email}")
 async def delete_invite_by_email(email: str, request: Request):
-    """Delete an invite by email address (Coach Developer only)"""
-    await require_coach_developer(request)
+    """Delete an invite by email address (Coach Developer only) - only for own organization"""
+    user = await require_coach_developer(request)
     
     email_lower = email.lower().strip()
-    result = await db.invites.delete_many({"email": {"$regex": f"^{email_lower}$", "$options": "i"}})
+    # CRITICAL: Only delete invites from the user's organization
+    query = {
+        "email": {"$regex": f"^{email_lower}$", "$options": "i"},
+        "$or": [
+            {"organization_id": user.organization_id},
+            {"organization_id": {"$exists": False}, "invited_by": user.user_id}
+        ]
+    }
+    
+    result = await db.invites.delete_many(query)
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="No invite found for this email")

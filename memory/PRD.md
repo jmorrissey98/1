@@ -31,6 +31,25 @@
 - If no subscription record exists, it creates one with the new tier
 - Verified working via API testing - entitlements now correctly reflect admin-changed tier
 
+**CRITICAL: Data Isolation Bug - Invites Visible Across Organizations (COMPLETED - March 4, 2026)**
+- User reported seeing pending invites from other organizations (e.g., QPR invites visible in Effra Football Club)
+- Root cause: `/api/invites` endpoint was returning ALL pending invites without filtering by organization_id
+- Fixed invites routes (`/app/backend/routes/invites.py`):
+  - `POST /invites` - Now stores `organization_id` when creating invites
+  - `GET /invites` - Now filters by user's organization_id
+  - `DELETE /invites/{invite_id}` - Now only allows deleting invites from own organization
+  - `DELETE /invites/by-email/{email}` - Now only deletes invites from own organization
+- Legacy invites (without org_id) fallback to `invited_by` user check for backwards compatibility
+
+**CRITICAL: Template Organization Isolation Hardening (COMPLETED - March 4, 2026)**
+- Strengthened organization isolation for observation and reflection templates
+- Observation templates (`/api/observation-templates`):
+  - PUT and DELETE now verify template belongs to user's organization
+- Reflection templates (`/api/reflection-templates`):
+  - PUT, DELETE, and set-default now verify template belongs to user's organization
+  - Removed `created_by` check in favor of organization membership check
+- Templates can only be modified/deleted by users in the same organization
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**

@@ -4793,18 +4793,27 @@ async def update_reflection_template(
     """Update an existing reflection template"""
     user = await require_coach_developer(request)
     
-    # Find the template
-    template = await db.reflection_templates.find_one(
-        {"template_id": template_id},
-        {"_id": 0}
-    )
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # CRITICAL: Find template that belongs to user's organization
+    query = {"template_id": template_id}
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        query["created_by"] = user.user_id
+    
+    template = await db.reflection_templates.find_one(query, {"_id": 0})
     
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
-    
-    # Verify ownership - only creator can edit
-    if template.get("created_by") != user.user_id:
-        raise HTTPException(status_code=403, detail="You can only edit templates you created")
     
     # Build update
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
@@ -4818,12 +4827,12 @@ async def update_reflection_template(
     if data.is_default is not None:
         # If setting as default, unset any existing default for the same target_role
         if data.is_default:
-            org_id = template.get("organization_id")
+            template_org_id = template.get("organization_id")
             target_role = template.get("target_role")
-            if org_id:
+            if template_org_id:
                 await db.reflection_templates.update_many(
                     {
-                        "organization_id": org_id,
+                        "organization_id": template_org_id,
                         "target_role": target_role,
                         "is_default": True,
                         "template_id": {"$ne": template_id}
@@ -4850,18 +4859,27 @@ async def delete_reflection_template(template_id: str, request: Request):
     """Delete a reflection template"""
     user = await require_coach_developer(request)
     
-    # Find the template
-    template = await db.reflection_templates.find_one(
-        {"template_id": template_id},
-        {"_id": 0}
-    )
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # CRITICAL: Find template that belongs to user's organization
+    query = {"template_id": template_id}
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        query["created_by"] = user.user_id
+    
+    template = await db.reflection_templates.find_one(query, {"_id": 0})
     
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
-    
-    # Verify ownership - only creator can delete
-    if template.get("created_by") != user.user_id:
-        raise HTTPException(status_code=403, detail="You can only delete templates you created")
     
     await db.reflection_templates.delete_one({"template_id": template_id})
     
@@ -4872,22 +4890,35 @@ async def set_template_as_default(template_id: str, request: Request):
     """Set a template as the default for its target_role"""
     user = await require_coach_developer(request)
     
-    # Find the template
-    template = await db.reflection_templates.find_one(
-        {"template_id": template_id},
-        {"_id": 0}
-    )
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # CRITICAL: Find template that belongs to user's organization
+    query = {"template_id": template_id}
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        query["created_by"] = user.user_id
+    
+    template = await db.reflection_templates.find_one(query, {"_id": 0})
     
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
-    org_id = template.get("organization_id")
+    template_org_id = template.get("organization_id")
     target_role = template.get("target_role")
     
     # Unset any existing default for the same target_role in the org
-    if org_id:
+    if template_org_id:
         await db.reflection_templates.update_many(
-            {"organization_id": org_id, "target_role": target_role, "is_default": True},
+            {"organization_id": template_org_id, "target_role": target_role, "is_default": True},
             {"$set": {"is_default": False}}
         )
     
@@ -5060,11 +5091,24 @@ async def update_observation_template(
     """Update an existing observation window template"""
     user = await require_coach_developer(request)
     
-    # Find the template
-    template = await db.observation_templates.find_one(
-        {"template_id": template_id},
-        {"_id": 0}
-    )
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # CRITICAL: Find template that belongs to user's organization
+    query = {"template_id": template_id}
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        query["created_by"] = user.user_id
+    
+    template = await db.observation_templates.find_one(query, {"_id": 0})
     
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -5090,12 +5134,12 @@ async def update_observation_template(
         update_data["is_default"] = data.is_default
         if data.is_default:
             # Unset default for other templates with same context
-            org_id = template.get("organization_id")
+            template_org_id = template.get("organization_id")
             observation_context = template.get("observation_context")
-            if org_id:
+            if template_org_id:
                 await db.observation_templates.update_many(
                     {
-                        "organization_id": org_id, 
+                        "organization_id": template_org_id, 
                         "observation_context": observation_context,
                         "is_default": True,
                         "template_id": {"$ne": template_id}
@@ -5118,21 +5162,34 @@ async def delete_observation_template(template_id: str, request: Request):
     """Delete an observation window template"""
     user = await require_coach_developer(request)
     
-    # Find the template
-    template = await db.observation_templates.find_one(
-        {"template_id": template_id},
-        {"_id": 0}
-    )
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # CRITICAL: Find template that belongs to user's organization
+    query = {"template_id": template_id}
+    if org_id:
+        query["organization_id"] = org_id
+    else:
+        query["created_by"] = user.user_id
+    
+    template = await db.observation_templates.find_one(query, {"_id": 0})
     
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
     # Don't allow deleting if it's the only default template for that context
     if template.get("is_default"):
-        org_id = template.get("organization_id")
+        template_org_id = template.get("organization_id")
         context = template.get("observation_context")
         other_defaults = await db.observation_templates.count_documents({
-            "organization_id": org_id,
+            "organization_id": template_org_id,
             "observation_context": context,
             "is_default": True,
             "template_id": {"$ne": template_id}
