@@ -23,37 +23,40 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Subscription tier options - Updated for Phase 5
 const TIER_OPTIONS = [
-  { value: 'individual_coach', label: 'Individual Coach', color: 'bg-slate-100 text-slate-700' },
-  { value: 'coach_developer', label: 'Coach Developer', color: 'bg-blue-100 text-blue-700' },
-  { value: 'club', label: 'Club', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'individual_coach', label: 'Individual Coach', color: 'bg-purple-100 text-purple-700', isNew: true },
+  { value: 'coach_developer', label: 'Coach Developer', color: 'bg-blue-100 text-blue-700', isNew: true },
+  { value: 'club', label: 'Club', color: 'bg-emerald-100 text-emerald-700', isNew: true },
   // Legacy tiers (for display only)
-  { value: 'individual', label: 'Individual (Legacy)', color: 'bg-amber-100 text-amber-700' },
-  { value: 'developer', label: 'Developer (Legacy)', color: 'bg-amber-100 text-amber-700' }
+  { value: 'individual', label: 'Individual (Legacy)', color: 'bg-amber-100 text-amber-700', isLegacy: true },
+  { value: 'developer', label: 'Developer (Legacy)', color: 'bg-amber-100 text-amber-700', isLegacy: true },
+  { value: 'free', label: 'Free (Legacy)', color: 'bg-slate-100 text-slate-500', isLegacy: true }
 ];
 
-// Default subscription tiers - Updated for Phase 5
+// Default subscription tiers - Updated for Phase 7 with correct pricing
 const DEFAULT_TIERS = [
   {
     tier_id: 'individual_coach',
     name: 'Individual Coach',
-    monthly_price: 6,
-    annual_price: 60,
+    monthly_price: 5,
+    annual_price: 50,
     coaches_limit: 0,
     admins_limit: 1,
     observations_limit: null, // Unlimited
     data_retention_months: null,
-    description: 'For coaches observing themselves'
+    description: 'For coaches observing themselves',
+    isNew: true
   },
   {
     tier_id: 'coach_developer',
     name: 'Coach Developer',
-    monthly_price: 10,
-    annual_price: 100,
+    monthly_price: 15,
+    annual_price: 150,
     coaches_limit: null, // Unlimited
     admins_limit: 1,
     observations_limit: 10, // Per coach
     data_retention_months: null,
-    description: 'For coach developers working with multiple coaches'
+    description: 'For coach developers working with multiple coaches',
+    isNew: true
   },
   {
     tier_id: 'club',
@@ -64,8 +67,16 @@ const DEFAULT_TIERS = [
     admins_limit: 5,
     observations_limit: null, // Unlimited
     data_retention_months: null,
-    description: 'For organizations'
+    description: 'For organizations',
+    isNew: true
   }
+];
+
+// Legacy tiers for reference
+const LEGACY_TIERS = [
+  { tier_id: 'individual', name: 'Individual (Legacy)', monthly_price: 20, annual_price: 200 },
+  { tier_id: 'developer', name: 'Developer (Legacy)', monthly_price: 35, annual_price: 350 },
+  { tier_id: 'free', name: 'Free (Legacy)', monthly_price: 0, annual_price: 0 }
 ];
 
 export default function AdminDashboard() {
@@ -103,6 +114,12 @@ export default function AdminDashboard() {
   const [orphanedUsers, setOrphanedUsers] = useState(null);
   const [loadingOrphanedUsers, setLoadingOrphanedUsers] = useState(false);
   const [fixingUser, setFixingUser] = useState(null);
+
+  // Migration status states (Phase 7)
+  const [migrationStatus, setMigrationStatus] = useState(null);
+  const [loadingMigration, setLoadingMigration] = useState(false);
+  const [applyingBulkMigration, setApplyingBulkMigration] = useState(false);
+  const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'legacy', 'new'
 
   const loadData = async () => {
     setLoading(true);
@@ -208,6 +225,62 @@ export default function AdminDashboard() {
       toast.error('Failed to check for orphaned coaches');
     } finally {
       setLoadingOrphaned(false);
+    }
+  };
+
+  // Load migration status (Phase 7)
+  const loadMigrationStatus = async () => {
+    setLoadingMigration(true);
+    try {
+      const result = await safeGet(`${API_URL}/api/subscriptions/migration/bulk-status`);
+      if (result.ok) {
+        setMigrationStatus(result.data);
+      } else {
+        toast.error('Failed to load migration status');
+      }
+    } catch (err) {
+      toast.error('Failed to load migration status');
+    } finally {
+      setLoadingMigration(false);
+    }
+  };
+
+  // Apply bulk migration (Phase 7)
+  const handleBulkMigration = async () => {
+    if (!window.confirm('This will apply migration fields to all legacy subscriptions. Continue?')) {
+      return;
+    }
+    
+    setApplyingBulkMigration(true);
+    try {
+      const result = await safePost(`${API_URL}/api/subscriptions/migration/bulk-apply`, {});
+      if (result.ok) {
+        toast.success(`Migration applied: ${result.data.migrated} subscriptions updated`);
+        loadMigrationStatus();
+        loadData();
+      } else {
+        toast.error(result.data?.detail || 'Bulk migration failed');
+      }
+    } catch (err) {
+      toast.error('Failed to apply bulk migration');
+    } finally {
+      setApplyingBulkMigration(false);
+    }
+  };
+
+  // Complete migration for specific org (Phase 7)
+  const handleCompleteMigration = async (orgId) => {
+    try {
+      const result = await safePost(`${API_URL}/api/subscriptions/migration/complete/${orgId}`, {});
+      if (result.ok && result.data.success) {
+        toast.success(result.data.message);
+        loadMigrationStatus();
+        loadData();
+      } else {
+        toast.error(result.data?.message || 'Migration failed');
+      }
+    } catch (err) {
+      toast.error('Failed to complete migration');
     }
   };
 
@@ -825,137 +898,288 @@ export default function AdminDashboard() {
           </TabsContent>
 
           {/* Subscription Tiers Tab */}
-          <TabsContent value="subscriptions" className="space-y-4">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">Subscription Tiers</h2>
-              <p className="text-sm text-slate-500">Edit pricing and limits for each subscription tier. Changes apply globally.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {subscriptionTiers.map(tier => (
-                <Card key={tier.tier_id} data-testid={`tier-card-${tier.tier_id}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{tier.name}</CardTitle>
-                      {editingTier !== tier.tier_id && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => startEditingTier(tier)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                    <CardDescription>{tier.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {editingTier === tier.tier_id ? (
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-sm">Name</Label>
-                          <Input
-                            value={tierEdits.name}
-                            onChange={(e) => setTierEdits(prev => ({ ...prev, name: e.target.value }))}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-sm">Monthly Price (£)</Label>
-                            <Input
-                              type="number"
-                              value={tierEdits.monthly_price}
-                              onChange={(e) => setTierEdits(prev => ({ ...prev, monthly_price: parseInt(e.target.value) }))}
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm">Annual Price (£)</Label>
-                            <Input
-                              type="number"
-                              value={tierEdits.annual_price}
-                              onChange={(e) => setTierEdits(prev => ({ ...prev, annual_price: parseInt(e.target.value) }))}
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-sm">Coaches Limit</Label>
-                            <Input
-                              type="number"
-                              value={tierEdits.coaches_limit}
-                              onChange={(e) => setTierEdits(prev => ({ ...prev, coaches_limit: parseInt(e.target.value) }))}
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm">Admins Limit</Label>
-                            <Input
-                              type="number"
-                              value={tierEdits.admins_limit}
-                              onChange={(e) => setTierEdits(prev => ({ ...prev, admins_limit: parseInt(e.target.value) }))}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-sm">Data Retention (months)</Label>
-                          <Input
-                            type="number"
-                            placeholder="Empty = unlimited"
-                            value={tierEdits.data_retention_months ?? ''}
-                            onChange={(e) => setTierEdits(prev => ({ 
-                              ...prev, 
-                              data_retention_months: e.target.value === '' ? null : parseInt(e.target.value) 
-                            }))}
-                          />
-                          <p className="text-xs text-slate-500 mt-1">Leave empty for unlimited</p>
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                          <Button 
-                            size="sm" 
-                            onClick={() => saveTierChanges(tier.tier_id)}
-                            disabled={savingTier}
-                          >
-                            {savingTier ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
-                            Save
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setEditingTier(null)}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Cancel
-                          </Button>
+          <TabsContent value="subscriptions" className="space-y-6">
+            {/* Migration Status Section */}
+            <Card className="border-amber-200 bg-amber-50/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <RotateCcw className="w-5 h-5 text-amber-600" />
+                      Migration Status
+                    </CardTitle>
+                    <CardDescription>
+                      Track and manage migration of legacy subscriptions to the new tier system.
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={loadMigrationStatus}
+                    disabled={loadingMigration}
+                  >
+                    {loadingMigration ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {migrationStatus ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-3 bg-white rounded-lg border">
+                        <div className="text-2xl font-bold text-slate-900">{migrationStatus.total}</div>
+                        <div className="text-sm text-slate-600">Total Subscriptions</div>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border">
+                        <div className="text-2xl font-bold text-green-600">{migrationStatus.already_migrated}</div>
+                        <div className="text-sm text-slate-600">Already Migrated</div>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border">
+                        <div className="text-2xl font-bold text-amber-600">{migrationStatus.needs_migration}</div>
+                        <div className="text-sm text-slate-600">Needs Migration</div>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border">
+                        <div className="text-sm text-slate-500">Legacy Breakdown</div>
+                        <div className="text-xs mt-1">
+                          Individual: {migrationStatus.legacy_individual} | 
+                          Developer: {migrationStatus.legacy_developer} | 
+                          Club: {migrationStatus.legacy_club}
                         </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-bold">£{tier.monthly_price}</span>
-                          <span className="text-slate-500">/month</span>
-                        </div>
-                        <p className="text-sm text-slate-500">£{tier.annual_price}/year (save 2 months)</p>
-                        
-                        <div className="pt-3 border-t space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Coaches</span>
-                            <span className="font-medium">Up to {tier.coaches_limit}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Coach Developers</span>
-                            <span className="font-medium">Up to {tier.admins_limit}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Data History</span>
-                            <span className={`font-medium ${tier.data_retention_months === null ? 'text-green-600' : ''}`}>
-                              {tier.data_retention_months === null ? 'Unlimited' : `${tier.data_retention_months} months`}
-                            </span>
-                          </div>
+                    </div>
+                    
+                    {migrationStatus.needs_migration > 0 && (
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button 
+                          onClick={handleBulkMigration}
+                          disabled={applyingBulkMigration}
+                          className="bg-amber-600 hover:bg-amber-700"
+                        >
+                          {applyingBulkMigration ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              Applying Migration...
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Apply Bulk Migration
+                            </>
+                          )}
+                        </Button>
+                        <span className="text-sm text-slate-600">
+                          Prepares all legacy subscriptions for migration (keeps current billing until period ends)
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Legacy Organizations List */}
+                    {migrationStatus.organizations && migrationStatus.organizations.filter(o => !o.has_migration_fields).length > 0 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <h4 className="font-medium text-slate-700 mb-2">Legacy Subscriptions</h4>
+                        <div className="max-h-48 overflow-y-auto space-y-2">
+                          {migrationStatus.organizations
+                            .filter(o => !o.has_migration_fields)
+                            .map(org => (
+                              <div key={org.org_id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                <div>
+                                  <span className="font-medium text-sm">{org.org_id}</span>
+                                  <Badge variant="outline" className="ml-2 bg-amber-100 text-amber-700">
+                                    {org.old_tier || 'Unknown'}
+                                  </Badge>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleCompleteMigration(org.org_id)}
+                                >
+                                  Migrate
+                                </Button>
+                              </div>
+                            ))}
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                ) : (
+                  <Button onClick={loadMigrationStatus} disabled={loadingMigration}>
+                    {loadingMigration ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Load Migration Status
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* New Tiers Section */}
+            <div>
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Badge className="bg-green-500">New</Badge>
+                  Current Subscription Tiers
+                </h2>
+                <p className="text-sm text-slate-500">These are the active tiers for new subscriptions.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {subscriptionTiers.map(tier => (
+                  <Card key={tier.tier_id} data-testid={`tier-card-${tier.tier_id}`} className="border-green-200">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{tier.name}</CardTitle>
+                        {editingTier !== tier.tier_id && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => startEditingTier(tier)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <CardDescription>{tier.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {editingTier === tier.tier_id ? (
+                        <div className="space-y-4">
+                          <div>
+                            <Label className="text-sm">Name</Label>
+                            <Input
+                              value={tierEdits.name}
+                              onChange={(e) => setTierEdits(prev => ({ ...prev, name: e.target.value }))}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-sm">Monthly Price (£)</Label>
+                              <Input
+                                type="number"
+                                value={tierEdits.monthly_price}
+                                onChange={(e) => setTierEdits(prev => ({ ...prev, monthly_price: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm">Annual Price (£)</Label>
+                              <Input
+                                type="number"
+                                value={tierEdits.annual_price}
+                                onChange={(e) => setTierEdits(prev => ({ ...prev, annual_price: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-sm">Coaches Limit</Label>
+                              <Input
+                                type="number"
+                                placeholder="0 = unlimited"
+                                value={tierEdits.coaches_limit ?? ''}
+                                onChange={(e) => setTierEdits(prev => ({ ...prev, coaches_limit: e.target.value === '' ? null : parseInt(e.target.value) }))}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm">Admins Limit</Label>
+                              <Input
+                                type="number"
+                                value={tierEdits.admins_limit}
+                                onChange={(e) => setTierEdits(prev => ({ ...prev, admins_limit: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Observations/Coach</Label>
+                            <Input
+                              type="number"
+                              placeholder="Empty = unlimited"
+                              value={tierEdits.observations_limit ?? ''}
+                              onChange={(e) => setTierEdits(prev => ({ 
+                                ...prev, 
+                                observations_limit: e.target.value === '' ? null : parseInt(e.target.value) 
+                              }))}
+                            />
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => saveTierChanges(tier.tier_id)}
+                              disabled={savingTier}
+                            >
+                              {savingTier ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+                              Save
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setEditingTier(null)}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-bold">£{tier.monthly_price}</span>
+                            <span className="text-slate-500">/month</span>
+                          </div>
+                          <p className="text-sm text-slate-500">£{tier.annual_price}/year</p>
+                          
+                          <div className="pt-3 border-t space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-600">Coaches</span>
+                              <span className={`font-medium ${tier.coaches_limit === null || tier.coaches_limit === 0 ? 'text-green-600' : ''}`}>
+                                {tier.coaches_limit === null ? 'Unlimited' : tier.coaches_limit === 0 ? 'Self only' : `Up to ${tier.coaches_limit}`}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-600">Coach Developers</span>
+                              <span className="font-medium">Up to {tier.admins_limit}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-600">Observations/Coach</span>
+                              <span className={`font-medium ${tier.observations_limit === null ? 'text-green-600' : ''}`}>
+                                {tier.observations_limit === null ? 'Unlimited' : tier.observations_limit}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Legacy Tiers Reference */}
+            <div>
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Badge variant="outline" className="bg-amber-100 text-amber-700">Legacy</Badge>
+                  Legacy Tiers (Reference Only)
+                </h2>
+                <p className="text-sm text-slate-500">These tiers are being phased out. Existing subscribers will be migrated.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {LEGACY_TIERS.map(tier => (
+                  <Card key={tier.tier_id} className="border-amber-200 bg-amber-50/30">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {tier.name}
+                        <Archive className="w-4 h-4 text-amber-500" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm text-slate-600">
+                        <p>£{tier.monthly_price}/mo | £{tier.annual_price}/yr</p>
+                        <p className="text-xs text-amber-600 mt-1">
+                          → Migrates to Coach Developer
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </TabsContent>
 
