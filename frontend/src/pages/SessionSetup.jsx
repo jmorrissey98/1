@@ -719,6 +719,7 @@ export default function SessionSetup() {
                     const canObserve = canObserveCoach(status);
                     const limitText = status ? formatObservationLimit(status) : '';
                     const limitClass = status ? getObservationLimitClass(status) : '';
+                    const isCoachDev = c.is_coach_developer;
                     
                     return (
                       <SelectItem 
@@ -729,7 +730,13 @@ export default function SessionSetup() {
                       >
                         <div className="flex items-center justify-between w-full gap-3">
                           <span className={!canObserve.allowed ? 'text-slate-400' : ''}>
-                            {c.name}{c.role_title && ` - ${c.role_title}`}
+                            {c.name}
+                            {isCoachDev && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                Coach Developer
+                              </span>
+                            )}
+                            {!isCoachDev && c.role_title && ` - ${c.role_title}`}
                           </span>
                           {status && (
                             <span className={cn("text-xs font-medium ml-auto", limitClass)}>

@@ -174,7 +174,50 @@ async def list_all_coaches(request: Request):
             "has_account": has_account,
             "user_id": user_id,
             "sessionCount": session_counts_map.get(coach_id, 0),
-            "upcomingCount": upcoming_counts_map.get(coach_id, 0)
+            "upcomingCount": upcoming_counts_map.get(coach_id, 0),
+            "is_coach_developer": False  # Regular coach
+        })
+    
+    # For Club and Coach Developer tiers: Also include other coach_developer users in the org
+    # They can be observed too (excluding the current user)
+    other_coach_devs = await db.users.find(
+        {
+            "organization_id": org_id,
+            "role": "coach_developer",
+            "user_id": {"$ne": user.user_id}  # Exclude current user
+        },
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Add coach_developer users to the result
+    for cd_user in other_coach_devs:
+        cd_user_id = cd_user.get("user_id")
+        
+        # Check if this coach_developer already has a linked coach profile (avoid duplicates)
+        linked_coach_id = cd_user.get("linked_coach_id")
+        if linked_coach_id:
+            # Check if already in result
+            if any(c.get("id") == linked_coach_id for c in result):
+                continue
+        
+        # Create a virtual coach entry for this coach_developer
+        result.append({
+            "id": f"cd_{cd_user_id}",  # Prefix to distinguish from regular coaches
+            "name": cd_user.get("name", "Unknown"),
+            "email": cd_user.get("email"),
+            "photo": cd_user.get("picture"),
+            "role_title": "Coach Developer",
+            "age_group": None,
+            "department": None,
+            "bio": None,
+            "targets": [],
+            "created_at": cd_user.get("created_at"),
+            "updated_at": None,
+            "has_account": True,
+            "user_id": cd_user_id,
+            "sessionCount": 0,  # TODO: Could aggregate from sessions where this user was observed
+            "upcomingCount": 0,
+            "is_coach_developer": True  # Mark as coach developer for UI differentiation
         })
     
     return result
