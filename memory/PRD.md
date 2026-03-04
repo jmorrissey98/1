@@ -67,19 +67,32 @@
 
 **Phase 6: Landing Page Pricing Update (COMPLETED - March 4, 2026)**
 - Updated `LandingPage.jsx` with new pricing structure:
-  - New default tiers: Individual Coach (£6/mo), Coach Developer (£10/mo), Club (£60/mo)
+  - New default tiers: Individual Coach (£5/mo), Coach Developer (£15/mo), Club (£60/mo)
   - Fetches live pricing from `/api/subscriptions/pricing-comparison` endpoint
   - Shows observation limits per tier (e.g., "10/coach" or "Unlimited")
   - Feature list with checkmarks for each tier
-  - "Coming Soon" state for tiers without Stripe configuration
-  - Disabled purchase button for unready tiers
+  - All tiers now have Stripe price IDs configured
 - Updated `server.py` STRIPE_PRODUCTS to include new tier mappings:
-  - `individual_coach` and `coach_developer` with placeholder price IDs
-  - Backend blocks checkout for tiers without Stripe price IDs configured
-  - Helpful error message directing users to Club tier or support
+  - `individual_coach` and `coach_developer` with actual Stripe price IDs
+  - All tiers ready for Stripe checkout
 
-**Upcoming Phases:**
-- Phase 7: Migration logic for legacy users
+**Phase 7: Migration Logic for Legacy Users (COMPLETED - March 4, 2026)**
+- Created `MigrationBanner.jsx` component for legacy user notification:
+  - Shows banner on Settings page for users on legacy tiers
+  - Displays migration details with old/new tier comparison
+  - "Migrate Now" button for early voluntary migration
+  - Dismissible banner UI
+- New backend API endpoints:
+  - `GET /api/subscriptions/my-migration-status` - Get current user's migration status
+  - `POST /api/subscriptions/migrate-early` - Voluntary early migration
+  - `POST /api/subscriptions/migration/bulk-apply` - Admin: Apply migration fields to all legacy subs
+  - `POST /api/subscriptions/migration/complete/{org_id}` - Admin: Complete migration for specific org
+- Frontend API functions in `subscriptionApi.js`:
+  - `fetchMigrationStatus()` - Get migration status with caching
+  - `migrateEarly()` - Trigger early migration
+  - `clearSubscriptionCaches()` - Clear all subscription caches
+
+**🎉 ALL 7 PHASES COMPLETED!**
 
 ### New Subscription Tiers
 

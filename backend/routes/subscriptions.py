@@ -839,3 +839,329 @@ async def admin_set_stripe_price(data: SetStripePriceRequest, request: Request):
         "price_id": data.price_id,
         "tier_now_ready": is_tier_stripe_ready(data.tier_key)
     }
+
+
+# ============================================
+# PHASE 7: USER MIGRATION ENDPOINTS
+# ============================================
+
+@router.get("/my-migration-status")
+async def get_my_migration_status(request: Request):
+    """
+    Get migration status for the current user's organization.
+    Used by frontend to show migration banner/info to legacy users.
+    
+    Returns:
+        - is_legacy: Whether the user is on a legacy tier
+        - legacy_tier_key: The old tier (individual, developer, club)
+        - pending_tier_key: What they'll migrate to
+        - current_period_end: When their current billing period ends
+        - can_migrate_early: Whether early migration is available
+        - migration_info: User-friendly migration details
+    """
+    user = await require_auth(request)
+    
+    # Get user's organization
+    org_id = user.organization_id
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    if not org_id:
+        return {
+            "is_legacy": False,
+            "has_subscription": False,
+            "message": "No organization found"
+        }
+    
+    # Get subscription
+    subscription = await db.subscriptions.find_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        return {
+            "is_legacy": False,
+            "has_subscription": False,
+            "message": "No subscription found"
+        }
+    
+    # Check if already migrated
+    is_legacy = subscription.get("is_legacy_tier", False)
+    legacy_tier_key = subscription.get("legacy_tier_key")
+    current_tier_key = subscription.get("current_tier_key")
+    pending_tier_key = subscription.get("pending_tier_key")
+    current_period_end = subscription.get("current_period_end")
+    
+    # If no migration fields, check old tier_id
+    if current_tier_key is None:
+        old_tier = subscription.get("tier_id") or subscription.get("tier")
+        if old_tier in LEGACY_TIER_MAPPING:
+            is_legacy = True
+            legacy_tier_key = old_tier
+            pending_tier_key = LEGACY_TIER_MAPPING[old_tier]
+    
+    # Build user-friendly migration info
+    migration_info = None
+    if is_legacy and legacy_tier_key:
+        new_tier = pending_tier_key or LEGACY_TIER_MAPPING.get(legacy_tier_key, "coach_developer")
+        new_tier_config = SUBSCRIPTION_TIERS.get(new_tier, {})
+        old_tier_name = legacy_tier_key.replace("_", " ").title()
+        
+        migration_info = {
+            "old_tier_name": old_tier_name,
+            "new_tier_name": new_tier_config.get("name", new_tier),
+            "new_tier_key": new_tier,
+            "new_pricing": {
+                "monthly": new_tier_config.get("pricing", {}).get("monthly", 0) / 100,
+                "annual": new_tier_config.get("pricing", {}).get("annual", 0) / 100,
+            },
+            "new_limits": {
+                "coaches": new_tier_config.get("limits", {}).get("max_coaches"),
+                "observations_per_coach": new_tier_config.get("limits", {}).get("max_observations_per_coach"),
+            },
+            "message": f"Your {old_tier_name} plan is being migrated to {new_tier_config.get('name', new_tier)}. "
+                       f"Your current pricing and features will remain active until your next billing date."
+        }
+    
+    return {
+        "is_legacy": is_legacy,
+        "has_subscription": True,
+        "legacy_tier_key": legacy_tier_key,
+        "current_tier_key": current_tier_key,
+        "pending_tier_key": pending_tier_key,
+        "current_period_end": current_period_end,
+        "subscription_status": subscription.get("status"),
+        "can_migrate_early": is_legacy and subscription.get("status") == "active",
+        "migration_info": migration_info
+    }
+
+
+class EarlyMigrationRequest(BaseModel):
+    target_tier: Optional[str] = None  # If not provided, uses the mapped tier
+
+
+@router.post("/migrate-early")
+async def migrate_early(data: EarlyMigrationRequest, request: Request):
+    """
+    Allow a legacy user to migrate to the new tier system early.
+    This updates their subscription to the new tier immediately.
+    
+    For legacy individual/developer users, they can choose to migrate to:
+    - individual_coach (for self-observation)
+    - coach_developer (for working with coaches)
+    - club (for organizations)
+    """
+    user = await require_auth(request)
+    
+    # Get user's organization
+    org_id = user.organization_id
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization found")
+    
+    # Get subscription
+    subscription = await db.subscriptions.find_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        raise HTTPException(status_code=400, detail="No subscription found")
+    
+    # Check if user is on legacy tier
+    old_tier = subscription.get("tier_id") or subscription.get("tier")
+    is_legacy = subscription.get("is_legacy_tier", False) or old_tier in LEGACY_TIER_MAPPING
+    
+    if not is_legacy:
+        return {
+            "success": False,
+            "message": "Your subscription is already on the new tier system"
+        }
+    
+    # Determine target tier
+    target_tier = data.target_tier
+    if not target_tier:
+        target_tier = LEGACY_TIER_MAPPING.get(old_tier, "coach_developer")
+    
+    # Validate target tier
+    if target_tier not in SUBSCRIPTION_TIERS:
+        raise HTTPException(status_code=400, detail=f"Invalid target tier: {target_tier}")
+    
+    # Don't allow migrating to legacy tiers
+    if target_tier in ["individual", "developer"]:
+        raise HTTPException(status_code=400, detail="Cannot migrate to legacy tier")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update subscription with new tier
+    update_result = await db.subscriptions.update_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"$set": {
+            "current_tier_key": target_tier,
+            "is_legacy_tier": False,  # No longer legacy after migration
+            "legacy_tier_key": old_tier,  # Keep record of old tier
+            "pending_tier_key": None,  # Migration complete
+            "migrated_at": now.isoformat(),
+            "migration_type": "early_voluntary",
+            "migration_version": "phase_7"
+        }}
+    )
+    
+    if update_result.modified_count > 0:
+        logger.info(f"User {user.email} migrated org {org_id} from {old_tier} to {target_tier}")
+        
+        new_tier_config = SUBSCRIPTION_TIERS.get(target_tier, {})
+        
+        return {
+            "success": True,
+            "message": f"Successfully migrated to {new_tier_config.get('name', target_tier)}",
+            "old_tier": old_tier,
+            "new_tier": target_tier,
+            "new_tier_name": new_tier_config.get("name"),
+            "new_limits": new_tier_config.get("limits", {})
+        }
+    else:
+        return {
+            "success": False,
+            "message": "Migration failed - subscription not updated"
+        }
+
+
+@router.post("/migration/bulk-apply")
+async def bulk_apply_migration(request: Request):
+    """
+    Admin endpoint to apply migration fields to all legacy subscriptions.
+    This prepares all subscriptions for the new tier system without changing
+    their current billing or features (they keep legacy until period ends).
+    """
+    await require_admin(request)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Find all subscriptions without migration fields
+    subscriptions = await db.subscriptions.find({
+        "current_tier_key": {"$exists": False}
+    }, {"_id": 0}).to_list(1000)
+    
+    results = {
+        "total_processed": 0,
+        "migrated": 0,
+        "skipped": 0,
+        "errors": [],
+        "details": []
+    }
+    
+    for sub in subscriptions:
+        org_id = sub.get("org_id") or sub.get("organization_id")
+        if not org_id:
+            results["skipped"] += 1
+            continue
+        
+        results["total_processed"] += 1
+        
+        try:
+            old_tier = sub.get("tier_id") or sub.get("tier")
+            is_legacy = old_tier in LEGACY_TIER_MAPPING
+            new_tier = LEGACY_TIER_MAPPING.get(old_tier, "coach_developer") if is_legacy else old_tier
+            
+            # Apply migration fields
+            update_data = {
+                "current_tier_key": old_tier if is_legacy else new_tier,
+                "is_legacy_tier": is_legacy,
+                "legacy_tier_key": old_tier if is_legacy else None,
+                "pending_tier_key": new_tier if is_legacy else None,
+                "migration_prepared_at": now.isoformat(),
+                "migration_version": "phase_7_bulk"
+            }
+            
+            await db.subscriptions.update_one(
+                {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+                {"$set": update_data}
+            )
+            
+            results["migrated"] += 1
+            results["details"].append({
+                "org_id": org_id,
+                "old_tier": old_tier,
+                "new_tier": new_tier,
+                "is_legacy": is_legacy,
+                "status": "migrated"
+            })
+            
+        except Exception as e:
+            results["errors"].append({
+                "org_id": org_id,
+                "error": str(e)
+            })
+    
+    logger.info(f"Bulk migration complete: {results['migrated']} migrated, {results['skipped']} skipped, {len(results['errors'])} errors")
+    
+    return results
+
+
+@router.post("/migration/complete/{org_id}")
+async def complete_migration(org_id: str, request: Request):
+    """
+    Admin endpoint to complete migration for a specific organization.
+    This moves them from legacy tier to their pending new tier.
+    Called after their billing period ends or manually by admin.
+    """
+    await require_admin(request)
+    
+    subscription = await db.subscriptions.find_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    if not subscription.get("is_legacy_tier"):
+        return {
+            "success": False,
+            "message": "Organization is not on a legacy tier"
+        }
+    
+    pending_tier = subscription.get("pending_tier_key")
+    if not pending_tier:
+        pending_tier = LEGACY_TIER_MAPPING.get(
+            subscription.get("legacy_tier_key"),
+            "coach_developer"
+        )
+    
+    now = datetime.now(timezone.utc)
+    
+    # Complete the migration
+    update_result = await db.subscriptions.update_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"$set": {
+            "current_tier_key": pending_tier,
+            "is_legacy_tier": False,
+            "pending_tier_key": None,
+            "migration_completed_at": now.isoformat(),
+            "migration_type": "admin_complete"
+        }}
+    )
+    
+    if update_result.modified_count > 0:
+        logger.info(f"Admin completed migration for org {org_id} to {pending_tier}")
+        
+        return {
+            "success": True,
+            "message": f"Migration completed - organization now on {pending_tier} tier",
+            "org_id": org_id,
+            "new_tier": pending_tier
+        }
+    else:
+        return {
+            "success": False,
+            "message": "Migration failed - subscription not updated"
+        }
+

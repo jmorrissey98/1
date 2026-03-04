@@ -10,6 +10,10 @@ let limitsSummaryCache = null;
 let limitsSummaryCacheTime = 0;
 const LIMITS_CACHE_TTL = 60 * 1000; // 1 minute
 
+// Cache for migration status
+let migrationStatusCache = null;
+let migrationStatusCacheTime = 0;
+
 // Cache for coach observation status (per request cache)
 const coachObservationStatusCache = new Map();
 
@@ -33,6 +37,58 @@ export const fetchLimitsSummary = async (forceRefresh = false) => {
   }
   
   return result;
+};
+
+/**
+ * Get migration status for the current user's organization.
+ * Used to show migration banner for legacy users.
+ */
+export const fetchMigrationStatus = async (forceRefresh = false) => {
+  const now = Date.now();
+  
+  // Return cached if valid and not forcing refresh
+  if (!forceRefresh && migrationStatusCache && (now - migrationStatusCacheTime < LIMITS_CACHE_TTL)) {
+    return { ok: true, data: migrationStatusCache, fromCache: true };
+  }
+  
+  const result = await safeGet(`${API_URL}/api/subscriptions/my-migration-status`);
+  
+  if (result.ok && result.data) {
+    migrationStatusCache = result.data;
+    migrationStatusCacheTime = now;
+  }
+  
+  return result;
+};
+
+/**
+ * Migrate early to the new tier system.
+ * @param {string} targetTier - Optional target tier (defaults to mapped tier)
+ */
+export const migrateEarly = async (targetTier = null) => {
+  const result = await safePost(`${API_URL}/api/subscriptions/migrate-early`, {
+    target_tier: targetTier
+  });
+  
+  // Clear caches after migration
+  if (result.ok) {
+    migrationStatusCache = null;
+    limitsSummaryCache = null;
+  }
+  
+  return result;
+};
+
+/**
+ * Clear all subscription caches.
+ * Call this after subscription changes.
+ */
+export const clearSubscriptionCaches = () => {
+  limitsSummaryCache = null;
+  limitsSummaryCacheTime = 0;
+  migrationStatusCache = null;
+  migrationStatusCacheTime = 0;
+  coachObservationStatusCache.clear();
 };
 
 /**
@@ -92,11 +148,10 @@ export const fetchPricingComparison = async () => {
 /**
  * Clear the limits summary cache.
  * Call this after subscription changes.
+ * @deprecated Use clearSubscriptionCaches() instead
  */
 export const clearLimitsCache = () => {
-  limitsSummaryCache = null;
-  limitsSummaryCacheTime = 0;
-  coachObservationStatusCache.clear();
+  clearSubscriptionCaches();
 };
 
 /**

@@ -19,6 +19,7 @@ import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 import { fetchCoaches } from '../lib/offlineApi';
 import { fetchLimitsSummary } from '../lib/subscriptionApi';
 import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
+import { MigrationBanner } from '../components/MigrationBanner';
 
 export default function UserSettings() {
   const navigate = useNavigate();
@@ -425,7 +426,14 @@ export default function UserSettings() {
 
         {/* Coach Developer Only: Team Management */}
         {isCoachDeveloper() && (
-          <Tabs defaultValue="users" className="space-y-6">
+          <>
+            {/* Phase 7: Migration Banner for Legacy Users */}
+            <MigrationBanner onMigrationComplete={() => {
+              loadLimits();
+              loadSubscription();
+            }} />
+            
+            <Tabs defaultValue="users" className="space-y-6">
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="users" data-testid="tab-users">
                 <Users className="w-4 h-4 mr-2" />
@@ -1095,6 +1103,7 @@ export default function UserSettings() {
               </Card>
             </TabsContent>
           </Tabs>
+          </>
         )}
 
         {/* Coach-only view */}
