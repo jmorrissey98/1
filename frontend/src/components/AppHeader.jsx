@@ -159,16 +159,21 @@ export default function AppHeader() {
 
   // Check if user is on Individual Coach tier (self-observation only, no coach management)
   const isIndividualCoachTier = subscriptionTier === 'individual_coach';
+  // Check if user is on Coach Developer tier (hide My Development for now per user request)
+  const isCoachDeveloperTier = subscriptionTier === 'coach_developer';
+  // Club tier shows all navigation options
+  const isClubTier = subscriptionTier === 'club';
 
-  // Navigation items for Coach Developer
-  // - Individual Coach tier: Hide "My Coaches", Show "My Development"
-  // - Coach Developer/Club tiers: Show "My Coaches", Hide "My Development" (for now)
+  // Navigation items for Coach Developer role
+  // - Individual Coach tier: Hide "My Coaches", Show "My Development" (self-observation)
+  // - Coach Developer tier: Show "My Coaches", Hide "My Development" (per user request - may add back later)
+  // - Club tier: Show both "My Coaches" AND "My Development" (coach developers can be observed)
   const coachDevNavItems = [
     { label: 'Home', icon: Home, path: getHomePath(), testId: 'nav-home-btn' },
-    // Only show My Coaches for Coach Developer and Club tiers (not Individual Coach)
+    // Show My Coaches for Coach Developer and Club tiers (not Individual Coach)
     ...(!isIndividualCoachTier ? [{ label: 'My Coaches', icon: Users, path: '/coaches', testId: 'nav-my-coaches-btn' }] : []),
-    // Show My Development ONLY for Individual Coach tier (hidden for Coach Developer/Club tiers for now)
-    ...(isIndividualCoachTier ? [{ label: 'My Development', icon: TrendingUp, path: '/coach/development', testId: 'nav-my-development-btn' }] : []),
+    // Show My Development for Individual Coach tier AND Club tier (hidden for Coach Developer tier only)
+    ...((isIndividualCoachTier || isClubTier) ? [{ label: 'My Development', icon: TrendingUp, path: '/coach/development', testId: 'nav-my-development-btn' }] : []),
     { label: 'Templates', icon: ClipboardList, path: '/templates', testId: 'nav-templates-btn' },
     { label: 'Calendar', icon: Calendar, path: '/calendar', testId: 'nav-calendar-btn' },
     { label: 'Settings', icon: Cog, path: '/settings', testId: 'nav-settings-btn' },

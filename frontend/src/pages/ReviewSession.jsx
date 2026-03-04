@@ -24,6 +24,7 @@ import { exportToPDF, exportToCSV } from '../lib/export';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
 import { fetchReflectionTemplates, fetchReflectionTemplate } from '../lib/reflectionTemplatesApi';
+import { fetchLimitsSummary } from '../lib/subscriptionApi';
 import axios from 'axios';
 import { getAuthToken } from '../lib/safeFetch';
 import { useSwipeTabs } from '../hooks/useSwipeNavigation';
@@ -465,9 +466,16 @@ export default function ReviewSession() {
   // Edit mode state (only for Coach Developers on completed sessions)
   const [isEditMode, setIsEditMode] = useState(false);
   
+  // Subscription tier state for Individual Coach handling
+  const [subscriptionTier, setSubscriptionTier] = useState(null);
+  const isIndividualCoachTier = subscriptionTier === 'individual_coach';
+  
   const isCoachView = user?.role === 'coach';
+  // Individual Coach tier users observe themselves, so they edit Coach Reflection, not Observer Reflection
   // Coaches can view everything but only edit their own reflections
-  const canEditObserverContent = !isCoachView;
+  const canEditObserverContent = !isCoachView && !isIndividualCoachTier;
+  // Individual Coach tier can edit coach reflection (they ARE the coach being observed)
+  const canEditCoachReflection = isCoachView || isIndividualCoachTier;
   // Can edit session: Coach Developer only, on completed sessions
   const canEditSession = isCoachDeveloper && session?.status === 'completed';
 
@@ -488,6 +496,9 @@ export default function ReviewSession() {
         setObserverReflectionShared(loaded.observer_reflection_shared !== false);
         setCoachReflectionShared(loaded.coach_reflection_shared !== false);
         
+        // Load subscription tier for Individual Coach tier handling
+        loadSubscriptionTier();
+        
         // Load reflection templates for both coach developers and coaches
         // Coaches need to see their assigned template
         loadReflectionTemplates();
@@ -501,16 +512,30 @@ export default function ReviewSession() {
     };
     loadSession();
   }, [sessionId, navigate, getSession, setCurrentSession]);
+  
+  // Load subscription tier
+  const loadSubscriptionTier = async () => {
+    try {
+      const result = await fetchLimitsSummary();
+      if (result.ok && result.data) {
+        setSubscriptionTier(result.data.tier_key);
+      }
+    } catch (err) {
+      console.error('Failed to load subscription tier:', err);
+    }
+  };
 
   // Load reflection templates
   const loadReflectionTemplates = async () => {
     setLoadingTemplates(true);
     try {
       // Determine which template ID to use based on who is viewing
+      // Individual Coach tier users should use coach templates (they observe themselves)
       let savedTemplateId;
+      const useCoachTemplates = isCoachView || isIndividualCoachTier;
       
-      if (isCoachView) {
-        // Coach viewing their reflection - use the coach reflection template
+      if (useCoachTemplates) {
+        // Coach OR Individual Coach tier - use the coach reflection template
         savedTemplateId = session?.coachReflectionTemplateId || session?.coach_reflection_template_id;
         
         // Also check for existing coach reflection responses
@@ -518,7 +543,7 @@ export default function ReviewSession() {
           setTemplateResponses(session.coachReflection.responses);
         }
       } else {
-        // Coach Developer viewing their observer reflection
+        // Coach Developer/Club viewing their observer reflection
         savedTemplateId = session?.reflectionTemplateId || session?.reflection_template_id || session?.observerReflection?.templateId;
         
         // Load observer reflection responses
@@ -533,12 +558,12 @@ export default function ReviewSession() {
         await loadTemplateDetails(savedTemplateId);
         
         // Also load the templates list for reference
-        const targetRole = isCoachView ? 'coach' : 'coach_educator';
+        const targetRole = useCoachTemplates ? 'coach' : 'coach_educator';
         const templates = await fetchReflectionTemplates(targetRole);
         setReflectionTemplates(templates);
       } else {
         // No assigned template - load appropriate templates based on role and find default
-        const targetRole = isCoachView ? 'coach' : 'coach_educator';
+        const targetRole = useCoachTemplates ? 'coach' : 'coach_educator';
         const templates = await fetchReflectionTemplates(targetRole);
         setReflectionTemplates(templates);
         
@@ -626,13 +651,14 @@ export default function ReviewSession() {
       };
       
       // Save to different fields based on who is reflecting
+      // Individual Coach tier saves to coachReflection (they ARE the coach being observed)
       const updated = {
         ...session,
         updatedAt: new Date().toISOString()
       };
       
-      if (isCoachView) {
-        // Coach's reflection on their own session
+      if (isCoachView || isIndividualCoachTier) {
+        // Coach's reflection on their own session (or Individual Coach self-observation)
         updated.coachReflection = reflectionData;
       } else {
         // Coach Developer's observer reflection
@@ -1416,8 +1442,8 @@ export default function ReviewSession() {
 
           {/* Reflections Tab - Restructured */}
           <TabsContent value="reflections" className="space-y-6">
-            {/* Observer Notes Card - Only visible to coach developers (these are live observation notes) */}
-            {!isCoachView && (() => {
+            {/* Observer Notes Card - Visible to coach developers AND Individual Coach tier (they ARE the observer) */}
+            {(!isCoachView || isIndividualCoachTier) && (() => {
               const filteredNotes = getFilteredNotes();
               return filteredNotes.length > 0 && (
                 <Collapsible open={observerNotesExpanded} onOpenChange={setObserverNotesExpanded}>
@@ -1743,8 +1769,8 @@ export default function ReviewSession() {
             </Card>
             )}
 
-            {/* Coach's Own Reflection Form - Only visible to coaches */}
-            {isCoachView && (
+            {/* Coach's Own Reflection Form - Visible to coaches AND Individual Coach tier */}
+            {(isCoachView || isIndividualCoachTier) && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1760,8 +1786,8 @@ export default function ReviewSession() {
                       }
                     </CardDescription>
                   </div>
-                  {/* Sharing toggle for coach */}
-                  {(session.coachReflection || session.coachReflections?.length > 0) && (
+                  {/* Sharing toggle - hidden for Individual Coach tier (no one to share with) */}
+                  {!isIndividualCoachTier && (session.coachReflection || session.coachReflections?.length > 0) && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
                       <span className="text-xs text-slate-500">
                         {coachReflectionShared ? 'Shared' : 'Private'}
@@ -2036,6 +2062,8 @@ export default function ReviewSession() {
             )}
 
             {/* ===== SHARED REFLECTIONS SECTION ===== */}
+            {/* Hide for Individual Coach tier - they observe themselves, no "other" reflection to share */}
+            {!isIndividualCoachTier && (
             <Card className="border-blue-200 bg-blue-50/30">
               <CardHeader>
                 <CardTitle className="font-['Manrope'] flex items-center gap-2">
@@ -2180,6 +2208,7 @@ export default function ReviewSession() {
                 )}
               </CardContent>
             </Card>
+            )}
 
             {/* Attachments */}
             <Card>
