@@ -307,7 +307,8 @@ export default function CoachProfile() {
       if (!response.ok) throw new Error('Upload failed');
       
       const data = await response.json();
-      const updatedCoach = { ...coach, photoUrl: data.url };
+      // Update both photoUrl (for local display) and photo (for backend API)
+      const updatedCoach = { ...coach, photoUrl: data.url, photo: data.url };
       saveCoach(updatedCoach);
       toast.success('Photo uploaded successfully');
     } catch (err) {
@@ -320,7 +321,7 @@ export default function CoachProfile() {
 
   // Remove photo
   const handleRemovePhoto = () => {
-    const updatedCoach = { ...coach, photoUrl: null };
+    const updatedCoach = { ...coach, photoUrl: null, photo: null };
     saveCoach(updatedCoach);
     toast.success('Photo removed');
   };

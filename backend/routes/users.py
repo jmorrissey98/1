@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, '/app/backend')
 
 from database import db, logger
-from dependencies import require_coach_developer
+from dependencies import require_coach_developer, get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -26,6 +26,9 @@ class UserResponse(BaseModel):
 
 class RoleUpdateRequest(BaseModel):
     new_role: str
+
+class ProfilePhotoUpdateRequest(BaseModel):
+    photo: str  # Base64 encoded image or URL
 
 
 @router.get("", response_model=List[UserResponse])
@@ -209,3 +212,34 @@ async def check_first_user():
     """Check if this is the first user (for initial setup)"""
     count = await db.users.count_documents({})
     return {"is_first": count == 0}
+
+
+
+@router.put("/me/photo")
+async def update_my_profile_photo(photo_data: ProfilePhotoUpdateRequest, request: Request):
+    """
+    Update the current user's profile photo.
+    Any authenticated user can update their own photo.
+    Also updates linked coach profile if exists.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Update user's picture
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"picture": photo_data.photo}}
+    )
+    
+    # If user has a linked coach profile, update that too
+    if user.linked_coach_id:
+        await db.coaches.update_one(
+            {"id": user.linked_coach_id},
+            {"$set": {"photo": photo_data.photo, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        logger.info(f"Updated photo for coach profile {user.linked_coach_id}")
+    
+    logger.info(f"Profile photo updated for user {user.user_id}")
+    
+    return {"status": "updated", "picture": photo_data.photo}

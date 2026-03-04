@@ -20,6 +20,7 @@ import { fetchCoaches } from '../lib/offlineApi';
 import { fetchLimitsSummary } from '../lib/subscriptionApi';
 import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
 import { MigrationBanner } from '../components/MigrationBanner';
+import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 
 export default function UserSettings() {
   const navigate = useNavigate();
@@ -54,6 +55,9 @@ export default function UserSettings() {
   const [clubName, setClubName] = useState('');
   const [clubLogo, setClubLogo] = useState('');
   const [savingClub, setSavingClub] = useState(false);
+  
+  // User profile photo state
+  const [userPhoto, setUserPhoto] = useState(user?.picture || null);
 
   useEffect(() => {
     loadData();
@@ -62,6 +66,20 @@ export default function UserSettings() {
       loadSubscriptionStatus();
     }
   }, []);
+  
+  // Sync user photo with auth context
+  useEffect(() => {
+    setUserPhoto(user?.picture || null);
+  }, [user?.picture]);
+  
+  // Handle user profile photo update
+  const handleUserPhotoUpdate = async (photoData) => {
+    const result = await safePut(`${API_URL}/api/users/me/photo`, { photo: photoData });
+    if (!result.ok) {
+      throw new Error(result.data?.detail || 'Failed to update photo');
+    }
+    setUserPhoto(photoData || null);
+  };
   
   const loadLimits = async () => {
     setLimitsLoading(true);
@@ -355,13 +373,13 @@ export default function UserSettings() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              {user?.picture && (
-                <img 
-                  src={user.picture} 
-                  alt={user.name} 
-                  className="w-16 h-16 rounded-full"
-                />
-              )}
+              <ProfilePhotoUpload
+                currentPhoto={userPhoto}
+                name={user?.name}
+                onPhotoChange={handleUserPhotoUpdate}
+                size="md"
+                editable={true}
+              />
               <div className="flex-1">
                 <p className="font-semibold text-lg">{user?.name}</p>
                 <p className="text-slate-500">{user?.email}</p>

@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { SessionFilters, applySessionFilters, calculateFilteredAnalytics } from '../components/SessionFilters';
 import CoachNotes from '../components/coach/CoachNotes';
+import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 
 const API_URL = '';
 
@@ -86,6 +87,9 @@ export default function CoachMyDevelopment() {
   const [reflectionPromptDismissed, setReflectionPromptDismissed] = useState(false);
   const [archivedTargetsExpanded, setArchivedTargetsExpanded] = useState(false);
   const [interventionFilters, setInterventionFilters] = useState({}); // { interventionName: true/false }
+  
+  // Profile photo state (for upload functionality)
+  const [displayPhoto, setDisplayPhoto] = useState(null);
 
   useEffect(() => {
     loadAllData();
@@ -349,20 +353,26 @@ export default function CoachMyDevelopment() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
   // For Individual Coach tier users (coach_developer role without linked_coach_id),
   // use the current user's info for the profile display
   const profile = dashboard?.profile || {};
   const displayName = profile.name || user?.name || 'Unknown';
-  const displayPhoto = profile.photo || user?.picture || null;
   const displayInitial = displayName?.charAt(0)?.toUpperCase() || '?';
+  
+  // Sync display photo when profile or user changes (must be before any early returns)
+  useEffect(() => {
+    setDisplayPhoto(profile.photo || user?.picture || null);
+  }, [profile.photo, user?.picture]);
+  
+  // Handle profile photo update
+  const handleProfilePhotoUpdate = async (photoData) => {
+    // Update via the users/me/photo endpoint which also updates linked coach profile
+    const result = await safePut(`${API_URL}/api/users/me/photo`, { photo: photoData });
+    if (!result.ok) {
+      throw new Error(result.data?.detail || 'Failed to update photo');
+    }
+    setDisplayPhoto(photoData || null);
+  };
   
   const achievedTargets = targets.filter(t => t.status === 'achieved');
   const activeTargets = targets.filter(t => t.status === 'active' || t.status === 'in_progress');
@@ -371,6 +381,14 @@ export default function CoachMyDevelopment() {
   
   // Count sessions needing reflection for notification indicator
   const sessionsNeedingReflection = sessions.filter(s => s.has_observation && !s.has_reflection).length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
   
   // Use filtered analytics if filters are active, otherwise use API analytics
   const analytics = filteredAnalytics || analyticsData || {
@@ -448,13 +466,13 @@ export default function CoachMyDevelopment() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {displayPhoto ? (
-                      <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-2xl font-medium text-slate-500">{displayInitial}</span>
-                    )}
-                  </div>
+                  <ProfilePhotoUpload
+                    currentPhoto={displayPhoto}
+                    name={displayName}
+                    onPhotoChange={handleProfilePhotoUpdate}
+                    size="md"
+                    editable={true}
+                  />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-slate-900">{displayName}</h3>
                     {profile.role_title && <p className="text-slate-600">{profile.role_title}</p>}

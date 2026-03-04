@@ -625,8 +625,8 @@ async def update_coach(coach_id: str, request: Request):
     
     body = await request.json()
     
-    # Allowed fields for update
-    allowed_fields = ["name", "role_title", "age_group", "department", "bio", "targets"]
+    # Allowed fields for update (including photo for profile pictures)
+    allowed_fields = ["name", "role_title", "age_group", "department", "bio", "targets", "photo"]
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
