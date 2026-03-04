@@ -376,31 +376,36 @@ export default function UserSettings() {
                     {user?.role === 'admin' ? 'Admin' : user?.role === 'coach_developer' ? 'Coach Developer' : 'Coach'}
                   </Badge>
                   
-                  {/* Subscription Tier Badge (Coach Developer only) */}
-                  {isCoachDeveloper() && subscriptionTier && (
+                  {/* Subscription Tier Badge (Coach Developer only) - Uses new tier system */}
+                  {isCoachDeveloper() && limits?.tier_key && (
                     <div className="relative">
                       <Badge 
                         className={`cursor-pointer transition-all ${
-                          subscriptionTier === 'club' 
+                          limits.tier_key === 'club' 
                             ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                            : subscriptionTier === 'developer'
+                            : limits.tier_key === 'coach_developer'
                             ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                            : limits.tier_key === 'individual_coach'
+                            ? 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
                             : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                         }`}
-                        onClick={() => subscriptionTier !== 'club' && setShowUpgradeTooltip(!showUpgradeTooltip)}
+                        onClick={() => limits.tier_key !== 'club' && setShowUpgradeTooltip(!showUpgradeTooltip)}
                         data-testid="subscription-badge"
                       >
-                        {subscriptionTier === 'club' ? 'Club Plan' : 
-                         subscriptionTier === 'developer' ? 'Developer Plan' : 
-                         'Individual Plan'}
+                        {limits.tier_name || (
+                          limits.tier_key === 'club' ? 'Club' : 
+                          limits.tier_key === 'coach_developer' ? 'Coach Developer' : 
+                          limits.tier_key === 'individual_coach' ? 'Individual Coach' :
+                          'Free'
+                        )}
                       </Badge>
                       
                       {/* Upgrade Tooltip */}
-                      {showUpgradeTooltip && subscriptionTier !== 'club' && (
+                      {showUpgradeTooltip && limits.tier_key !== 'club' && (
                         <div className="absolute top-full left-0 mt-2 z-10 bg-white border border-slate-200 rounded-lg shadow-lg p-3 min-w-[180px]">
                           <p className="text-sm text-slate-600 mb-2">
-                            {subscriptionTier === 'individual' 
-                              ? 'Upgrade for more coaches and features'
+                            {limits.tier_key === 'individual_coach' 
+                              ? 'Upgrade for coach management features'
                               : 'Upgrade to Club for unlimited access'}
                           </p>
                           <Button 
