@@ -52,8 +52,20 @@
   - Prevents starting observation when limit reached
   - Coaches at limit are disabled in the dropdown
 
+**Phase 5: UI Limits Visibility & Admin Controls (COMPLETED - March 4, 2026)**
+- Enhanced `UserSettings.jsx` subscription usage display:
+  - Shows tier name and legacy status badge
+  - Added Observations/Coach limit display
+  - Shows features badges (Unlimited History, Data Retention, Self Observation)
+  - Loading state for subscription info
+- Updated `AdminDashboard.jsx` with new tier system:
+  - Updated tier options to include new tiers (individual_coach, coach_developer, club)
+  - Added legacy tier display (individual, developer)
+  - 4-column limit editing form including Observations/Coach field
+  - Admin can now set custom observation limits per organization (0 = unlimited)
+- Admin endpoint `PUT /api/subscriptions/admin/organization/{org_id}/limits` supports observation limits
+
 **Upcoming Phases:**
-- Phase 5: UI limits visibility & admin controls
 - Phase 6: Landing page pricing update
 - Phase 7: Migration logic for legacy users
 

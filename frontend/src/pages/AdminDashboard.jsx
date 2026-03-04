@@ -21,34 +21,39 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Subscription tier options
+// Subscription tier options - Updated for Phase 5
 const TIER_OPTIONS = [
-  { value: 'individual', label: 'Individual', color: 'bg-slate-100 text-slate-700' },
-  { value: 'developer', label: 'Developer', color: 'bg-blue-100 text-blue-700' },
-  { value: 'club', label: 'Club', color: 'bg-emerald-100 text-emerald-700' }
+  { value: 'individual_coach', label: 'Individual Coach', color: 'bg-slate-100 text-slate-700' },
+  { value: 'coach_developer', label: 'Coach Developer', color: 'bg-blue-100 text-blue-700' },
+  { value: 'club', label: 'Club', color: 'bg-emerald-100 text-emerald-700' },
+  // Legacy tiers (for display only)
+  { value: 'individual', label: 'Individual (Legacy)', color: 'bg-amber-100 text-amber-700' },
+  { value: 'developer', label: 'Developer (Legacy)', color: 'bg-amber-100 text-amber-700' }
 ];
 
-// Default subscription tiers
+// Default subscription tiers - Updated for Phase 5
 const DEFAULT_TIERS = [
   {
-    tier_id: 'individual',
-    name: 'Individual',
-    monthly_price: 20,
-    annual_price: 200,
-    coaches_limit: 5,
+    tier_id: 'individual_coach',
+    name: 'Individual Coach',
+    monthly_price: 6,
+    annual_price: 60,
+    coaches_limit: 0,
     admins_limit: 1,
-    data_retention_months: 3,
-    description: 'For individual coach developers'
+    observations_limit: null, // Unlimited
+    data_retention_months: null,
+    description: 'For coaches observing themselves'
   },
   {
-    tier_id: 'developer',
-    name: 'Developer',
-    monthly_price: 35,
-    annual_price: 350,
-    coaches_limit: 10,
+    tier_id: 'coach_developer',
+    name: 'Coach Developer',
+    monthly_price: 10,
+    annual_price: 100,
+    coaches_limit: null, // Unlimited
     admins_limit: 1,
+    observations_limit: 10, // Per coach
     data_retention_months: null,
-    description: 'For growing teams'
+    description: 'For coach developers working with multiple coaches'
   },
   {
     tier_id: 'club',
@@ -57,6 +62,7 @@ const DEFAULT_TIERS = [
     annual_price: 600,
     coaches_limit: 30,
     admins_limit: 5,
+    observations_limit: null, // Unlimited
     data_retention_months: null,
     description: 'For organizations'
   }
@@ -368,6 +374,7 @@ export default function AdminDashboard() {
     setOrgLimitEdits({
       coaches_limit: limits?.custom_overrides?.coaches_limit || '',
       admins_limit: limits?.custom_overrides?.admins_limit || '',
+      observations_limit: limits?.custom_overrides?.max_observations_per_coach || '',
       data_retention_months: limits?.custom_overrides?.data_retention_months ?? ''
     });
   };
@@ -376,16 +383,18 @@ export default function AdminDashboard() {
   const saveOrgLimits = async (orgId) => {
     setSavingOrgLimits(true);
     try {
-      // Convert empty strings to null (remove override)
+      // Convert empty strings to null (remove override), 0 = unlimited
       const payload = {
-        coaches_limit: orgLimitEdits.coaches_limit === '' ? null : parseInt(orgLimitEdits.coaches_limit),
-        admins_limit: orgLimitEdits.admins_limit === '' ? null : parseInt(orgLimitEdits.admins_limit),
+        max_coaches: orgLimitEdits.coaches_limit === '' ? null : parseInt(orgLimitEdits.coaches_limit),
+        max_coach_developers: orgLimitEdits.admins_limit === '' ? null : parseInt(orgLimitEdits.admins_limit),
+        max_observations_per_coach: orgLimitEdits.observations_limit === '' ? null : parseInt(orgLimitEdits.observations_limit),
         data_retention_months: orgLimitEdits.data_retention_months === '' ? null : 
           (orgLimitEdits.data_retention_months === '0' || orgLimitEdits.data_retention_months === 0) ? 0 : 
           parseInt(orgLimitEdits.data_retention_months)
       };
       
-      const result = await safePut(`${API_URL}/api/admin/organizations/${orgId}/limits`, payload);
+      // Use new subscription admin endpoint
+      const result = await safePut(`${API_URL}/api/subscriptions/admin/organization/${orgId}/limits`, payload);
       if (result.ok) {
         toast.success('Organization limits updated');
         setEditingOrgLimits(null);
@@ -728,7 +737,7 @@ export default function AdminDashboard() {
                         <CollapsibleContent className="pt-4">
                           {editingOrgLimits === org.org_id ? (
                             <div className="bg-slate-50 p-4 rounded-lg space-y-4">
-                              <div className="grid grid-cols-3 gap-4">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
                                   <Label className="text-sm">Coaches Limit</Label>
                                   <Input
@@ -737,27 +746,37 @@ export default function AdminDashboard() {
                                     value={orgLimitEdits.coaches_limit}
                                     onChange={(e) => setOrgLimitEdits(prev => ({ ...prev, coaches_limit: e.target.value }))}
                                   />
-                                  <p className="text-xs text-slate-500 mt-1">Leave empty for tier default</p>
+                                  <p className="text-xs text-slate-500 mt-1">0 = unlimited</p>
                                 </div>
                                 <div>
-                                  <Label className="text-sm">Coach Developers Limit</Label>
+                                  <Label className="text-sm">Coach Developers</Label>
                                   <Input
                                     type="number"
                                     placeholder="Use tier default"
                                     value={orgLimitEdits.admins_limit}
                                     onChange={(e) => setOrgLimitEdits(prev => ({ ...prev, admins_limit: e.target.value }))}
                                   />
-                                  <p className="text-xs text-slate-500 mt-1">Leave empty for tier default</p>
+                                  <p className="text-xs text-slate-500 mt-1">Empty = tier default</p>
                                 </div>
                                 <div>
-                                  <Label className="text-sm">Data Retention (months)</Label>
+                                  <Label className="text-sm">Observations/Coach</Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="Use tier default"
+                                    value={orgLimitEdits.observations_limit}
+                                    onChange={(e) => setOrgLimitEdits(prev => ({ ...prev, observations_limit: e.target.value }))}
+                                  />
+                                  <p className="text-xs text-slate-500 mt-1">0 = unlimited</p>
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Data Retention</Label>
                                   <Input
                                     type="number"
                                     placeholder="Use tier default"
                                     value={orgLimitEdits.data_retention_months}
                                     onChange={(e) => setOrgLimitEdits(prev => ({ ...prev, data_retention_months: e.target.value }))}
                                   />
-                                  <p className="text-xs text-slate-500 mt-1">0 = unlimited, empty = tier default</p>
+                                  <p className="text-xs text-slate-500 mt-1">Months, 0 = unlimited</p>
                                 </div>
                               </div>
                               <div className="flex gap-2">

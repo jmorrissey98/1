@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Mail, Shield, UserPlus, Trash2, LogOut, Loader2, Send, Building2, Upload, X, Database, Crown, AlertCircle, CreditCard, Calendar, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Users, Mail, Shield, UserPlus, Trash2, LogOut, Loader2, Send, Building2, Upload, X, Database, Crown, AlertCircle, CreditCard, Calendar, ExternalLink, ChevronDown, ChevronUp, TrendingUp, Eye } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -17,6 +17,7 @@ import { useUpgrade } from '../contexts/UpgradeContext';
 import { storage } from '../lib/storage';
 import { safeGet, safePost, safeDelete, safePut } from '../lib/safeFetch';
 import { fetchCoaches } from '../lib/offlineApi';
+import { fetchLimitsSummary } from '../lib/subscriptionApi';
 import { SwipeablePageWrapper } from '../components/SwipeablePageWrapper';
 
 export default function UserSettings() {
@@ -64,9 +65,39 @@ export default function UserSettings() {
   const loadLimits = async () => {
     setLimitsLoading(true);
     try {
-      const result = await safeGet(`${API_URL}/api/organization/limits`);
-      if (result.ok) {
-        setLimits(result.data);
+      // Use new subscription limits-summary API (Phase 5)
+      const result = await fetchLimitsSummary();
+      if (result.ok && result.data) {
+        // Transform the new format to be compatible with existing UI
+        const newLimits = result.data;
+        setLimits({
+          tier_key: newLimits.tier_key,
+          tier_name: newLimits.tier_name,
+          is_legacy: newLimits.is_legacy,
+          coaches: {
+            current: newLimits.coaches?.current || 0,
+            limit: newLimits.coaches?.limit || 'Unlimited',
+            can_add: newLimits.coaches?.can_add !== false,
+            is_unlimited: newLimits.coaches?.is_unlimited || false
+          },
+          admins: {
+            current: newLimits.coach_developers?.current || 0,
+            limit: newLimits.coach_developers?.limit || 1,
+            can_add: newLimits.coach_developers?.can_add !== false,
+            is_unlimited: newLimits.coach_developers?.is_unlimited || false
+          },
+          observations_per_coach: {
+            limit: newLimits.observations_per_coach?.limit,
+            is_unlimited: newLimits.observations_per_coach?.is_unlimited || false
+          },
+          features: newLimits.features || {}
+        });
+      } else {
+        // Fallback to old API
+        const fallbackResult = await safeGet(`${API_URL}/api/organization/limits`);
+        if (fallbackResult.ok) {
+          setLimits(fallbackResult.data);
+        }
       }
     } catch (err) {
       console.error('Failed to load limits:', err);
@@ -433,28 +464,40 @@ export default function UserSettings() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent>
-                      {/* Subscription Limits Summary */}
+                      {/* Subscription Limits Summary - Phase 5 Enhanced */}
                       {limits && (
                         <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                          <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            Subscription Usage
-                          </h4>
-                          <div className="grid grid-cols-2 gap-4">
+                          {/* Tier Header */}
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-medium text-slate-700 flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4" />
+                              Subscription Usage
+                            </h4>
+                            <Badge variant="outline" className="capitalize">
+                              {limits.tier_name || limits.tier_key || 'Unknown'}
+                              {limits.is_legacy && <span className="ml-1 text-xs">(Legacy)</span>}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {/* Coaches Usage */}
                             <div className={`p-3 rounded-lg ${limits.coaches.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-slate-600">Coaches</span>
                                 <span className={`font-semibold ${limits.coaches.can_add ? 'text-slate-700' : 'text-amber-600'}`}>
-                                  {limits.coaches.current}/{limits.coaches.limit}
+                                  {limits.coaches.is_unlimited ? (
+                                    <span className="text-green-600">Unlimited</span>
+                                  ) : (
+                                    `${limits.coaches.current}/${limits.coaches.limit}`
+                                  )}
                                 </span>
                               </div>
-                              {!limits.coaches.can_add && (
+                              {!limits.coaches.can_add && !limits.coaches.is_unlimited && (
                                 <p className="text-xs text-amber-600 mt-1">Limit reached</p>
                               )}
                             </div>
                             
-                            {/* Admins Usage */}
+                            {/* Coach Developers Usage */}
                             <div className={`p-3 rounded-lg ${limits.admins.can_add ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-slate-600">Coach Developers</span>
@@ -466,13 +509,58 @@ export default function UserSettings() {
                                 <p className="text-xs text-amber-600 mt-1">Limit reached</p>
                               )}
                             </div>
+                            
+                            {/* Observations Per Coach - Phase 5 New */}
+                            <div className="p-3 rounded-lg bg-white">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-slate-600 flex items-center gap-1">
+                                  <Eye className="w-3 h-3" />
+                                  Obs/Coach
+                                </span>
+                                <span className="font-semibold text-slate-700">
+                                  {limits.observations_per_coach?.is_unlimited ? (
+                                    <span className="text-green-600">Unlimited</span>
+                                  ) : (
+                                    `${limits.observations_per_coach?.limit || 10}`
+                                  )}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {limits.observations_per_coach?.is_unlimited 
+                                  ? 'No limit on observations' 
+                                  : 'Per coach limit'}
+                              </p>
+                            </div>
                           </div>
+                          
+                          {/* Features Info */}
+                          {limits.features && (
+                            <div className="mt-4 pt-3 border-t border-slate-200">
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                {limits.features.history_access === 'unlimited' && (
+                                  <Badge variant="secondary" className="bg-green-50 text-green-700">
+                                    Unlimited History
+                                  </Badge>
+                                )}
+                                {limits.features.data_retention_months && (
+                                  <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                                    {limits.features.data_retention_months}mo Data Retention
+                                  </Badge>
+                                )}
+                                {limits.features.self_observation && (
+                                  <Badge variant="secondary" className="bg-purple-50 text-purple-700">
+                                    Self Observation
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
                           
                           {/* Upgrade prompt if any limit reached */}
                           {(!limits.coaches.can_add || !limits.admins.can_add) && (
                             <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
                               <p className="text-sm text-slate-600">
-                                Need more slots?
+                                Need more capacity?
                               </p>
                               <Button 
                                 variant="outline" 
@@ -485,6 +573,13 @@ export default function UserSettings() {
                               </Button>
                             </div>
                           )}
+                        </div>
+                      )}
+                      
+                      {limitsLoading && (
+                        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                          <span className="ml-2 text-sm text-slate-500">Loading subscription info...</span>
                         </div>
                       )}
                       
