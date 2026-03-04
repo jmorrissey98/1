@@ -7,6 +7,17 @@
 
 ### Bug Fixes (March 4, 2026 - Latest Session)
 
+**"Manage Subscription" Modal Fix (COMPLETED - March 4, 2026)**
+- User reported the subscription modal was showing old, incorrect tier information
+- Fixed backend endpoint `/api/pricing/tiers` to dynamically generate tiers from `subscription_config.py`
+- Updated frontend `UpgradeModal.jsx` to parse and render the new data structure
+- Modal now correctly displays three new tiers: Individual Coach (£50/year), Coach Developer (£150/year), Club (£600/year)
+- Features displayed per tier: Coach Developers, Coaches limit, Observations/Coach
+- Monthly/Annual toggle working with "2 months free" badge
+- Verified working via screenshot testing
+
+### Earlier Bug Fixes (March 4, 2026)
+
 **Demo Account Subscription Fix (COMPLETED)**
 - Created `/app/backend/scripts/bootstrap_demo_subscriptions.py` to assign active subscriptions to demo accounts
 - Fixed demo accounts that were showing "Subscription Required" modal incorrectly

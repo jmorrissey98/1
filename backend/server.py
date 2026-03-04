@@ -3395,56 +3395,37 @@ async def admin_update_subscription_tier(tier_id: str, request: Request):
 @api_router.get("/pricing/tiers")
 async def get_public_pricing_tiers():
     """Get subscription tier pricing and limits (Public endpoint for landing page)"""
-    # Default tiers
-    default_tiers = [
-        {
-            "tier_id": "individual",
-            "name": "Individual",
-            "subtitle": "The Solo Developer",
-            "monthly_price": 20,
-            "annual_price": 200,
-            "coaches_limit": 5,
-            "admins_limit": 1,
-            "data_retention_months": 3,
-            "description": "For individual coach developers"
-        },
-        {
-            "tier_id": "developer",
-            "name": "Developer",
-            "subtitle": "The Growth Specialist",
-            "monthly_price": 35,
-            "annual_price": 350,
-            "coaches_limit": 10,
-            "admins_limit": 1,
-            "data_retention_months": None,
-            "description": "For growing teams"
-        },
-        {
-            "tier_id": "club",
-            "name": "Club",
-            "subtitle": "The Organization",
-            "monthly_price": 60,
-            "annual_price": 600,
-            "coaches_limit": 30,
-            "admins_limit": 5,
-            "data_retention_months": None,
-            "description": "For organizations"
-        }
-    ]
+    from subscription_config import SUBSCRIPTION_TIERS
     
-    # Get tiers from database to check for custom values
-    db_tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
-    db_tier_map = {t["tier_id"]: t for t in db_tiers} if db_tiers else {}
-    
-    # Merge DB values with defaults
+    # Build response from subscription config (single source of truth)
     result = []
-    for default_tier in default_tiers:
-        tier_id = default_tier["tier_id"]
-        if tier_id in db_tier_map:
-            merged_tier = {**default_tier, **db_tier_map[tier_id]}
-            result.append(merged_tier)
-        else:
-            result.append(default_tier)
+    
+    # Order: individual_coach, coach_developer, club
+    tier_order = ["individual_coach", "coach_developer", "club"]
+    tier_subtitles = {
+        "individual_coach": "The Self-Improver",
+        "coach_developer": "The Growth Specialist", 
+        "club": "The Organization"
+    }
+    
+    for tier_key in tier_order:
+        if tier_key in SUBSCRIPTION_TIERS:
+            config = SUBSCRIPTION_TIERS[tier_key]
+            pricing = config.get("pricing", {})
+            limits = config.get("limits", {})
+            
+            result.append({
+                "tier_id": tier_key,
+                "name": config.get("name", tier_key),
+                "subtitle": tier_subtitles.get(tier_key, ""),
+                "monthly_price": pricing.get("monthly", 0) / 100,  # Convert pence to pounds
+                "annual_price": pricing.get("annual", 0) / 100,
+                "coaches_limit": limits.get("max_coaches"),
+                "admins_limit": limits.get("max_coach_developers", 1),
+                "observations_per_coach": limits.get("max_observations_per_coach"),
+                "data_retention_months": None,  # Unlimited for all
+                "description": config.get("description", "")
+            })
     
     return result
 
@@ -5208,7 +5189,7 @@ allowed_origins = [
     "https://www.mycoachdeveloper.com",
     "http://localhost:3000",
     "http://localhost:8001",
-    "https://limits-phase.preview.emergentagent.com",
+    "https://manage-plan.preview.emergentagent.com",
 ]
 
 # Add APP_URL if set and not empty

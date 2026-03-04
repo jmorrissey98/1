@@ -11,30 +11,30 @@ import { safeGet, safePost } from '../lib/safeFetch';
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 // Tier order for determining upgrade vs downgrade (index = rank)
-const TIER_RANK = { 'individual': 0, 'developer': 1, 'club': 2 };
+const TIER_RANK = { 'individual_coach': 0, 'coach_developer': 1, 'club': 2, 'individual': 0, 'developer': 1 };
 
 // Default pricing tiers (will be overridden by API data)
 const DEFAULT_PRICING_TIERS = [
   {
-    id: 'individual',
-    name: 'Individual',
-    subtitle: 'The Solo Developer',
-    monthlyPrice: 20,
-    annualPrice: 200,
-    coaches: 5,
+    id: 'individual_coach',
+    name: 'Individual Coach',
+    subtitle: 'The Self-Improver',
+    monthlyPrice: 5,
+    annualPrice: 50,
+    coaches: 0,  // Self-observation only
     admins: 1,
-    dataRetention: '3 months',
+    observationsPerCoach: null,
     popular: false
   },
   {
-    id: 'developer',
-    name: 'Developer',
+    id: 'coach_developer',
+    name: 'Coach Developer',
     subtitle: 'The Growth Specialist',
-    monthlyPrice: 35,
-    annualPrice: 350,
-    coaches: 10,
+    monthlyPrice: 15,
+    annualPrice: 150,
+    coaches: null,  // Unlimited
     admins: 1,
-    dataRetention: 'Unlimited',
+    observationsPerCoach: 10,
     popular: true
   },
   {
@@ -45,7 +45,7 @@ const DEFAULT_PRICING_TIERS = [
     annualPrice: 600,
     coaches: 30,
     admins: 5,
-    dataRetention: 'Unlimited',
+    observationsPerCoach: null,  // Unlimited
     popular: false
   }
 ];
@@ -74,13 +74,13 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
           const transformedTiers = result.data.map(tier => ({
             id: tier.tier_id,
             name: tier.name,
-            subtitle: tier.subtitle || (tier.tier_id === 'individual' ? 'The Solo Developer' : tier.tier_id === 'developer' ? 'The Growth Specialist' : 'The Organization'),
+            subtitle: tier.subtitle || '',
             monthlyPrice: tier.monthly_price,
             annualPrice: tier.annual_price,
             coaches: tier.coaches_limit,
             admins: tier.admins_limit,
-            dataRetention: tier.data_retention_months ? `${tier.data_retention_months} months` : 'Unlimited',
-            popular: tier.tier_id === 'developer'
+            observationsPerCoach: tier.observations_per_coach,
+            popular: tier.tier_id === 'coach_developer'
           }));
           setPricingTiers(transformedTiers);
         }
@@ -397,7 +397,7 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                 </span>
               </p>
               <p className="text-sm text-slate-600">
-                £{newPrice}/{isAnnual ? 'year' : 'month'} • {selectedTier.coaches} coaches, {selectedTier.admins} admin(s)
+                £{newPrice}/{isAnnual ? 'year' : 'month'} • {selectedTier.coaches === 0 ? 'Self-observation' : selectedTier.coaches === null ? 'Unlimited coaches' : `${selectedTier.coaches} coaches`}, {selectedTier.admins} coach developer(s)
               </p>
             </div>
             
@@ -557,16 +557,22 @@ export function UpgradeModal({ open, onOpenChange, onSubscriptionChange }) {
                       <div className="border-t border-slate-100 pt-4 space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-slate-600">Coach Developers</span>
-                          <span className="font-medium text-slate-900">Up to {tier.admins}</span>
+                          <span className="font-medium text-slate-900">{tier.admins}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-slate-600">Coaches</span>
-                          <span className="font-medium text-slate-900">Up to {tier.coaches}</span>
+                          <span className="font-medium text-slate-900">
+                            {tier.coaches === 0 
+                              ? 'Self-observation' 
+                              : tier.coaches === null 
+                                ? 'Unlimited' 
+                                : `Up to ${tier.coaches}`}
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Data History</span>
-                          <span className={`font-medium ${tier.dataRetention === 'Unlimited' ? 'text-green-600' : 'text-slate-900'}`}>
-                            {tier.dataRetention}
+                          <span className="text-slate-600">Observations/Coach</span>
+                          <span className={`font-medium ${tier.observationsPerCoach === null ? 'text-green-600' : 'text-slate-900'}`}>
+                            {tier.observationsPerCoach === null ? 'Unlimited' : tier.observationsPerCoach}
                           </span>
                         </div>
                       </div>

@@ -1,70 +1,44 @@
 <analysis>**original_problem_statement:**
 The user has initiated a major subscription restructure project. The goal is to replace the existing subscription model with three new tiers: , , and . This project also involves introducing observation limits, updating role-based behaviors, adding admin controls for limits, and implementing a safe migration path for existing subscribers.
 
-The project was structured into 7 distinct phases. All phases have been implemented, but user acceptance testing has revealed several critical bugs related to the new demo accounts and UI components displaying outdated information.
+The project was structured into 7 distinct phases. All phases have been implemented, and the recent focus has been on extensive bug fixing and UI/UX enhancements based on detailed user feedback.
 
 **PRODUCT REQUIREMENTS (PHASED IMPLEMENTATION):**
-*   **Phase 1 - 7 (Completed):** Data model, Stripe mapping, backend enforcement, UI updates, admin controls, landing page, and migration logic have all had an initial implementation pass. The current focus is on bug fixing based on user feedback.
+*   **Phase 1 - 7 (Completed):** Data model, Stripe mapping, backend enforcement, UI updates, admin controls, landing page, and migration logic have all been implemented. The current focus is on final bug fixes and user acceptance.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The full 7-phase subscription restructure has been coded. This includes the backend logic for entitlements, limit enforcement, Stripe price mapping, and migration. The frontend has been updated across the landing page, user settings, admin dashboard, and observation flow to reflect these new tiers. However, recent user testing revealed critical bugs. The agent has fixed a CORS error and an admin panel UI bug but was in the middle of fixing an incorrect Subscription Required modal and non-functional demo accounts when the session ended.
+The full 7-phase subscription restructure has been coded. This includes the backend logic for entitlements, limit enforcement, and Stripe mapping. The frontend has been significantly updated across the landing page, user settings, admin dashboard, and observation flow to reflect the new tiers. In this session, the agent fixed a large number of bugs and implemented numerous UI/UX improvements based on user feedback, including fixing demo accounts, correcting data calculations, implementing profile photo uploads, and refining UI behavior for different subscription tiers.
 
 **Last working item**:
--   **Last item agent was working:** The agent was fixing the  component. This was triggered by the user reporting that newly created demo accounts were incorrectly being asked to upgrade, and the upgrade modal itself was showing old, hardcoded pricing.
+-   **Last item agent was working:** The agent was fixing the  component (the Manage Subscription modal), which was displaying outdated, hardcoded subscription tiers.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent. The agent should test the complete login and subscription verification flow.
+-   **Which testing method agent to use?** Frontend testing agent. The agent should log in as an organization owner, navigate to Settings, open the Manage Plan modal, and verify that the new subscription tiers (, , ) are displayed correctly.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Demo accounts do not have active subscriptions.** The creation script only creates user/organization records but fails to create the corresponding active subscription record in the database.
--   **Issue 2 (P1):  shows incorrect/old pricing.** The modal contains hardcoded legacy tier information instead of fetching the new, live pricing data.
--   **Issue 3 (P2): The frontend logic for checking an active subscription is flawed.** The context or hook responsible for checking a user's subscription status does not correctly recognize the new subscription tiers, causing it to fail for the demo accounts.
+-   **Issue 1 (P0): Manage Subscription modal shows old tiers.** The user reported that the modal for managing subscriptions showed the old, incorrect plan information.
 
 **Issues Detail:**
--   **Issue 1: Demo accounts do not have active subscriptions.**
-    -   **Attempted fixes:** The agent successfully created the user accounts with correct password hashing but overlooked assigning an active subscription plan to them in the database.
+-   **Issue 1: Manage Subscription modal shows old tiers.**
+    -   **Attempted fixes:** The agent correctly identified that the backend endpoint  in  was returning hardcoded old data. The agent updated this endpoint to dynamically generate the tier list from . The corresponding frontend component, , was also updated to parse and render the new data structure. However, the agent was unable to navigate to the modal to visually confirm the fix was successful.
     -   **Next debug checklist:**
-        1.  Create or modify a script (e.g., ).
-        2.  This script must create a user, an organization, and a corresponding **active** subscription record in the  collection, linking the organization to the correct Stripe Price ID for its tier.
-        3.  Ensure fields like  and subscription status are correctly populated.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a blocker for the user to test the new tier functionality. Fixing it will make the demo accounts usable.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Both.
-    -   **Blocked on other issue:** None.
-
--   **Issue 2:  shows incorrect/old pricing.**
-    -   **Attempted fixes:** The agent identified the hardcoded values in  and began removing the outdated code.
-    -   **Next debug checklist:**
-        1.  Continue editing .
-        2.  Remove all hardcoded pricing/tier data.
-        3.  Implement a fetch call to the  endpoint.
-        4.  Update the component's JSX to dynamically render the pricing cards from the API response.
-    -   **Why fix this issue and what will be achieved with the fix?** To ensure any user who legitimately needs to upgrade is shown the correct, current plan options.
+        1.  Log in as a user who is an organization owner (e.g., the admin account: ).
+        2.  Navigate to the **Settings** page.
+        3.  Scroll to the Subscription Management section and click the Manage Plan button.
+        4.  Take a screenshot to verify the modal now displays the three new tiers with the correct features.
+    -   **Why fix this issue and what will be achieved with the fix?** This is critical for allowing users to view and manage their subscription plans correctly.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Frontend.
     -   **Blocked on other issue:** None.
 
--   **Issue 3: Logic for checking active subscription is flawed.**
-    -   **Attempted fixes:** None yet, but  was identified as the likely location of the bug.
-    -   **Next debug checklist:**
-        1.  Investigate the  hook in .
-        2.  Analyze the logic that sets the  state. It is likely checking only for legacy tier keys.
-        3.  Modify the logic to correctly validate an active subscription using the new tier keys (, ) from the user's entitlements.
-    -   **Why fix this issue and what will be achieved with the fix?** This is the root cause of the broken user experience for new subscribers. Fixing it ensures that paying customers can access the app.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend.
-    -   **Blocked on other issue:** Should be fixed after Issue 1 so testing is possible.
-
 **In progress Task List**:
--   **Task 1: Fix the SubscriptionRequiredModal.jsx (P1)**
-    -   **Where to resume:** Continue editing  to replace hardcoded pricing with data from the  API.
-    -   **What will be achieved with this?** The upgrade modal will show correct, dynamic pricing.
+-   **Task 1: Verify the Manage Subscription Modal Fix (P0)**
+    -   **Where to resume:** The backend and frontend code has been updated. The next step is to perform the verification steps outlined in the Next debug checklist above to confirm the modal displays the correct information.
+    -   **What will be achieved with this?** The subscription management UI will be fully functional and accurate.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** Frontend.
     -   **Blocked on something:** None.
@@ -73,14 +47,26 @@ The full 7-phase subscription restructure has been coded. This includes the back
 - There are no new features planned. The entire focus is on fixing the bugs identified by the user to complete the subscription restructure project.
 
 **Completed work in this session**
--   **Phase 2-7 Implementation:** Completed the initial coding for all remaining phases of the subscription project (Stripe mapping, backend limits, UI updates, admin controls, landing page, and migration logic).
--   **Stripe ID Integration:** Updated backend and frontend configurations with the real Stripe Price IDs provided by the user.
--   **Bug Fix (CORS):** Resolved a critical CORS error that was blocking all frontend API requests.
--   **Bug Fix (Admin UI):** Fixed the Admin Dashboard's subscription tab to display the new subscription tiers instead of old, hardcoded data.
--   **Bug Fix (Login):** Fixed failing demo account logins by correcting the password hashing method and targeting the right database.
+-   **Demo Account & Subscription Fix:** Created a script () to properly seed demo accounts with active subscriptions, fixing the root cause of login/entitlement issues.
+-   **UI/UX Navigation Fixes:**
+    -   Adjusted visibility of My Development and My Coaches tabs based on subscription tier (, , ).
+    -   Fixed routing for the  page to allow  roles.
+-   **Template & Observation Flow Enhancements:**
+    -   Filtered reflection templates shown on the Templates page and in Session Setup based on the user's tier.
+    -   For Individual Coach tier, auto-assigned the user as the coach being observed and hid the selection UI.
+    -   Auto-filled the session name with the coach's name and the current date.
+-   **Profile Photo Upload:** Implemented photo upload functionality in Settings, My Development, and the Coach Profile pages, including creating a new backend endpoint and a reusable React component.
+-   **Coach/User Visibility Fix:** Updated the coach selection dropdown to include other Coach Developers in the same organization, excluding the current user.
+-   **Header/Toolbar Redesign:** Cleaned up the main header by wrapping the organization name, repositioning titles, moving the sync status indicator, and using icons for tabs.
+-   **Observation Review Page ():** For the Individual Coach tier, hid the Observer reflections card and enabled editing of the Coach reflection card.
+-   **Analytics & Data Bug Fixes:**
+    -   **Intervention Analytics:** Fixed a bug where custom interventions without descriptors were not appearing in charts.
+    -   **Ball Rolling Average:** Corrected the backend calculation for the average ball rolling percentage.
+    -   **Session Duration Discrepancy:** Fixed the session list endpoint to calculate  consistently with the review page.
+-   **Content Cleanup:** Removed irrelevant unlimited data text from the landing page's pricing section.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Production environment sync failure causing data loss.** This high-severity, recurring issue remains uninvestigated and poses a significant risk.
+-   **Issue 1: Production environment sync failure causing data loss.** This high-severity, recurring issue remains uninvestigated as per the user's request.
 -   **Issue 2: Unoptimized Database Queries.**
 
 **Known issue recurrence from previous fork**
@@ -92,77 +78,79 @@ The full 7-phase subscription restructure has been coded. This includes the back
 
 
 **Key Technical Concepts**
--   **Phased Implementation:** The project followed a 7-phase plan, all of which have been coded but now require bug-fixing.
--   **Configuration-Driven Backend:** The system relies on  as a single source of truth for tiers, limits, and pricing.
--   **CORS Debugging:** An issue was resolved by adding the specific frontend preview URL to the  list in the FastAPI backend.
--   **Authentication Debugging:** Login issues were traced to incorrect password hashing (fixed by using ) and scripts writing to the wrong database (fixed by targeting ).
+-   **Configuration-Driven UI:** The application relies on  and API responses to drive UI features and visibility.
+-   **Role & Tier-Based Logic:** Extensive conditional rendering in React is used to tailor the user experience based on subscription tier (, , ) and role (, ).
+-   **Data Calculation Consistency:** Addressed multiple bugs where data was calculated differently across the application (e.g., session duration, ball rolling average), requiring backend fixes to ensure a single source of truth.
 
 **key DB schema**
--   **organisations**: Contains , ,  (with ).
--   **users**: Contains credentials. The  field is a bcrypt hash.
--   **subscriptions**: A record in this collection is required to link an organization to an active plan. This was the missing piece for the demo accounts.
+-   **organisations**: Contains , , .
+-   **users**: Contains , , , .
+-   **subscriptions**: Links an organization to a Stripe plan.
+-   **coaches**: Contains coach-specific data like , .
+-   **sessions/observations**: Contains all observation data, including , , .
 
 **All files of reference**
 -    (Currently being fixed).
--    (Needs review for subscription check logic).
--    (Script that needs fixing to assign active subscriptions).
--    (Central config for all subscription data).
--    (Was recently fixed to remove hardcoded data).
+-    (API for modal was fixed here).
+-    (Heavily modified for tier logic).
+-    (Heavily modified for tier logic).
+-    (Heavily modified for UI redesign).
+-   
+-   
+-   
+-    (New file).
 
 **key api endpoints**
--   : Authentication endpoint.
--   : Crucial endpoint for displaying correct pricing on the landing page and in the upgrade modal.
--   : Admin endpoint that was fixed to return live tier data.
+-   : **Fixed** to return new dynamic tier data instead of being hardcoded.
+-   : **New** endpoint to update the current user's profile photo.
+-   : **Modified** to allow updating a coach's .
+-   : **Modified** to include other coach developers in the list of observable users.
+-   : **Modified** to return a  value consistent with the session review page.
+-   : **Fixed** the backend calculation for .
 
 **Critical Info for New Agent**
--   **Your top priority is fixing the user-reported bugs.** The 7-phase feature release is code-complete but not user-accepted.
--   **Start by fixing the demo accounts.** You cannot effectively test the UI fixes without working accounts. Modify the creation script to assign an active subscription in the database for each demo user.
--   **Next, fix the  component.** Finish the work the previous agent started: remove the hardcoded data and make it fetch live pricing from the API.
--   **Finally, investigate and fix the subscription check logic** in  to ensure it correctly recognizes the new subscription tiers.
--   The CORS issue has been resolved. The backend is correctly configured to accept requests from the frontend preview URL. Do not change this configuration unless the environment changes.
+-   **Your top priority is to finish and verify the fix for the Manage Subscription modal.** The user reported it was showing old tiers. The agent has already updated the backend API and the frontend component (). You must now log in as an organization owner (admin account), trigger the modal from the Settings page, and confirm via screenshot that it displays the correct new tiers.
+-   **The user has provided a lot of specific feedback.** Pay close attention to the details of each implemented fix, especially the conditional UI logic for different subscription tiers, as these are critical to the user's acceptance of the project.
+-   The critical Production Sync data loss issue is a known, high-severity bug. The user has explicitly said **not** to work on it for now.
 
 **documents and test reports created in this job**
--   
--   
--   
--   
--   
+-    (Updated multiple times with completed bug fixes)
+-    (New script to seed demo users with subscriptions)
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User:** i logged into the coach developer account and it does not have a subscription... I also noticed this modal has the old subscription tiers/pricing etc. update to new. (This is the current set of tasks).
--   **User:** can you create me a demo account for both the new coach developer tier...
--   **User:** just tried logging into both the new demo accounts and failed with a 401 status code.
--   **User:** it worked and i logged in. on the admin page, the subscription tab is still showing the old tiers.
--   **User:** Provided console logs showing a CORS error, which was subsequently fixed.
--   **User:** i cant login on the preview to the admin account...
--   **User:** Provided new pricing and Stripe Price IDs for the subscription tiers.
--   **User:** Gave sequential approval to proceed with Phases 5, 6, and 7.
+1.  **User:** the manage subscription modal is showing the old tiers.
+2.  **User:** on the landing page and the modal for the subscription tiers, remove the unlimited data part.
+3.  **User:** on the same user, the session length is 1:10:40 but when on the home page it shows the length as 47:50.
+4.  **User:** the only session observed shows a ball rolling of 56% but when the user goes into my coaches and looks at their coach development tab, it shows 83% as the average.
+5.  **User:** a user added a new intervention but the data is not showing in the analytics charts.
+6.  **User:** requested multiple UI fixes for the top toolbar (org name wrap, title placement, autosave sign position, icon-only buttons).
+7.  **User:** when in a club/coach dev subscription, they should be able to see other coach developers in the observation list, but not themselves.
+8.  **User:** i went into the riverside demo account which is a club subscription and went into the coach developer account. I cant see the my development tab.
+9.  **User:** when an individual coach subscription tier finishes an observation, they should not see the Observer reflections card. instead, they should be able to edit the Coach reflection card.
+10. **User:** for all accounts on every tier, the session name should autofill to the name of the coach being observed and the date.
 
 **Project Health Check:**
--   **Broken:**
-    -   Demo account creation and functionality.
-    -   The  component.
-    -   Frontend logic for detecting a user's active subscription.
-    -   **Production Data Sync:** A critical, uninvestigated data loss bug from previous sessions still exists.
+-   **Broken:** The Manage Subscription modal is unverified and likely still appears broken to the user.
+-   **Mocked:** None.
+-   **High-Risk:** The Production Data Sync issue causing data loss remains a critical, unaddressed problem.
 
 **3rd Party Integrations**
--   **Stripe:** Heavily integrated, using real Price IDs provided by the user.
+-   **Stripe:** Heavily integrated for subscriptions.
 -   **Resend**
 -   **Google Analytics (GA4)**
 -   **recharts**
 
 **Testing status**
--   **Testing agent used after significant changes:** YES
--   **Test files created:**
-    -   
-    -   
-    -   
--   **Known regressions:** The frontend's subscription check is failing for new tiers, incorrectly showing an upgrade modal to subscribed users.
+-   **Testing agent used after significant changes:** NO
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** None.
+-   **Known regressions:** None new; many prior regressions were fixed in this session.
 
 **Credentials to test flow:**
--   **Admin:**  / 
--   **Demo Coach Developer:**  /  (Login works, but account needs a subscription).
--   **Demo Individual Coach:**  /  (Login works, but account needs a subscription).
+-   **Admin/Owner (Use for Subscription Modal test):**  / 
+-   **Demo Coach Developer:**  / 
+-   **Demo Individual Coach:**  / 
+-   **Riverside Club Account (Coach Dev):**  / 
 
 **What agent forgot to execute**
--   The agent forgot to assign active subscriptions when creating the demo accounts, rendering them unusable for testing the core feature.</analysis>
+-   The agent did not successfully verify the fix for the  after updating the code. It failed to navigate the UI correctly to trigger the modal and confirm the visual outcome.</analysis>
