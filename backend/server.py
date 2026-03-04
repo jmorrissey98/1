@@ -3289,27 +3289,32 @@ async def admin_get_subscription_tiers(request: Request):
     """Get all subscription tiers with their limits (Admin only)"""
     await require_admin(request)
     
-    # Default tiers - always return all three
+    # Import new tiers from subscription_config
+    from subscription_config import SUBSCRIPTION_TIERS
+    
+    # Convert to admin format with new tiers
     default_tiers = [
         {
-            "tier_id": "individual",
-            "name": "Individual",
-            "monthly_price": 20,
-            "annual_price": 200,
-            "coaches_limit": 5,
+            "tier_id": "individual_coach",
+            "name": "Individual Coach",
+            "monthly_price": 5,
+            "annual_price": 50,
+            "coaches_limit": 0,  # Self only
             "admins_limit": 1,
-            "data_retention_months": 3,
-            "description": "For individual coach developers"
+            "observations_limit": None,  # Unlimited
+            "data_retention_months": None,
+            "description": "For coaches observing themselves"
         },
         {
-            "tier_id": "developer",
-            "name": "Developer",
-            "monthly_price": 35,
-            "annual_price": 350,
-            "coaches_limit": 10,
+            "tier_id": "coach_developer",
+            "name": "Coach Developer",
+            "monthly_price": 15,
+            "annual_price": 150,
+            "coaches_limit": None,  # Unlimited
             "admins_limit": 1,
-            "data_retention_months": None,  # Unlimited
-            "description": "For growing teams"
+            "observations_limit": 10,  # Per coach
+            "data_retention_months": None,
+            "description": "For coach developers working with multiple coaches"
         },
         {
             "tier_id": "club",
@@ -3318,12 +3323,13 @@ async def admin_get_subscription_tiers(request: Request):
             "annual_price": 600,
             "coaches_limit": 30,
             "admins_limit": 5,
-            "data_retention_months": None,  # Unlimited
+            "observations_limit": None,  # Unlimited
+            "data_retention_months": None,
             "description": "For organizations"
         }
     ]
     
-    # Get tiers from database
+    # Get tiers from database (for any custom overrides)
     db_tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
     db_tier_map = {t["tier_id"]: t for t in db_tiers} if db_tiers else {}
     
