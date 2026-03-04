@@ -50,6 +50,15 @@
   - Removed `created_by` check in favor of organization membership check
 - Templates can only be modified/deleted by users in the same organization
 
+**iOS Safe Area / Dynamic Island Header Fix (COMPLETED - March 4, 2026)**
+- User reported header being blocked by iOS status bar and Dynamic Island on iPhones
+- Fixed landing page header: Added `safe-area-top` class for proper top padding
+- Fixed app header: Already had `safe-area-top` class, improved styling
+- Fixed mobile menu (Sheet component): Added safe area padding to top and bottom
+- Updated CSS safe area classes to have minimum 12px padding
+- Increased hero section top padding on mobile (pt-36 vs pt-32)
+- Verified working via mobile viewport screenshot testing
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**

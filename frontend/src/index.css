@@ -113,7 +113,7 @@ code {
   }
 }
 
-/* Safe area support for iPad */
+/* Safe area support for iPad and iPhone */
 @supports (padding: max(0px)) {
   .safe-area-inset {
     padding-left: max(1rem, env(safe-area-inset-left));
@@ -122,7 +122,7 @@ code {
   }
   
   .safe-area-top {
-    padding-top: max(0px, env(safe-area-inset-top));
+    padding-top: max(12px, env(safe-area-inset-top));
   }
 }
 

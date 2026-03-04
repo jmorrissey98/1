@@ -8,9 +8,8 @@
   --sar: env(safe-area-inset-right, 0px);
 }
 
-/* Apply safe area to body */
+/* Don't apply safe area to body - let individual elements handle it */
 body {
-  padding-top: var(--sat);
   padding-bottom: var(--sab);
   padding-left: var(--sal);
   padding-right: var(--sar);
@@ -18,7 +17,7 @@ body {
 
 /* Safe area utility classes */
 .safe-area-top {
-  padding-top: var(--sat);
+  padding-top: max(var(--sat), 12px);
 }
 
 .safe-area-bottom {
@@ -33,9 +32,14 @@ body {
   padding-right: var(--sar);
 }
 
-/* For PWA standalone mode - add extra top padding */
+/* For fixed headers - use top offset instead of padding */
+.fixed-header-safe {
+  top: var(--sat);
+}
+
+/* For PWA standalone mode - add extra top padding for Dynamic Island */
 @media all and (display-mode: standalone) {
-  body {
+  .safe-area-top {
     padding-top: max(env(safe-area-inset-top, 20px), 20px);
   }
   
