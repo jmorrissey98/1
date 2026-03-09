@@ -79,6 +79,18 @@
   4. observationTemplatesApi.js: Clear session parts cache when templates are created/updated
 - This ensures mobile users always get fresh template data from the server when online
 
+**Ball State Timeline on Session Analysis Page (COMPLETED - March 9, 2026)**
+- User requested a thin timeline showing ball state (rolling/stopped) below the intervention timeline
+- Features implemented:
+  1. Added thin ball state timeline below intervention timeline with clickable segments
+  2. Colors: Rolling = #B8E0A5 (soft green), Stopped = #E5E7EB (light grey)
+  3. Hover tooltip shows duration of each segment (e.g., "Rolling: 2m 30s")
+  4. Click to filter: Click green segment = only show interventions when ball rolling, click grey = only stopped
+  5. Active filter shows with a ring highlight on the segment and a clear (X) button
+  6. Legend updated to show rolling/stopped as clickable filter buttons
+  7. Main timeline background also updated to use the same consistent colors
+- Implementation: Updated ReviewSession.jsx with new `ballStateFilter` state, `getEventBallState()` helper function, and modified `getFilteredEvents()` to support ball state filtering
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**

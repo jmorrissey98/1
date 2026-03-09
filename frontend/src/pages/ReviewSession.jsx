@@ -512,6 +512,10 @@ export default function ReviewSession() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   
+  // Ball state filter for intervention timeline
+  // null = show all, 'rolling' = only rolling, 'stopped' = only stopped
+  const [ballStateFilter, setBallStateFilter] = useState(null);
+  
   // Edit mode state (only for Coach Developers on completed sessions)
   const [isEditMode, setIsEditMode] = useState(false);
   
@@ -785,10 +789,38 @@ export default function ReviewSession() {
     await cloudSaveSession(updated);
   };
 
+  // Check if an event occurred during ball rolling or stopped
+  const getEventBallState = (eventTime) => {
+    const ballRollingLog = session?.ballRollingLog || [];
+    for (const segment of ballRollingLog) {
+      const segmentStartMs = segment.start || 0;
+      const segmentEndMs = segmentStartMs + (segment.duration || 0);
+      if (eventTime >= segmentStartMs && eventTime < segmentEndMs) {
+        return segment.rolling ? 'rolling' : 'stopped';
+      }
+    }
+    return 'stopped'; // Default to stopped if not in any segment
+  };
+
   const getFilteredEvents = () => {
     if (!session) return [];
-    if (viewMode === 'whole') return session.events || [];
-    return (session.events || []).filter(e => e.sessionPartId === viewMode);
+    let events = session.events || [];
+    
+    // Filter by viewMode (part selection)
+    if (viewMode !== 'whole') {
+      events = events.filter(e => e.sessionPartId === viewMode);
+    }
+    
+    // Filter by ball state if filter is active
+    if (ballStateFilter) {
+      events = events.filter(event => {
+        const eventTime = event.relativeTimestamp || 0;
+        const ballState = getEventBallState(eventTime);
+        return ballState === ballStateFilter;
+      });
+    }
+    
+    return events;
   };
 
   // Get notes filtered by the selected part
@@ -2473,7 +2505,7 @@ export default function ReviewSession() {
                               className="relative h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
                               data-testid="density-bar"
                             >
-                              {/* Ball rolling segments */}
+                              {/* Ball rolling segments - subtle background */}
                               {(session.ballRollingLog || []).map((segment, idx) => {
                                 const segmentStartMs = segment.start || 0;
                                 const segmentEndMs = segmentStartMs + (segment.duration || 0);
@@ -2490,13 +2522,11 @@ export default function ReviewSession() {
                                 return (
                                   <div
                                     key={`ball-${idx}`}
-                                    className={cn(
-                                      "absolute top-0 h-full opacity-20",
-                                      segment.rolling ? "bg-green-400" : "bg-red-300"
-                                    )}
+                                    className="absolute top-0 h-full opacity-30"
                                     style={{
                                       left: `${startPct}%`,
-                                      width: `${widthPct}%`
+                                      width: `${widthPct}%`,
+                                      backgroundColor: segment.rolling ? '#B8E0A5' : '#E5E7EB'
                                     }}
                                   />
                                 );
@@ -2602,20 +2632,103 @@ export default function ReviewSession() {
                                 );
                               })}
                             </div>
+                            
+                            {/* Ball State Timeline - thin, clickable for filtering */}
+                            <div className="relative mt-1.5">
+                              <div 
+                                className="relative h-3 bg-slate-50 rounded overflow-hidden border border-slate-100"
+                                data-testid="ball-state-timeline"
+                              >
+                                {(session.ballRollingLog || []).map((segment, idx) => {
+                                  const segmentStartMs = segment.start || 0;
+                                  const segmentEndMs = segmentStartMs + (segment.duration || 0);
+                                  
+                                  // Only show segments that overlap with the timeline range
+                                  if (segmentEndMs < startMs || segmentStartMs > endMs) return null;
+                                  
+                                  // Clip segment to timeline range
+                                  const clippedStart = Math.max(segmentStartMs, startMs);
+                                  const clippedEnd = Math.min(segmentEndMs, endMs);
+                                  const startPct = ((clippedStart - startMs) / durationMs) * 100;
+                                  const widthPct = ((clippedEnd - clippedStart) / durationMs) * 100;
+                                  const isRolling = segment.rolling;
+                                  const isSelected = ballStateFilter === (isRolling ? 'rolling' : 'stopped');
+                                  const durationSec = (clippedEnd - clippedStart) / 1000;
+                                  
+                                  return (
+                                    <div
+                                      key={`ball-state-${idx}`}
+                                      className={cn(
+                                        "absolute top-0 h-full cursor-pointer transition-all group",
+                                        isSelected && "ring-1 ring-offset-1 ring-slate-400"
+                                      )}
+                                      style={{
+                                        left: `${startPct}%`,
+                                        width: `${Math.max(widthPct, 0.5)}%`,
+                                        backgroundColor: isRolling ? '#B8E0A5' : '#E5E7EB'
+                                      }}
+                                      onClick={() => {
+                                        const newFilter = isRolling ? 'rolling' : 'stopped';
+                                        setBallStateFilter(prev => prev === newFilter ? null : newFilter);
+                                      }}
+                                    >
+                                      {/* Hover tooltip */}
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                        <div className="bg-slate-800 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap shadow-lg">
+                                          {isRolling ? 'Rolling' : 'Stopped'}: {durationSec >= 60 
+                                            ? `${Math.floor(durationSec / 60)}m ${Math.round(durationSec % 60)}s`
+                                            : `${Math.round(durationSec)}s`
+                                          }
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Filter indicator */}
+                              {ballStateFilter && (
+                                <div className="absolute -right-1 top-1/2 -translate-y-1/2 translate-x-full pl-2">
+                                  <button
+                                    onClick={() => setBallStateFilter(null)}
+                                    className="text-[10px] text-slate-500 hover:text-slate-700 flex items-center gap-0.5"
+                                    title="Clear filter"
+                                  >
+                                    <X className="w-3 h-3" />
+                                    <span className="hidden sm:inline">
+                                      {ballStateFilter === 'rolling' ? 'Rolling' : 'Stopped'}
+                                    </span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </>
                         );
                       })()}
                       
                       {/* Legend */}
                       <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-3 h-3 bg-green-400 rounded opacity-40" />
+                        {/* Ball state legend with clickable filter */}
+                        <button 
+                          onClick={() => setBallStateFilter(prev => prev === 'rolling' ? null : 'rolling')}
+                          className={cn(
+                            "flex items-center gap-1.5 px-1.5 py-0.5 rounded transition-all",
+                            ballStateFilter === 'rolling' ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"
+                          )}
+                        >
+                          <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: '#B8E0A5' }} />
                           <span className="text-slate-600">Rolling</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-3 h-3 bg-red-300 rounded opacity-40" />
+                        </button>
+                        <button 
+                          onClick={() => setBallStateFilter(prev => prev === 'stopped' ? null : 'stopped')}
+                          className={cn(
+                            "flex items-center gap-1.5 px-1.5 py-0.5 rounded transition-all",
+                            ballStateFilter === 'stopped' ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"
+                          )}
+                        >
+                          <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: '#E5E7EB' }} />
                           <span className="text-slate-600">Stopped</span>
-                        </div>
+                        </button>
+                        <div className="w-px bg-slate-200 mx-1" />
                         {(session.interventionTypes || []).slice(0, 4).map((type, idx) => (
                           <div key={type.id} className="flex items-center gap-1.5">
                             <div 
