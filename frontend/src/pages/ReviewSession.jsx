@@ -791,8 +791,8 @@ export default function ReviewSession() {
 
   // Check if an event occurred during ball rolling or stopped
   const getEventBallState = (eventTime) => {
-    const ballRollingLog = session?.ballRollingLog || [];
-    for (const segment of ballRollingLog) {
+    const segments = getBallRollingSegments();
+    for (const segment of segments) {
       const segmentStartMs = segment.start || 0;
       const segmentEndMs = segmentStartMs + (segment.duration || 0);
       if (eventTime >= segmentStartMs && eventTime < segmentEndMs) {
@@ -800,6 +800,73 @@ export default function ReviewSession() {
       }
     }
     return 'stopped'; // Default to stopped if not in any segment
+  };
+
+  // Convert ball rolling log (state change timestamps) into segments with start/duration
+  // The log format is: [{ timestamp: '...', state: true/false, partId: '...' }, ...]
+  // We need to convert to: [{ start: ms, duration: ms, rolling: true/false }, ...]
+  const getBallRollingSegments = () => {
+    if (!session) return [];
+    const log = session.ballRollingLog || [];
+    if (log.length === 0) return [];
+    
+    const sessionStartMs = session.startTime ? new Date(session.startTime).getTime() : 0;
+    const sessionDurationMs = (session.totalDuration || session.total_duration || 0) * 1000;
+    
+    // Check if log is already in segment format (has 'start' and 'duration')
+    if (log[0].start !== undefined && log[0].duration !== undefined) {
+      return log;
+    }
+    
+    // Convert state change log to segments
+    const segments = [];
+    let currentState = false; // Default to stopped
+    let currentStartMs = 0;
+    
+    // Sort log by timestamp
+    const sortedLog = [...log].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    for (let i = 0; i < sortedLog.length; i++) {
+      const entry = sortedLog[i];
+      const entryMs = new Date(entry.timestamp).getTime() - sessionStartMs;
+      const newState = entry.state === true || entry.state === 'rolling';
+      
+      // If state changes, close the previous segment and start a new one
+      if (i === 0) {
+        // First entry - create initial segment from start to first entry
+        if (entryMs > 0) {
+          segments.push({
+            start: 0,
+            duration: entryMs,
+            rolling: false // Assume stopped before first log entry
+          });
+        }
+        currentState = newState;
+        currentStartMs = entryMs;
+      } else if (newState !== currentState) {
+        // State changed - close previous segment
+        segments.push({
+          start: currentStartMs,
+          duration: entryMs - currentStartMs,
+          rolling: currentState
+        });
+        currentState = newState;
+        currentStartMs = entryMs;
+      }
+    }
+    
+    // Close the last segment (from last state change to end of session)
+    if (sessionDurationMs > currentStartMs) {
+      segments.push({
+        start: currentStartMs,
+        duration: sessionDurationMs - currentStartMs,
+        rolling: currentState
+      });
+    }
+    
+    return segments;
   };
 
   const getFilteredEvents = () => {
@@ -2506,7 +2573,7 @@ export default function ReviewSession() {
                               data-testid="density-bar"
                             >
                               {/* Ball rolling segments - subtle background */}
-                              {(session.ballRollingLog || []).map((segment, idx) => {
+                              {getBallRollingSegments().map((segment, idx) => {
                                 const segmentStartMs = segment.start || 0;
                                 const segmentEndMs = segmentStartMs + (segment.duration || 0);
                                 
@@ -2639,7 +2706,7 @@ export default function ReviewSession() {
                                 className="relative h-3 bg-slate-50 rounded overflow-hidden border border-slate-100"
                                 data-testid="ball-state-timeline"
                               >
-                                {(session.ballRollingLog || []).map((segment, idx) => {
+                                {getBallRollingSegments().map((segment, idx) => {
                                   const segmentStartMs = segment.start || 0;
                                   const segmentEndMs = segmentStartMs + (segment.duration || 0);
                                   

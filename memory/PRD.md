@@ -89,7 +89,8 @@
   5. Active filter shows with a ring highlight on the segment and a clear (X) button
   6. Legend updated to show rolling/stopped as clickable filter buttons
   7. Main timeline background also updated to use the same consistent colors
-- Implementation: Updated ReviewSession.jsx with new `ballStateFilter` state, `getEventBallState()` helper function, and modified `getFilteredEvents()` to support ball state filtering
+- Bug fix (March 9, 2026): Timeline was showing all grey because the ball_rolling_log data format is state changes (timestamps when ball state changed), not pre-calculated segments. Added `getBallRollingSegments()` function to convert state change log into displayable segments with start/duration/rolling.
+- Implementation: Updated ReviewSession.jsx with new `ballStateFilter` state, `getEventBallState()` helper function, `getBallRollingSegments()` converter function, and modified `getFilteredEvents()` to support ball state filtering
 
 ### Earlier Bug Fixes (March 4, 2026)
 
