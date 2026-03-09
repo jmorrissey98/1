@@ -59,20 +59,11 @@ const DEFAULT_DESCRIPTOR_GROUP_2 = {
 };
 
 // Fallback default session parts (used when backend unavailable)
-const FALLBACK_SESSION_PARTS = [
-  { id: 'part_1', name: 'Part 1', order: 0, isDefault: true },
-  { id: 'part_2', name: 'Part 2', order: 1, isDefault: true },
-  { id: 'part_3', name: 'Part 3', order: 2, isDefault: true },
-  { id: 'part_4', name: 'Part 4', order: 3, isDefault: true }
-];
+// Note: These are only used for truly offline scenarios
+const FALLBACK_SESSION_PARTS = [];
 
-// Legacy default session parts (for backwards compatibility)
-const DEFAULT_SESSION_PARTS = [
-  { id: 'part_1', name: 'Part 1', order: 0, isDefault: true },
-  { id: 'part_2', name: 'Part 2', order: 1, isDefault: true },
-  { id: 'part_3', name: 'Part 3', order: 2, isDefault: true },
-  { id: 'part_4', name: 'Part 4', order: 3, isDefault: true }
-];
+// Legacy default session parts - kept empty to encourage using server templates
+const DEFAULT_SESSION_PARTS = [];
 
 // Get default template
 export const getDefaultTemplate = () => ({

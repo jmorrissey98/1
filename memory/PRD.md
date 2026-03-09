@@ -69,6 +69,16 @@
 - Verified: Settings page shows same photo in both "Your Account" and "Team Members" sections
 - Verified: My Development page shows photo correctly
 
+**Observation Template Session Parts Showing Generic Names on Mobile (COMPLETED - March 4, 2026)**
+- User reported observation on phone showed "Part 1, Part 2" instead of custom names like "Develop winning technique"
+- Root cause: When API call failed or was slow on mobile, app fell back to localStorage templates which had generic part names
+- Fixes applied:
+  1. SessionSetup.jsx: Only fall back to localStorage when truly offline (`!navigator.onLine`), not on API errors
+  2. storage.js: Removed generic "Part 1, Part 2" from default session parts (now empty array)
+  3. sessionPartsApi.js: Removed generic fallback session parts (now empty array)
+  4. observationTemplatesApi.js: Clear session parts cache when templates are created/updated
+- This ensures mobile users always get fresh template data from the server when online
+
 ### Earlier Bug Fixes (March 4, 2026)
 
 **Demo Account Subscription Fix (COMPLETED)**

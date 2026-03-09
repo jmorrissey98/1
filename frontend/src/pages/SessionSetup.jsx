@@ -160,7 +160,31 @@ export default function SessionSetup() {
           setSelectedTemplate(apiTemplates[0].id);
         }
       } else {
-        // Fallback to localStorage templates
+        // No templates from API - only fall back to localStorage if truly offline
+        console.warn('[SessionSetup] No templates from API, checking localStorage fallback');
+        const localTemplates = storage.getTemplates();
+        // Only use localStorage if we're offline or as absolute last resort
+        if (!navigator.onLine && localTemplates.length > 0) {
+          console.log('[SessionSetup] Offline - using localStorage templates');
+          setTemplates(localTemplates);
+          if (localTemplates.length > 0) {
+            setSelectedTemplate(localTemplates[0].id || 'default');
+            if (applyDefault) {
+              applyTemplateToSession(localTemplates[0]);
+            }
+          }
+        } else {
+          // Online but no templates - this shouldn't happen normally
+          // Don't apply any template, let user create one
+          console.warn('[SessionSetup] Online but no templates available');
+          setTemplates([]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load observation templates:', err);
+      // Only fallback to localStorage if actually offline
+      if (!navigator.onLine) {
+        console.log('[SessionSetup] Offline error - using localStorage templates');
         const localTemplates = storage.getTemplates();
         setTemplates(localTemplates);
         if (localTemplates.length > 0) {
@@ -169,17 +193,10 @@ export default function SessionSetup() {
             applyTemplateToSession(localTemplates[0]);
           }
         }
-      }
-    } catch (err) {
-      console.error('Failed to load observation templates:', err);
-      // Fallback to localStorage
-      const localTemplates = storage.getTemplates();
-      setTemplates(localTemplates);
-      if (localTemplates.length > 0) {
-        setSelectedTemplate(localTemplates[0].id || 'default');
-        if (applyDefault) {
-          applyTemplateToSession(localTemplates[0]);
-        }
+      } else {
+        // Online error - don't silently use stale local data
+        toast.error('Failed to load templates. Please check your connection.');
+        setTemplates([]);
       }
     } finally {
       setLoadingTemplates(false);

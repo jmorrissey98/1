@@ -4,6 +4,7 @@
  */
 
 import { safeGet, safePost, safePut, safeDelete } from './safeFetch';
+import { clearSessionPartsCache } from './sessionPartsApi';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -60,6 +61,8 @@ export async function createObservationTemplate(template) {
   const backendData = toBackendFormat(template);
   const result = await safePost(`${API_URL}/api/observation-templates`, backendData);
   if (result.ok && result.data) {
+    // Clear session parts cache since template parts may have changed
+    clearSessionPartsCache();
     return toFrontendFormat(result.data);
   }
   throw new Error(result.error || 'Failed to create template');
@@ -75,6 +78,8 @@ export async function updateObservationTemplate(templateId, updates) {
   const backendData = toBackendFormat(updates, true);
   const result = await safePut(`${API_URL}/api/observation-templates/${templateId}`, backendData);
   if (result.ok && result.data) {
+    // Clear session parts cache since template parts may have changed
+    clearSessionPartsCache();
     return toFrontendFormat(result.data);
   }
   throw new Error(result.error || 'Failed to update template');

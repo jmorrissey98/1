@@ -4,13 +4,9 @@ import { addToOfflineQueue, QueueItemType, isOnline } from './offlineSync';
 
 const API_URL = ''; // Relative URL - frontend and backend on same domain
 
-// Fallback defaults when backend is unavailable
-const FALLBACK_SESSION_PARTS = [
-  { part_id: 'part_1', name: 'Part 1', is_default: true },
-  { part_id: 'part_2', name: 'Part 2', is_default: true },
-  { part_id: 'part_3', name: 'Part 3', is_default: true },
-  { part_id: 'part_4', name: 'Part 4', is_default: true }
-];
+// Fallback defaults when backend is unavailable - empty to force server data
+// This prevents stale "Part 1, Part 2" names appearing on mobile
+const FALLBACK_SESSION_PARTS = [];
 
 // Cache key for local storage
 const CACHE_KEY = 'mcd_session_parts_cache';
