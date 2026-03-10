@@ -442,7 +442,7 @@ export default function TemplateManager() {
           isDefault: true
         };
         saveAndRefresh({ ...template, sessionParts: [...parts, newPart] });
-        toast.success('Session part added as new global default');
+        toast.success('Session part added as organization default');
       } else {
         const parts = template.sessionParts || [];
         const newPart = { 
@@ -846,7 +846,7 @@ export default function TemplateManager() {
               <DialogTitle>Add Session Part</DialogTitle>
               <DialogDescription>
                 Create a new session part for this template.
-                {isCoachDeveloper() && " Coach Developers can also add it as a global default."}
+                {isCoachDeveloper() && " Coach Developers can also add it as an organization-wide default."}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
@@ -875,7 +875,7 @@ export default function TemplateManager() {
                     className="text-sm text-slate-600 cursor-pointer flex items-center gap-2"
                   >
                     <Globe className="w-4 h-4" />
-                    Add as global default (available in all sessions for all users)
+                    Add as organization default (available in all sessions for your team)
                   </Label>
                 </div>
               )}

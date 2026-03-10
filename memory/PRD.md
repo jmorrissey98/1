@@ -7,6 +7,19 @@
 
 ### Bug Fixes (March 10, 2026 - Latest Session)
 
+**CRITICAL: Session Parts Leaking Across Organizations (COMPLETED - March 10, 2026)**
+- User reported that adding "global" session parts in QPR Academy affected ALL organizations platform-wide
+- Root cause: Session parts were stored in a shared collection without organization filtering
+- Fixes applied:
+  1. Updated `GET /session-parts` to filter by organization (+ system defaults)
+  2. Updated `GET /session-parts/defaults` to filter by organization (+ system defaults)
+  3. Updated `POST /session-parts` to store `organization_id` with new parts
+  4. Updated `DELETE /session-parts/{part_id}` to only delete within own organization
+  5. Introduced `is_system_default` flag for platform-wide default parts (Part 1-4, etc.)
+  6. Updated UI labels from "global default" to "organization default" for clarity
+- Organization-created default parts are now isolated to that organization only
+- System defaults (built-in parts) remain visible to all users
+
 **Template Dropdown Empty on Production (COMPLETED - March 10, 2026)**
 - User reported template selection dropdown was empty on production when setting up new observations
 - Root cause: Recent data-isolation fix filtered templates strictly by `organization_id`, but legacy templates created before the fix didn't have this field

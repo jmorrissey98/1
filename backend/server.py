@@ -1399,29 +1399,56 @@ async def require_admin(request: Request) -> User:
 # Session Parts endpoints
 @api_router.get("/session-parts", response_model=List[SessionPartResponse])
 async def get_session_parts(request: Request):
-    """Get all session parts (defaults + custom)"""
-    await require_auth(request)
+    """Get all session parts (system defaults + organization's custom parts)"""
+    user = await require_auth(request)
     
-    # Initialize defaults if not present
-    existing_defaults = await db.session_parts.find({"is_default": True}, {"_id": 0}).to_list(100)
-    existing_ids = {p["part_id"] for p in existing_defaults}
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
     
-    # Add missing defaults
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # Initialize system defaults if not present (these have no organization_id and is_system_default=True)
+    existing_system_defaults = await db.session_parts.find({"is_system_default": True}, {"_id": 0}).to_list(100)
+    existing_ids = {p["part_id"] for p in existing_system_defaults}
+    
+    # Add missing system defaults
     for default_part in DEFAULT_SESSION_PARTS:
         if default_part["part_id"] not in existing_ids:
             await db.session_parts.insert_one({
                 **default_part,
+                "is_system_default": True,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
     
-    # Get all parts
-    parts = await db.session_parts.find({}, {"_id": 0}).to_list(200)
+    # Query: Get system defaults OR parts belonging to user's organization
+    if org_id:
+        query = {
+            "$or": [
+                {"is_system_default": True},
+                {"organization_id": org_id}
+            ]
+        }
+    else:
+        # No org - only show system defaults and parts created by this user
+        query = {
+            "$or": [
+                {"is_system_default": True},
+                {"created_by": user.user_id}
+            ]
+        }
+    
+    parts = await db.session_parts.find(query, {"_id": 0}).to_list(200)
     
     return [
         SessionPartResponse(
             part_id=p["part_id"],
             name=p["name"],
-            is_default=p.get("is_default", False),
+            is_default=p.get("is_default", False) or p.get("is_system_default", False),
             created_by=p.get("created_by"),
             created_at=p.get("created_at", "")
         )
@@ -1430,21 +1457,43 @@ async def get_session_parts(request: Request):
 
 @api_router.get("/session-parts/defaults", response_model=List[SessionPartResponse])
 async def get_default_session_parts(request: Request):
-    """Get only default session parts"""
-    await require_auth(request)
+    """Get default session parts (system defaults + organization defaults)"""
+    user = await require_auth(request)
     
-    # Initialize defaults if not present
-    existing_defaults = await db.session_parts.find({"is_default": True}, {"_id": 0}).to_list(100)
-    existing_ids = {p["part_id"] for p in existing_defaults}
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # Initialize system defaults if not present
+    existing_system_defaults = await db.session_parts.find({"is_system_default": True}, {"_id": 0}).to_list(100)
+    existing_ids = {p["part_id"] for p in existing_system_defaults}
     
     for default_part in DEFAULT_SESSION_PARTS:
         if default_part["part_id"] not in existing_ids:
             await db.session_parts.insert_one({
                 **default_part,
+                "is_system_default": True,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
     
-    parts = await db.session_parts.find({"is_default": True}, {"_id": 0}).to_list(100)
+    # Query: Get system defaults OR organization defaults
+    if org_id:
+        query = {
+            "$or": [
+                {"is_system_default": True},
+                {"organization_id": org_id, "is_default": True}
+            ]
+        }
+    else:
+        query = {"is_system_default": True}
+    
+    parts = await db.session_parts.find(query, {"_id": 0}).to_list(100)
     
     return [
         SessionPartResponse(
@@ -1488,15 +1537,39 @@ async def get_historical_session_parts(request: Request):
 
 @api_router.post("/session-parts", response_model=SessionPartResponse)
 async def create_session_part(part_data: SessionPartCreate, request: Request):
-    """Create a new session part (Coach Developer only for defaults)"""
+    """Create a new session part (Coach Developer only for defaults)
+    
+    Parts marked as 'is_default' become organization-wide defaults,
+    visible to all users in the same organization.
+    """
     user = await require_auth(request)
     
     # Only Coach Developers can create default parts
     if part_data.is_default and user.role != "coach_developer":
         raise HTTPException(status_code=403, detail="Only Coach Developers can create default session parts")
     
-    # Check if name already exists
-    existing = await db.session_parts.find_one({"name": part_data.name}, {"_id": 0})
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # Check if name already exists within the organization (or globally for system defaults)
+    if org_id:
+        existing = await db.session_parts.find_one({
+            "name": part_data.name,
+            "$or": [
+                {"organization_id": org_id},
+                {"is_system_default": True}
+            ]
+        }, {"_id": 0})
+    else:
+        existing = await db.session_parts.find_one({"name": part_data.name}, {"_id": 0})
+    
     if existing:
         raise HTTPException(status_code=400, detail="Session part with this name already exists")
     
@@ -1505,6 +1578,7 @@ async def create_session_part(part_data: SessionPartCreate, request: Request):
         "part_id": part_id,
         "name": part_data.name,
         "is_default": part_data.is_default,
+        "organization_id": org_id,  # Store organization for isolation
         "created_by": user.user_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -1521,18 +1595,39 @@ async def create_session_part(part_data: SessionPartCreate, request: Request):
 
 @api_router.delete("/session-parts/{part_id}")
 async def delete_session_part(part_id: str, request: Request):
-    """Delete a custom session part (Coach Developer only)"""
-    await require_coach_developer(request)
+    """Delete a custom session part (Coach Developer only, within own organization)"""
+    user = await require_coach_developer(request)
     
     # Check if it's a built-in default
     builtin_ids = {p["part_id"] for p in DEFAULT_SESSION_PARTS}
     if part_id in builtin_ids:
         raise HTTPException(status_code=400, detail="Cannot delete built-in default session parts")
     
-    result = await db.session_parts.delete_one({"part_id": part_id})
+    # Get user's organization_id
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # For coach developers, also check if they're the owner
+    if not org_id and user.role == "coach_developer":
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # Only delete parts from the user's organization
+    if org_id:
+        result = await db.session_parts.delete_one({
+            "part_id": part_id,
+            "organization_id": org_id
+        })
+    else:
+        # Fallback: delete by created_by
+        result = await db.session_parts.delete_one({
+            "part_id": part_id,
+            "created_by": user.user_id
+        })
     
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Session part not found")
+        raise HTTPException(status_code=404, detail="Session part not found or not authorized to delete")
     
     return {"status": "deleted"}
 
