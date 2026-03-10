@@ -5151,6 +5151,127 @@ async def debug_templates(request: Request):
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc()}
 
+# TEMPORARY: Seed templates for an organization
+@api_router.post("/debug/seed-templates/{org_id}")
+async def seed_templates_for_org(org_id: str):
+    """Create default templates for an organization that has none"""
+    try:
+        # Check if org already has templates
+        existing = await db.observation_templates.count_documents({"organization_id": org_id})
+        if existing > 0:
+            return {"status": "skipped", "message": f"Organization {org_id} already has {existing} templates"}
+        
+        # Get org info
+        org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+        if not org:
+            return {"status": "error", "message": f"Organization {org_id} not found"}
+        
+        owner_id = org.get("owner_id", "system")
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Default Training Template
+        training_template = {
+            "template_id": f"obs_tmpl_training_{uuid.uuid4().hex[:8]}",
+            "name": "Training Template",
+            "description": "Default template for training session observations",
+            "observation_context": "training",
+            "intervention_types": [
+                {"id": "command", "name": "Command", "color": "yellow"},
+                {"id": "qa", "name": "Q&A", "color": "yellow"},
+                {"id": "guided_discovery", "name": "Guided Discovery", "color": "yellow"},
+                {"id": "transmission", "name": "Transmission", "color": "yellow"}
+            ],
+            "descriptor_group1": {
+                "id": "content_focus",
+                "name": "Content Focus",
+                "color": "blue",
+                "descriptors": [
+                    {"id": "technical", "name": "Technical"},
+                    {"id": "tactical", "name": "Tactical"},
+                    {"id": "physical", "name": "Physical"},
+                    {"id": "psych", "name": "Psych"},
+                    {"id": "social", "name": "Social"}
+                ]
+            },
+            "descriptor_group2": {
+                "id": "delivery_method",
+                "name": "Delivery Method",
+                "color": "green",
+                "descriptors": [
+                    {"id": "visual_demo", "name": "Visual Demo"},
+                    {"id": "triggers", "name": "Triggers"},
+                    {"id": "kinesthetic", "name": "Kinesthetic"}
+                ]
+            },
+            "session_parts": [
+                {"id": "part_1", "name": "Part 1", "order": 0, "isDefault": True},
+                {"id": "part_2", "name": "Part 2", "order": 1, "isDefault": True},
+                {"id": "part_3", "name": "Part 3", "order": 2, "isDefault": True}
+            ],
+            "is_default": True,
+            "organization_id": org_id,
+            "created_by": owner_id,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        # Default Match Day Template
+        matchday_template = {
+            "template_id": f"obs_tmpl_matchday_{uuid.uuid4().hex[:8]}",
+            "name": "Match Day Template",
+            "description": "Default template for match day observations",
+            "observation_context": "game",
+            "intervention_types": [
+                {"id": "command", "name": "Command", "color": "yellow"},
+                {"id": "qa", "name": "Q&A", "color": "yellow"},
+                {"id": "guided_discovery", "name": "Guided Discovery", "color": "yellow"},
+                {"id": "transmission", "name": "Transmission", "color": "yellow"}
+            ],
+            "descriptor_group1": {
+                "id": "content_focus",
+                "name": "Content Focus",
+                "color": "blue",
+                "descriptors": [
+                    {"id": "technical", "name": "Technical"},
+                    {"id": "tactical", "name": "Tactical"},
+                    {"id": "physical", "name": "Physical"},
+                    {"id": "psych", "name": "Psych"},
+                    {"id": "social", "name": "Social"}
+                ]
+            },
+            "descriptor_group2": {
+                "id": "delivery_method",
+                "name": "Delivery Method",
+                "color": "green",
+                "descriptors": [
+                    {"id": "visual_demo", "name": "Visual Demo"},
+                    {"id": "triggers", "name": "Triggers"},
+                    {"id": "kinesthetic", "name": "Kinesthetic"}
+                ]
+            },
+            "session_parts": [
+                {"id": "first_half", "name": "First Half", "order": 0, "isDefault": True},
+                {"id": "second_half", "name": "Second Half", "order": 1, "isDefault": True}
+            ],
+            "is_default": True,
+            "organization_id": org_id,
+            "created_by": owner_id,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        # Insert templates
+        await db.observation_templates.insert_many([training_template, matchday_template])
+        
+        return {
+            "status": "success",
+            "message": f"Created 2 default templates for organization {org_id}",
+            "templates": [training_template["name"], matchday_template["name"]]
+        }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
 @api_router.get("/observation-templates")
 async def list_observation_templates(
     request: Request,
