@@ -5116,6 +5116,66 @@ async def unset_template_as_default(template_id: str, request: Request):
 # OBSERVATION WINDOW TEMPLATE ENDPOINTS
 # ============================================
 
+# DEBUG ENDPOINT - Remove after debugging
+@api_router.get("/debug/templates")
+async def debug_templates(request: Request):
+    """Temporary debug endpoint to diagnose template issues"""
+    try:
+        user = await require_auth(request)
+        
+        # Get user info
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "user_id": 1, "email": 1, "organization_id": 1, "role": 1})
+        
+        # Get org info if owner
+        org_id = user_doc.get("organization_id") if user_doc else None
+        owned_org = None
+        if not org_id and user.role == "coach_developer":
+            owned_org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0, "org_id": 1, "name": 1})
+            if owned_org:
+                org_id = owned_org.get("org_id")
+        
+        # Count all templates
+        total_obs_templates = await db.observation_templates.count_documents({})
+        total_ref_templates = await db.reflection_templates.count_documents({})
+        
+        # Get sample of ALL observation templates (first 10)
+        sample_templates = await db.observation_templates.find({}, {"_id": 0, "template_id": 1, "name": 1, "organization_id": 1, "created_by": 1}).limit(10).to_list(10)
+        
+        # Get templates matching current query
+        if org_id:
+            query = {
+                "$or": [
+                    {"organization_id": org_id},
+                    {"created_by": user.user_id},
+                    {"organization_id": {"$exists": False}},
+                    {"organization_id": None}
+                ]
+            }
+        else:
+            query = {
+                "$or": [
+                    {"created_by": user.user_id},
+                    {"organization_id": {"$exists": False}},
+                    {"organization_id": None}
+                ]
+            }
+        
+        matching_templates = await db.observation_templates.find(query, {"_id": 0, "template_id": 1, "name": 1, "organization_id": 1}).to_list(100)
+        
+        return {
+            "user": user_doc,
+            "resolved_org_id": org_id,
+            "owned_org": owned_org,
+            "total_observation_templates": total_obs_templates,
+            "total_reflection_templates": total_ref_templates,
+            "sample_all_templates": sample_templates,
+            "query_used": str(query),
+            "matching_templates_count": len(matching_templates),
+            "matching_templates": matching_templates
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @api_router.get("/observation-templates")
 async def list_observation_templates(
     request: Request,
