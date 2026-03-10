@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Mic, MicOff, Loader2, Square } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { getAuthToken } from '../lib/safeFetch';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -95,7 +96,7 @@ export function SpeechToTextButton({
     setIsTranscribing(true);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         toast.error('Please log in to use speech-to-text');
         return;

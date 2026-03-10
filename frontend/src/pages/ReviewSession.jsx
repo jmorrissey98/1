@@ -1703,13 +1703,22 @@ export default function ReviewSession() {
 
                           {/* Text Input */}
                           {question.question_type === 'text' && (
-                            <Textarea
-                              value={templateResponses[question.question_id] || ''}
-                              onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
-                              placeholder="Enter your response..."
-                              className="min-h-[100px]"
-                              data-testid={`reflection-q-${qIndex}`}
-                            />
+                            <div className="flex gap-2">
+                              <Textarea
+                                value={templateResponses[question.question_id] || ''}
+                                onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
+                                placeholder="Enter your response..."
+                                className="min-h-[100px] flex-1"
+                                data-testid={`reflection-q-${qIndex}`}
+                              />
+                              <SpeechToTextButton
+                                onTranscribe={(text) => handleResponseChange(
+                                  question.question_id, 
+                                  (templateResponses[question.question_id] || '') + (templateResponses[question.question_id] ? ' ' : '') + text
+                                )}
+                                className="self-start mt-1"
+                              />
+                            </div>
                           )}
 
                           {/* Scale Input */}
@@ -1999,13 +2008,22 @@ export default function ReviewSession() {
 
                         {/* Text Input */}
                         {question.question_type === 'text' && (
-                          <Textarea
-                            value={templateResponses[question.question_id] || ''}
-                            onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
-                            placeholder="Enter your response..."
-                            className="min-h-[100px]"
-                            data-testid={`coach-reflection-q-${question.question_id}`}
-                          />
+                          <div className="flex gap-2">
+                            <Textarea
+                              value={templateResponses[question.question_id] || ''}
+                              onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
+                              placeholder="Enter your response..."
+                              className="min-h-[100px] flex-1"
+                              data-testid={`coach-reflection-q-${question.question_id}`}
+                            />
+                            <SpeechToTextButton
+                              onTranscribe={(text) => handleResponseChange(
+                                question.question_id, 
+                                (templateResponses[question.question_id] || '') + (templateResponses[question.question_id] ? ' ' : '') + text
+                              )}
+                              className="self-start mt-1"
+                            />
+                          </div>
                         )}
 
                         {/* Radio/Single Select */}
@@ -2489,12 +2507,18 @@ export default function ReviewSession() {
                       <div className="p-4 bg-slate-50 rounded-lg">
                         {isEditingSummary ? (
                           <div className="space-y-3">
-                            <Textarea
-                              value={editedSummary}
-                              onChange={(e) => setEditedSummary(e.target.value)}
-                              className="min-h-[200px] font-normal"
-                              placeholder="Edit the session summary..."
-                            />
+                            <div className="flex gap-2">
+                              <Textarea
+                                value={editedSummary}
+                                onChange={(e) => setEditedSummary(e.target.value)}
+                                className="min-h-[200px] font-normal flex-1"
+                                placeholder="Edit the session summary..."
+                              />
+                              <SpeechToTextButton
+                                onTranscribe={(text) => setEditedSummary(prev => prev ? `${prev} ${text}` : text)}
+                                className="self-start"
+                              />
+                            </div>
                             <div className="flex gap-2">
                               <Button onClick={handleSaveSummary} size="sm">
                                 <Check className="w-4 h-4 mr-1" />
