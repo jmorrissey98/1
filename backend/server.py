@@ -4847,23 +4847,37 @@ async def list_reflection_templates(
         if org:
             org_id = org.get("org_id")
     
-    # Build query - use $or to support both new (org-based) and legacy (user-based) templates
+    logger.info(f"[reflection-templates] User {user.user_id} (org: {org_id}) fetching templates")
+    
+    # Build query - VERY lenient to handle legacy data:
+    # 1. Templates assigned to user's organization (new data)
+    # 2. Templates created by this user (regardless of organization_id)
+    # 3. Templates without organization_id (legacy/shared templates)
     if org_id:
         query = {
             "$or": [
                 {"organization_id": org_id},
-                {"created_by": user.user_id, "organization_id": {"$exists": False}},
-                {"created_by": user.user_id, "organization_id": None}
+                {"created_by": user.user_id},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": None}
             ]
         }
     else:
-        # No org - only show templates created by this user
-        query = {"created_by": user.user_id}
+        # No org - show templates created by this user OR shared templates
+        query = {
+            "$or": [
+                {"created_by": user.user_id},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": None}
+            ]
+        }
     
     if target_role:
         query["target_role"] = target_role
     
     templates = await db.reflection_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    logger.info(f"[reflection-templates] Found {len(templates)} templates for user {user.user_id}")
     
     return templates
 
@@ -5123,26 +5137,37 @@ async def list_observation_templates(
         if org:
             org_id = org.get("org_id")
     
-    # Build query - use $or to support both new (org-based) and legacy (user-based) templates
-    # This ensures users can see:
-    # 1. Templates assigned to their organization (new data)
-    # 2. Templates they created (legacy data that may not have organization_id)
+    logger.info(f"[observation-templates] User {user.user_id} (org: {org_id}) fetching templates")
+    
+    # Build query - VERY lenient to handle legacy data:
+    # 1. Templates assigned to user's organization (new data)
+    # 2. Templates created by this user (regardless of organization_id)
+    # 3. Templates without organization_id (legacy/shared templates)
     if org_id:
         query = {
             "$or": [
                 {"organization_id": org_id},
-                {"created_by": user.user_id, "organization_id": {"$exists": False}},
-                {"created_by": user.user_id, "organization_id": None}
+                {"created_by": user.user_id},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": None}
             ]
         }
     else:
-        # No org - only show templates created by this user
-        query = {"created_by": user.user_id}
+        # No org - show templates created by this user OR shared templates
+        query = {
+            "$or": [
+                {"created_by": user.user_id},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": None}
+            ]
+        }
     
     if observation_context:
         query["observation_context"] = observation_context
     
     templates = await db.observation_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    logger.info(f"[observation-templates] Found {len(templates)} templates for user {user.user_id}")
     
     return templates
 
