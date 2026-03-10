@@ -34,7 +34,7 @@ import CoachDashboard from "./pages/CoachDashboard";
 
 // BUILD VERSION - Update on each deployment
 // Format: YYYYMMDDHHMM
-const BUILD_VERSION = "202402241600";
+const BUILD_VERSION = "202603101030";
 console.log(`[MCD] Build version: ${BUILD_VERSION}`);
 import CoachDevelopment from "./pages/CoachDevelopment";
 import CoachMyDevelopment from "./pages/CoachMyDevelopment";

@@ -2,7 +2,7 @@
 // Handles offline caching and background sync
 
 // IMPORTANT: Update this version number on every deployment to bust caches
-const SW_VERSION = 'v2024022415'; // Format: vYYYYMMDDHH
+const SW_VERSION = 'v2026031010'; // Format: vYYYYMMDDHH
 const CACHE_NAME = `mcd-cache-${SW_VERSION}`;
 const DYNAMIC_CACHE = `mcd-dynamic-${SW_VERSION}`;
 
