@@ -5116,6 +5116,32 @@ async def unset_template_as_default(template_id: str, request: Request):
 # OBSERVATION WINDOW TEMPLATE ENDPOINTS
 # ============================================
 
+# DEBUG ENDPOINT - Check specific org
+@api_router.get("/debug/org/{org_id}")
+async def debug_org(org_id: str):
+    """Check templates and data for a specific organization"""
+    try:
+        org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+        obs_templates = await db.observation_templates.find({"organization_id": org_id}, {"_id": 0}).to_list(100)
+        ref_templates = await db.reflection_templates.find({"organization_id": org_id}, {"_id": 0, "template_id": 1, "name": 1}).to_list(100)
+        users = await db.users.find({"organization_id": org_id}, {"_id": 0, "user_id": 1, "email": 1}).to_list(100)
+        
+        # Also check templates created by users in this org
+        user_ids = [u["user_id"] for u in users]
+        templates_by_users = await db.observation_templates.find({"created_by": {"$in": user_ids}}, {"_id": 0}).to_list(100)
+        
+        return {
+            "organization": org,
+            "observation_templates": obs_templates,
+            "observation_templates_count": len(obs_templates),
+            "reflection_templates_count": len(ref_templates),
+            "users_in_org": users,
+            "templates_created_by_org_users": templates_by_users
+        }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
 # DEBUG ENDPOINT - Remove after debugging (NO AUTH REQUIRED)
 @api_router.get("/debug/templates")
 async def debug_templates(request: Request):
