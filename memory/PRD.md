@@ -7,6 +7,16 @@
 
 ### Bug Fixes (March 10, 2026 - Latest Session)
 
+**QPR Academy Missing Templates - ROOT CAUSE FOUND & FIXED (March 10, 2026)**
+- User reported template dropdown was empty on production for QPR Academy
+- Root cause investigation revealed: QPR Academy (`org_4b76a7344640`) had ZERO templates in the production database
+- The database only had templates for other organizations (`org_5f1ee8f1e388`, `org_8c2ecefdebbf`)
+- Fixes applied:
+  1. **Frontend fallback fix**: SessionSetup now matches TemplateManager behavior - falls back to localStorage templates when API returns empty
+  2. **Database seeded**: Created default Training Template and Match Day Template for QPR Academy in production
+  3. **Made template queries more lenient**: Backend now includes templates without organization_id and templates created by user
+- Templates now load correctly for QPR Academy users
+
 **Session Parts API 401 Unauthorized Fix (COMPLETED - March 10, 2026)**
 - User reported session parts API returning 401 on production
 - Root cause: `sessionPartsApi.js` was using raw `fetch()` with `credentials: 'include'` but NOT sending the Authorization header
