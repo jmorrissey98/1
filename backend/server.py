@@ -44,6 +44,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -1055,46 +1056,85 @@ async def config_check():
     }
 
 @api_router.post("/upload", response_model=FileUploadResponse)
-async def upload_file(file: UploadFile = File(...)):
-    """Upload a file and return its metadata"""
+async def upload_file(request: Request, file: UploadFile = File(...)):
+    """Upload a file and store it persistently in MongoDB"""
+    user = await require_auth(request)
+    
     try:
         file_id = str(uuid.uuid4())
-        file_ext = Path(file.filename).suffix
-        safe_filename = f"{file_id}{file_ext}"
-        file_path = UPLOAD_DIR / safe_filename
+        content = await file.read()
         
-        async with aiofiles.open(file_path, 'wb') as f:
-            content = await file.read()
-            await f.write(content)
+        # Limit file size to 16MB (MongoDB document limit minus overhead)
+        max_size = 15 * 1024 * 1024  # 15MB to be safe
+        if len(content) > max_size:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 15MB.")
+        
+        # Store file in MongoDB with base64 encoding
+        file_doc = {
+            "file_id": file_id,
+            "filename": file.filename,
+            "content_type": file.content_type or 'application/octet-stream',
+            "size": len(content),
+            "data": base64.b64encode(content).decode('utf-8'),
+            "uploaded_by": user.user_id,
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.uploaded_files.insert_one(file_doc)
         
         return FileUploadResponse(
             id=file_id,
             name=file.filename,
             type=file.content_type or 'application/octet-stream',
             size=len(content),
-            url=f"/api/files/{safe_filename}",
-            uploadedAt=datetime.now(timezone.utc).isoformat()
+            url=f"/api/files/{file_id}",
+            uploadedAt=file_doc["uploaded_at"]
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"File upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-@api_router.get("/files/{filename}")
-async def get_file(filename: str):
-    """Retrieve an uploaded file"""
-    file_path = UPLOAD_DIR / filename
-    if not file_path.exists():
+@api_router.get("/files/{file_id}")
+async def get_file(file_id: str):
+    """Retrieve an uploaded file from MongoDB"""
+    file_doc = await db.uploaded_files.find_one({"file_id": file_id}, {"_id": 0})
+    
+    if not file_doc:
+        # Fallback: check local uploads folder for legacy files
+        for f in UPLOAD_DIR.iterdir():
+            if f.stem == file_id or f.name.startswith(file_id):
+                return FileResponse(f)
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path)
+    
+    # Decode base64 content
+    content = base64.b64decode(file_doc["data"])
+    
+    return Response(
+        content=content,
+        media_type=file_doc.get("content_type", "application/octet-stream"),
+        headers={
+            "Content-Disposition": f'attachment; filename="{file_doc.get("filename", "download")}"'
+        }
+    )
 
 @api_router.delete("/files/{file_id}")
-async def delete_file(file_id: str):
-    """Delete an uploaded file"""
-    # Find file with this ID
+async def delete_file(file_id: str, request: Request):
+    """Delete an uploaded file from MongoDB"""
+    user = await require_auth(request)
+    
+    # Try MongoDB first
+    result = await db.uploaded_files.delete_one({"file_id": file_id})
+    if result.deleted_count > 0:
+        return {"status": "deleted"}
+    
+    # Fallback: check local uploads folder for legacy files
     for f in UPLOAD_DIR.iterdir():
         if f.stem == file_id:
             f.unlink()
             return {"status": "deleted"}
+    
     raise HTTPException(status_code=404, detail="File not found")
 
 @api_router.post("/status", response_model=StatusCheck)
@@ -4712,11 +4752,18 @@ async def list_reflection_templates(
         if org:
             org_id = org.get("org_id")
     
+    # Build query - use $or to support both new (org-based) and legacy (user-based) templates
     if org_id:
-        query["organization_id"] = org_id
+        query = {
+            "$or": [
+                {"organization_id": org_id},
+                {"created_by": user.user_id, "organization_id": {"$exists": False}},
+                {"created_by": user.user_id, "organization_id": None}
+            ]
+        }
     else:
-        # Fallback: show templates created by this user
-        query["created_by"] = user.user_id
+        # No org - only show templates created by this user
+        query = {"created_by": user.user_id}
     
     if target_role:
         query["target_role"] = target_role
@@ -4981,13 +5028,21 @@ async def list_observation_templates(
         if org:
             org_id = org.get("org_id")
     
-    # Build query
-    query = {}
+    # Build query - use $or to support both new (org-based) and legacy (user-based) templates
+    # This ensures users can see:
+    # 1. Templates assigned to their organization (new data)
+    # 2. Templates they created (legacy data that may not have organization_id)
     if org_id:
-        query["organization_id"] = org_id
+        query = {
+            "$or": [
+                {"organization_id": org_id},
+                {"created_by": user.user_id, "organization_id": {"$exists": False}},
+                {"created_by": user.user_id, "organization_id": None}
+            ]
+        }
     else:
-        # Fallback: show templates created by this user
-        query["created_by"] = user.user_id
+        # No org - only show templates created by this user
+        query = {"created_by": user.user_id}
     
     if observation_context:
         query["observation_context"] = observation_context
@@ -5295,7 +5350,7 @@ allowed_origins = [
     "https://www.mycoachdeveloper.com",
     "http://localhost:3000",
     "http://localhost:8001",
-    "https://manage-plan.preview.emergentagent.com",
+    "https://upload-repair-11.preview.emergentagent.com",
 ]
 
 # Add APP_URL if set and not empty

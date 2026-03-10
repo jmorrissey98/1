@@ -1,7 +1,5 @@
 <analysis>**original_problem_statement:**
-The user has initiated a major subscription restructure project. The goal is to replace the existing subscription model with three new tiers: , , and . This project also involves introducing observation limits, updating role-based behaviors, adding admin controls for limits, and implementing a safe migration path for existing subscribers.
-
-The project was structured into 7 distinct phases. All phases have been implemented, and the recent focus has been on extensive bug fixing and UI/UX enhancements based on detailed user feedback.
+The user has initiated a major subscription restructure project. The goal is to replace the existing subscription model with three new tiers: , , and . This project also involves introducing observation limits, updating role-based behaviors, adding admin controls for limits, and implementing a safe migration path for existing subscribers. The project is in the final bug-fixing and stabilization phase.
 
 **PRODUCT REQUIREMENTS (PHASED IMPLEMENTATION):**
 *   **Phase 1 - 7 (Completed):** Data model, Stripe mapping, backend enforcement, UI updates, admin controls, landing page, and migration logic have all been implemented. The current focus is on final bug fixes and user acceptance.
@@ -9,61 +7,72 @@ The project was structured into 7 distinct phases. All phases have been implemen
 **User's preferred language**: English
 
 **what currently exists?**
-The full 7-phase subscription restructure has been coded. This includes the backend logic for entitlements, limit enforcement, and Stripe mapping. The frontend has been significantly updated across the landing page, user settings, admin dashboard, and observation flow to reflect the new tiers. In this session, the agent fixed a large number of bugs and implemented numerous UI/UX improvements based on user feedback, including fixing demo accounts, correcting data calculations, implementing profile photo uploads, and refining UI behavior for different subscription tiers.
+The full 7-phase subscription restructure has been coded and deployed. This session focused heavily on bug fixing and implementing user-requested features. Key accomplishments include:
+- Verified the Manage Subscription modal fix.
+- Fixed two critical bugs in the admin dashboard related to changing an organization's subscription tier, ensuring data consistency between the  and  collections.
+- Resolved a critical data isolation bug where user invites from one organization were visible to others. Proactively secured template CRUD endpoints to prevent cross-organization data leakage.
+- Fixed a mobile UI issue by adding safe area padding to prevent the header from overlapping with the iOS status bar.
+- Solved a profile photo synchronization issue by updating the React AuthContext to refresh user data globally.
+- Fixed a data caching issue on mobile that caused observation templates to show incorrect, generic names.
+- Implemented a new feature on the session analysis page: a ball state timeline to compare interventions when the ball is rolling vs. stopped, and subsequently fixed a bug related to its data rendering.
 
 **Last working item**:
--   **Last item agent was working:** The agent was fixing the  component (the Manage Subscription modal), which was displaying outdated, hardcoded subscription tiers.
+-   **Last item agent was working:** The user reported two issues occurring on the production environment:
+    1.  The template selection dropdown is empty in the Session Setup page.
+    2.  Attaching files to sessions is not working.
+    The agent confirmed the template dropdown works on the preview environment and was investigating why it fails on production. The primary hypothesis is that a recent data-isolation fix (filtering templates by ) is too strict for legacy production data that may not have this field.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent. The agent should log in as an organization owner, navigate to Settings, open the Manage Plan modal, and verify that the new subscription tiers (, , ) are displayed correctly.
+-   **Agent Testing Done:** N (The bug is reported on the production environment, which the agent cannot directly test. The agent has only verified that the feature works on the preview environment.)
+-   **Which testing method agent to use?** backend testing agent. The agent needs to make the backend query for templates more robust to handle legacy data that might be missing an . The testing agent should help verify that the query in  can correctly fetch templates for users with and without organization IDs associated with their templates.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Manage Subscription modal shows old tiers.** The user reported that the modal for managing subscriptions showed the old, incorrect plan information.
+-   **Issue 1 (P0): Template dropdown empty on production.**
+-   **Issue 2 (P1): File uploads failing on production.**
 
 **Issues Detail:**
--   **Issue 1: Manage Subscription modal shows old tiers.**
-    -   **Attempted fixes:** The agent correctly identified that the backend endpoint  in  was returning hardcoded old data. The agent updated this endpoint to dynamically generate the tier list from . The corresponding frontend component, , was also updated to parse and render the new data structure. However, the agent was unable to navigate to the modal to visually confirm the fix was successful.
+-   **Issue 1: Template dropdown empty on production.**
+    -   **Attempted fixes:** The agent investigated the template fetching logic in  and the corresponding backend endpoint in . The agent suspects the issue is the backend query at  (lines 4986-4990), which now strictly filters by . This fix was necessary for data isolation but may be filtering out all templates for users on production if their legacy templates lack this field.
     -   **Next debug checklist:**
-        1.  Log in as a user who is an organization owner (e.g., the admin account: ).
-        2.  Navigate to the **Settings** page.
-        3.  Scroll to the Subscription Management section and click the Manage Plan button.
-        4.  Take a screenshot to verify the modal now displays the three new tiers with the correct features.
-    -   **Why fix this issue and what will be achieved with the fix?** This is critical for allowing users to view and manage their subscription plans correctly.
+        1.  Modify the observation templates query in . The query should be updated to be more defensive. It should filter by  if present, but have a fallback condition to also include templates where the  field matches the user's ID, to support legacy data.
+        2.  After deploying the fix, ask the user to verify on production.
+    -   **Why fix this issue and what will be achieved with the fix?** Users cannot start new observations with their custom templates, which is a core functionality. This fix will restore that capability.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend.
+    -   **Should Test frontend/backend/both after fix?** Backend.
+    -   **Blocked on other issue:** None.
+-   **Issue 2: File uploads failing on production.**
+    -   **Attempted fixes:** The agent investigated the  endpoint in . It was noted that the endpoint works on the preview environment but has potential issues for production: it lacks authentication and saves files to a non-persistent local directory (), which would be wiped on every deployment.
+    -   **Next debug checklist:**
+        1.  The file upload mechanism needs to be re-architected for production. A persistent storage solution like AWS S3 should be integrated.
+        2.  The  endpoint in  must be secured to require user authentication.
+        3.  The frontend file attachment logic may need to be updated to work with the new (e.g., S3 pre-signed URL) upload process.
+    -   **Why fix this issue and what will be achieved with the fix?** Users need to be able to attach supplementary files to their observation sessions.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Both.
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: Verify the Manage Subscription Modal Fix (P0)**
-    -   **Where to resume:** The backend and frontend code has been updated. The next step is to perform the verification steps outlined in the Next debug checklist above to confirm the modal displays the correct information.
-    -   **What will be achieved with this?** The subscription management UI will be fully functional and accurate.
+-   **Task 1: Fix Template & File Upload Production Bugs (P0)**
+    -   **Where to resume:** Start by modifying the template query in  as described in Issue 1 above. After that is complete, begin work on re-architecting the file upload functionality.
+    -   **What will be achieved with this?** This will resolve the two major blocking issues the user is experiencing on the production site.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Frontend.
+    -   **Should Test frontend/backend/both after fix?** Both.
     -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 - There are no new features planned. The entire focus is on fixing the bugs identified by the user to complete the subscription restructure project.
 
 **Completed work in this session**
--   **Demo Account & Subscription Fix:** Created a script () to properly seed demo accounts with active subscriptions, fixing the root cause of login/entitlement issues.
--   **UI/UX Navigation Fixes:**
-    -   Adjusted visibility of My Development and My Coaches tabs based on subscription tier (, , ).
-    -   Fixed routing for the  page to allow  roles.
--   **Template & Observation Flow Enhancements:**
-    -   Filtered reflection templates shown on the Templates page and in Session Setup based on the user's tier.
-    -   For Individual Coach tier, auto-assigned the user as the coach being observed and hid the selection UI.
-    -   Auto-filled the session name with the coach's name and the current date.
--   **Profile Photo Upload:** Implemented photo upload functionality in Settings, My Development, and the Coach Profile pages, including creating a new backend endpoint and a reusable React component.
--   **Coach/User Visibility Fix:** Updated the coach selection dropdown to include other Coach Developers in the same organization, excluding the current user.
--   **Header/Toolbar Redesign:** Cleaned up the main header by wrapping the organization name, repositioning titles, moving the sync status indicator, and using icons for tabs.
--   **Observation Review Page ():** For the Individual Coach tier, hid the Observer reflections card and enabled editing of the Coach reflection card.
--   **Analytics & Data Bug Fixes:**
-    -   **Intervention Analytics:** Fixed a bug where custom interventions without descriptors were not appearing in charts.
-    -   **Ball Rolling Average:** Corrected the backend calculation for the average ball rolling percentage.
-    -   **Session Duration Discrepancy:** Fixed the session list endpoint to calculate  consistently with the review page.
--   **Content Cleanup:** Removed irrelevant unlimited data text from the landing page's pricing section.
+-   **Subscription Modal Verified:** Confirmed that the Manage Subscription modal correctly displays the new subscription tiers.
+-   **Admin Tier Change Fixed:** Resolved two bugs preventing admins from changing an organization's tier, ensuring data is now consistent across  and  collections.
+-   **Data Isolation Implemented:** Fixed a critical security flaw where user invites were not filtered by organization. Proactively secured template CRUD endpoints against cross-organization access.
+-   **Mobile UI Safe Area Fixed:** Added CSS padding to the header and mobile menu to prevent overlap with the iOS status bar and Dynamic Island.
+-   **Profile Photo Syncing Fixed:** Resolved an issue where profile photos wouldn't update across all UI components by implementing a global state update via the .
+-   **Mobile Template Caching Fixed:** Removed faulty fallback logic that caused mobile devices to use stale, generic template names instead of fetching fresh data.
+-   **Ball State Timeline Feature:** Implemented a new timeline on the analysis page to show ball rolling vs. stopped states and allow filtering of interventions.
+-   **Ball State Timeline Bug Fixed:** Corrected a data-rendering bug where the new timeline wasn't displaying the ball state correctly due to a data structure mismatch.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Production environment sync failure causing data loss.** This high-severity, recurring issue remains uninvestigated as per the user's request.
@@ -78,59 +87,53 @@ The full 7-phase subscription restructure has been coded. This includes the back
 
 
 **Key Technical Concepts**
--   **Configuration-Driven UI:** The application relies on  and API responses to drive UI features and visibility.
--   **Role & Tier-Based Logic:** Extensive conditional rendering in React is used to tailor the user experience based on subscription tier (, , ) and role (, ).
--   **Data Calculation Consistency:** Addressed multiple bugs where data was calculated differently across the application (e.g., session duration, ball rolling average), requiring backend fixes to ensure a single source of truth.
+-   **Data Isolation & Security:** Added organization-level filtering to multiple backend endpoints (invites, templates) to prevent data leakage between tenants.
+-   **Frontend State Management:** Utilized React Context () to manage and synchronize global user state (like profile picture) across components.
+-   **Defensive Programming:** The need to write backend queries that can handle both new and legacy data schemas (e.g., templates with and without ).
+-   **Mobile UI (Safe Area):** Used CSS  variables to create padding that respects the native UI elements on iOS devices.
+-   **Data Structure Adaptation:** Transformed a backend data structure (a log of timestamped state changes) into a format usable by a frontend component (an array of segments with start/duration).
 
 **key DB schema**
--   **organisations**: Contains , , .
--   **users**: Contains , , , .
--   **subscriptions**: Links an organization to a Stripe plan.
--   **coaches**: Contains coach-specific data like , .
--   **sessions/observations**: Contains all observation data, including , , .
+-   **invites**: **MODIFIED** - Now includes an  field to enforce data isolation.
+-   **observation_templates / reflection_templates**: The backend logic now assumes an  may be present and uses it for filtering. Legacy templates may not have this field.
 
 **All files of reference**
--    (Currently being fixed).
--    (API for modal was fixed here).
--    (Heavily modified for tier logic).
--    (Heavily modified for tier logic).
--    (Heavily modified for UI redesign).
--   
--   
--   
--    (New file).
+-    (Location of template query and file upload endpoint).
+-    (Where the template dropdown is).
+-    (Location of the intervention timeline).
+-    (File modified for photo sync fix).
 
 **key api endpoints**
--   : **Fixed** to return new dynamic tier data instead of being hardcoded.
--   : **New** endpoint to update the current user's profile photo.
--   : **Modified** to allow updating a coach's .
--   : **Modified** to include other coach developers in the list of observable users.
--   : **Modified** to return a  value consistent with the session review page.
--   : **Fixed** the backend calculation for .
+-   : **Fixed** to update both  and  collections.
+-   : **Fixed** to filter by .
+-   : **Fixed** to store .
+-   : **Modified** to filter by , which is the likely cause of the production bug.
+-   : Investigated to debug timeline data.
+-   : Investigated for file upload bug; needs to be re-architected.
 
 **Critical Info for New Agent**
--   **Your top priority is to finish and verify the fix for the Manage Subscription modal.** The user reported it was showing old tiers. The agent has already updated the backend API and the frontend component (). You must now log in as an organization owner (admin account), trigger the modal from the Settings page, and confirm via screenshot that it displays the correct new tiers.
--   **The user has provided a lot of specific feedback.** Pay close attention to the details of each implemented fix, especially the conditional UI logic for different subscription tiers, as these are critical to the user's acceptance of the project.
--   The critical Production Sync data loss issue is a known, high-severity bug. The user has explicitly said **not** to work on it for now.
+-   **Your top priority is to fix the two bugs reported on the production environment.** The user is blocked.
+-   **Production vs. Preview:** The template selection bug highlights a key challenge: the data on production can be different from preview (e.g., legacy data). Your fixes must be robust enough to handle these differences. You cannot test on production directly, so you must write defensive code.
+-   **Template Bug:** The most likely fix for the empty template dropdown is to make the backend query in  more lenient. It should attempt to filter by  but fall back to checking  to support older templates.
+-   **File Upload Bug:** The current file upload implementation is not production-ready. It saves to a temporary local folder and lacks authentication. This needs a proper fix, likely involving a persistent storage service like S3 and adding authentication to the endpoint.
 
 **documents and test reports created in this job**
 -    (Updated multiple times with completed bug fixes)
--    (New script to seed demo users with subscriptions)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** the manage subscription modal is showing the old tiers.
-2.  **User:** on the landing page and the modal for the subscription tiers, remove the unlimited data part.
-3.  **User:** on the same user, the session length is 1:10:40 but when on the home page it shows the length as 47:50.
-4.  **User:** the only session observed shows a ball rolling of 56% but when the user goes into my coaches and looks at their coach development tab, it shows 83% as the average.
-5.  **User:** a user added a new intervention but the data is not showing in the analytics charts.
-6.  **User:** requested multiple UI fixes for the top toolbar (org name wrap, title placement, autosave sign position, icon-only buttons).
-7.  **User:** when in a club/coach dev subscription, they should be able to see other coach developers in the observation list, but not themselves.
-8.  **User:** i went into the riverside demo account which is a club subscription and went into the coach developer account. I cant see the my development tab.
-9.  **User:** when an individual coach subscription tier finishes an observation, they should not see the Observer reflections card. instead, they should be able to edit the Coach reflection card.
-10. **User:** for all accounts on every tier, the session name should autofill to the name of the coach being observed and the date.
+1.  **User:** I now am on my laptop and went to do a coach observation and cannot seem to select my template for observing coaches... also when attaching files to sessions, they are not uploading properly. (New bug report - template dropdown and file upload failure on production)
+2.  **User:** the ball rolling is 71% but the timeline is not showing any ball rolling at all. (Bug report for the new timeline feature)
+3.  **User:** Requested the ball state timeline feature for the session analysis page.
+4.  **User:** the laptop is correct but the phone shows Part 1 etc where it should say Develop winning technique (Bug report - mobile template names are wrong).
+5.  **User:** I uploaded a profile photo in settings and it seems to save in the list view... but not on the top one. (Bug report - profile photo not syncing across UI).
+6.  **User:** on the phone, the top of the screen is hard to see as the IOS toolbar blocks a lot of it (Bug report - mobile UI safe area).
+7.  **User:** the pending users... are for other organisations. they should not be visible for this organisation at all! (Critical bug report - data leak in user invites).
+8.  **User:** it now allows me to change Effra Football Club to a coach developer tier... however, when i go into the account, it still shows as a club subscription (Bug report - admin tier change not reflected in user's view).
+9.  **User:** Admin tier change failed with a 400 error.
+10. **User:** Approved the initial plan to verify the subscription modal fix.
 
 **Project Health Check:**
--   **Broken:** The Manage Subscription modal is unverified and likely still appears broken to the user.
+-   **Broken:** Template selection and file uploads on the production environment.
 -   **Mocked:** None.
 -   **High-Risk:** The Production Data Sync issue causing data loss remains a critical, unaddressed problem.
 
@@ -144,13 +147,11 @@ The full 7-phase subscription restructure has been coded. This includes the back
 -   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
--   **Known regressions:** None new; many prior regressions were fixed in this session.
+-   **Known regressions:** The template selection logic regressed on production due to a necessary security fix.
 
 **Credentials to test flow:**
--   **Admin/Owner (Use for Subscription Modal test):**  / 
--   **Demo Coach Developer:**  / 
--   **Demo Individual Coach:**  / 
+-   **Admin/Owner:**  / 
 -   **Riverside Club Account (Coach Dev):**  / 
 
 **What agent forgot to execute**
--   The agent did not successfully verify the fix for the  after updating the code. It failed to navigate the UI correctly to trigger the modal and confirm the visual outcome.</analysis>
+- The agent was in the process of debugging a production-only issue and had not yet implemented the fix when the session ended. No tasks were forgotten; the current task is simply incomplete.</analysis>

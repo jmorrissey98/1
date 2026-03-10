@@ -3,6 +3,30 @@
 ## Overview
 "My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
+## Recent Updates (March 10, 2026)
+
+### Bug Fixes (March 10, 2026 - Latest Session)
+
+**Template Dropdown Empty on Production (COMPLETED - March 10, 2026)**
+- User reported template selection dropdown was empty on production when setting up new observations
+- Root cause: Recent data-isolation fix filtered templates strictly by `organization_id`, but legacy templates created before the fix didn't have this field
+- Fixed: Updated backend query in `server.py` to use `$or` logic:
+  - Templates with matching `organization_id` (new data)
+  - Templates created by the user where `organization_id` doesn't exist or is null (legacy data)
+- Applied same fix to reflection templates endpoint for consistency
+- Backend query now handles both new and legacy template data schemas
+
+**File Uploads Failing on Production (COMPLETED - March 10, 2026)**
+- User reported file attachments to sessions were not uploading properly on production
+- Root cause: Files were stored in local `/app/uploads` folder which gets wiped on each deployment
+- Also lacked user authentication on the upload endpoint
+- Fixed: Re-architected file storage to use MongoDB:
+  - Files now stored as base64 in `uploaded_files` collection
+  - Added authentication requirement to upload and delete endpoints
+  - File limit of 15MB per file
+  - Maintained backwards compatibility for legacy files in local folder
+- File upload, download, and delete all tested and working
+
 ## Recent Updates (March 4, 2026)
 
 ### Bug Fixes (March 4, 2026 - Latest Session)
