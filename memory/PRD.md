@@ -7,6 +7,12 @@
 
 ### Bug Fixes (March 10, 2026 - Latest Session)
 
+**Session Parts API 401 Unauthorized Fix (COMPLETED - March 10, 2026)**
+- User reported session parts API returning 401 on production
+- Root cause: `sessionPartsApi.js` was using raw `fetch()` with `credentials: 'include'` but NOT sending the Authorization header
+- Fixed: Updated all session parts API functions to use `safeFetch` utilities which automatically include the Authorization header
+- This fix is required for production deployment
+
 **CRITICAL: Session Parts Leaking Across Organizations (COMPLETED - March 10, 2026)**
 - User reported that adding "global" session parts in QPR Academy affected ALL organizations platform-wide
 - Root cause: Session parts were stored in a shared collection without organization filtering

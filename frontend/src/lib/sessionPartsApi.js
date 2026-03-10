@@ -1,8 +1,9 @@
 // Session Parts API - fetches from backend for shared defaults
 // With offline-first support
 import { addToOfflineQueue, QueueItemType, isOnline } from './offlineSync';
+import { safeGet, safePost, safeDelete } from './safeFetch';
 
-const API_URL = ''; // Relative URL - frontend and backend on same domain
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 // Fallback defaults when backend is unavailable - empty to force server data
 // This prevents stale "Part 1, Part 2" names appearing on mobile
@@ -47,14 +48,11 @@ export const fetchSessionParts = async () => {
   if (cached) return cached;
 
   try {
-    const response = await fetch(`${API_URL}/api/session-parts`, {
-      credentials: 'include'
-    });
+    const result = await safeGet(`${API_URL}/api/session-parts`);
     
-    if (response.ok) {
-      const parts = await response.json();
-      setCachedParts(parts);
-      return parts;
+    if (result.ok && result.data) {
+      setCachedParts(result.data);
+      return result.data;
     }
   } catch (err) {
     console.error('Failed to fetch session parts:', err);
@@ -67,12 +65,10 @@ export const fetchSessionParts = async () => {
 // Fetch only default session parts
 export const fetchDefaultSessionParts = async () => {
   try {
-    const response = await fetch(`${API_URL}/api/session-parts/defaults`, {
-      credentials: 'include'
-    });
+    const result = await safeGet(`${API_URL}/api/session-parts/defaults`);
     
-    if (response.ok) {
-      return await response.json();
+    if (result.ok && result.data) {
+      return result.data;
     }
   } catch (err) {
     console.error('Failed to fetch default session parts:', err);
@@ -112,24 +108,18 @@ export const createSessionPart = async (name, isDefault = false) => {
   }
   
   try {
-    const response = await fetch(`${API_URL}/api/session-parts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(partData)
-    });
+    const result = await safePost(`${API_URL}/api/session-parts`, partData);
     
-    if (response.ok) {
+    if (result.ok && result.data) {
       // Clear cache to refresh
       localStorage.removeItem(CACHE_KEY);
-      return await response.json();
+      return result.data;
     } else {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to create session part');
+      throw new Error(result.data?.detail || 'Failed to create session part');
     }
   } catch (err) {
     // If network error, queue for offline sync
-    if (err.name === 'TypeError' || err.message.includes('fetch')) {
+    if (err.networkError || err.message.includes('fetch')) {
       const localPart = {
         part_id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name,
@@ -155,18 +145,14 @@ export const createSessionPart = async (name, isDefault = false) => {
 // Delete a session part (Coach Developer only)
 export const deleteSessionPart = async (partId) => {
   try {
-    const response = await fetch(`${API_URL}/api/session-parts/${partId}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const result = await safeDelete(`${API_URL}/api/session-parts/${partId}`);
     
-    if (response.ok) {
+    if (result.ok) {
       // Clear cache to refresh
       localStorage.removeItem(CACHE_KEY);
       return true;
     } else {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to delete session part');
+      throw new Error(result.data?.detail || 'Failed to delete session part');
     }
   } catch (err) {
     console.error('Failed to delete session part:', err);
