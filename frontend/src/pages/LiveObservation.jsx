@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../contexts/CloudSyncContext';
 import { safeGet } from '../lib/safeFetch';
 import SyncStatusIndicator from '../components/SyncStatusIndicator';
+import { SpeechToTextButton } from '../components/SpeechToTextButton';
 
 export default function LiveObservation() {
   const navigate = useNavigate();
@@ -1117,6 +1118,10 @@ export default function LiveObservation() {
                       className="w-32 sm:w-48 h-10 text-sm resize-none"
                       data-testid="note-input"
                     />
+                    <SpeechToTextButton
+                      onTranscribe={(text) => setNoteText(prev => prev ? `${prev} ${text}` : text)}
+                      size="icon"
+                    />
                     <Button size="icon" variant="ghost" onClick={handleAddNote}>
                       <Check className="w-4 h-4 text-green-600" />
                     </Button>
@@ -1231,6 +1236,11 @@ export default function LiveObservation() {
                     handleAddObserverNote();
                   }
                 }}
+              />
+              <SpeechToTextButton
+                onTranscribe={(text) => setCurrentNote(prev => prev ? `${prev} ${text}` : text)}
+                className="self-start"
+                size="sm"
               />
             </div>
             <Button

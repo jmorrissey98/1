@@ -29,6 +29,7 @@ import axios from 'axios';
 import { getAuthToken } from '../lib/safeFetch';
 import { useSwipeTabs } from '../hooks/useSwipeNavigation';
 import { SessionEditTimeline } from '../components/SessionEditTimeline';
+import { SpeechToTextButton } from '../components/SpeechToTextButton';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
@@ -1903,6 +1904,10 @@ export default function ReviewSession() {
                     className="min-h-[80px] resize-y flex-1"
                     data-testid="observer-reflection-textarea"
                   />
+                  <SpeechToTextButton
+                    onTranscribe={(text) => setNewReflection(prev => prev ? `${prev} ${text}` : text)}
+                    className="self-start mt-1"
+                  />
                 </div>
                 <Button 
                   onClick={() => handleAddReflection('observer')} 
@@ -2163,13 +2168,19 @@ export default function ReviewSession() {
                     )}
                     
                     {/* Simple textarea for adding reflections */}
-                    <Textarea
-                      value={newCoachReflection}
-                      onChange={(e) => setNewCoachReflection(e.target.value)}
-                      placeholder="Add your reflection..."
-                      className="min-h-[80px] resize-y"
-                      data-testid="coach-reflection-textarea"
-                    />
+                    <div className="flex gap-2">
+                      <Textarea
+                        value={newCoachReflection}
+                        onChange={(e) => setNewCoachReflection(e.target.value)}
+                        placeholder="Add your reflection..."
+                        className="min-h-[80px] resize-y flex-1"
+                        data-testid="coach-reflection-textarea"
+                      />
+                      <SpeechToTextButton
+                        onTranscribe={(text) => setNewCoachReflection(prev => prev ? `${prev} ${text}` : text)}
+                        className="self-start mt-1"
+                      />
+                    </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <Button 
                         onClick={() => handleAddReflection('coach')} 

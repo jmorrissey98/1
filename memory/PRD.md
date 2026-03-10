@@ -5,6 +5,26 @@
 
 ## Recent Updates (March 10, 2026)
 
+### New Feature (March 10, 2026 - Latest Session)
+
+**Speech-to-Text for Reflections and Notes (IMPLEMENTED - March 10, 2026)**
+- Added OpenAI Whisper-powered speech-to-text functionality
+- Users can now dictate text using their microphone instead of typing
+- Implemented in:
+  - **Live Observation notes** - Both intervention notes and observer notes
+  - **Session Review reflections** - Observer reflections and coach reflections
+  - **Coach Development targets** - Adding and editing development targets
+- Features:
+  - Microphone button appears next to all text input fields
+  - Recording indicator with pulse animation
+  - Transcribed text appears directly in the input field for editing
+  - Supports appending to existing text
+- Technical details:
+  - Backend endpoint: `POST /api/speech-to-text`
+  - Uses OpenAI Whisper via emergentintegrations library
+  - Supports audio formats: mp3, mp4, mpeg, mpga, m4a, wav, webm
+  - Max file size: 25MB
+
 ### Bug Fixes (March 10, 2026 - Latest Session)
 
 **QPR Academy Missing Templates - ROOT CAUSE FOUND & FIXED (March 10, 2026)**

@@ -27,6 +27,7 @@ import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths
 import { SessionFilters, applySessionFilters, calculateFilteredAnalytics } from '../components/SessionFilters';
 import CoachNotes from '../components/coach/CoachNotes';
 import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
+import { SpeechToTextButton } from '../components/SpeechToTextButton';
 
 const API_URL = '';
 
@@ -938,13 +939,19 @@ export default function CoachMyDevelopment() {
                 {/* Add New Target Form */}
                 {showAddTarget && (
                   <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                    <Textarea
-                      placeholder="Enter your new development target..."
-                      value={newTargetText}
-                      onChange={(e) => setNewTargetText(e.target.value)}
-                      className="mb-3"
-                      data-testid="new-target-input"
-                    />
+                    <div className="flex gap-2 mb-3">
+                      <Textarea
+                        placeholder="Enter your new development target..."
+                        value={newTargetText}
+                        onChange={(e) => setNewTargetText(e.target.value)}
+                        className="flex-1"
+                        data-testid="new-target-input"
+                      />
+                      <SpeechToTextButton
+                        onTranscribe={(text) => setNewTargetText(prev => prev ? `${prev} ${text}` : text)}
+                        className="self-start"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
@@ -978,12 +985,18 @@ export default function CoachMyDevelopment() {
                       >
                         {editingTargetId === target.id ? (
                           <div>
-                            <Textarea
-                              value={editingTargetText}
-                              onChange={(e) => setEditingTargetText(e.target.value)}
-                              className="mb-2"
-                              data-testid={`edit-target-input-${target.id}`}
-                            />
+                            <div className="flex gap-2 mb-2">
+                              <Textarea
+                                value={editingTargetText}
+                                onChange={(e) => setEditingTargetText(e.target.value)}
+                                className="flex-1"
+                                data-testid={`edit-target-input-${target.id}`}
+                              />
+                              <SpeechToTextButton
+                                onTranscribe={(text) => setEditingTargetText(prev => prev ? `${prev} ${text}` : text)}
+                                className="self-start"
+                              />
+                            </div>
                             <div className="flex gap-2">
                               <Button 
                                 size="sm" 

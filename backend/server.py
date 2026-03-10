@@ -47,6 +47,8 @@ import uuid
 import base64
 from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.openai import OpenAISpeechToText
+import tempfile
 
 
 ROOT_DIR = Path(__file__).parent
@@ -1136,6 +1138,78 @@ async def delete_file(file_id: str, request: Request):
             return {"status": "deleted"}
     
     raise HTTPException(status_code=404, detail="File not found")
+
+# ============================================
+# SPEECH-TO-TEXT ENDPOINT
+# ============================================
+
+@api_router.post("/speech-to-text")
+async def transcribe_audio(request: Request, audio: UploadFile = File(...)):
+    """
+    Transcribe audio to text using OpenAI Whisper.
+    Supports: mp3, mp4, mpeg, mpga, m4a, wav, webm
+    Max file size: 25MB
+    """
+    user = await require_auth(request)
+    
+    # Validate file type
+    allowed_types = ['audio/mp3', 'audio/mp4', 'audio/mpeg', 'audio/mpga', 'audio/m4a', 
+                     'audio/wav', 'audio/webm', 'audio/x-m4a', 'audio/x-wav',
+                     'video/mp4', 'video/webm', 'application/octet-stream']
+    allowed_extensions = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm']
+    
+    file_ext = Path(audio.filename).suffix.lower() if audio.filename else ''
+    
+    if audio.content_type not in allowed_types and file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported audio format. Supported: mp3, mp4, mpeg, mpga, m4a, wav, webm"
+        )
+    
+    try:
+        # Read audio content
+        content = await audio.read()
+        
+        # Check file size (25MB limit)
+        if len(content) > 25 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Audio file too large. Maximum size is 25MB.")
+        
+        # Initialize Whisper STT
+        stt = OpenAISpeechToText(api_key=os.environ.get("EMERGENT_LLM_KEY"))
+        
+        # Create a temporary file with proper extension
+        suffix = file_ext if file_ext else '.webm'
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
+            tmp_file.write(content)
+            tmp_file_path = tmp_file.name
+        
+        try:
+            # Transcribe the audio
+            with open(tmp_file_path, "rb") as audio_file:
+                response = await stt.transcribe(
+                    file=audio_file,
+                    model="whisper-1",
+                    response_format="json",
+                    language="en"  # Default to English, could be made configurable
+                )
+            
+            logger.info(f"[speech-to-text] User {user.user_id} transcribed audio successfully")
+            
+            return {
+                "success": True,
+                "text": response.text,
+                "language": "en"
+            }
+        finally:
+            # Clean up temp file
+            if os.path.exists(tmp_file_path):
+                os.unlink(tmp_file_path)
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[speech-to-text] Transcription error for user {user.user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
