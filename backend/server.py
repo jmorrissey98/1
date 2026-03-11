@@ -5542,6 +5542,7 @@ cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 allowed_origins = [
     "https://mycoachdeveloper.com",
     "https://www.mycoachdeveloper.com",
+    "https://coachwatch.emergent.host",
     "http://localhost:3000",
     "http://localhost:8001",
     "https://upload-repair-11.preview.emergentagent.com",

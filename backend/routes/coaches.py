@@ -14,22 +14,6 @@ from utils import validate_email, send_invite_email
 
 router = APIRouter(prefix="/coaches", tags=["Coaches"])
 
-# TEMPORARY DEBUG ENDPOINT
-@router.get("/debug/session-data/{coach_id}")
-async def debug_session_data(coach_id: str):
-    """Debug endpoint to check session ball rolling data"""
-    sessions = await db.observation_sessions.find(
-        {"coach_id": coach_id},
-        {"_id": 0, "session_id": 1, "ball_rolling_time": 1, "ball_not_rolling_time": 1, 
-         "ballRollingTime": 1, "ballNotRollingTime": 1, "total_duration": 1, "status": 1}
-    ).to_list(100)
-    
-    return {
-        "coach_id": coach_id,
-        "sessions_found": len(sessions),
-        "sessions": sessions
-    }
-
 
 @router.get("")
 async def list_all_coaches(request: Request):
