@@ -2145,6 +2145,7 @@ async def get_coach_analytics(request: Request):
         {"_id": 0, "session_id": 1, "events": 1, 
          "ball_rolling_time": 1, "ball_not_rolling_time": 1, 
          "ballRollingTime": 1, "ballNotRollingTime": 1,
+         "session_parts": 1, "sessionParts": 1,
          "total_duration": 1, "totalDuration": 1, "created_at": 1}
     ).to_list(length=1000)
     
@@ -2168,9 +2169,26 @@ async def get_coach_analytics(request: Request):
         events = session.get("events", [])
         total_interventions += len(events)
         
-        # Ball rolling stats - check both snake_case and camelCase field names for backwards compatibility
-        ball_rolling = session.get("ball_rolling_time") or session.get("ballRollingTime") or 0
-        ball_stopped = session.get("ball_not_rolling_time") or session.get("ballNotRollingTime") or 0
+        # Ball rolling stats - check multiple sources for backwards compatibility:
+        # 1. Top-level snake_case fields (new format)
+        # 2. Top-level camelCase fields (legacy format)
+        # 3. Aggregate from session parts (most reliable if parts have data)
+        
+        ball_rolling = 0
+        ball_stopped = 0
+        
+        # First try to aggregate from session parts (most accurate)
+        session_parts = session.get("session_parts") or session.get("sessionParts") or []
+        if session_parts:
+            for part in session_parts:
+                ball_rolling += part.get("ball_rolling_time") or part.get("ballRollingTime") or 0
+                ball_stopped += part.get("ball_not_rolling_time") or part.get("ballNotRollingTime") or 0
+        
+        # If parts don't have the data, fall back to top-level fields
+        if ball_rolling == 0 and ball_stopped == 0:
+            ball_rolling = session.get("ball_rolling_time") or session.get("ballRollingTime") or 0
+            ball_stopped = session.get("ball_not_rolling_time") or session.get("ballNotRollingTime") or 0
+        
         total_ball_rolling += ball_rolling
         total_ball_stopped += ball_stopped
         total_duration += session.get("total_duration") or session.get("totalDuration") or 0
