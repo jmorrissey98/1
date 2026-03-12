@@ -2645,6 +2645,17 @@ export default function ReviewSession() {
                                 const color = CHART_COLORS[eventTypeIndex % CHART_COLORS.length] || '#FACC15';
                                 const hasNote = event.note && event.note.trim().length > 0;
                                 
+                                // Get descriptor names for this event
+                                const descriptor1Names = (event.descriptors1 || []).map(dId => {
+                                  const desc = session.descriptorGroup1?.descriptors?.find(d => d.id === dId);
+                                  return desc?.name || dId;
+                                });
+                                const descriptor2Names = (event.descriptors2 || []).map(dId => {
+                                  const desc = session.descriptorGroup2?.descriptors?.find(d => d.id === dId);
+                                  return desc?.name || dId;
+                                });
+                                const hasDescriptors = descriptor1Names.length > 0 || descriptor2Names.length > 0;
+                                
                                 return (
                                   <div
                                     key={event.id}
@@ -2670,6 +2681,31 @@ export default function ReviewSession() {
                                 <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap max-w-xs">
                                   <div className="font-medium">{event.eventTypeName}</div>
                                   <div className="text-slate-300">{formatRelativeTime(event.relativeTimestamp)}</div>
+                                  
+                                  {/* Descriptors */}
+                                  {hasDescriptors && (
+                                    <div className="mt-1 pt-1 border-t border-slate-700">
+                                      {descriptor1Names.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {descriptor1Names.map((name, i) => (
+                                            <span key={i} className="inline-block px-1.5 py-0.5 bg-blue-500/30 text-blue-200 rounded text-[10px]">
+                                              {name}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {descriptor2Names.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {descriptor2Names.map((name, i) => (
+                                            <span key={i} className="inline-block px-1.5 py-0.5 bg-green-500/30 text-green-200 rounded text-[10px]">
+                                              {name}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
                                   {hasNote && (
                                     <div className="mt-1 pt-1 border-t border-slate-700">
                                       <div className="flex items-center gap-1 text-purple-300 mb-0.5">
