@@ -2604,7 +2604,7 @@ export default function ReviewSession() {
                             </div>
                             
                             <div 
-                              className="relative h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"
+                              className="relative h-12 bg-slate-100 rounded-lg border border-slate-200"
                               data-testid="density-bar"
                             >
                               {/* Ball rolling segments - subtle background */}
@@ -2624,7 +2624,7 @@ export default function ReviewSession() {
                                 return (
                                   <div
                                     key={`ball-${idx}`}
-                                    className="absolute top-0 h-full opacity-30"
+                                    className="absolute top-0 h-full opacity-30 rounded-lg"
                                     style={{
                                       left: `${startPct}%`,
                                       width: `${widthPct}%`,
@@ -2661,12 +2661,13 @@ export default function ReviewSession() {
                                     key={event.id}
                                     className="absolute top-0 h-full group cursor-pointer"
                                     style={{
-                                      left: `${Math.min(position, 98)}%`,
-                                      width: '2px'
+                                      left: `calc(${Math.min(position, 98)}% - 4px)`,
+                                      width: '10px',
+                                      zIndex: 5
                                     }}
                                   >
                               <div 
-                                className="w-full h-full transition-all group-hover:w-2"
+                                className="w-[2px] mx-auto h-full transition-all group-hover:w-1"
                                 style={{ backgroundColor: color }}
                               />
                               {/* Note indicator icon - only visible if event has a note */}
@@ -2677,8 +2678,8 @@ export default function ReviewSession() {
                                   </div>
                                 </div>
                               )}
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap max-w-xs">
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap max-w-xs shadow-lg">
                                   <div className="font-medium">{event.eventTypeName}</div>
                                   <div className="text-slate-300">{formatRelativeTime(event.relativeTimestamp)}</div>
                                   
