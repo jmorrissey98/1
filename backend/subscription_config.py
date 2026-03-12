@@ -307,8 +307,8 @@ async def resolve_organization_entitlements(
         if not current_tier_key:
             old_tier = subscription.get("tier_id") or subscription.get("tier")
             if old_tier:
-                # Map legacy tier to new tier
-                if old_tier in LEGACY_TIER_MAPPING:
+                # Map legacy tier to new tier only if it's actually being changed
+                if old_tier in LEGACY_TIER_MAPPING and old_tier != LEGACY_TIER_MAPPING[old_tier]:
                     is_legacy = True
                     legacy_tier_key = old_tier
                     pending_tier_key = LEGACY_TIER_MAPPING[old_tier]
@@ -321,7 +321,8 @@ async def resolve_organization_entitlements(
     if not current_tier_key:
         org_tier = org.get("subscription_tier_id") or org.get("subscription_tier")
         if org_tier:
-            if org_tier in LEGACY_TIER_MAPPING and org_tier not in SUBSCRIPTION_TIERS:
+            # Only mark as legacy if tier is actually being changed
+            if org_tier in LEGACY_TIER_MAPPING and org_tier != LEGACY_TIER_MAPPING.get(org_tier) and org_tier not in SUBSCRIPTION_TIERS:
                 is_legacy = True
                 legacy_tier_key = org_tier
                 pending_tier_key = LEGACY_TIER_MAPPING[org_tier]
@@ -592,7 +593,8 @@ async def prepare_subscription_for_migration(
         "old_tier": old_tier
     }
     
-    if old_tier in LEGACY_TIER_MAPPING:
+    # Only mark as legacy if tier is actually being changed (not if it maps to itself like club->club)
+    if old_tier in LEGACY_TIER_MAPPING and old_tier != LEGACY_TIER_MAPPING[old_tier]:
         migration_data.update({
             "is_legacy_tier": True,
             "legacy_tier_key": old_tier,
@@ -600,7 +602,7 @@ async def prepare_subscription_for_migration(
             "suggested_tier": LEGACY_TIER_MAPPING[old_tier]
         })
     else:
-        # Already on a new tier or unknown
+        # Already on a new tier, maps to itself, or unknown
         migration_data.update({
             "is_legacy_tier": False,
             "legacy_tier_key": None,

@@ -898,7 +898,8 @@ async def get_my_migration_status(request: Request):
     # If no migration fields, check old tier_id
     if current_tier_key is None:
         old_tier = subscription.get("tier_id") or subscription.get("tier")
-        if old_tier in LEGACY_TIER_MAPPING:
+        # Only mark as legacy if the tier is being changed (not if it maps to itself)
+        if old_tier in LEGACY_TIER_MAPPING and old_tier != LEGACY_TIER_MAPPING[old_tier]:
             is_legacy = True
             legacy_tier_key = old_tier
             pending_tier_key = LEGACY_TIER_MAPPING[old_tier]
@@ -975,9 +976,10 @@ async def migrate_early(data: EarlyMigrationRequest, request: Request):
     if not subscription:
         raise HTTPException(status_code=400, detail="No subscription found")
     
-    # Check if user is on legacy tier
+    # Check if user is on legacy tier (only if tier is being changed, not if it maps to itself)
     old_tier = subscription.get("tier_id") or subscription.get("tier")
-    is_legacy = subscription.get("is_legacy_tier", False) or old_tier in LEGACY_TIER_MAPPING
+    is_actually_legacy = old_tier in LEGACY_TIER_MAPPING and old_tier != LEGACY_TIER_MAPPING.get(old_tier)
+    is_legacy = subscription.get("is_legacy_tier", False) or is_actually_legacy
     
     if not is_legacy:
         return {
@@ -1068,7 +1070,8 @@ async def bulk_apply_migration(request: Request):
         
         try:
             old_tier = sub.get("tier_id") or sub.get("tier")
-            is_legacy = old_tier in LEGACY_TIER_MAPPING
+            # Only mark as legacy if tier is actually being changed (not if it maps to itself like club->club)
+            is_legacy = old_tier in LEGACY_TIER_MAPPING and old_tier != LEGACY_TIER_MAPPING.get(old_tier)
             new_tier = LEGACY_TIER_MAPPING.get(old_tier, "coach_developer") if is_legacy else old_tier
             
             # Apply migration fields
