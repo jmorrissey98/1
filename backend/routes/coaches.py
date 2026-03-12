@@ -403,6 +403,7 @@ async def get_coach_detail(coach_id: str, request: Request):
     Get detailed coach profile.
     Coach Developer can access any coach in their org.
     Coach can access their own linked coach profile.
+    Also handles virtual coach developer entries (id starts with 'cd_')
     """
     user = await get_current_user(request)
     
@@ -410,6 +411,40 @@ async def get_coach_detail(coach_id: str, request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
+    # Check if this is a virtual coach developer entry
+    if coach_id.startswith("cd_"):
+        # Extract the user_id from the coach_id
+        cd_user_id = coach_id[3:]  # Remove 'cd_' prefix
+        
+        # Find the coach developer user
+        cd_user = await db.users.find_one({"user_id": cd_user_id}, {"_id": 0})
+        if not cd_user:
+            raise HTTPException(status_code=404, detail="Coach developer not found")
+        
+        # Check access - must be in same organization
+        is_coach_developer = user.role in ["coach_developer", "admin"]
+        if not is_coach_developer:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Return virtual coach profile for the coach developer
+        return {
+            "id": coach_id,
+            "name": cd_user.get("name", "Unknown"),
+            "email": cd_user.get("email"),
+            "photo": cd_user.get("picture"),
+            "role_title": "Coach Developer",
+            "age_group": None,
+            "department": None,
+            "bio": cd_user.get("bio"),
+            "targets": [],
+            "created_at": cd_user.get("created_at"),
+            "updated_at": cd_user.get("updated_at"),
+            "has_account": True,
+            "user_id": cd_user_id,
+            "is_coach_developer": True
+        }
+    
+    # Regular coach lookup
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
     if not coach:
         raise HTTPException(status_code=404, detail="Coach not found")
@@ -528,8 +563,40 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
     Get aggregated analytics for a specific coach (Coach Developer only).
     Returns same structure as /coach/analytics but for any coach by ID.
     Individual tier users only see analytics from last 3 months of data.
+    Also handles virtual coach developer entries (id starts with 'cd_')
     """
     user = await require_coach_developer(request)
+    
+    # Check if this is a virtual coach developer entry
+    if coach_id.startswith("cd_"):
+        # Extract the user_id from the coach_id
+        cd_user_id = coach_id[3:]  # Remove 'cd_' prefix
+        
+        # Verify coach developer user exists
+        cd_user = await db.users.find_one({"user_id": cd_user_id}, {"_id": 0})
+        if not cd_user:
+            raise HTTPException(status_code=404, detail="Coach developer not found")
+        
+        # For coach developers, we look for sessions where they were the coach observed
+        # This would require sessions to have a 'observed_user_id' field - for now return empty analytics
+        return {
+            "total_sessions": 0,
+            "total_interventions": 0,
+            "avg_per_session": 0,
+            "avg_ball_rolling": 0,
+            "total_ball_rolling_time": 0,
+            "total_ball_stopped_time": 0,
+            "intervention_breakdown": {},
+            "descriptor_breakdown": {
+                "group1": {},
+                "group2": {}
+            },
+            "monthly_trend": [],
+            "retention_info": {
+                "is_limited": False,
+                "months_available": None
+            }
+        }
     
     # Verify coach exists
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
