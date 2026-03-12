@@ -5568,7 +5568,7 @@ allowed_origins = [
     "https://coachwatch.emergent.host",
     "http://localhost:3000",
     "http://localhost:8001",
-    "https://upload-repair-11.preview.emergentagent.com",
+    "https://profile-uploads.preview.emergentagent.com",
 ]
 
 # Add APP_URL if set and not empty

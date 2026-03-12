@@ -3,6 +3,23 @@
 ## Overview
 "My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
+## Recent Updates (March 12, 2026)
+
+### Bug Fixes (March 12, 2026 - Latest Session)
+
+**Coach Developer Profile Photo Upload Fix (COMPLETED - March 12, 2026)**
+- User reported clicking on a Coach Developer in "My Coaches" list showed profile but failed to upload photos
+- Root cause: The `PUT /api/coaches/{coach_id}` and `GET /api/coaches/{coach_id}/sessions` endpoints were not handling virtual `cd_user_` prefixed IDs
+- Context: Coach Developers can be observed by other Coach Developers. Their profiles are shown with `cd_user_` prefixed IDs since they don't have a dedicated coach document
+- Fixes applied:
+  1. Updated `PUT /api/coaches/{coach_id}` to detect `cd_user_` IDs and update the corresponding user record instead of coach document
+  2. Updated `GET /api/coaches/{coach_id}/sessions` to detect `cd_user_` IDs and return empty sessions list
+  3. Both endpoints now properly map coach fields to user fields (e.g., `photo` → `picture`)
+- Coach Developer profiles can now be fully managed including photo uploads
+- Verified working via curl tests and screenshot tests
+
+---
+
 ## Recent Updates (March 10, 2026)
 
 ### New Feature (March 10, 2026 - Latest Session)

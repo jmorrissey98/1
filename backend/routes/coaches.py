@@ -475,8 +475,32 @@ async def get_coach_sessions_by_id(coach_id: str, request: Request):
     Get all observation sessions for a specific coach.
     Coach Developer only - used to view a coach's session history.
     Individual tier users only see last 3 months of data.
+    Also handles virtual coach developer entries (id starts with 'cd_')
     """
     user = await require_coach_developer(request)
+    
+    # Check if this is a virtual coach developer entry
+    if coach_id.startswith("cd_"):
+        # Extract the user_id from the coach_id
+        cd_user_id = coach_id[3:]  # Remove 'cd_' prefix
+        
+        # Verify coach developer user exists
+        cd_user = await db.users.find_one({"user_id": cd_user_id}, {"_id": 0})
+        if not cd_user:
+            raise HTTPException(status_code=404, detail="Coach developer not found")
+        
+        # For coach developers, return empty sessions list (they don't have coach sessions)
+        # In the future, this could query sessions where they were observed
+        return {
+            "sessions": [],
+            "data_retention": {
+                "is_limited": False,
+                "months_limit": None,
+                "hidden_sessions_count": 0,
+                "tier": "coach_developer",
+                "upgrade_message": None
+            }
+        }
     
     # Verify coach exists
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
@@ -750,14 +774,49 @@ async def get_coach_analytics_by_id(coach_id: str, request: Request):
 async def update_coach(coach_id: str, request: Request):
     """
     Update coach profile (Coach Developer only).
+    Also handles virtual coach developer entries (id starts with 'cd_')
     """
     user = await require_coach_developer(request)
     
+    body = await request.json()
+    
+    # Check if this is a virtual coach developer entry
+    if coach_id.startswith("cd_"):
+        # Extract the user_id from the coach_id
+        cd_user_id = coach_id[3:]  # Remove 'cd_' prefix
+        
+        # Find the coach developer user
+        cd_user = await db.users.find_one({"user_id": cd_user_id}, {"_id": 0})
+        if not cd_user:
+            raise HTTPException(status_code=404, detail="Coach developer not found")
+        
+        # Map allowed coach fields to user fields
+        # Coach fields -> User fields mapping
+        user_update_data = {}
+        if "name" in body:
+            user_update_data["name"] = body["name"]
+        if "photo" in body:
+            user_update_data["picture"] = body["photo"]  # User model uses 'picture'
+        if "bio" in body:
+            user_update_data["bio"] = body["bio"]
+        
+        user_update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Update the user record
+        await db.users.update_one(
+            {"user_id": cd_user_id},
+            {"$set": user_update_data}
+        )
+        
+        logger.info(f"Coach developer user {cd_user_id} updated by {user.user_id}")
+        
+        # Return updated profile via get_coach_detail
+        return await get_coach_detail(coach_id, request)
+    
+    # Regular coach lookup
     coach = await db.coaches.find_one({"id": coach_id}, {"_id": 0})
     if not coach:
         raise HTTPException(status_code=404, detail="Coach not found")
-    
-    body = await request.json()
     
     # Allowed fields for update (including photo for profile pictures)
     allowed_fields = ["name", "role_title", "age_group", "department", "bio", "targets", "photo"]

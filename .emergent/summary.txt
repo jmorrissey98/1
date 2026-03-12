@@ -1,5 +1,21 @@
 <analysis>**original_problem_statement:**
-The user has initiated a major subscription restructure project. The goal is to replace the existing subscription model with three new tiers: , , and . This project also involves introducing observation limits, updating role-based behaviors, adding admin controls for limits, and implementing a safe migration path for existing subscribers. The project is in the final bug-fixing and stabilization phase.
+The user has been overseeing a major subscription restructure project, which is now in its final bug-fixing phase. Throughout this session, the user reported several critical production bugs and requested a new feature.
+
+**Bug Reports:**
+1.  **Templates Not Loading:** The template selection dropdown was empty on the production environment.
+2.  **File Uploads Failing:** Attaching files to sessions was not working on production.
+3.  **Data Isolation:** Global templates created in one organization were visible to all other organizations.
+4.  **Deployment/Caching:** The production environment was not reflecting the latest code changes, leading to persistent bugs.
+5.  **Authentication:** A  error was breaking template loading.
+6.  **Incorrect Ball Rolling %:** A coach's profile showed 100% ball rolling time, while individual sessions showed the correct, lower percentage.
+7.  **Coach Profile Access:** Clicking on a Coach Developer in the My Coaches list resulted in a Coach not found error.
+8.  **Photo Upload Failure:** After fixing the Coach not found error, users were unable to upload photos to Coach Developer profiles.
+9.  **Intervention Tooltip:** The timeline intervention tooltips were not appearing on hover.
+10. **Migration Banner:** A migration banner was incorrectly shown to new users who were not on legacy subscription tiers.
+11. **Login Failure (CORS):** A critical CORS issue blocked all users from logging into the production application.
+
+**Feature Request:**
+1.  **Speech-to-Text:** Implement speech-to-text functionality (using OpenAI Whisper) for all reflection and note-taking text inputs. An authentication issue was also reported and fixed for this feature.
 
 **PRODUCT REQUIREMENTS (PHASED IMPLEMENTATION):**
 *   **Phase 1 - 7 (Completed):** Data model, Stripe mapping, backend enforcement, UI updates, admin controls, landing page, and migration logic have all been implemented. The current focus is on final bug fixes and user acceptance.
@@ -7,76 +23,292 @@ The user has initiated a major subscription restructure project. The goal is to 
 **User's preferred language**: English
 
 **what currently exists?**
-The full 7-phase subscription restructure has been coded and deployed. This session focused heavily on bug fixing and implementing user-requested features. Key accomplishments include:
-- Verified the Manage Subscription modal fix.
-- Fixed two critical bugs in the admin dashboard related to changing an organization's subscription tier, ensuring data consistency between the  and  collections.
-- Resolved a critical data isolation bug where user invites from one organization were visible to others. Proactively secured template CRUD endpoints to prevent cross-organization data leakage.
-- Fixed a mobile UI issue by adding safe area padding to prevent the header from overlapping with the iOS status bar.
-- Solved a profile photo synchronization issue by updating the React AuthContext to refresh user data globally.
-- Fixed a data caching issue on mobile that caused observation templates to show incorrect, generic names.
-- Implemented a new feature on the session analysis page: a ball state timeline to compare interventions when the ball is rolling vs. stopped, and subsequently fixed a bug related to its data rendering.
+The application is in a stabilization phase. The agent has addressed a series of critical production bugs related to data fetching, authentication, caching, and data isolation. A new speech-to-text feature using OpenAI Whisper has been partially implemented. The backend was modified extensively to handle legacy data, introduce persistent file storage via MongoDB, and fix data inconsistencies. The frontend was also updated to fix auth-token handling and UI bugs. However, several fixes are pending user verification, and the last bug fix introduced a follow-on issue.
 
 **Last working item**:
--   **Last item agent was working:** The user reported two issues occurring on the production environment:
-    1.  The template selection dropdown is empty in the Session Setup page.
-    2.  Attaching files to sessions is not working.
-    The agent confirmed the template dropdown works on the preview environment and was investigating why it fails on production. The primary hypothesis is that a recent data-isolation fix (filtering templates by ) is too strict for legacy production data that may not have this field.
+-   **Last item agent was working:** The user reported that clicking on a Coach Developer profile resulted in a Coach not found error. The agent identified that these users are virtual entries with a  ID prefix and fixed the  endpoint to handle them. However, this led to a follow-up bug where uploading a photo to these profiles fails, as the  and  endpoints also returned a 404 Not Found error.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N (The bug is reported on the production environment, which the agent cannot directly test. The agent has only verified that the feature works on the preview environment.)
--   **Which testing method agent to use?** backend testing agent. The agent needs to make the backend query for templates more robust to handle legacy data that might be missing an . The testing agent should help verify that the query in  can correctly fetch templates for users with and without organization IDs associated with their templates.
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** backend testing agent
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Template dropdown empty on production.**
--   **Issue 2 (P1): File uploads failing on production.**
+-   **Issue 1: Cannot upload photo to Coach Developer profiles (P0)**
+-   **Issue 2: CORS issue blocking production login (P0)**
+-   **Issue 3: Ball rolling percentage incorrect on coach profile (P1)**
+-   **Issue 4: Intervention tooltips not showing descriptors (P2)**
+-   **Issue 5: Migration banner showing for new accounts (P2)**
 
 **Issues Detail:**
--   **Issue 1: Template dropdown empty on production.**
-    -   **Attempted fixes:** The agent investigated the template fetching logic in  and the corresponding backend endpoint in . The agent suspects the issue is the backend query at  (lines 4986-4990), which now strictly filters by . This fix was necessary for data isolation but may be filtering out all templates for users on production if their legacy templates lack this field.
+-   **Issue 1: Cannot upload photo to Coach Developer profiles**
+    -   **Attempted fixes:** The agent fixed the initial Coach not found error by modifying the  endpoint in  to recognize  prefixed IDs and fetch user data. However, this exposed that other related endpoints were not updated.
     -   **Next debug checklist:**
-        1.  Modify the observation templates query in . The query should be updated to be more defensive. It should filter by  if present, but have a fallback condition to also include templates where the  field matches the user's ID, to support legacy data.
-        2.  After deploying the fix, ask the user to verify on production.
-    -   **Why fix this issue and what will be achieved with the fix?** Users cannot start new observations with their custom templates, which is a core functionality. This fix will restore that capability.
+        1.  Modify the  function () in  to handle  IDs, likely by updating the corresponding user record in the  collection.
+        2.  Modify the  function () to handle  IDs.
+    -   **Why fix this issue and what will be achieved with the fix?** This blocks profile management for a specific user type (Coach Developers). The fix will allow their profiles to be fully managed.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Backend.
     -   **Blocked on other issue:** None.
--   **Issue 2: File uploads failing on production.**
-    -   **Attempted fixes:** The agent investigated the  endpoint in . It was noted that the endpoint works on the preview environment but has potential issues for production: it lacks authentication and saves files to a non-persistent local directory (), which would be wiped on every deployment.
+-   **Issue 2: CORS issue blocking production login**
+    -   **Attempted fixes:** The agent identified a CORS error blocking login on production. The  middleware in  was inspected and seems correct, but the agent added the  origin just in case and removed a potentially problematic debug endpoint. The issue is likely related to the production deployment not having the latest backend code or a server-level configuration issue.
     -   **Next debug checklist:**
-        1.  The file upload mechanism needs to be re-architected for production. A persistent storage solution like AWS S3 should be integrated.
-        2.  The  endpoint in  must be secured to require user authentication.
-        3.  The frontend file attachment logic may need to be updated to work with the new (e.g., S3 pre-signed URL) upload process.
-    -   **Why fix this issue and what will be achieved with the fix?** Users need to be able to attach supplementary files to their observation sessions.
-    -   **Status:** NOT STARTED
+        1.  Verify the production backend has successfully deployed with the latest code from this session.
+        2.  Inspect the production server logs (backend                          RUNNING   pid 46, uptime 0:00:02, ==> /var/log/supervisor/backend.err.log <==
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [535]
+2026-03-12 16:55:46,495 - server - INFO - Auth routes loaded from routes/auth.py
+2026-03-12 16:55:46,500 - server - INFO - Coaches routes loaded from routes/coaches.py
+2026-03-12 16:55:46,504 - server - INFO - Invites routes loaded from routes/invites.py
+2026-03-12 16:55:46,508 - server - INFO - Users routes loaded from routes/users.py
+2026-03-12 16:55:46,517 - server - INFO - Observations routes loaded from routes/observations.py
+2026-03-12 16:55:46,520 - server - INFO - Organization routes loaded from routes/organization.py
+2026-03-12 16:55:46,532 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
+2026-03-12 16:55:46,554 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+INFO:     Started server process [558]
+INFO:     Waiting for application startup.
+2026-03-12 16:55:46,578 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'routes/coaches.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [558]
+2026-03-12 16:55:53,114 - server - INFO - Auth routes loaded from routes/auth.py
+2026-03-12 16:55:53,123 - server - INFO - Coaches routes loaded from routes/coaches.py
+2026-03-12 16:55:53,127 - server - INFO - Invites routes loaded from routes/invites.py
+2026-03-12 16:55:53,131 - server - INFO - Users routes loaded from routes/users.py
+2026-03-12 16:55:53,140 - server - INFO - Observations routes loaded from routes/observations.py
+2026-03-12 16:55:53,142 - server - INFO - Organization routes loaded from routes/organization.py
+2026-03-12 16:55:53,155 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
+2026-03-12 16:55:53,177 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+INFO:     Started server process [581]
+INFO:     Waiting for application startup.
+2026-03-12 16:55:53,201 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
+INFO:     Application startup complete.
+2026-03-12 17:11:35,479 - server - INFO - Entitlement check for user_cb6e50051362: entitled (status=active)
+2026-03-12 17:11:35,970 - server - INFO - Entitlement check for user_cb6e50051362: entitled (status=active)
+2026-03-12 17:11:37,195 - server - INFO - [observation-templates] User user_cb6e50051362 (org: org_demo_0725dd5e668a) fetching templates
+2026-03-12 17:11:37,198 - server - INFO - [observation-templates] Found 2 templates for user user_cb6e50051362
+2026-03-12 17:11:37,372 - server - INFO - [reflection-templates] User user_cb6e50051362 (org: org_demo_0725dd5e668a) fetching templates
+2026-03-12 17:11:37,376 - server - INFO - [reflection-templates] Found 3 templates for user user_cb6e50051362
+2026-03-12 17:12:30,992 - database - INFO - Coach coach_edb7e60c89d6 updated by user_cb6e50051362
+2026-03-12 17:13:07,454 - database - INFO - Coach coach_df76e1ebcd94 updated by user_cb6e50051362
+2026-03-12 17:13:15,597 - database - INFO - Coach coach_64b05a839ca6 updated by user_cb6e50051362
+2026-03-12 17:13:41,099 - database - INFO - Coach coach_531be1d0d105 updated by user_cb6e50051362
+2026-03-12 17:13:48,797 - database - INFO - Coach coach_83289c41ab26 updated by user_cb6e50051362
+2026-03-12 17:13:55,165 - database - INFO - Coach coach_fc8705b65d59 updated by user_cb6e50051362
+2026-03-12 17:14:03,315 - database - INFO - Coach coach_8b2f0bf53cc2 updated by user_cb6e50051362
+2026-03-12 17:14:11,005 - database - INFO - Coach coach_18e8fa0ec945 updated by user_cb6e50051362
+2026-03-12 17:14:19,467 - database - INFO - Coach coach_43e3c3ee2eec updated by user_cb6e50051362
+2026-03-12 17:14:36,012 - database - INFO - Coach coach_988983aec6e5 updated by user_cb6e50051362
+WARNING:  WatchFiles detected changes in 'routes/coaches.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [581]
+2026-03-12 17:18:08,962 - server - INFO - Auth routes loaded from routes/auth.py
+2026-03-12 17:18:08,972 - server - INFO - Coaches routes loaded from routes/coaches.py
+2026-03-12 17:18:08,976 - server - INFO - Invites routes loaded from routes/invites.py
+2026-03-12 17:18:08,979 - server - INFO - Users routes loaded from routes/users.py
+2026-03-12 17:18:08,989 - server - INFO - Observations routes loaded from routes/observations.py
+2026-03-12 17:18:08,991 - server - INFO - Organization routes loaded from routes/organization.py
+2026-03-12 17:18:09,004 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
+2026-03-12 17:18:09,026 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+INFO:     Started server process [965]
+INFO:     Waiting for application startup.
+2026-03-12 17:18:09,050 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'routes/coaches.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [965]
+2026-03-12 17:18:25,074 - server - INFO - Auth routes loaded from routes/auth.py
+2026-03-12 17:18:25,083 - server - INFO - Coaches routes loaded from routes/coaches.py
+2026-03-12 17:18:25,087 - server - INFO - Invites routes loaded from routes/invites.py
+2026-03-12 17:18:25,091 - server - INFO - Users routes loaded from routes/users.py
+2026-03-12 17:18:25,100 - server - INFO - Observations routes loaded from routes/observations.py
+2026-03-12 17:18:25,103 - server - INFO - Organization routes loaded from routes/organization.py
+2026-03-12 17:18:25,116 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
+2026-03-12 17:18:25,137 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+INFO:     Started server process [1003]
+INFO:     Waiting for application startup.
+2026-03-12 17:18:25,161 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
+INFO:     Application startup complete.
+2026-03-12 17:19:43,083 - server - INFO - Entitlement check for user_cb6e50051362: entitled (status=active)
+2026-03-12 17:19:43,267 - server - INFO - Entitlement check for user_cb6e50051362: entitled (status=active)
+2026-03-12 17:19:44,366 - server - INFO - [observation-templates] User user_cb6e50051362 (org: org_demo_0725dd5e668a) fetching templates
+2026-03-12 17:19:44,367 - server - INFO - [observation-templates] Found 2 templates for user user_cb6e50051362
+2026-03-12 17:19:44,538 - server - INFO - [reflection-templates] User user_cb6e50051362 (org: org_demo_0725dd5e668a) fetching templates
+2026-03-12 17:19:44,539 - server - INFO - [reflection-templates] Found 3 templates for user user_cb6e50051362
+2026-03-12 17:20:03,540 - server - INFO - Entitlement check for user_cb6e50051362: entitled (status=active)
+2026-03-12 17:20:03,985 - server - INFO - Entitlement check for user_cb6e50051362: entitled (status=active)
+2026-03-12 17:20:05,281 - server - INFO - [observation-templates] User user_cb6e50051362 (org: org_demo_0725dd5e668a) fetching templates
+2026-03-12 17:20:05,282 - server - INFO - [observation-templates] Found 2 templates for user user_cb6e50051362
+2026-03-12 17:20:05,475 - server - INFO - [reflection-templates] User user_cb6e50051362 (org: org_demo_0725dd5e668a) fetching templates
+2026-03-12 17:20:05,476 - server - INFO - [reflection-templates] Found 3 templates for user user_cb6e50051362
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [46] using WatchFiles
+
+==> /var/log/supervisor/backend.out.log <==
+INFO:     10.219.1.227:57602 - "GET /api/files/52a0bef0-a8b1-4f5e-9fd4-d85f25096cf5 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:37624 - "GET /api/files/a592fa3f-ecc3-457b-9048-3ade41f4abdf HTTP/1.1" 200 OK
+INFO:     10.219.1.227:57602 - "GET /api/files/19d24ec9-5787-4cc3-88b8-8f0f4d30e8e2 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:37624 - "GET /api/files/82241b13-df32-4bdd-bb66-3a83216651f6 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:57602 - "GET /api/files/305cddb0-30f6-41f3-9b8a-6189f50f7b57 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:57602 - "GET /api/files/7e743d9f-0676-469a-a453-e98084664b93 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:57602 - "GET /api/files/cf7de636-03a3-41e4-bfc8-024448bcdf31 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:37624 - "GET /api/files/16d179bc-f8e7-4cca-837d-4a2adfa370a2 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 404 Not Found
+INFO:     10.219.0.117:45058 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 404 Not Found
+INFO:     10.219.0.117:45058 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 404 Not Found
+INFO:     10.219.1.227:52670 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 404 Not Found
+INFO:     10.219.1.227:52670 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/organization/limits HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/organization/limits HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/19d24ec9-5787-4cc3-88b8-8f0f4d30e8e2 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/files/cf7de636-03a3-41e4-bfc8-024448bcdf31 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/a592fa3f-ecc3-457b-9048-3ade41f4abdf HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/7e743d9f-0676-469a-a453-e98084664b93 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/82241b13-df32-4bdd-bb66-3a83216651f6 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/files/b9ba695d-ce95-44f9-bb75-5bb8a3ca5620 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/305cddb0-30f6-41f3-9b8a-6189f50f7b57 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/files/52a0bef0-a8b1-4f5e-9fd4-d85f25096cf5 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/a6b2db36-3645-486d-8da4-126882439ad1 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/files/16d179bc-f8e7-4cca-837d-4a2adfa370a2 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52670 - "GET /api/files/cf7de636-03a3-41e4-bfc8-024448bcdf31 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52684 - "GET /api/files/7e743d9f-0676-469a-a453-e98084664b93 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52700 - "GET /api/files/82241b13-df32-4bdd-bb66-3a83216651f6 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/a592fa3f-ecc3-457b-9048-3ade41f4abdf HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/305cddb0-30f6-41f3-9b8a-6189f50f7b57 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/b9ba695d-ce95-44f9-bb75-5bb8a3ca5620 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45058 - "GET /api/files/19d24ec9-5787-4cc3-88b8-8f0f4d30e8e2 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:45066 - "GET /api/files/16d179bc-f8e7-4cca-837d-4a2adfa370a2 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52684 - "GET /api/files/a6b2db36-3645-486d-8da4-126882439ad1 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52684 - "GET /api/files/52a0bef0-a8b1-4f5e-9fd4-d85f25096cf5 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:46328 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.219.0.117:51904 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.219.0.117:36538 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 200 OK
+INFO:     10.219.0.117:36536 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52596 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52612 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 200 OK
+INFO:     10.219.0.117:36536 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52596 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.219.1.227:52596 - "GET /api/coaches/cd_user_299c26e419a0/sessions HTTP/1.1" 404 Not Found
+INFO:     10.219.1.227:52596 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.219.0.117:36536 - "GET /api/coaches/cd_user_299c26e419a0/sessions HTTP/1.1" 404 Not Found
+INFO:     10.219.1.227:52596 - "GET /api/session-parts HTTP/1.1" 200 OK
+INFO:     10.219.1.227:43000 - "GET /api/coaches/cd_user_299c26e419a0/notes HTTP/1.1" 200 OK
+INFO:     10.219.1.227:43000 - "GET /api/coaches/cd_user_299c26e419a0/notes HTTP/1.1" 200 OK
+INFO:     10.219.0.117:51600 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     10.219.0.117:51600 - "PUT /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 404 Not Found
+INFO:     10.219.0.117:38096 - "GET /api/pricing/tiers HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38096 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49254 - "GET /api/pricing/tiers HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49254 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38096 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49254 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49266 - "GET /api/billing/entitlement HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38096 - "GET /api/organization HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38096 - "GET /api/subscriptions/limits-summary HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38110 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49266 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38096 - "GET /api/organization HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49266 - "GET /api/billing/entitlement HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38110 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38126 - "GET /api/coaches/cd_user_299c26e419a0/sessions HTTP/1.1" 404 Not Found
+INFO:     10.219.0.117:38110 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38110 - "GET /api/subscriptions/limits-summary HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49266 - "GET /api/coaches/cd_user_299c26e419a0/sessions HTTP/1.1" 404 Not Found
+INFO:     10.219.0.117:38110 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38110 - "GET /api/observation-templates HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38110 - "GET /api/reflection-templates HTTP/1.1" 200 OK
+INFO:     10.219.0.117:38110 - "GET /api/coaches/cd_user_299c26e419a0/notes HTTP/1.1" 200 OK
+INFO:     10.219.1.227:49266 - "GET /api/coaches/cd_user_299c26e419a0/notes HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35938 - "GET /api/pricing/tiers HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44030 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35938 - "GET /api/pricing/tiers HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35938 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35938 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35940 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44030 - "GET /api/billing/entitlement HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35940 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44030 - "GET /api/organization HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44034 - "GET /api/subscriptions/limits-summary HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35940 - "GET /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35938 - "GET /api/coaches/cd_user_299c26e419a0/sessions HTTP/1.1" 404 Not Found
+INFO:     10.219.1.227:44034 - "GET /api/coaches/cd_user_299c26e419a0/analytics HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35940 - "GET /api/subscriptions/limits-summary HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44034 - "GET /api/billing/entitlement HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35938 - "GET /api/observations HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44048 - "GET /api/organization HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44048 - "GET /api/coaches/cd_user_299c26e419a0/sessions HTTP/1.1" 404 Not Found
+INFO:     10.219.0.117:35940 - "GET /api/coaches HTTP/1.1" 200 OK
+INFO:     10.219.1.227:44048 - "GET /api/observation-templates HTTP/1.1" 200 OK
+INFO:     10.219.0.117:35940 - "GET /api/reflection-templates HTTP/1.1" 200 OK
+INFO:     10.219.0.117:48366 - "GET /api/coaches/cd_user_299c26e419a0/notes HTTP/1.1" 200 OK
+INFO:     10.219.0.117:48366 - "GET /api/coaches/cd_user_299c26e419a0/notes HTTP/1.1" 200 OK
+INFO:     10.219.1.227:43258 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     10.219.1.227:43258 - "PUT /api/coaches/cd_user_299c26e419a0 HTTP/1.1" 404 Not Found) to ensure the FastAPI app is running without errors.
+        3.  Confirm the  list in  is correctly configured and deployed.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical P0 blocker. No user can log into the production application.
+    -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both.
+    -   **Should Test frontend/backend/both after fix?** Backend.
     -   **Blocked on other issue:** None.
+-   **Issue 3: Ball rolling percentage incorrect on coach profile**
+    -   **Attempted fixes:** The agent identified that the analytics endpoint was calculating the percentage from top-level session fields (), which were sometimes incorrect/missing in production data. The fix involved updating the analytics endpoints in  and  to calculate the percentage from the session's  array, which is a more reliable source of truth.
+    -   **Next debug checklist:** After the CORS login issue is resolved, ask the user to verify the ball rolling percentage on the coach profile page on production.
+    -   **Why fix this issue and what will be achieved with the fix?** It provides accurate, consistent analytics to coaches and admins.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Backend.
+-   **Issue 4: Intervention tooltips not showing descriptors**
+    -   **Attempted fixes:** Agent identified that  on a parent container was clipping the tooltip. The fix involved removing this class, increasing the tooltip's , and enlarging the hover area in .
+    -   **Next debug checklist:** Ask the user to verify on the preview/production environment that hovering over timeline interventions now shows the tooltip with descriptors.
+    -   **Why fix this issue and what will be achieved with the fix?** Restores important contextual information to the session analysis timeline.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend.
+-   **Issue 5: Migration banner showing for new accounts**
+    -   **Attempted fixes:** The agent found that the backend logic was incorrectly flagging new club tier subscriptions as legacy because club was present in the . The fix in  ensures only subscriptions that actually change tiers are marked as legacy.
+    -   **Next debug checklist:** Ask the user to verify that new accounts created on the Club tier no longer see the migration banner.
+    -   **Why fix this issue and what will be achieved with the fix?** Removes a confusing and incorrect UI element for new users.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Backend.
 
 **In progress Task List**:
--   **Task 1: Fix Template & File Upload Production Bugs (P0)**
-    -   **Where to resume:** Start by modifying the template query in  as described in Issue 1 above. After that is complete, begin work on re-architecting the file upload functionality.
-    -   **What will be achieved with this?** This will resolve the two major blocking issues the user is experiencing on the production site.
-    -   **Status:** IN PROGRESS
+-   **Task 1: Complete Speech-to-Text Feature (P1)**
+    -   **Where to resume:** The backend endpoint () and the frontend  component are implemented. The component has been added to multiple textareas across the app (, , ). An authentication bug ( vs ) was also fixed in the component.
+    -   **What will be achieved with this?** Users will be able to use their voice to input text in reflection and note-taking fields.
+    -   **Status:** USER VERIFICATION PENDING
     -   **Should Test frontend/backend/both after fix?** Both.
-    -   **Blocked on something:** None.
+    -   **Blocked on something:** The P0 login/CORS issue prevents full user testing on production.
 
 **Upcoming and Future Tasks**
-- There are no new features planned. The entire focus is on fixing the bugs identified by the user to complete the subscription restructure project.
+-   The primary focus is to stabilize the application by fixing all outstanding bugs and getting user verification on the completed work. There are no new features planned.
 
 **Completed work in this session**
--   **Subscription Modal Verified:** Confirmed that the Manage Subscription modal correctly displays the new subscription tiers.
--   **Admin Tier Change Fixed:** Resolved two bugs preventing admins from changing an organization's tier, ensuring data is now consistent across  and  collections.
--   **Data Isolation Implemented:** Fixed a critical security flaw where user invites were not filtered by organization. Proactively secured template CRUD endpoints against cross-organization access.
--   **Mobile UI Safe Area Fixed:** Added CSS padding to the header and mobile menu to prevent overlap with the iOS status bar and Dynamic Island.
--   **Profile Photo Syncing Fixed:** Resolved an issue where profile photos wouldn't update across all UI components by implementing a global state update via the .
--   **Mobile Template Caching Fixed:** Removed faulty fallback logic that caused mobile devices to use stale, generic template names instead of fetching fresh data.
--   **Ball State Timeline Feature:** Implemented a new timeline on the analysis page to show ball rolling vs. stopped states and allow filtering of interventions.
--   **Ball State Timeline Bug Fixed:** Corrected a data-rendering bug where the new timeline wasn't displaying the ball state correctly due to a data structure mismatch.
+-   **Production Template Bug:** Fixed empty template dropdown on production by making the backend query in  more lenient to handle legacy data missing an .
+-   **File Uploads Re-architected:** Replaced the non-persistent local file upload system with a persistent solution using MongoDB GridFS, including new endpoints for upload, download, and delete.
+-   **Data Isolation for Session Parts:** Fixed a critical bug where global session parts were visible across all organizations by adding  filtering to all  CRUD endpoints in .
+-   **Production Deployment/Auth Issues:**
+    -   Fixed  errors by updating API calls in  to use a  utility that includes the auth token.
+    -   Resolved a caching issue by hardcoding and updating a build version in  and  to force a cache bust on deployment.
+    -   Diagnosed that the user's organization () had no templates in the production DB and created a debug endpoint () to seed them.
+-   **Insecure Endpoints Removed:** Removed multiple public debug endpoints from  after they were used to diagnose and fix production data issues.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Production environment sync failure causing data loss.** This high-severity, recurring issue remains uninvestigated as per the user's request.
--   **Issue 2: Unoptimized Database Queries.**
+-   **Issue 2: Unoptimized Database Queries.** While some queries were improved, a full audit has not been done.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Production Sync issue causing disappearing data.
@@ -87,71 +319,83 @@ The full 7-phase subscription restructure has been coded and deployed. This sess
 
 
 **Key Technical Concepts**
--   **Data Isolation & Security:** Added organization-level filtering to multiple backend endpoints (invites, templates) to prevent data leakage between tenants.
--   **Frontend State Management:** Utilized React Context () to manage and synchronize global user state (like profile picture) across components.
--   **Defensive Programming:** The need to write backend queries that can handle both new and legacy data schemas (e.g., templates with and without ).
--   **Mobile UI (Safe Area):** Used CSS  variables to create padding that respects the native UI elements on iOS devices.
--   **Data Structure Adaptation:** Transformed a backend data structure (a log of timestamped state changes) into a format usable by a frontend component (an array of segments with start/duration).
+-   **Production Debugging:** Extensive use of logs, screenshots, and temporary debug endpoints to diagnose issues specific to the production environment (data discrepancies, caching, auth).
+-   **Defensive Programming:** Writing backend queries that handle both new and legacy data schemas (e.g., templates with/without , session data with snake_case vs camelCase fields).
+-   **Persistent File Storage:** Using MongoDB (implicitly GridFS) as a persistent, database-backed file storage solution.
+-   **Virtual Data Models:** Handling virtual coach profiles for Coach Developers, which exist in logic but not as primary documents in the  collection, requiring endpoints to be adapted.
+-   **Frontend Fallbacks:** Understanding and replicating frontend logic where a page falls back to  when an API call fails or returns empty, causing perceived data inconsistencies between pages.
+-   **CORS:** Debugging Cross-Origin Resource Sharing issues that can block communication between a frontend and backend domain.
+-   **Third-Party Integration:** Using  to correctly implement OpenAI Whisper for speech-to-text, including handling API keys via environment variables.
 
 **key DB schema**
--   **invites**: **MODIFIED** - Now includes an  field to enforce data isolation.
--   **observation_templates / reflection_templates**: The backend logic now assumes an  may be present and uses it for filtering. Legacy templates may not have this field.
+-   **sessions:** The analytics logic was updated to read  and  from the  array as a primary source, falling back to top-level fields. The logic now also handles both camelCase and snake_case variants of these fields.
+-   **coaches:** No schema change, but API logic was updated to handle virtual coaches whose IDs are prefixed with  and whose data is sourced from the  collection.
 
 **All files of reference**
--    (Location of template query and file upload endpoint).
--    (Where the template dropdown is).
--    (Location of the intervention timeline).
--    (File modified for photo sync fix).
+-   : Core logic for templates, file uploads, session parts, CORS, and transcription.
+-   : Logic for fetching coach details, analytics, and sessions. Critical for the Coach not found bug.
+-   : Location of intervention timeline tooltips and reflection textareas.
+-   : The new, reusable speech-to-text component.
+-   : File where a critical authentication bug was fixed by switching to .
+-   : Page where the template loading bug first appeared.
+-   : Location of the incorrect is_legacy logic for the migration banner.
 
 **key api endpoints**
--   : **Fixed** to update both  and  collections.
--   : **Fixed** to filter by .
--   : **Fixed** to store .
--   : **Modified** to filter by , which is the likely cause of the production bug.
--   : Investigated to debug timeline data.
--   : Investigated for file upload bug; needs to be re-architected.
+-   : **MODIFIED** to be more lenient for legacy data.
+-   : **MODIFIED** to enforce organization-level data isolation.
+-   , , : **RE-ARCHITECTED** to use MongoDB for storage.
+-   : **CREATED** for OpenAI Whisper speech-to-text.
+-   : **MODIFIED** to handle virtual  IDs.
+-   : **NEEDS FIX** to handle virtual  IDs.
+-   : **NEEDS FIX** to handle virtual  IDs.
+-   : **MODIFIED** to calculate ball rolling % from session parts and handle virtual IDs.
+-   : **MODIFIED** (indirectly via ) to correctly identify legacy accounts.
+-   : **BLOCKED** by a production CORS issue.
 
 **Critical Info for New Agent**
--   **Your top priority is to fix the two bugs reported on the production environment.** The user is blocked.
--   **Production vs. Preview:** The template selection bug highlights a key challenge: the data on production can be different from preview (e.g., legacy data). Your fixes must be robust enough to handle these differences. You cannot test on production directly, so you must write defensive code.
--   **Template Bug:** The most likely fix for the empty template dropdown is to make the backend query in  more lenient. It should attempt to filter by  but fall back to checking  to support older templates.
--   **File Upload Bug:** The current file upload implementation is not production-ready. It saves to a temporary local folder and lacks authentication. This needs a proper fix, likely involving a persistent storage service like S3 and adding authentication to the endpoint.
+-   **PRIORITY 1: FIX PRODUCTION LOGIN.** A CORS issue is blocking all logins on the production environment ( being blocked by ). This is a P0 blocker and must be resolved first. Investigate the production deployment and server logs.
+-   **PRIORITY 2: FIX COACH DEVELOPER PROFILE.** After fixing the login, address the follow-up bug for Coach Developer profiles. The  and  endpoints in  need to be updated to handle the  IDs, similar to how the  endpoint was fixed.
+-   **Verify Pending Fixes:** Once the app is accessible, guide the user to verify the list of pending fixes (ball rolling %, tooltips, migration banner, speech-to-text functionality).
+-   **Production vs. Preview:** Be aware that the production environment has shown significant differences from preview, including different data, caching behavior, and deployment states. Always confirm with the user which environment an issue occurs on.
 
 **documents and test reports created in this job**
--    (Updated multiple times with completed bug fixes)
+-    (Updated with completed bug fixes and new feature requests)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** I now am on my laptop and went to do a coach observation and cannot seem to select my template for observing coaches... also when attaching files to sessions, they are not uploading properly. (New bug report - template dropdown and file upload failure on production)
-2.  **User:** the ball rolling is 71% but the timeline is not showing any ball rolling at all. (Bug report for the new timeline feature)
-3.  **User:** Requested the ball state timeline feature for the session analysis page.
-4.  **User:** the laptop is correct but the phone shows Part 1 etc where it should say Develop winning technique (Bug report - mobile template names are wrong).
-5.  **User:** I uploaded a profile photo in settings and it seems to save in the list view... but not on the top one. (Bug report - profile photo not syncing across UI).
-6.  **User:** on the phone, the top of the screen is hard to see as the IOS toolbar blocks a lot of it (Bug report - mobile UI safe area).
-7.  **User:** the pending users... are for other organisations. they should not be visible for this organisation at all! (Critical bug report - data leak in user invites).
-8.  **User:** it now allows me to change Effra Football Club to a coach developer tier... however, when i go into the account, it still shows as a club subscription (Bug report - admin tier change not reflected in user's view).
-9.  **User:** Admin tier change failed with a 400 error.
-10. **User:** Approved the initial plan to verify the subscription modal fix.
+1.  **User:** Reports they can't log in to any account on production due to a CORS error.
+2.  **User:** Asks for intervention tooltips on the timeline to show attached descriptors. Reports nothing happens on hover.
+3.  **User:** Reports a new account on a current subscription tier is incorrectly seeing a data migration banner.
+4.  **User:** Reports that after fixing the Coach not found error, they cannot upload a photo to a Coach Developer's profile.
+5.  **User:** Reports that when clicking on a Coach Developer in the My Coaches list, it says Coach not found.
+6.  **User:** Reports that the overall ball rolling % on a coach's profile is 100% even when an individual session shows 61%.
+7.  **User:** Confirms that seeding the production database with default templates fixed the template loading issue and that everything is working.
+8.  **User:** Asks to proceed with seeding default templates for their organization in the production database.
+9.  **User:** Confirms that the  page now shows the default template, matching the  page behavior.
+10. **User:** Requests speech-to-text for reflections and observation notes, specifying OpenAI Whisper and UI behavior. Reports a log in error after the feature was implemented.
 
 **Project Health Check:**
--   **Broken:** Template selection and file uploads on the production environment.
+-   **Broken:**
+    -   Production Login (CORS issue).
+    -   Photo uploads for Coach Developer profiles.
 -   **Mocked:** None.
--   **High-Risk:** The Production Data Sync issue causing data loss remains a critical, unaddressed problem.
+-   **High-Risk:** The Production Data Sync issue, which has caused data loss in the past, remains unaddressed and is a significant underlying risk.
 
 **3rd Party Integrations**
 -   **Stripe:** Heavily integrated for subscriptions.
 -   **Resend**
 -   **Google Analytics (GA4)**
 -   **recharts**
+-   **OpenAI Whisper:** Newly added for speech-to-text, uses Emergent LLM Key.
 
 **Testing status**
 -   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
--   **Known regressions:** The template selection logic regressed on production due to a necessary security fix.
+-   **Known regressions:** The fix for viewing Coach Developer profiles introduced a regression where profiles cannot be edited (photo upload fails).
 
 **Credentials to test flow:**
 -   **Admin/Owner:**  / 
 -   **Riverside Club Account (Coach Dev):**  / 
 
 **What agent forgot to execute**
-- The agent was in the process of debugging a production-only issue and had not yet implemented the fix when the session ended. No tasks were forgotten; the current task is simply incomplete.</analysis>
+-   When fixing the Coach not found bug for virtual  IDs, the agent only updated the main  endpoint. They did not proactively check and update other related endpoints like  or , which led to the immediate follow-up bug reported by the user.</analysis>
