@@ -2139,10 +2139,13 @@ async def get_coach_analytics(request: Request):
         query["created_at"] = {"$gte": retention_info["cutoff_date"].isoformat()}
     
     # Fetch sessions with full event data for this coach
+    # Include both snake_case and camelCase field names for backwards compatibility
     sessions = await db.observation_sessions.find(
         query,
-        {"_id": 0, "session_id": 1, "events": 1, "ball_rolling_time": 1, 
-         "ball_not_rolling_time": 1, "total_duration": 1, "created_at": 1}
+        {"_id": 0, "session_id": 1, "events": 1, 
+         "ball_rolling_time": 1, "ball_not_rolling_time": 1, 
+         "ballRollingTime": 1, "ballNotRollingTime": 1,
+         "total_duration": 1, "totalDuration": 1, "created_at": 1}
     ).to_list(length=1000)
     
     # Count hidden sessions for upgrade prompt
@@ -2165,10 +2168,12 @@ async def get_coach_analytics(request: Request):
         events = session.get("events", [])
         total_interventions += len(events)
         
-        # Ball rolling stats
-        total_ball_rolling += session.get("ball_rolling_time", 0) or 0
-        total_ball_stopped += session.get("ball_not_rolling_time", 0) or 0
-        total_duration += session.get("total_duration", 0) or 0
+        # Ball rolling stats - check both snake_case and camelCase field names for backwards compatibility
+        ball_rolling = session.get("ball_rolling_time") or session.get("ballRollingTime") or 0
+        ball_stopped = session.get("ball_not_rolling_time") or session.get("ballNotRollingTime") or 0
+        total_ball_rolling += ball_rolling
+        total_ball_stopped += ball_stopped
+        total_duration += session.get("total_duration") or session.get("totalDuration") or 0
         
         # Count intervention types
         for event in events:
