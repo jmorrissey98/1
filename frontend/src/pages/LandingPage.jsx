@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Badge } from '../components/ui/badge';
-import { ChevronRight, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check } from 'lucide-react';
+import { ChevronRight, ChevronDown, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check, Play, Target, TrendingUp, Lightbulb, ClipboardCheck, LineChart, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { PlanSelectionModal } from '../components/PlanSelectionModal';
 
@@ -83,6 +83,8 @@ export default function LandingPage() {
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [pricingTiers, setPricingTiers] = useState(DEFAULT_PRICING_TIERS);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [expandedPanel, setExpandedPanel] = useState(null); // 'coaches' | 'developers' | null
+  const audienceSectionRef = useRef(null);
 
   // Fetch pricing tiers from API
   useEffect(() => {
@@ -225,6 +227,26 @@ export default function LandingPage() {
     setShowPlanModal(true);
   };
 
+  // Navigation to audience section with panel expansion
+  const scrollToCoaches = () => {
+    setExpandedPanel('coaches');
+    setTimeout(() => {
+      audienceSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const scrollToCoachDevelopers = () => {
+    setExpandedPanel('developers');
+    setTimeout(() => {
+      audienceSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  // Toggle panel expansion (accordion behavior)
+  const togglePanel = (panel) => {
+    setExpandedPanel(expandedPanel === panel ? null : panel);
+  };
+
   // Show loading state if checking payment
   if (checkingPayment) {
     return (
@@ -248,6 +270,18 @@ export default function LandingPage() {
               <img src="/mcd-logo.png" alt="My Coach Developer" className="h-10 w-auto" />
             </div>
             <nav className="hidden md:flex items-center gap-8">
+              <button 
+                onClick={scrollToCoaches}
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Coaches
+              </button>
+              <button 
+                onClick={scrollToCoachDevelopers}
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Coach Developers
+              </button>
               <a href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Features</a>
               <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
             </nav>
@@ -325,6 +359,189 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Video Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
+            See how My Coach Developer works
+          </h2>
+          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+            A short demo showing how coaches gain insight into their coaching and how coach developers support their development.
+          </p>
+          
+          {/* Video Placeholder Container */}
+          <div className="mt-10 relative mx-auto max-w-3xl">
+            <div 
+              className="relative w-full bg-slate-100 rounded-2xl overflow-hidden shadow-lg"
+              style={{ paddingBottom: '56.25%' }} // 16:9 aspect ratio
+            >
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                {/* Play Button */}
+                <div className="w-20 h-20 rounded-full bg-slate-900/90 flex items-center justify-center mb-4 shadow-xl">
+                  <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
+                </div>
+                {/* Coming Soon Label */}
+                <span className="text-sm font-medium text-slate-500 bg-white/80 px-4 py-2 rounded-full">
+                  Product demo video coming soon
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Audience Section - Expandable Panels */}
+      <section 
+        ref={audienceSectionRef}
+        id="audience" 
+        className="bg-slate-50"
+      >
+        {/* Section Header */}
+        <div className="py-16 px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
+            Built for coaches and the people who develop them
+          </h2>
+          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+            Whether you are developing your own coaching or supporting other coaches, the platform provides clear insight and structure for development.
+          </p>
+        </div>
+
+        {/* Panel 1: For Coaches */}
+        <div className="border-t border-slate-200">
+          <button
+            onClick={() => togglePanel('coaches')}
+            className="w-full px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between text-left hover:bg-slate-100 transition-colors"
+            aria-expanded={expandedPanel === 'coaches'}
+            aria-controls="panel-coaches"
+          >
+            <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-semibold text-slate-900">For Coaches</h3>
+                <p className="text-sm sm:text-base text-slate-500 mt-1">Understand and develop your own coaching</p>
+              </div>
+              <ChevronDown 
+                className={`w-6 h-6 text-slate-400 transition-transform duration-300 flex-shrink-0 ml-4 ${
+                  expandedPanel === 'coaches' ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+          </button>
+          
+          <div
+            id="panel-coaches"
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              expandedPanel === 'coaches' ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="bg-white border-t border-slate-200">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <p className="text-lg text-slate-600 mb-8 max-w-3xl">
+                  Understand how you actually coach and focus your development on what matters most.
+                </p>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                      <Eye className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Clear Insight</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Gain clear insight into your coaching behaviours rather than relying on opinion or memory
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                      <Lightbulb className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Focused Development</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Identify specific areas to improve and stay focused on your development
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Track Progress</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Track your progress over time and see how your coaching evolves
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel 2: For Coach Developers */}
+        <div className="border-t border-slate-200">
+          <button
+            onClick={() => togglePanel('developers')}
+            className="w-full px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between text-left hover:bg-slate-100 transition-colors"
+            aria-expanded={expandedPanel === 'developers'}
+            aria-controls="panel-developers"
+          >
+            <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-semibold text-slate-900">For Coach Developers</h3>
+                <p className="text-sm sm:text-base text-slate-500 mt-1">Support and develop your coaching team</p>
+              </div>
+              <ChevronDown 
+                className={`w-6 h-6 text-slate-400 transition-transform duration-300 flex-shrink-0 ml-4 ${
+                  expandedPanel === 'developers' ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+          </button>
+          
+          <div
+            id="panel-developers"
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              expandedPanel === 'developers' ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="bg-white border-t border-slate-200">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <p className="text-lg text-slate-600 mb-8 max-w-3xl">
+                  Support coaches with structured observations, clear feedback, and visible development.
+                </p>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+                      <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Objective Observations</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Observe coaches objectively and remove subjectivity from feedback
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+                      <Target className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Targeted Improvement</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Help coaches focus on the areas that will improve them most
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+                      <LineChart className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Track Development</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Track coach development over time and align coaching across your organisation
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bottom border */}
+        <div className="border-t border-slate-200"></div>
       </section>
 
       {/* Features Section */}
