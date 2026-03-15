@@ -282,7 +282,6 @@ export default function LandingPage() {
               >
                 Coach Developers
               </button>
-              <a href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Features</a>
               <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
             </nav>
             <div className="flex items-center gap-3">
@@ -544,41 +543,12 @@ export default function LandingPage() {
         <div className="border-t border-slate-200"></div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
-              Everything You Need to Develop Great Coaches
-            </h2>
-            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-              Purpose-built tools for coach developers who want to make a real impact on their coaching teams.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {FEATURES.map((feature, index) => (
-              <Card key={index} className="border-slate-200 hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-slate-700" />
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-600">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
-              Simple, Transparent Pricing
+              Get Started
             </h2>
             <p className="mt-4 text-lg text-slate-600">
               Choose the plan that fits your organization's needs
