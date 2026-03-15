@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Badge } from '../components/ui/badge';
-import { ChevronRight, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check, Sparkles } from 'lucide-react';
+import { ChevronRight, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { PlanSelectionModal } from '../components/PlanSelectionModal';
 
@@ -290,7 +290,6 @@ export default function LandingPage() {
                   className="bg-slate-900 hover:bg-slate-800 text-lg px-8 py-6"
                   data-testid="hero-cta-btn"
                 >
-                  <Sparkles className="mr-2 w-5 h-5" />
                   Start Free Trial
                 </Button>
                 <Button 
@@ -518,7 +517,6 @@ export default function LandingPage() {
               onClick={openPlanModal}
               className="bg-white text-slate-900 hover:bg-slate-100 text-lg px-8 py-6"
             >
-              <Sparkles className="mr-2 w-5 h-5" />
               Start Free Trial
             </Button>
             <Button 
