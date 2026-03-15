@@ -51,10 +51,10 @@ const DEFAULT_PRICING_TIERS = [
   }
 ];
 
-export function PlanSelectionModal({ open, onOpenChange, onSuccess }) {
+export function PlanSelectionModal({ open, onOpenChange, onSuccess, initialIsAnnual = false }) {
   const [step, setStep] = useState('select'); // 'select' | 'signup'
   const [selectedTier, setSelectedTier] = useState(null);
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(initialIsAnnual);
   const [loading, setLoading] = useState(false);
   const [pricingTiers, setPricingTiers] = useState(DEFAULT_PRICING_TIERS);
   
@@ -66,6 +66,13 @@ export function PlanSelectionModal({ open, onOpenChange, onSuccess }) {
     club_name: ''
   });
   const [formErrors, setFormErrors] = useState({});
+
+  // Sync isAnnual with initialIsAnnual when modal opens
+  useEffect(() => {
+    if (open) {
+      setIsAnnual(initialIsAnnual);
+    }
+  }, [open, initialIsAnnual]);
 
   // Fetch pricing tiers from API
   useEffect(() => {

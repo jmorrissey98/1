@@ -557,6 +557,7 @@ export default function LandingPage() {
         open={showPlanModal} 
         onOpenChange={setShowPlanModal}
         onSuccess={handleTrialSuccess}
+        initialIsAnnual={isAnnual}
       />
     </div>
   );
