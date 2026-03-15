@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SyncProvider } from "./contexts/SyncContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { CloudSyncProvider } from "./contexts/CloudSyncContext";
-import { UpgradeProvider } from "./contexts/UpgradeContext";
+import { UpgradeProvider, useUpgrade } from "./contexts/UpgradeContext";
 import { EntitlementProvider, useEntitlement } from "./contexts/EntitlementContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OfflineIndicator from "./components/OfflineIndicator";
@@ -14,6 +14,8 @@ import { AnalyticsTracker } from "./hooks/useAnalytics";
 import { useDataPrefetch } from "./hooks/useDataPrefetch";
 import { Loader2, RefreshCw } from "lucide-react";
 import SubscriptionRequiredModal from "./components/modals/SubscriptionRequiredModal";
+import TrialBanner from "./components/TrialBanner";
+import TrialExpiredModal from "./components/TrialExpiredModal";
 import HomePage from "./pages/HomePage";
 import SessionSetup from "./pages/SessionSetup";
 import LiveObservation from "./pages/LiveObservation";
@@ -308,10 +310,12 @@ function UpdateNotification({ onRefresh, onDismiss }) {
 /**
  * EntitlementGate - Shows subscription required modal when user is not entitled
  * Does not block login/authentication, only app access.
+ * Also shows trial banner for active trial users.
  */
 function EntitlementGate({ children }) {
   const { user } = useAuth();
-  const { isEntitled, loading, reason } = useEntitlement();
+  const { isEntitled, loading, reason, isTrial, trialExpired, trialTierName, trialDaysRemaining } = useEntitlement();
+  const { openUpgradeModal } = useUpgrade();
   
   // Prefetch data for offline usage
   useDataPrefetch();
@@ -326,9 +330,41 @@ function EntitlementGate({ children }) {
     return children;
   }
   
-  // If entitled, render children normally
+  // Trial expired - show special trial expired modal
+  if (isTrial && trialExpired) {
+    return (
+      <>
+        {/* Render children but blur/disable them */}
+        <div className="pointer-events-none opacity-30 filter blur-sm">
+          {children}
+        </div>
+        {/* Show trial expired modal */}
+        <TrialExpiredModal 
+          open={true} 
+          trialTierName={trialTierName}
+        />
+      </>
+    );
+  }
+  
+  // If entitled, render children normally (with trial banner if applicable)
   if (isEntitled) {
-    return children;
+    return (
+      <>
+        {/* Show trial banner for active trial users */}
+        {isTrial && !trialExpired && (
+          <TrialBanner 
+            daysRemaining={trialDaysRemaining}
+            tierName={trialTierName}
+            onUpgradeClick={openUpgradeModal}
+          />
+        )}
+        {/* Add padding to account for trial banner */}
+        <div className={isTrial && !trialExpired ? 'pt-10' : ''}>
+          {children}
+        </div>
+      </>
+    );
   }
   
   // Not entitled - show blocking modal over a disabled background

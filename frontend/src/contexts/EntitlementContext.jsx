@@ -91,7 +91,13 @@ export function EntitlementProvider({ children }) {
     cancelAtPeriodEnd: entitlement?.cancel_at_period_end,
     currentPeriodEnd: entitlement?.current_period_end,
     activeTier: entitlement?.active_tier,
-    refreshEntitlement
+    refreshEntitlement,
+    // Trial-specific fields
+    isTrial: entitlement?.is_trial ?? false,
+    trialExpired: entitlement?.trial_expired ?? false,
+    trialEndDate: entitlement?.trial_end_date,
+    trialDaysRemaining: entitlement?.trial_days_remaining,
+    trialTierName: entitlement?.trial_tier_name
   };
 
   return (

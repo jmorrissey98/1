@@ -1042,6 +1042,13 @@ try:
 except Exception as e:
     logger.warning(f"Could not load subscriptions routes: {e}")
 
+try:
+    from routes.trial import router as trial_router
+    api_router.include_router(trial_router)
+    logger.info("Trial routes loaded from routes/trial.py")
+except Exception as e:
+    logger.warning(f"Could not load trial routes: {e}")
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
@@ -4098,12 +4105,17 @@ async def get_billing_entitlement(request: Request):
     
     Entitlement rules:
     - subscription status is 'active' or 'trialing' -> entitled
+    - trial is active (is_trial=True and trial_end_date > now) -> entitled
+    - trial is expired (is_trial=True and trial_end_date <= now) -> NOT entitled
     - cancelAtPeriodEnd is true AND current time < currentPeriodEnd -> entitled
     - no subscription OR status='canceled' AND time > currentPeriodEnd -> NOT entitled
     - status is 'unpaid', 'incomplete', 'incomplete_expired', 'past_due' -> NOT entitled
     
     Returns server time to avoid client timezone issues.
+    Also returns trial information for banner display.
     """
+    from subscription_config import SUBSCRIPTION_TIERS
+    
     try:
         user = await require_auth(request)
         org_id = user.organization_id
@@ -4121,7 +4133,13 @@ async def get_billing_entitlement(request: Request):
             "active_tier": None,
             "active_price_id": None,
             "reason": "no_subscription",
-            "server_time": now_iso
+            "server_time": now_iso,
+            # Trial-specific fields
+            "is_trial": False,
+            "trial_expired": False,
+            "trial_end_date": None,
+            "trial_days_remaining": None,
+            "trial_tier_name": None
         }
         
         if not org_id:
@@ -4131,7 +4149,7 @@ async def get_billing_entitlement(request: Request):
         
         # Check subscriptions collection
         subscription = await db.subscriptions.find_one(
-            {"organization_id": org_id},
+            {"$or": [{"organization_id": org_id}, {"org_id": org_id}]},
             {"_id": 0}
         )
         
@@ -4139,8 +4157,13 @@ async def get_billing_entitlement(request: Request):
             status = subscription.get("status", "").lower()
             cancel_at_period_end = subscription.get("cancel_at_period_end", False)
             current_period_end_str = subscription.get("current_period_end")
-            tier_id = subscription.get("tier_id")
+            tier_id = subscription.get("tier_id") or subscription.get("current_tier_key")
             price_id = subscription.get("price_id")
+            
+            # Check for trial status
+            is_trial = subscription.get("is_trial", False)
+            trial_end_date_str = subscription.get("trial_end_date")
+            trial_tier_key = subscription.get("trial_tier_key") or tier_id
             
             # Parse current_period_end
             current_period_end = None
@@ -4150,13 +4173,46 @@ async def get_billing_entitlement(request: Request):
                 except:
                     pass
             
+            # Parse trial_end_date
+            trial_end_date = None
+            if trial_end_date_str:
+                try:
+                    trial_end_date = datetime.fromisoformat(trial_end_date_str.replace('Z', '+00:00'))
+                except:
+                    pass
+            
             response["subscription_status"] = status
             response["cancel_at_period_end"] = cancel_at_period_end
             response["current_period_end"] = current_period_end_str
             response["active_tier"] = tier_id
             response["active_price_id"] = price_id
+            response["is_trial"] = is_trial
+            response["trial_end_date"] = trial_end_date_str
             
-            # Entitlement logic
+            # Calculate trial days remaining
+            if is_trial and trial_end_date:
+                days_remaining = (trial_end_date - now).days
+                response["trial_days_remaining"] = max(0, days_remaining)
+                
+                # Get tier name
+                if trial_tier_key and trial_tier_key in SUBSCRIPTION_TIERS:
+                    response["trial_tier_name"] = SUBSCRIPTION_TIERS[trial_tier_key].get("name", trial_tier_key)
+                
+                # Check if trial is expired
+                if now >= trial_end_date:
+                    response["trial_expired"] = True
+                    response["is_entitled"] = False
+                    response["reason"] = "trial_expired"
+                    logger.info(f"Entitlement check for {user.user_id}: NOT entitled (trial expired)")
+                    return response
+                else:
+                    # Trial is active
+                    response["is_entitled"] = True
+                    response["reason"] = "trial_active"
+                    logger.info(f"Entitlement check for {user.user_id}: entitled (trial active, {days_remaining} days remaining)")
+                    return response
+            
+            # Regular subscription entitlement logic
             if status in ["active", "trialing"]:
                 response["is_entitled"] = True
                 response["reason"] = f"status_{status}"
@@ -4213,7 +4269,12 @@ async def get_billing_entitlement(request: Request):
             "active_tier": None,
             "reason": "error_fail_open",
             "error": str(e),
-            "server_time": datetime.now(timezone.utc).isoformat()
+            "server_time": datetime.now(timezone.utc).isoformat(),
+            "is_trial": False,
+            "trial_expired": False,
+            "trial_end_date": None,
+            "trial_days_remaining": None,
+            "trial_tier_name": None
         }
 
 

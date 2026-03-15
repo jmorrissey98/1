@@ -4,8 +4,9 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Badge } from '../components/ui/badge';
-import { ChevronRight, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check } from 'lucide-react';
+import { ChevronRight, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { PlanSelectionModal } from '../components/PlanSelectionModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -81,6 +82,7 @@ export default function LandingPage() {
   const [loadingTier, setLoadingTier] = useState(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [pricingTiers, setPricingTiers] = useState(DEFAULT_PRICING_TIERS);
+  const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Fetch pricing tiers from API
   useEffect(() => {
@@ -206,47 +208,21 @@ export default function LandingPage() {
   }, [location, navigate]);
 
   const handleSelectPlan = async (tier) => {
-    setLoadingTier(tier.id);
-    
-    try {
-      const billingPeriod = isAnnual ? 'annual' : 'monthly';
-      const originUrl = window.location.origin;
-      
-      const response = await fetch(`${API_URL}/api/payments/checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tier_id: tier.id,
-          billing_period: billingPeriod,
-          origin_url: originUrl
-        })
-      });
+    // Instead of going directly to Stripe, open the plan selection modal
+    setShowPlanModal(true);
+  };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to create checkout session');
-      }
-
-      const data = await response.json();
-      
-      // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error(error.message || 'Failed to start checkout. Please try again.');
-    } finally {
-      setLoadingTier(null);
-    }
+  const handleTrialSuccess = (data) => {
+    // After successful trial signup, redirect to home
+    navigate('/home');
   };
 
   const scrollToPricing = () => {
     document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const openPlanModal = () => {
+    setShowPlanModal(true);
   };
 
   // Show loading state if checking payment
@@ -310,12 +286,12 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Button 
                   size="lg" 
-                  onClick={scrollToPricing}
+                  onClick={openPlanModal}
                   className="bg-slate-900 hover:bg-slate-800 text-lg px-8 py-6"
                   data-testid="hero-cta-btn"
                 >
-                  Start Your Journey
-                  <ChevronRight className="ml-2 w-5 h-5" />
+                  <Sparkles className="mr-2 w-5 h-5" />
+                  Start Free Trial
                 </Button>
                 <Button 
                   size="lg" 
@@ -327,7 +303,14 @@ export default function LandingPage() {
                 </Button>
               </div>
               <div className="mt-8 flex items-center gap-6 text-sm text-slate-500">
-                <span>Cancel anytime</span>
+                <span className="flex items-center gap-1">
+                  <Check className="w-4 h-4 text-green-500" />
+                  1 month free trial
+                </span>
+                <span className="flex items-center gap-1">
+                  <Check className="w-4 h-4 text-green-500" />
+                  No credit card required
+                </span>
               </div>
             </div>
             <div className="relative">
@@ -532,11 +515,11 @@ export default function LandingPage() {
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={scrollToPricing}
+              onClick={openPlanModal}
               className="bg-white text-slate-900 hover:bg-slate-100 text-lg px-8 py-6"
             >
-              Get Started
-              <ChevronRight className="ml-2 w-5 h-5" />
+              <Sparkles className="mr-2 w-5 h-5" />
+              Start Free Trial
             </Button>
             <Button 
               size="lg" 
@@ -570,6 +553,13 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Plan Selection Modal */}
+      <PlanSelectionModal 
+        open={showPlanModal} 
+        onOpenChange={setShowPlanModal}
+        onSuccess={handleTrialSuccess}
+      />
     </div>
   );
 }
