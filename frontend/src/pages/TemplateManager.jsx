@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Copy, Trash2, Edit2, Check, X, GripVertical, ChevronDown, ChevronUp, Loader2, Globe, Eye, FileText, ClipboardList, Star, Circle } from 'lucide-react';
+import { ArrowLeft, Plus, Copy, Trash2, Edit2, Check, X, GripVertical, ChevronDown, ChevronUp, Loader2, Globe, Eye, EyeOff, FileText, ClipboardList, Star, Circle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -21,7 +21,12 @@ import {
   updateObservationTemplate, 
   createObservationTemplate,
   deleteObservationTemplate,
-  setDefaultObservationTemplate
+  setDefaultObservationTemplate,
+  hideAdminTemplate,
+  showAdminTemplate,
+  getHiddenTemplates,
+  setAdminTemplateAsDefault,
+  unsetAdminTemplateAsDefault
 } from '../lib/observationTemplatesApi';
 import { useAuth } from '../contexts/AuthContext';
 import ReflectionTemplatesSection from '../components/ReflectionTemplatesSection';
@@ -35,6 +40,10 @@ export default function TemplateManager() {
   const [expandedId, setExpandedId] = useState(null);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  
+  // Hidden templates state
+  const [hiddenTemplates, setHiddenTemplates] = useState([]);
+  const [showHiddenDialog, setShowHiddenDialog] = useState(false);
   
   // Global session parts state
   const [globalParts, setGlobalParts] = useState([]);
@@ -205,7 +214,15 @@ export default function TemplateManager() {
 
   const handleSetDefault = async (template) => {
     try {
-      if (template.templateId) {
+      if (template.isAdminTemplate) {
+        // For admin templates, use the user preference endpoint
+        await setAdminTemplateAsDefault(template.templateId);
+        setTemplates(prev => prev.map(t => ({
+          ...t,
+          isDefault: t.id === template.id ? true : (t.observationContext === template.observationContext ? false : t.isDefault)
+        })));
+        toast.success(`"${template.name}" is now your default template`);
+      } else if (template.templateId) {
         await setDefaultObservationTemplate(template.templateId);
         // Update local state to reflect the change
         setTemplates(prev => prev.map(t => ({
@@ -218,6 +235,46 @@ export default function TemplateManager() {
       console.error('Failed to set default template:', err);
       toast.error(err.message || 'Failed to set default template');
     }
+  };
+
+  const handleHideTemplate = async (template) => {
+    try {
+      await hideAdminTemplate(template.templateId);
+      // Remove from local state
+      setTemplates(prev => prev.filter(t => t.id !== template.id));
+      toast.success(`"${template.name}" has been hidden. You can restore it from the menu.`);
+    } catch (err) {
+      console.error('Failed to hide template:', err);
+      toast.error(err.message || 'Failed to hide template');
+    }
+  };
+
+  const handleShowTemplate = async (templateId) => {
+    try {
+      await showAdminTemplate(templateId);
+      // Reload templates to include the unhidden one
+      await loadTemplates();
+      // Update hidden templates list
+      setHiddenTemplates(prev => prev.filter(t => t.template_id !== templateId));
+      toast.success('Template restored');
+    } catch (err) {
+      console.error('Failed to show template:', err);
+      toast.error(err.message || 'Failed to restore template');
+    }
+  };
+
+  const loadHiddenTemplates = async () => {
+    try {
+      const result = await getHiddenTemplates();
+      setHiddenTemplates(result.hidden_templates || []);
+    } catch (err) {
+      console.error('Failed to load hidden templates:', err);
+    }
+  };
+
+  const handleOpenHiddenDialog = async () => {
+    await loadHiddenTemplates();
+    setShowHiddenDialog(true);
   };
 
   const handleCreateNew = async () => {
@@ -568,7 +625,17 @@ export default function TemplateManager() {
 
           {/* Observation Templates Tab */}
           <TabsContent value="observation" className="space-y-4">
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleOpenHiddenDialog}
+                className="text-slate-500"
+                data-testid="view-hidden-btn"
+              >
+                <EyeOff className="w-4 h-4 mr-2" />
+                View Hidden
+              </Button>
               <Button onClick={handleCreateNew} data-testid="create-template-btn">
                 <Plus className="w-4 h-4 mr-2" />
                 New Template
@@ -600,21 +667,38 @@ export default function TemplateManager() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              value={template.name}
-                              onChange={(e) => updateTemplateName(template.id, e.target.value)}
-                              className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0 max-w-xs"
-                              data-testid={`template-name-${template.id}`}
-                            />
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {template.isAdminTemplate ? (
+                              <span className="font-semibold text-lg" data-testid={`template-name-${template.id}`}>
+                                {template.name}
+                              </span>
+                            ) : (
+                              <Input
+                                value={template.name}
+                                onChange={(e) => updateTemplateName(template.id, e.target.value)}
+                                className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0 max-w-xs"
+                                data-testid={`template-name-${template.id}`}
+                              />
+                            )}
                             {template.isDefault && (
                               <Badge className="bg-amber-100 text-amber-700">Default</Badge>
+                            )}
+                            {template.isGlobal && (
+                              <Badge className="bg-purple-100 text-purple-700">Global</Badge>
+                            )}
+                            {template.isAdminTemplate && !template.isGlobal && (
+                              <Badge className="bg-blue-100 text-blue-700">Admin</Badge>
                             )}
                             {template.observationContext && (
                               <Badge variant="outline" className="capitalize">
                                 {template.observationContext}
                               </Badge>
                             )}
+                            {(template.qualificationTags || []).map(tag => (
+                              <Badge key={tag} variant="outline" className="text-xs bg-slate-50">
+                                {tag}
+                              </Badge>
+                            ))}
                           </div>
                           <CardDescription className="mt-1">
                             {(template.eventTypes || template.interventionTypes || []).length} interventions • {((template.descriptorGroup1?.descriptors || []).length + (template.descriptorGroup2?.descriptors || []).length)} descriptors • {(template.sessionParts || []).length} parts
@@ -630,7 +714,8 @@ export default function TemplateManager() {
                               )}
                             </Button>
                           </CollapsibleTrigger>
-                          {!template.isDefault && template.templateId && (
+                          {/* Set as default - for regular templates */}
+                          {!template.isDefault && template.templateId && !template.isAdminTemplate && (
                             <Button
                               size="icon"
                               variant="ghost"
@@ -641,15 +726,42 @@ export default function TemplateManager() {
                               <Star className="w-4 h-4" />
                             </Button>
                           )}
+                          {/* Set as default - for admin templates */}
+                          {!template.isDefault && template.isAdminTemplate && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleSetDefault(template)}
+                              title="Set as your default"
+                              data-testid={`set-default-${template.id}`}
+                              className="text-purple-600 hover:text-purple-700"
+                            >
+                              <Star className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => handleDuplicate(template)}
+                            title={template.isAdminTemplate ? "Make a copy to customize" : "Duplicate template"}
                             data-testid={`duplicate-template-${template.id}`}
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
-                          {!template.isDefault && (
+                          {/* Hide button for admin templates */}
+                          {template.isAdminTemplate && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleHideTemplate(template)}
+                              title="Hide this template"
+                              className="text-slate-400 hover:text-slate-600"
+                              data-testid={`hide-template-${template.id}`}
+                            >
+                              <EyeOff className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {!template.isDefault && !template.isAdminTemplate && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
@@ -686,6 +798,14 @@ export default function TemplateManager() {
 
                     <CollapsibleContent>
                       <CardContent className="pt-0 space-y-6">
+                        {/* Admin template notice */}
+                        {template.isAdminTemplate && (
+                          <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-700">
+                            <Globe className="w-4 h-4 flex-shrink-0" />
+                            <span>This is a global template managed by your organization admin. Click the copy button above to create your own customizable version.</span>
+                          </div>
+                        )}
+                        
                         {/* Event Types */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
@@ -693,28 +813,36 @@ export default function TemplateManager() {
                               <div className="w-3 h-3 rounded bg-yellow-400" />
                               Coaching Interventions
                             </h4>
-                            <Button size="sm" variant="outline" onClick={() => addEventType(template.id)}>
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add
-                            </Button>
+                            {!template.isAdminTemplate && (
+                              <Button size="sm" variant="outline" onClick={() => addEventType(template.id)}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add
+                              </Button>
+                            )}
                           </div>
                           <div className="space-y-2">
                             {(template.eventTypes || template.interventionTypes || []).map(event => (
                               <div key={event.id} className="flex items-center gap-2">
-                                <Input
-                                  value={event.name}
-                                  onChange={(e) => updateEventType(template.id, event.id, e.target.value)}
-                                  className="flex-1"
-                                  data-testid={`event-${template.id}-${event.id}`}
-                                />
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-slate-400 hover:text-red-600 h-8 w-8"
-                                  onClick={() => removeEventType(template.id, event.id)}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
+                                {template.isAdminTemplate ? (
+                                  <span className="flex-1 px-3 py-2 text-slate-600 bg-slate-50 rounded-md">{event.name}</span>
+                                ) : (
+                                  <>
+                                    <Input
+                                      value={event.name}
+                                      onChange={(e) => updateEventType(template.id, event.id, e.target.value)}
+                                      className="flex-1"
+                                      data-testid={`event-${template.id}-${event.id}`}
+                                    />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-slate-400 hover:text-red-600 h-8 w-8"
+                                      onClick={() => removeEventType(template.id, event.id)}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             ))}
                             {(template.eventTypes || template.interventionTypes || []).length === 0 && (
@@ -728,33 +856,45 @@ export default function TemplateManager() {
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded bg-sky-400" />
-                              <Input
-                                value={template.descriptorGroup1?.name || 'Group 1'}
-                                onChange={(e) => updateGroupName(template.id, 1, e.target.value)}
-                                className="font-medium border-0 p-0 h-auto focus-visible:ring-0 w-40"
-                              />
+                              {template.isAdminTemplate ? (
+                                <span className="font-medium">{template.descriptorGroup1?.name || 'Group 1'}</span>
+                              ) : (
+                                <Input
+                                  value={template.descriptorGroup1?.name || 'Group 1'}
+                                  onChange={(e) => updateGroupName(template.id, 1, e.target.value)}
+                                  className="font-medium border-0 p-0 h-auto focus-visible:ring-0 w-40"
+                                />
+                              )}
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => addDescriptor(template.id, 1)}>
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add
-                            </Button>
+                            {!template.isAdminTemplate && (
+                              <Button size="sm" variant="outline" onClick={() => addDescriptor(template.id, 1)}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add
+                              </Button>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {(template.descriptorGroup1?.descriptors || []).map(desc => (
-                              <div key={desc.id} className="flex items-center gap-1 bg-sky-100 rounded-lg pl-3 pr-1 py-1">
-                                <Input
-                                  value={desc.name}
-                                  onChange={(e) => updateDescriptor(template.id, 1, desc.id, e.target.value)}
-                                  className="border-0 bg-transparent p-0 h-auto w-20 focus-visible:ring-0 text-sm"
-                                />
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6 text-slate-400 hover:text-red-600"
-                                  onClick={() => removeDescriptor(template.id, 1, desc.id)}
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
+                              <div key={desc.id} className={`flex items-center gap-1 bg-sky-100 rounded-lg ${template.isAdminTemplate ? 'px-3 py-1' : 'pl-3 pr-1 py-1'}`}>
+                                {template.isAdminTemplate ? (
+                                  <span className="text-sm">{desc.name}</span>
+                                ) : (
+                                  <>
+                                    <Input
+                                      value={desc.name}
+                                      onChange={(e) => updateDescriptor(template.id, 1, desc.id, e.target.value)}
+                                      className="border-0 bg-transparent p-0 h-auto w-20 focus-visible:ring-0 text-sm"
+                                    />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 text-slate-400 hover:text-red-600"
+                                      onClick={() => removeDescriptor(template.id, 1, desc.id)}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -765,33 +905,45 @@ export default function TemplateManager() {
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded bg-green-400" />
-                              <Input
-                                value={template.descriptorGroup2?.name || 'Group 2'}
-                                onChange={(e) => updateGroupName(template.id, 2, e.target.value)}
-                                className="font-medium border-0 p-0 h-auto focus-visible:ring-0 w-40"
-                              />
+                              {template.isAdminTemplate ? (
+                                <span className="font-medium">{template.descriptorGroup2?.name || 'Group 2'}</span>
+                              ) : (
+                                <Input
+                                  value={template.descriptorGroup2?.name || 'Group 2'}
+                                  onChange={(e) => updateGroupName(template.id, 2, e.target.value)}
+                                  className="font-medium border-0 p-0 h-auto focus-visible:ring-0 w-40"
+                                />
+                              )}
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => addDescriptor(template.id, 2)}>
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add
-                            </Button>
+                            {!template.isAdminTemplate && (
+                              <Button size="sm" variant="outline" onClick={() => addDescriptor(template.id, 2)}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add
+                              </Button>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {(template.descriptorGroup2?.descriptors || []).map(desc => (
-                              <div key={desc.id} className="flex items-center gap-1 bg-green-100 rounded-lg pl-3 pr-1 py-1">
-                                <Input
-                                  value={desc.name}
-                                  onChange={(e) => updateDescriptor(template.id, 2, desc.id, e.target.value)}
-                                  className="border-0 bg-transparent p-0 h-auto w-20 focus-visible:ring-0 text-sm"
-                                />
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6 text-slate-400 hover:text-red-600"
-                                  onClick={() => removeDescriptor(template.id, 2, desc.id)}
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
+                              <div key={desc.id} className={`flex items-center gap-1 bg-green-100 rounded-lg ${template.isAdminTemplate ? 'px-3 py-1' : 'pl-3 pr-1 py-1'}`}>
+                                {template.isAdminTemplate ? (
+                                  <span className="text-sm">{desc.name}</span>
+                                ) : (
+                                  <>
+                                    <Input
+                                      value={desc.name}
+                                      onChange={(e) => updateDescriptor(template.id, 2, desc.id, e.target.value)}
+                                      className="border-0 bg-transparent p-0 h-auto w-20 focus-visible:ring-0 text-sm"
+                                    />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 text-slate-400 hover:text-red-600"
+                                      onClick={() => removeDescriptor(template.id, 2, desc.id)}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -801,61 +953,86 @@ export default function TemplateManager() {
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-medium text-slate-700">Session Parts</h4>
-                            <Button size="sm" variant="outline" onClick={() => addSessionPart(template.id)} data-testid={`add-part-btn-${template.id}`}>
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add
-                            </Button>
+                            {!template.isAdminTemplate && (
+                              <Button size="sm" variant="outline" onClick={() => addSessionPart(template.id)} data-testid={`add-part-btn-${template.id}`}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add
+                              </Button>
+                            )}
                           </div>
                           
                           <div className="space-y-2">
                             {(template.sessionParts || []).length === 0 ? (
-                              <p className="text-sm text-slate-400 italic py-2">No session parts. Click "Add" to create one.</p>
+                              <p className="text-sm text-slate-400 italic py-2">No session parts defined.</p>
                             ) : (
                               (template.sessionParts || []).map((part, index) => (
                                 <div key={part.id} className="flex items-center gap-2">
                                   <span className="text-sm text-slate-400 w-6">{index + 1}</span>
-                                  <Input
-                                    value={part.name}
-                                    onChange={(e) => updateSessionPart(template.id, part.id, e.target.value)}
-                                    className="flex-1"
-                                    placeholder="Part name"
-                                    data-testid={`part-${template.id}-${part.id}`}
-                                  />
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-slate-400 hover:text-red-600 h-8 w-8"
-                                    onClick={() => removeSessionPart(template.id, part.id)}
-                                    title="Remove this part"
-                                    data-testid={`remove-part-${template.id}-${part.id}`}
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
+                                  {template.isAdminTemplate ? (
+                                    <span className="flex-1 px-3 py-2 text-slate-600 bg-slate-50 rounded-md">{part.name}</span>
+                                  ) : (
+                                    <>
+                                      <Input
+                                        value={part.name}
+                                        onChange={(e) => updateSessionPart(template.id, part.id, e.target.value)}
+                                        className="flex-1"
+                                        placeholder="Part name"
+                                        data-testid={`part-${template.id}-${part.id}`}
+                                      />
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="text-slate-400 hover:text-red-600 h-8 w-8"
+                                        onClick={() => removeSessionPart(template.id, part.id)}
+                                        title="Remove this part"
+                                        data-testid={`remove-part-${template.id}-${part.id}`}
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
                                 </div>
                               ))
                             )}
                           </div>
                         </div>
 
-                        {/* Ball Rolling Toggle */}
-                        <div>
-                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                                <Circle className="w-4 h-4 text-orange-600 fill-orange-600" />
+                        {/* Ball Rolling Toggle - Only show for non-admin templates */}
+                        {!template.isAdminTemplate && (
+                          <div>
+                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                                  <Circle className="w-4 h-4 text-orange-600 fill-orange-600" />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-slate-700">Include Ball Rolling</h4>
+                                  <p className="text-xs text-slate-500">Track ball rolling / stopped time</p>
+                                </div>
                               </div>
-                              <div>
-                                <h4 className="text-sm font-medium text-slate-700">Include Ball Rolling</h4>
-                                <p className="text-xs text-slate-500">Track ball rolling / stopped time</p>
-                              </div>
+                              <Switch
+                                checked={template.includeBallRolling !== false}
+                                onCheckedChange={(checked) => handleToggleBallRolling(template.id, checked)}
+                                data-testid={`ball-rolling-toggle-${template.id}`}
+                              />
                             </div>
-                            <Switch
-                              checked={template.includeBallRolling !== false}
-                              onCheckedChange={(checked) => handleToggleBallRolling(template.id, checked)}
-                              data-testid={`ball-rolling-toggle-${template.id}`}
-                            />
                           </div>
-                        </div>
+                        )}
+
+                        {/* Ball Rolling Status - Show as read-only for admin templates */}
+                        {template.isAdminTemplate && (
+                          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                              <Circle className="w-4 h-4 text-orange-600 fill-orange-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-700">Ball Rolling Tracking</h4>
+                              <p className="text-xs text-slate-500">
+                                {template.includeBallRolling !== false ? 'Enabled' : 'Disabled'} for this template
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </CollapsibleContent>
                   </Card>
@@ -923,6 +1100,51 @@ export default function TemplateManager() {
               >
                 {savingPart && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {addAsGlobalDefault ? 'Add as Global Default' : 'Add to Template'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Hidden Templates Dialog */}
+        <Dialog open={showHiddenDialog} onOpenChange={setShowHiddenDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Hidden Templates</DialogTitle>
+              <DialogDescription>
+                Global templates you&apos;ve hidden. Click restore to make them visible again.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {hiddenTemplates.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">No hidden templates</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {hiddenTemplates.map((template) => (
+                    <div 
+                      key={template.template_id} 
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{template.name}</p>
+                        <p className="text-xs text-slate-500 capitalize">{template.category?.replace('_', ' ')}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleShowTemplate(template.template_id)}
+                        data-testid={`restore-template-${template.template_id}`}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowHiddenDialog(false)}>
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

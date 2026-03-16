@@ -5002,6 +5002,7 @@ async def list_reflection_templates(
 ):
     """
     List all reflection templates for the user's organization.
+    Includes global admin templates and templates assigned to user/org.
     Can filter by target_role: 'coach_educator' or 'coach'
     """
     user = await require_auth(request)
@@ -5049,7 +5050,55 @@ async def list_reflection_templates(
     
     templates = await db.reflection_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
-    logger.info(f"[reflection-templates] Found {len(templates)} templates for user {user.user_id}")
+    # Also fetch global admin templates for reflection categories
+    # Map target_role to admin template category
+    admin_categories = []
+    if target_role == "coach_educator" or not target_role:
+        admin_categories.append("coach_developer_reflection")
+    if target_role == "coach" or not target_role:
+        admin_categories.append("coach_reflection")
+    
+    if admin_categories:
+        admin_query = {
+            "is_admin_template": True,
+            "category": {"$in": admin_categories},
+            "$or": [
+                {"is_global": True},  # Global templates visible to everyone
+                {"assigned_user_ids": user.user_id},  # Assigned to this user
+            ]
+        }
+        if org_id:
+            admin_query["$or"].append({"assigned_org_ids": org_id})  # Assigned to user's org
+        
+        global_admin_templates = await db.admin_templates.find(admin_query, {"_id": 0}).to_list(100)
+        
+        # Convert admin templates to reflection template format
+        for admin_tpl in global_admin_templates:
+            template_data = admin_tpl.get("template_data", {})
+            # Map admin category to target_role
+            tpl_target_role = "coach_educator" if admin_tpl.get("category") == "coach_developer_reflection" else "coach"
+            
+            converted = {
+                "template_id": admin_tpl["template_id"],
+                "name": admin_tpl["name"],
+                "description": admin_tpl.get("description"),
+                "target_role": tpl_target_role,
+                "questions": template_data.get("questions", []),
+                "is_default": False,
+                "is_admin_template": True,  # Mark as admin template
+                "is_global": admin_tpl.get("is_global", False),
+                "qualification_tags": admin_tpl.get("qualification_tags", []),
+                "created_by": admin_tpl.get("created_by"),
+                "created_at": admin_tpl.get("created_at"),
+                "updated_at": admin_tpl.get("updated_at")
+            }
+            # Only add if not already in templates (avoid duplicates)
+            if not any(t.get("template_id") == converted["template_id"] for t in templates):
+                templates.append(converted)
+        
+        logger.info(f"[reflection-templates] Found {len(templates)} templates (including {len(global_admin_templates)} admin templates) for user {user.user_id}")
+    else:
+        logger.info(f"[reflection-templates] Found {len(templates)} templates for user {user.user_id}")
     
     return templates
 
@@ -5295,6 +5344,7 @@ async def list_observation_templates(
 ):
     """
     List all observation window templates for the user's organization.
+    Includes global admin templates and templates assigned to user/org.
     Can filter by observation_context: 'training' or 'game'
     """
     user = await require_auth(request)
@@ -5339,7 +5389,66 @@ async def list_observation_templates(
     
     templates = await db.observation_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
-    logger.info(f"[observation-templates] Found {len(templates)} templates for user {user.user_id}")
+    # Also fetch global admin templates for observation category
+    # These should be visible to ALL users unless they've hidden them
+    admin_query = {
+        "is_admin_template": True,
+        "category": "observation",
+        "$or": [
+            {"is_global": True},  # Global templates visible to everyone
+            {"assigned_user_ids": user.user_id},  # Assigned to this user
+        ]
+    }
+    if org_id:
+        admin_query["$or"].append({"assigned_org_ids": org_id})  # Assigned to user's org
+    
+    global_admin_templates = await db.admin_templates.find(admin_query, {"_id": 0}).to_list(100)
+    
+    # Get user's hidden templates list
+    user_prefs = await db.user_template_preferences.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    )
+    hidden_template_ids = set(user_prefs.get("hidden_template_ids", [])) if user_prefs else set()
+    
+    # Get user's default admin template settings
+    default_admin_templates = user_prefs.get("default_admin_templates", {}) if user_prefs else {}
+    
+    # Convert admin templates to observation template format
+    for admin_tpl in global_admin_templates:
+        # Skip hidden templates
+        if admin_tpl["template_id"] in hidden_template_ids:
+            continue
+            
+        template_data = admin_tpl.get("template_data", {})
+        obs_context = template_data.get("observationContext", "training")
+        
+        # Check if this admin template is set as default by the user
+        is_user_default = default_admin_templates.get(f"observation_{obs_context}") == admin_tpl["template_id"]
+        
+        converted = {
+            "template_id": admin_tpl["template_id"],
+            "name": admin_tpl["name"],
+            "description": admin_tpl.get("description"),
+            "observation_context": obs_context,
+            "include_ball_rolling": template_data.get("includeBallRolling", True),
+            "intervention_types": template_data.get("interventionTypes", template_data.get("eventTypes", [])),
+            "descriptor_group1": template_data.get("descriptorGroup1"),
+            "descriptor_group2": template_data.get("descriptorGroup2"),
+            "session_parts": template_data.get("sessionParts", []),
+            "is_default": is_user_default,  # User's default preference for admin template
+            "is_admin_template": True,  # Mark as admin template
+            "is_global": admin_tpl.get("is_global", False),
+            "qualification_tags": admin_tpl.get("qualification_tags", []),
+            "created_by": admin_tpl.get("created_by"),
+            "created_at": admin_tpl.get("created_at"),
+            "updated_at": admin_tpl.get("updated_at")
+        }
+        # Only add if not already in templates (avoid duplicates)
+        if not any(t.get("template_id") == converted["template_id"] for t in templates):
+            templates.append(converted)
+    
+    logger.info(f"[observation-templates] Found {len(templates)} templates (including admin templates, excluding {len(hidden_template_ids)} hidden) for user {user.user_id}")
     
     return templates
 
@@ -5630,6 +5739,180 @@ async def get_default_observation_template(observation_context: str, request: Re
         raise HTTPException(status_code=404, detail=f"No template found for context: {observation_context}")
     
     return template
+
+# ============================================
+# USER TEMPLATE PREFERENCES ENDPOINTS
+# ============================================
+
+@api_router.post("/user/templates/hide/{template_id}")
+async def hide_template_for_user(template_id: str, request: Request):
+    """Hide an admin/global template from user's view"""
+    user = await require_auth(request)
+    
+    # Verify the template exists and is an admin template
+    admin_tpl = await db.admin_templates.find_one(
+        {"template_id": template_id, "is_admin_template": True},
+        {"_id": 0}
+    )
+    
+    if not admin_tpl:
+        raise HTTPException(status_code=404, detail="Admin template not found")
+    
+    # Add to user's hidden templates list
+    await db.user_template_preferences.update_one(
+        {"user_id": user.user_id},
+        {
+            "$addToSet": {"hidden_template_ids": template_id},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        },
+        upsert=True
+    )
+    
+    logger.info(f"User {user.user_id} hid template {template_id}")
+    
+    return {"success": True, "template_id": template_id, "hidden": True}
+
+
+@api_router.post("/user/templates/show/{template_id}")
+async def show_template_for_user(template_id: str, request: Request):
+    """Unhide a previously hidden admin/global template"""
+    user = await require_auth(request)
+    
+    # Remove from user's hidden templates list
+    await db.user_template_preferences.update_one(
+        {"user_id": user.user_id},
+        {
+            "$pull": {"hidden_template_ids": template_id},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    logger.info(f"User {user.user_id} unhid template {template_id}")
+    
+    return {"success": True, "template_id": template_id, "hidden": False}
+
+
+@api_router.get("/user/templates/hidden")
+async def get_hidden_templates(request: Request):
+    """Get list of hidden template IDs for the current user"""
+    user = await require_auth(request)
+    
+    user_prefs = await db.user_template_preferences.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    )
+    
+    hidden_ids = user_prefs.get("hidden_template_ids", []) if user_prefs else []
+    
+    # Fetch details of hidden templates
+    hidden_templates = []
+    for tpl_id in hidden_ids:
+        admin_tpl = await db.admin_templates.find_one(
+            {"template_id": tpl_id},
+            {"_id": 0, "template_id": 1, "name": 1, "category": 1}
+        )
+        if admin_tpl:
+            hidden_templates.append(admin_tpl)
+    
+    return {"hidden_templates": hidden_templates, "count": len(hidden_templates)}
+
+
+@api_router.post("/user/templates/set-default/{template_id}")
+async def set_admin_template_as_user_default(template_id: str, request: Request):
+    """Set an admin/global template as the user's default for its category"""
+    user = await require_auth(request)
+    
+    # Verify the template exists and is an admin template
+    admin_tpl = await db.admin_templates.find_one(
+        {"template_id": template_id, "is_admin_template": True},
+        {"_id": 0}
+    )
+    
+    if not admin_tpl:
+        raise HTTPException(status_code=404, detail="Admin template not found")
+    
+    category = admin_tpl.get("category")
+    template_data = admin_tpl.get("template_data", {})
+    
+    # Determine the preference key based on category and context
+    if category == "observation":
+        obs_context = template_data.get("observationContext", "training")
+        pref_key = f"observation_{obs_context}"
+    elif category == "coach_reflection":
+        pref_key = "coach_reflection"
+    elif category == "coach_developer_reflection":
+        pref_key = "coach_developer_reflection"
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
+    
+    # Update user preferences - unset any existing regular template default
+    # and set the admin template as the new default
+    await db.user_template_preferences.update_one(
+        {"user_id": user.user_id},
+        {
+            "$set": {
+                f"default_admin_templates.{pref_key}": template_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    logger.info(f"User {user.user_id} set admin template {template_id} as default for {pref_key}")
+    
+    return {
+        "success": True, 
+        "template_id": template_id, 
+        "is_default": True,
+        "category": pref_key
+    }
+
+
+@api_router.post("/user/templates/unset-default/{template_id}")
+async def unset_admin_template_as_user_default(template_id: str, request: Request):
+    """Remove an admin/global template from being the user's default"""
+    user = await require_auth(request)
+    
+    # Verify the template exists and is an admin template
+    admin_tpl = await db.admin_templates.find_one(
+        {"template_id": template_id, "is_admin_template": True},
+        {"_id": 0}
+    )
+    
+    if not admin_tpl:
+        raise HTTPException(status_code=404, detail="Admin template not found")
+    
+    category = admin_tpl.get("category")
+    template_data = admin_tpl.get("template_data", {})
+    
+    # Determine the preference key
+    if category == "observation":
+        obs_context = template_data.get("observationContext", "training")
+        pref_key = f"observation_{obs_context}"
+    elif category == "coach_reflection":
+        pref_key = "coach_reflection"
+    elif category == "coach_developer_reflection":
+        pref_key = "coach_developer_reflection"
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
+    
+    # Remove from user preferences
+    await db.user_template_preferences.update_one(
+        {"user_id": user.user_id},
+        {
+            "$unset": {f"default_admin_templates.{pref_key}": ""},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    logger.info(f"User {user.user_id} removed admin template {template_id} as default for {pref_key}")
+    
+    return {
+        "success": True, 
+        "template_id": template_id, 
+        "is_default": False
+    }
+
 
 # ============================================
 # END OBSERVATION TEMPLATE ENDPOINTS

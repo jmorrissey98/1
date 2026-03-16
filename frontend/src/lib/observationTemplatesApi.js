@@ -106,6 +106,55 @@ export async function setDefaultObservationTemplate(templateId) {
 }
 
 /**
+ * Hide an admin/global template from user's view
+ * @param {string} templateId
+ * @returns {Promise<boolean>}
+ */
+export async function hideAdminTemplate(templateId) {
+  const result = await safePost(`${API_URL}/api/user/templates/hide/${templateId}`);
+  return result.ok;
+}
+
+/**
+ * Show a previously hidden admin/global template
+ * @param {string} templateId
+ * @returns {Promise<boolean>}
+ */
+export async function showAdminTemplate(templateId) {
+  const result = await safePost(`${API_URL}/api/user/templates/show/${templateId}`);
+  return result.ok;
+}
+
+/**
+ * Get list of hidden templates
+ * @returns {Promise<Object>}
+ */
+export async function getHiddenTemplates() {
+  const result = await safeGet(`${API_URL}/api/user/templates/hidden`);
+  return result.ok ? result.data : { hidden_templates: [], count: 0 };
+}
+
+/**
+ * Set an admin template as user's default
+ * @param {string} templateId
+ * @returns {Promise<boolean>}
+ */
+export async function setAdminTemplateAsDefault(templateId) {
+  const result = await safePost(`${API_URL}/api/user/templates/set-default/${templateId}`);
+  return result.ok;
+}
+
+/**
+ * Remove an admin template from being user's default
+ * @param {string} templateId
+ * @returns {Promise<boolean>}
+ */
+export async function unsetAdminTemplateAsDefault(templateId) {
+  const result = await safePost(`${API_URL}/api/user/templates/unset-default/${templateId}`);
+  return result.ok;
+}
+
+/**
  * Convert backend template format to frontend format
  */
 function toFrontendFormat(backendTemplate) {
@@ -154,6 +203,9 @@ function toFrontendFormat(backendTemplate) {
       isDefault: p.isDefault || false
     })),
     isDefault: backendTemplate.is_default || false,
+    isAdminTemplate: backendTemplate.is_admin_template || false,
+    isGlobal: backendTemplate.is_global || false,
+    qualificationTags: backendTemplate.qualification_tags || [],
     createdBy: backendTemplate.created_by,
     organizationId: backendTemplate.organization_id,
     createdAt: backendTemplate.created_at,

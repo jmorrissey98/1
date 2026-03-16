@@ -5,7 +5,74 @@
 
 ## Recent Updates (March 16, 2026)
 
-### New Feature - Admin Template Management (IMPLEMENTED - March 16, 2026)
+### New Features Implemented - March 16, 2026
+
+#### 1. Ball Rolling Toggle Feature (IMPLEMENTED)
+Users and admins can now configure whether "Ball Rolling" tracking is included in observation templates:
+
+**Functionality:**
+- **Admin Template Editor**: Toggle to include/exclude ball rolling when creating templates
+- **User Template Manager**: Toggle to enable/disable ball rolling per template
+- **Session Setup**: Per-session toggle to override template setting
+- **Live Observation**: Ball rolling toggle hidden when disabled for the session
+- **Review Session**: Ball rolling stats hidden in reports when not collected
+
+**Backend Changes:**
+- Added `include_ball_rolling` field to `ObservationTemplateCreate` and `ObservationTemplateUpdate` models
+- Templates default to `include_ball_rolling: true` for backwards compatibility
+
+**Frontend Changes:**
+- Added toggle in AdminTemplateEditors.jsx, TemplateManager.jsx, SessionSetup.jsx
+- Conditional rendering in LiveObservation.jsx and ReviewSession.jsx
+
+#### 2. Global Templates Visibility for All Users (IMPLEMENTED)
+Admin-created global templates are now visible to all users across organizations:
+
+**How it works:**
+- When fetching templates, the API now includes global admin templates
+- Global templates show a purple "Global" badge
+- Users can copy global templates to create customized versions
+- Global templates are read-only (users cannot edit them directly)
+
+**Backend Changes:**
+- Updated `/api/observation-templates` and `/api/reflection-templates` endpoints to include global admin templates
+- Added query to `admin_templates` collection for `is_global: true` templates
+
+#### 3. Hide/Show Global Templates (IMPLEMENTED)
+Users can hide global templates they don't want to see:
+
+**New Endpoints:**
+- `POST /api/user/templates/hide/{template_id}` - Hide a template
+- `POST /api/user/templates/show/{template_id}` - Restore a hidden template
+- `GET /api/user/templates/hidden` - List hidden templates
+
+**Frontend Features:**
+- "View Hidden" button on Templates page
+- Eye-off icon on global templates to hide them
+- Dialog showing hidden templates with "Restore" option
+- Toast notifications for hide/restore actions
+
+**Database:**
+- New collection: `user_template_preferences` - Stores `hidden_template_ids` array per user
+
+#### 4. Set Global Templates as Default (IMPLEMENTED)
+Users can set global admin templates as their personal defaults:
+
+**New Endpoints:**
+- `POST /api/user/templates/set-default/{template_id}` - Set admin template as default
+- `POST /api/user/templates/unset-default/{template_id}` - Remove default status
+
+**Frontend Features:**
+- Star icon (purple) on global templates to set as default
+- User's default preference is per context (training/game)
+- Default badge displays on templates set as user's default
+
+**Database:**
+- `user_template_preferences.default_admin_templates` object stores user's default preferences
+
+---
+
+### Previous Feature - Admin Template Management (IMPLEMENTED - March 16, 2026)
 
 **Admin Template Management System**
 - Admins can now create, manage, and distribute templates across the platform
