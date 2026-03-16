@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Globe, Users, Building2, 
   Tag, Check, X, Loader2, ChevronDown, ChevronUp, Search,
-  Eye, FileText, ClipboardList, Copy, MoreVertical
+  Eye, FileText, ClipboardList, Copy, MoreVertical, Upload
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -51,6 +51,11 @@ export default function AdminTemplateManager() {
   const [stats, setStats] = useState(null);
   const [availableTags, setAvailableTags] = useState([]);
   
+  // System defaults state (existing templates in observation_templates/reflection_templates)
+  const [systemDefaults, setSystemDefaults] = useState([]);
+  const [loadingSystemDefaults, setLoadingSystemDefaults] = useState(false);
+  const [showSystemDefaults, setShowSystemDefaults] = useState(false);
+  
   // View state - 'list' | 'editor'
   const [view, setView] = useState('list');
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -87,6 +92,9 @@ export default function AdminTemplateManager() {
     loadTemplates();
     loadStats();
     loadTags();
+    // Reset system defaults when category changes
+    setSystemDefaults([]);
+    setShowSystemDefaults(false);
   }, [activeCategory]);
 
   const getAuthHeaders = () => {
@@ -115,6 +123,26 @@ export default function AdminTemplateManager() {
       toast.error('Failed to load templates');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSystemDefaults = async () => {
+    setLoadingSystemDefaults(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/admin/templates/system-defaults?category=${activeCategory}`,
+        { headers: getAuthHeaders() }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSystemDefaults(data.templates || []);
+      } else {
+        console.error('Failed to load system defaults');
+      }
+    } catch (err) {
+      console.error('Error loading system defaults:', err);
+    } finally {
+      setLoadingSystemDefaults(false);
     }
   };
 
@@ -657,6 +685,171 @@ export default function AdminTemplateManager() {
                     </div>
                   )}
                 </CardContent>
+              </Card>
+
+              {/* Existing System Defaults Section - Templates from organization collections */}
+              <Card className="mt-6">
+                <Collapsible
+                  open={showSystemDefaults}
+                  onOpenChange={(open) => {
+                    setShowSystemDefaults(open);
+                    if (open && systemDefaults.length === 0) {
+                      loadSystemDefaults();
+                    }
+                  }}
+                >
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-slate-50 transition-colors rounded-t-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <FileText className="w-5 h-5 text-amber-600" />
+                            Existing Organization Templates
+                          </CardTitle>
+                          <CardDescription>
+                            Templates that were created in organizations (legacy system defaults)
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            {loadingSystemDefaults ? '...' : systemDefaults.filter(t => t.category === key).length} found
+                          </Badge>
+                          {showSystemDefaults ? (
+                            <ChevronUp className="w-5 h-5 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent>
+                      {loadingSystemDefaults ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                          <span className="ml-2 text-sm text-slate-500">Loading existing templates...</span>
+                        </div>
+                      ) : systemDefaults.filter(t => t.category === key).length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                          <p className="text-sm text-slate-500">No existing templates found in this category</p>
+                          <p className="text-xs text-slate-400 mt-1">Create new admin templates above to distribute to all users</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-sm text-slate-500 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                            These templates exist in organization collections. Click "Promote to Global" to convert them into admin templates that will be available to all current and future users.
+                          </p>
+                          {systemDefaults.filter(t => t.category === key).map(template => (
+                            <div
+                              key={template.template_id}
+                              className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                              data-testid={`system-default-${template.template_id}`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-medium text-slate-900">{template.name}</h3>
+                                  <Badge className="bg-amber-100 text-amber-700 text-xs">
+                                    Organization Template
+                                  </Badge>
+                                </div>
+                                {template.description && (
+                                  <p className="text-sm text-slate-500 mt-1">{template.description}</p>
+                                )}
+                                <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                                  {template.organization_id && (
+                                    <span className="flex items-center gap-1">
+                                      <Building2 className="w-3 h-3" />
+                                      Org: {template.organization_id.substring(0, 12)}...
+                                    </span>
+                                  )}
+                                  {template.created_at && (
+                                    <span>
+                                      Created: {new Date(template.created_at).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    // Create a new admin template based on this system default and set it as global
+                                    try {
+                                      const response = await fetch(`${API_URL}/api/admin/templates`, {
+                                        method: 'POST',
+                                        headers: getAuthHeaders(),
+                                        body: JSON.stringify({
+                                          category: template.category,
+                                          name: template.name,
+                                          description: template.description,
+                                          template_data: template.template_data || {},
+                                          qualification_tags: [],
+                                          is_global: true  // Automatically global
+                                        })
+                                      });
+                                      
+                                      if (response.ok) {
+                                        toast.success(`"${template.name}" promoted to global admin template`);
+                                        loadTemplates();
+                                        loadStats();
+                                        loadSystemDefaults();
+                                      } else {
+                                        toast.error('Failed to promote template');
+                                      }
+                                    } catch (err) {
+                                      toast.error('Failed to promote template');
+                                    }
+                                  }}
+                                  className="text-green-600 border-green-200 hover:bg-green-50"
+                                >
+                                  <Upload className="w-4 h-4 mr-1" />
+                                  Promote to Global
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => {
+                                      // Create a copy without making it global
+                                      const newTemplate = {
+                                        name: `${template.name} (Copy)`,
+                                        description: template.description,
+                                        template_data: template.template_data || {}
+                                      };
+                                      setEditingTemplate(newTemplate);
+                                      setView('editor');
+                                      toast.info('Creating admin template from organization template');
+                                    }}>
+                                      <Copy className="w-4 h-4 mr-2" />
+                                      Copy & Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      console.log('Template Details:', template);
+                                      toast.info(`Template: ${template.name}`, {
+                                        description: template.description || 'No description',
+                                        duration: 5000
+                                      });
+                                    }}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
               </Card>
             </TabsContent>
           ))}
