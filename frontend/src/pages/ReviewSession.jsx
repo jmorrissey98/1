@@ -2974,6 +2974,28 @@ export default function ReviewSession() {
                         );
                       }
                       
+                      // Custom label renderer to position text inside pie segments
+                      const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                        if (percent < 0.05) return null; // Don't show label for very small slices
+                        const RADIAN = Math.PI / 180;
+                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                          <text 
+                            x={x} 
+                            y={y} 
+                            fill="white" 
+                            textAnchor="middle" 
+                            dominantBaseline="central"
+                            fontSize={11}
+                            fontWeight="600"
+                          >
+                            {`${Math.round(percent * 100)}%`}
+                          </text>
+                        );
+                      };
+                      
                       return (
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
@@ -2985,7 +3007,7 @@ export default function ReviewSession() {
                               outerRadius={70}
                               paddingAngle={2}
                               dataKey="value"
-                              label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                              label={renderCustomLabel}
                               labelLine={false}
                             >
                               {interventionData.map((entry, index) => (
@@ -3040,6 +3062,28 @@ export default function ReviewSession() {
                           );
                         }
                         
+                        // Custom label renderer
+                        const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                          if (percent < 0.05) return null;
+                          const RADIAN = Math.PI / 180;
+                          const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                          return (
+                            <text 
+                              x={x} 
+                              y={y} 
+                              fill="white" 
+                              textAnchor="middle" 
+                              dominantBaseline="central"
+                              fontSize={11}
+                              fontWeight="600"
+                            >
+                              {`${Math.round(percent * 100)}%`}
+                            </text>
+                          );
+                        };
+                        
                         return (
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -3051,7 +3095,7 @@ export default function ReviewSession() {
                                 outerRadius={70}
                                 paddingAngle={2}
                                 dataKey="value"
-                                label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                                label={renderCustomLabel}
                                 labelLine={false}
                               >
                                 {desc1Data.map((entry, index) => (
@@ -3107,6 +3151,28 @@ export default function ReviewSession() {
                           );
                         }
                         
+                        // Custom label renderer
+                        const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                          if (percent < 0.05) return null;
+                          const RADIAN = Math.PI / 180;
+                          const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                          return (
+                            <text 
+                              x={x} 
+                              y={y} 
+                              fill="white" 
+                              textAnchor="middle" 
+                              dominantBaseline="central"
+                              fontSize={11}
+                              fontWeight="600"
+                            >
+                              {`${Math.round(percent * 100)}%`}
+                            </text>
+                          );
+                        };
+                        
                         return (
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -3118,7 +3184,7 @@ export default function ReviewSession() {
                                 outerRadius={70}
                                 paddingAngle={2}
                                 dataKey="value"
-                                label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                                label={renderCustomLabel}
                                 labelLine={false}
                               >
                                 {desc2Data.map((entry, index) => (
