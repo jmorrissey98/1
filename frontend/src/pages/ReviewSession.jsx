@@ -3101,11 +3101,12 @@ export default function ReviewSession() {
                             <Tooltip 
                               formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
                               contentStyle={{ 
-                                backgroundColor: '#0F172A', 
-                                border: 'none', 
+                                backgroundColor: 'white', 
+                                border: '1px solid #e2e8f0', 
                                 borderRadius: '6px',
-                                color: 'white',
-                                fontSize: '12px'
+                                color: '#1e293b',
+                                fontSize: '12px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                               }}
                             />
                           </PieChart>
@@ -3125,7 +3126,7 @@ export default function ReviewSession() {
                             className="w-2.5 h-2.5 rounded-sm" 
                             style={{ backgroundColor: INTERVENTION_COLORS[idx % INTERVENTION_COLORS.length] }}
                           />
-                          <span className="text-slate-600">{Math.round(count/total*100)}%</span>
+                          <span className="text-slate-600">{type.name} ({Math.round(count/total*100)}%)</span>
                         </div>
                       );
                     })}
@@ -3205,11 +3206,12 @@ export default function ReviewSession() {
                               <Tooltip 
                                 formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
                                 contentStyle={{ 
-                                  backgroundColor: '#0F172A', 
-                                  border: 'none', 
+                                  backgroundColor: 'white', 
+                                  border: '1px solid #e2e8f0', 
                                   borderRadius: '6px',
-                                  color: 'white',
-                                  fontSize: '12px'
+                                  color: '#1e293b',
+                                  fontSize: '12px',
+                                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                                 }}
                               />
                             </PieChart>
@@ -3229,7 +3231,7 @@ export default function ReviewSession() {
                               className="w-2.5 h-2.5 rounded-sm" 
                               style={{ backgroundColor: DESC1_CHART_COLORS[idx % DESC1_CHART_COLORS.length] }}
                             />
-                            <span className="text-slate-600">{Math.round(count/total*100)}%</span>
+                            <span className="text-slate-600">{desc.name} ({Math.round(count/total*100)}%)</span>
                           </div>
                         );
                       })}
@@ -3310,11 +3312,12 @@ export default function ReviewSession() {
                               <Tooltip 
                                 formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
                                 contentStyle={{ 
-                                  backgroundColor: '#0F172A', 
-                                  border: 'none', 
+                                  backgroundColor: 'white', 
+                                  border: '1px solid #e2e8f0', 
                                   borderRadius: '6px',
-                                  color: 'white',
-                                  fontSize: '12px'
+                                  color: '#1e293b',
+                                  fontSize: '12px',
+                                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                                 }}
                               />
                             </PieChart>
@@ -3334,7 +3337,7 @@ export default function ReviewSession() {
                               className="w-2.5 h-2.5 rounded-sm" 
                               style={{ backgroundColor: DESC2_CHART_COLORS[idx % DESC2_CHART_COLORS.length] }}
                             />
-                            <span className="text-slate-600">{Math.round(count/total*100)}%</span>
+                            <span className="text-slate-600">{desc.name} ({Math.round(count/total*100)}%)</span>
                           </div>
                         );
                       })}
