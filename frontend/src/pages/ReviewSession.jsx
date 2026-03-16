@@ -2762,8 +2762,8 @@ export default function ReviewSession() {
                                 className="w-[2px] mx-auto h-full transition-all group-hover:w-1"
                                 style={{ backgroundColor: color }}
                               />
-                              {/* Note indicator icon - only visible if event has a note */}
-                              {hasNote && (
+                              {/* Note indicator icon - only visible if event has a note AND user is coach developer */}
+                              {hasNote && (!isCoachView || isIndividualCoachTier) && (
                                 <div className="absolute -top-5 left-1/2 -translate-x-1/2">
                                   <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors">
                                     <StickyNote className="w-2.5 h-2.5 text-white" />
@@ -2799,7 +2799,8 @@ export default function ReviewSession() {
                                     </div>
                                   )}
                                   
-                                  {hasNote && (
+                                  {/* Event note - only visible to coach developers */}
+                                  {hasNote && (!isCoachView || isIndividualCoachTier) && (
                                     <div className="mt-1 pt-1 border-t border-slate-700">
                                       <div className="flex items-center gap-1 text-purple-300 mb-0.5">
                                         <StickyNote className="w-3 h-3" />
@@ -2814,8 +2815,8 @@ export default function ReviewSession() {
                           );
                         })}
                         
-                        {/* Observer Notes markers on timeline */}
-                              {filteredNotes.map((note, noteIdx) => {
+                        {/* Observer Notes markers on timeline - only visible to coach developers */}
+                              {(!isCoachView || isIndividualCoachTier) && filteredNotes.map((note, noteIdx) => {
                                 // Calculate relative position based on note timestamp and session start
                                 const sessionStartTime = session.startTime ? new Date(session.startTime).getTime() : 0;
                                 const noteTime = note.timestamp ? new Date(note.timestamp).getTime() : 0;
@@ -2969,8 +2970,8 @@ export default function ReviewSession() {
                             <span className="text-slate-600">{type.name}</span>
                           </div>
                         ))}
-                        {/* Notes legend item - show if any observer notes or event notes exist */}
-                        {(events.some(e => e.note && e.note.trim()) || getFilteredNotes().length > 0) && (
+                        {/* Notes legend item - show if any observer notes or event notes exist - only for coach developers */}
+                        {(!isCoachView || isIndividualCoachTier) && (events.some(e => e.note && e.note.trim()) || getFilteredNotes().length > 0) && (
                           <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center">
                               <StickyNote className="w-2 h-2 text-white" />
