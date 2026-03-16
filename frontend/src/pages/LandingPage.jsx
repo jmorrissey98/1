@@ -215,8 +215,9 @@ export default function LandingPage() {
   };
 
   const handleTrialSuccess = (data) => {
-    // After successful trial signup, redirect to home
-    navigate('/home');
+    // After successful trial signup, redirect to dashboard
+    // The auth context should pick up the token and redirect appropriately
+    window.location.href = '/';
   };
 
   const scrollToPricing = () => {

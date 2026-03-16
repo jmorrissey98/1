@@ -64,6 +64,7 @@ class AdminTemplateUpdate(BaseModel):
     description: Optional[str] = None
     qualification_tags: Optional[List[str]] = None
     is_global: Optional[bool] = None
+    is_bootstrap_default: Optional[bool] = None
     assigned_user_ids: Optional[List[str]] = None
     assigned_org_ids: Optional[List[str]] = None
     template_data: Optional[Dict[str, Any]] = None
@@ -118,6 +119,94 @@ async def list_qualification_tags(request: Request):
     tags = [r["_id"] for r in result if r["_id"]]
     
     return {"tags": tags}
+
+
+@router.get("/system-defaults")
+async def list_system_default_templates(request: Request, category: Optional[str] = None):
+    """
+    List all system-created default templates across organizations.
+    These are templates automatically created when new organizations are bootstrapped.
+    Admin can view and potentially promote them to global admin templates.
+    """
+    await require_admin(request)
+    
+    # Query observation templates with is_default = true
+    obs_query = {"is_default": True}
+    if category == "observation" or not category:
+        obs_templates = await db.observation_templates.find(
+            obs_query, 
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(500)
+    else:
+        obs_templates = []
+    
+    # Query reflection templates with is_default = true  
+    ref_query = {"is_default": True}
+    if category in ["coach_reflection", "coach_developer_reflection", None]:
+        if category == "coach_reflection":
+            ref_query["target_role"] = "coach"
+        elif category == "coach_developer_reflection":
+            ref_query["target_role"] = "coach_educator"
+        ref_templates = await db.reflection_templates.find(
+            ref_query,
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(500)
+    else:
+        ref_templates = []
+    
+    # Format the response
+    formatted_templates = []
+    
+    # Add observation templates
+    for tpl in obs_templates:
+        formatted_templates.append({
+            "template_id": tpl.get("template_id"),
+            "name": tpl.get("name"),
+            "description": tpl.get("description"),
+            "category": "observation",
+            "observation_context": tpl.get("observation_context"),
+            "is_default": True,
+            "is_system_default": True,  # Mark as system-created
+            "organization_id": tpl.get("organization_id"),
+            "created_by": tpl.get("created_by"),
+            "created_at": tpl.get("created_at"),
+            "updated_at": tpl.get("updated_at"),
+            "template_data": {
+                "observationContext": tpl.get("observation_context"),
+                "includeBallRolling": tpl.get("include_ball_rolling", True),
+                "interventionTypes": tpl.get("intervention_types", []),
+                "eventTypes": tpl.get("intervention_types", []),
+                "descriptorGroup1": tpl.get("descriptor_group1"),
+                "descriptorGroup2": tpl.get("descriptor_group2"),
+                "sessionParts": tpl.get("session_parts", [])
+            }
+        })
+    
+    # Add reflection templates
+    for tpl in ref_templates:
+        cat = "coach_reflection" if tpl.get("target_role") == "coach" else "coach_developer_reflection"
+        formatted_templates.append({
+            "template_id": tpl.get("template_id"),
+            "name": tpl.get("name"),
+            "description": tpl.get("description"),
+            "category": cat,
+            "target_role": tpl.get("target_role"),
+            "is_default": True,
+            "is_system_default": True,
+            "organization_id": tpl.get("organization_id"),
+            "created_by": tpl.get("created_by"),
+            "created_at": tpl.get("created_at"),
+            "updated_at": tpl.get("updated_at"),
+            "template_data": {
+                "questions": tpl.get("questions", [])
+            }
+        })
+    
+    return {
+        "templates": formatted_templates, 
+        "count": len(formatted_templates),
+        "note": "These are templates automatically created for organizations. To make a template globally available, create an Admin Template and mark it as Global."
+    }
 
 
 @router.get("/{template_id}")
@@ -204,6 +293,8 @@ async def update_admin_template(template_id: str, data: AdminTemplateUpdate, req
         update_data["qualification_tags"] = data.qualification_tags
     if data.is_global is not None:
         update_data["is_global"] = data.is_global
+    if data.is_bootstrap_default is not None:
+        update_data["is_bootstrap_default"] = data.is_bootstrap_default
     if data.assigned_user_ids is not None:
         update_data["assigned_user_ids"] = data.assigned_user_ids
     if data.assigned_org_ids is not None:
@@ -408,7 +499,8 @@ async def get_template_stats(request: Request):
         {"$group": {
             "_id": "$category",
             "total": {"$sum": 1},
-            "global_count": {"$sum": {"$cond": ["$is_global", 1, 0]}}
+            "global_count": {"$sum": {"$cond": ["$is_global", 1, 0]}},
+            "bootstrap_count": {"$sum": {"$cond": ["$is_bootstrap_default", 1, 0]}}
         }}
     ]
     
@@ -420,14 +512,18 @@ async def get_template_stats(request: Request):
     # Total global
     total_global = await db.admin_templates.count_documents({"is_admin_template": True, "is_global": True})
     
+    # Total bootstrap defaults
+    total_bootstrap = await db.admin_templates.count_documents({"is_admin_template": True, "is_bootstrap_default": True})
+    
     # User overrides count
     override_count = await db.user_template_overrides.count_documents({})
     
     return {
         "total_templates": total,
         "total_global": total_global,
+        "total_bootstrap_defaults": total_bootstrap,
         "total_user_overrides": override_count,
-        "by_category": {item["_id"]: {"total": item["total"], "global": item["global_count"]} for item in category_stats}
+        "by_category": {item["_id"]: {"total": item["total"], "global": item["global_count"], "bootstrap": item.get("bootstrap_count", 0)} for item in category_stats}
     }
 
 
