@@ -33,7 +33,44 @@ import { SpeechToTextButton } from '../components/SpeechToTextButton';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
-const CHART_COLORS = ['#FACC15', '#38BDF8', '#4ADE80', '#F97316', '#A855F7', '#EC4899'];
+
+// New color palette matching the visual reference
+// Navy, Teal, Indigo, Slate Blue, and accent colors
+const CHART_COLORS = [
+  '#0F172A', // Navy/Dark Blue
+  '#0D9488', // Teal
+  '#4F46E5', // Indigo
+  '#6366F1', // Slate Blue/Purple
+  '#64748B', // Neutral Slate Grey
+  '#0EA5E9', // Sky Blue accent
+];
+
+// Intervention-specific colors (more vibrant for the primary chart)
+const INTERVENTION_COLORS = [
+  '#0D9488', // Teal
+  '#4F46E5', // Indigo  
+  '#0F172A', // Navy
+  '#6366F1', // Slate Blue
+  '#64748B', // Grey
+];
+
+// Descriptor Group 1 colors (blue tones)
+const DESC1_CHART_COLORS = [
+  '#0F172A', // Navy
+  '#1E3A5F', // Dark Blue
+  '#3B5998', // Medium Blue
+  '#4F46E5', // Indigo
+  '#6366F1', // Slate Blue
+];
+
+// Descriptor Group 2 colors (teal/green tones)
+const DESC2_CHART_COLORS = [
+  '#0D9488', // Teal
+  '#14B8A6', // Lighter Teal
+  '#0F766E', // Dark Teal
+  '#115E59', // Deep Teal
+  '#134E4A', // Darkest Teal
+];
 
 // Helper to get axios config with auth headers
 const getAxiosConfig = () => {
@@ -1452,46 +1489,46 @@ export default function ReviewSession() {
               </Card>
             )}
 
-            {/* Key Metrics */}
+            {/* Key Metrics - Styled like visual reference */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
+              <Card className="shadow-sm border border-slate-200 bg-white">
+                <CardContent className="pt-6 pb-4">
                   <div className="text-3xl font-bold font-mono text-slate-900" data-testid="total-duration">
                     {formatTime(stats.totalTime)}
                   </div>
-                  <div className="text-sm text-slate-500 mt-1">Total Duration</div>
+                  <div className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Total Duration</div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="pt-6">
+              <Card className="shadow-sm border border-slate-200 bg-white">
+                <CardContent className="pt-6 pb-4">
                   <div className="text-3xl font-bold text-slate-900" data-testid="total-events">
                     {stats.totalEvents}
                   </div>
-                  <div className="text-sm text-slate-500 mt-1">Total Events</div>
+                  <div className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Total Interventions</div>
                 </CardContent>
               </Card>
               {session.includeBallRolling !== false && (
                 <>
-                  <Card>
-                    <CardContent className="pt-6">
+                  <Card className="shadow-sm border border-slate-200 bg-white">
+                    <CardContent className="pt-6 pb-4">
                       <div className="flex items-center gap-2">
-                        <Circle className="w-5 h-5 text-orange-500 fill-current" />
+                        <Circle className="w-5 h-5 text-teal-600 fill-current" />
                         <span className="text-3xl font-bold text-slate-900" data-testid="ball-rolling-pct">
                           {stats.ballRollingPct}%
                         </span>
                       </div>
-                      <div className="text-sm text-slate-500 mt-1">Ball Rolling</div>
+                      <div className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Ball Rolling</div>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardContent className="pt-6">
+                  <Card className="shadow-sm border border-slate-200 bg-white">
+                    <CardContent className="pt-6 pb-4">
                       <div className="flex items-center gap-2">
-                        <Square className="w-5 h-5 text-slate-500" />
+                        <Square className="w-5 h-5 text-slate-400" />
                         <span className="text-3xl font-bold text-slate-900">
                           {100 - stats.ballRollingPct}%
                         </span>
                       </div>
-                      <div className="text-sm text-slate-500 mt-1">Ball Stopped</div>
+                      <div className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Ball Stopped</div>
                     </CardContent>
                   </Card>
                 </>
@@ -1500,42 +1537,63 @@ export default function ReviewSession() {
 
             {/* Ball Rolling Progress - Only show if ball rolling is enabled */}
             {session.includeBallRolling !== false && (
-              <Card>
+              <Card className="shadow-sm border border-slate-200 bg-white">
                 <CardHeader>
-                  <CardTitle className="text-base font-['Manrope']">Ball Rolling Time</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">Ball Rolling Time</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-orange-600 font-medium">
+                      <span className="text-teal-600 font-medium">
                         Rolling: {formatTime(stats.ballRollingTime)}
                       </span>
                       <span className="text-slate-500">
                         Stopped: {formatTime(stats.ballNotRollingTime)}
                       </span>
                     </div>
-                    <Progress value={stats.ballRollingPct} className="h-3" />
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-teal-500 rounded-full transition-all"
+                        style={{ width: `${stats.ballRollingPct}%` }}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
             {/* Intervention Breakdown - renamed from Events */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-['Manrope']">Coach Interventions</CardTitle>
+            <Card className="shadow-sm border border-slate-200 bg-white">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">Coach Interventions</CardTitle>
+                  <Badge className="bg-teal-100 text-teal-800 border-0 text-xs">
+                    {(session.interventionTypes || session.eventTypes || []).filter(et => (stats.eventCounts[et.id] || 0) > 0).length}/{(session.interventionTypes || session.eventTypes || []).length} types used
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(session.interventionTypes || session.eventTypes || []).map((et) => {
+                  {(session.interventionTypes || session.eventTypes || []).map((et, idx) => {
                     const count = stats.eventCounts[et.id] || 0;
                     const pct = calcPercentage(count, stats.totalEvents);
                     return (
                       <div key={et.id} className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded bg-yellow-400" />
-                        <span className="flex-1 font-medium text-slate-700">{et.name}</span>
-                        <span className="text-slate-900 font-semibold">{count}</span>
-                        <Badge variant="secondary">{pct}%</Badge>
+                        <div 
+                          className="w-3 h-3 rounded-sm" 
+                          style={{ backgroundColor: INTERVENTION_COLORS[idx % INTERVENTION_COLORS.length] }}
+                        />
+                        <span className="flex-1 font-medium text-slate-700 text-sm">{et.name}</span>
+                        <span className="text-slate-900 font-semibold text-sm">{count}</span>
+                        <Badge 
+                          className="text-xs border-0"
+                          style={{ 
+                            backgroundColor: `${INTERVENTION_COLORS[idx % INTERVENTION_COLORS.length]}20`,
+                            color: INTERVENTION_COLORS[idx % INTERVENTION_COLORS.length]
+                          }}
+                        >
+                          {pct}%
+                        </Badge>
                       </div>
                     );
                   })}
@@ -1546,21 +1604,34 @@ export default function ReviewSession() {
             {/* Descriptor Breakdown */}
             <div className="grid md:grid-cols-2 gap-4">
               {session.descriptorGroup1 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-sky-400" />
+              <Card className="shadow-sm border border-slate-200 bg-white">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">
                     {session.descriptorGroup1.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {(session.descriptorGroup1.descriptors || []).map((desc) => {
+                    {(session.descriptorGroup1.descriptors || []).map((desc, idx) => {
                       const count = stats.desc1Counts[desc.id] || 0;
                       return (
                         <div key={desc.id} className="flex items-center justify-between">
-                          <span className="text-slate-600">{desc.name}</span>
-                          <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">{count}</Badge>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-2.5 h-2.5 rounded-sm" 
+                              style={{ backgroundColor: DESC1_CHART_COLORS[idx % DESC1_CHART_COLORS.length] }}
+                            />
+                            <span className="text-slate-600 text-sm">{desc.name}</span>
+                          </div>
+                          <Badge 
+                            className="text-xs border-0"
+                            style={{ 
+                              backgroundColor: `${DESC1_CHART_COLORS[idx % DESC1_CHART_COLORS.length]}15`,
+                              color: DESC1_CHART_COLORS[idx % DESC1_CHART_COLORS.length]
+                            }}
+                          >
+                            {count}
+                          </Badge>
                         </div>
                       );
                     })}
@@ -1570,21 +1641,34 @@ export default function ReviewSession() {
               )}
 
               {session.descriptorGroup2 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-green-400" />
+              <Card className="shadow-sm border border-slate-200 bg-white">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">
                     {session.descriptorGroup2.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {(session.descriptorGroup2.descriptors || []).map((desc) => {
+                    {(session.descriptorGroup2.descriptors || []).map((desc, idx) => {
                       const count = stats.desc2Counts[desc.id] || 0;
                       return (
                         <div key={desc.id} className="flex items-center justify-between">
-                          <span className="text-slate-600">{desc.name}</span>
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{count}</Badge>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-2.5 h-2.5 rounded-sm" 
+                              style={{ backgroundColor: DESC2_CHART_COLORS[idx % DESC2_CHART_COLORS.length] }}
+                            />
+                            <span className="text-slate-600 text-sm">{desc.name}</span>
+                          </div>
+                          <Badge 
+                            className="text-xs border-0"
+                            style={{ 
+                              backgroundColor: `${DESC2_CHART_COLORS[idx % DESC2_CHART_COLORS.length]}15`,
+                              color: DESC2_CHART_COLORS[idx % DESC2_CHART_COLORS.length]
+                            }}
+                          >
+                            {count}
+                          </Badge>
                         </div>
                       );
                     })}
@@ -2945,22 +3029,22 @@ export default function ReviewSession() {
               descriptorGroup2={session.descriptorGroup2}
             />
 
-            {/* Distribution Pie Charts - 3 Cards */}
+            {/* Distribution Pie Charts - 3 Cards with new styling */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Interventions Pie Chart */}
-              <Card>
+              <Card className="shadow-sm border border-slate-200 bg-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-['Manrope']">Interventions</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">Interventions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-52">
+                  <div className="h-48">
                     {(() => {
                       const interventionData = (session.interventionTypes || []).map((type, idx) => {
                         const count = stats.eventCounts[type.id] || 0;
                         return {
                           name: type.name,
                           value: count,
-                          color: CHART_COLORS[idx % CHART_COLORS.length]
+                          color: INTERVENTION_COLORS[idx % INTERVENTION_COLORS.length]
                         };
                       }).filter(d => d.value > 0);
                       
@@ -2974,9 +3058,9 @@ export default function ReviewSession() {
                         );
                       }
                       
-                      // Custom label renderer to position text inside pie segments
+                      // Custom label renderer - position inside segment
                       const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                        if (percent < 0.05) return null; // Don't show label for very small slices
+                        if (percent < 0.08) return null;
                         const RADIAN = Math.PI / 180;
                         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -2988,7 +3072,7 @@ export default function ReviewSession() {
                             fill="white" 
                             textAnchor="middle" 
                             dominantBaseline="central"
-                            fontSize={11}
+                            fontSize={10}
                             fontWeight="600"
                           >
                             {`${Math.round(percent * 100)}%`}
@@ -3002,10 +3086,10 @@ export default function ReviewSession() {
                             <Pie
                               data={interventionData}
                               cx="50%"
-                              cy="50%"
-                              innerRadius={35}
-                              outerRadius={70}
-                              paddingAngle={2}
+                              cy="45%"
+                              innerRadius={30}
+                              outerRadius={55}
+                              paddingAngle={1}
                               dataKey="value"
                               label={renderCustomLabel}
                               labelLine={false}
@@ -3016,39 +3100,56 @@ export default function ReviewSession() {
                             </Pie>
                             <Tooltip 
                               formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
-                            />
-                            <Legend 
-                              layout="horizontal" 
-                              verticalAlign="bottom"
-                              wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                              contentStyle={{ 
+                                backgroundColor: '#0F172A', 
+                                border: 'none', 
+                                borderRadius: '6px',
+                                color: 'white',
+                                fontSize: '12px'
+                              }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
                       );
                     })()}
                   </div>
+                  {/* Legend below chart */}
+                  <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
+                    {(session.interventionTypes || []).map((type, idx) => {
+                      const count = stats.eventCounts[type.id] || 0;
+                      const total = (session.interventionTypes || []).reduce((sum, t) => sum + (stats.eventCounts[t.id] || 0), 0);
+                      if (count === 0) return null;
+                      return (
+                        <div key={type.id} className="flex items-center gap-1.5 text-xs">
+                          <div 
+                            className="w-2.5 h-2.5 rounded-sm" 
+                            style={{ backgroundColor: INTERVENTION_COLORS[idx % INTERVENTION_COLORS.length] }}
+                          />
+                          <span className="text-slate-600">{Math.round(count/total*100)}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
 
               {/* Descriptor Group 1 (Content Focus) Pie Chart */}
               {session.descriptorGroup1 && (
-                <Card>
+                <Card className="shadow-sm border border-slate-200 bg-white">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-sky-400" />
+                    <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">
                       {session.descriptorGroup1.name}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-52">
+                    <div className="h-48">
                       {(() => {
-                        const DESC1_COLORS = ['#38BDF8', '#0EA5E9', '#0284C7', '#0369A1', '#075985'];
                         const desc1Data = (session.descriptorGroup1.descriptors || []).map((desc, idx) => {
                           const count = stats.desc1Counts[desc.id] || 0;
                           return {
                             name: desc.name,
                             value: count,
-                            color: DESC1_COLORS[idx % DESC1_COLORS.length]
+                            color: DESC1_CHART_COLORS[idx % DESC1_CHART_COLORS.length]
                           };
                         }).filter(d => d.value > 0);
                         
@@ -3062,9 +3163,8 @@ export default function ReviewSession() {
                           );
                         }
                         
-                        // Custom label renderer
                         const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                          if (percent < 0.05) return null;
+                          if (percent < 0.08) return null;
                           const RADIAN = Math.PI / 180;
                           const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                           const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -3076,7 +3176,7 @@ export default function ReviewSession() {
                               fill="white" 
                               textAnchor="middle" 
                               dominantBaseline="central"
-                              fontSize={11}
+                              fontSize={10}
                               fontWeight="600"
                             >
                               {`${Math.round(percent * 100)}%`}
@@ -3090,10 +3190,10 @@ export default function ReviewSession() {
                               <Pie
                                 data={desc1Data}
                                 cx="50%"
-                                cy="50%"
-                                innerRadius={35}
-                                outerRadius={70}
-                                paddingAngle={2}
+                                cy="45%"
+                                innerRadius={30}
+                                outerRadius={55}
+                                paddingAngle={1}
                                 dataKey="value"
                                 label={renderCustomLabel}
                                 labelLine={false}
@@ -3104,16 +3204,35 @@ export default function ReviewSession() {
                               </Pie>
                               <Tooltip 
                                 formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
-                              />
-                              <Legend 
-                                layout="horizontal" 
-                                verticalAlign="bottom"
-                                wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                                contentStyle={{ 
+                                  backgroundColor: '#0F172A', 
+                                  border: 'none', 
+                                  borderRadius: '6px',
+                                  color: 'white',
+                                  fontSize: '12px'
+                                }}
                               />
                             </PieChart>
                           </ResponsiveContainer>
                         );
                       })()}
+                    </div>
+                    {/* Legend below chart */}
+                    <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
+                      {(session.descriptorGroup1.descriptors || []).map((desc, idx) => {
+                        const count = stats.desc1Counts[desc.id] || 0;
+                        const total = (session.descriptorGroup1.descriptors || []).reduce((sum, d) => sum + (stats.desc1Counts[d.id] || 0), 0);
+                        if (count === 0) return null;
+                        return (
+                          <div key={desc.id} className="flex items-center gap-1.5 text-xs">
+                            <div 
+                              className="w-2.5 h-2.5 rounded-sm" 
+                              style={{ backgroundColor: DESC1_CHART_COLORS[idx % DESC1_CHART_COLORS.length] }}
+                            />
+                            <span className="text-slate-600">{Math.round(count/total*100)}%</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -3121,23 +3240,21 @@ export default function ReviewSession() {
 
               {/* Descriptor Group 2 (Delivery Method) Pie Chart */}
               {session.descriptorGroup2 && (
-                <Card>
+                <Card className="shadow-sm border border-slate-200 bg-white">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-green-400" />
+                    <CardTitle className="text-sm font-semibold text-slate-700 font-['Manrope']">
                       {session.descriptorGroup2.name}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-52">
+                    <div className="h-48">
                       {(() => {
-                        const DESC2_COLORS = ['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534'];
                         const desc2Data = (session.descriptorGroup2.descriptors || []).map((desc, idx) => {
                           const count = stats.desc2Counts[desc.id] || 0;
                           return {
                             name: desc.name,
                             value: count,
-                            color: DESC2_COLORS[idx % DESC2_COLORS.length]
+                            color: DESC2_CHART_COLORS[idx % DESC2_CHART_COLORS.length]
                           };
                         }).filter(d => d.value > 0);
                         
@@ -3151,9 +3268,8 @@ export default function ReviewSession() {
                           );
                         }
                         
-                        // Custom label renderer
                         const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                          if (percent < 0.05) return null;
+                          if (percent < 0.08) return null;
                           const RADIAN = Math.PI / 180;
                           const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                           const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -3165,7 +3281,7 @@ export default function ReviewSession() {
                               fill="white" 
                               textAnchor="middle" 
                               dominantBaseline="central"
-                              fontSize={11}
+                              fontSize={10}
                               fontWeight="600"
                             >
                               {`${Math.round(percent * 100)}%`}
@@ -3179,10 +3295,10 @@ export default function ReviewSession() {
                               <Pie
                                 data={desc2Data}
                                 cx="50%"
-                                cy="50%"
-                                innerRadius={35}
-                                outerRadius={70}
-                                paddingAngle={2}
+                                cy="45%"
+                                innerRadius={30}
+                                outerRadius={55}
+                                paddingAngle={1}
                                 dataKey="value"
                                 label={renderCustomLabel}
                                 labelLine={false}
@@ -3193,16 +3309,35 @@ export default function ReviewSession() {
                               </Pie>
                               <Tooltip 
                                 formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
-                              />
-                              <Legend 
-                                layout="horizontal" 
-                                verticalAlign="bottom"
-                                wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                                contentStyle={{ 
+                                  backgroundColor: '#0F172A', 
+                                  border: 'none', 
+                                  borderRadius: '6px',
+                                  color: 'white',
+                                  fontSize: '12px'
+                                }}
                               />
                             </PieChart>
                           </ResponsiveContainer>
                         );
                       })()}
+                    </div>
+                    {/* Legend below chart */}
+                    <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
+                      {(session.descriptorGroup2.descriptors || []).map((desc, idx) => {
+                        const count = stats.desc2Counts[desc.id] || 0;
+                        const total = (session.descriptorGroup2.descriptors || []).reduce((sum, d) => sum + (stats.desc2Counts[d.id] || 0), 0);
+                        if (count === 0) return null;
+                        return (
+                          <div key={desc.id} className="flex items-center gap-1.5 text-xs">
+                            <div 
+                              className="w-2.5 h-2.5 rounded-sm" 
+                              style={{ backgroundColor: DESC2_CHART_COLORS[idx % DESC2_CHART_COLORS.length] }}
+                            />
+                            <span className="text-slate-600">{Math.round(count/total*100)}%</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
