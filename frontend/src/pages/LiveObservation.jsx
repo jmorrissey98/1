@@ -647,25 +647,29 @@ export default function LiveObservation() {
                 <Badge variant="outline" className="font-medium text-xs">
                   {activePart?.name || 'No Part'}
                 </Badge>
-                <span className="text-slate-400 hidden sm:inline">•</span>
-                <span className={cn(
-                  "flex items-center gap-1 font-medium",
-                  session.ballRolling ? "text-orange-600" : "text-slate-500"
-                )}>
-                  {session.ballRolling ? (
-                    <>
-                      <Circle className="w-3 h-3 fill-current ball-rolling-indicator" />
-                      <span className="hidden sm:inline">Ball Rolling</span>
-                      <span className="sm:hidden">Rolling</span>
-                    </>
-                  ) : (
-                    <>
-                      <Square className="w-3 h-3" />
-                      <span className="hidden sm:inline">Ball Stopped</span>
-                      <span className="sm:hidden">Stopped</span>
-                    </>
-                  )}
-                </span>
+                {session.includeBallRolling !== false && (
+                  <>
+                    <span className="text-slate-400 hidden sm:inline">•</span>
+                    <span className={cn(
+                      "flex items-center gap-1 font-medium",
+                      session.ballRolling ? "text-orange-600" : "text-slate-500"
+                    )}>
+                      {session.ballRolling ? (
+                        <>
+                          <Circle className="w-3 h-3 fill-current ball-rolling-indicator" />
+                          <span className="hidden sm:inline">Ball Rolling</span>
+                          <span className="sm:hidden">Rolling</span>
+                        </>
+                      ) : (
+                        <>
+                          <Square className="w-3 h-3" />
+                          <span className="hidden sm:inline">Ball Stopped</span>
+                          <span className="sm:hidden">Stopped</span>
+                        </>
+                      )}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -896,31 +900,33 @@ export default function LiveObservation() {
         </DialogContent>
       </Dialog>
 
-      {/* Ball Rolling Toggle */}
-      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
-        <button
-          onClick={handleBallToggle}
-          className={cn(
-            "w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all min-h-[56px] sm:min-h-[64px]",
-            session.ballRolling
-              ? "bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700"
-              : "bg-slate-600 text-white hover:bg-slate-700 active:bg-slate-800"
-          )}
-          data-testid="ball-toggle-btn"
-        >
-          {session.ballRolling ? (
-            <span className="flex items-center justify-center gap-2">
-              <Circle className="w-4 sm:w-5 h-4 sm:h-5 fill-current ball-rolling-indicator" />
-              Ball Rolling
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <Square className="w-4 sm:w-5 h-4 sm:h-5" />
-              Ball Not Rolling
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Ball Rolling Toggle - Only show if includeBallRolling is enabled */}
+      {session.includeBallRolling !== false && (
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
+          <button
+            onClick={handleBallToggle}
+            className={cn(
+              "w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all min-h-[56px] sm:min-h-[64px]",
+              session.ballRolling
+                ? "bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700"
+                : "bg-slate-600 text-white hover:bg-slate-700 active:bg-slate-800"
+            )}
+            data-testid="ball-toggle-btn"
+          >
+            {session.ballRolling ? (
+              <span className="flex items-center justify-center gap-2">
+                <Circle className="w-4 sm:w-5 h-4 sm:h-5 fill-current ball-rolling-indicator" />
+                Ball Rolling
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <Square className="w-4 sm:w-5 h-4 sm:h-5" />
+                Ball Not Rolling
+              </span>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Code Window Grid */}
       <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto">

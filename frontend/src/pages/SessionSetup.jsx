@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, X, GripVertical, Play, User, Calendar, Loader2, ClipboardList, AlertTriangle, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Plus, X, GripVertical, Play, User, Calendar, Loader2, ClipboardList, AlertTriangle, TrendingUp, Circle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -207,6 +207,7 @@ export default function SessionSetup() {
         ...prev,
         interventionTypes: [...interventions],
         eventTypes: [...interventions],
+        includeBallRolling: template.includeBallRolling !== false, // Default true for backwards compat
         descriptorGroup1: template.descriptorGroup1 ? { 
           ...template.descriptorGroup1, 
           descriptors: [...(template.descriptorGroup1.descriptors || [])] 
@@ -1031,6 +1032,27 @@ export default function SessionSetup() {
                 checked={enableObserverNotes}
                 onCheckedChange={handleNotesToggle}
                 data-testid="enable-notes-switch"
+              />
+            </div>
+
+            {/* Ball Rolling Toggle */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                  <Circle className="w-4 h-4 text-orange-600 fill-orange-600" />
+                </div>
+                <div>
+                  <Label htmlFor="include-ball-rolling" className="cursor-pointer">Track Ball Rolling</Label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Record ball rolling / stopped time during observation
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="include-ball-rolling"
+                checked={session.includeBallRolling !== false}
+                onCheckedChange={(checked) => updateSession({ includeBallRolling: checked })}
+                data-testid="include-ball-rolling-switch"
               />
             </div>
           </CardContent>

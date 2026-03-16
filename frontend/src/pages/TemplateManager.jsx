@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Copy, Trash2, Edit2, Check, X, GripVertical, ChevronDown, ChevronUp, Loader2, Globe, Eye, FileText, ClipboardList, Star } from 'lucide-react';
+import { ArrowLeft, Plus, Copy, Trash2, Edit2, Check, X, GripVertical, ChevronDown, ChevronUp, Loader2, Globe, Eye, FileText, ClipboardList, Star, Circle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
+import { Switch } from '../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -521,6 +522,17 @@ export default function TemplateManager() {
     }
   };
 
+  // Ball rolling toggle handler
+  const handleToggleBallRolling = (templateId, checked) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      saveAndRefresh({
+        ...template,
+        includeBallRolling: checked
+      });
+    }
+  };
+
   return (
     <SwipeablePageWrapper>
       <div className="min-h-screen bg-slate-50 pb-16">
@@ -822,6 +834,26 @@ export default function TemplateManager() {
                                 </div>
                               ))
                             )}
+                          </div>
+                        </div>
+
+                        {/* Ball Rolling Toggle */}
+                        <div>
+                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                                <Circle className="w-4 h-4 text-orange-600 fill-orange-600" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium text-slate-700">Include Ball Rolling</h4>
+                                <p className="text-xs text-slate-500">Track ball rolling / stopped time</p>
+                              </div>
+                            </div>
+                            <Switch
+                              checked={template.includeBallRolling !== false}
+                              onCheckedChange={(checked) => handleToggleBallRolling(template.id, checked)}
+                              data-testid={`ball-rolling-toggle-${template.id}`}
+                            />
                           </div>
                         </div>
                       </CardContent>

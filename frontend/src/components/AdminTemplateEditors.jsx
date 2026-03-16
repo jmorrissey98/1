@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Eye, Save, X, Type, Sliders, List, CheckSquare, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Eye, Save, X, Type, Sliders, List, CheckSquare, GripVertical, Circle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -45,6 +45,11 @@ export function AdminObservationTemplateEditor({ template, onSave, onCancel, sav
   const [name, setName] = useState(template?.name || 'New Observation Template');
   const [description, setDescription] = useState(template?.description || '');
   const [observationContext, setObservationContext] = useState(template?.observationContext || 'training');
+  
+  // Ball Rolling option - enabled by default for backwards compatibility
+  const [includeBallRolling, setIncludeBallRolling] = useState(
+    template?.template_data?.includeBallRolling !== false // Default true if not explicitly false
+  );
   
   // Interventions
   const [interventions, setInterventions] = useState(
@@ -170,6 +175,7 @@ export function AdminObservationTemplateEditor({ template, onSave, onCancel, sav
       description: description.trim(),
       template_data: {
         observationContext,
+        includeBallRolling,
         interventionTypes: interventions,
         eventTypes: interventions,
         descriptorGroup1: {
@@ -250,6 +256,25 @@ export function AdminObservationTemplateEditor({ template, onSave, onCancel, sav
               rows={2}
             />
           </div>
+          
+          {/* Ball Rolling Toggle */}
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                <Circle className="w-4 h-4 text-orange-600" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Include Ball Rolling</Label>
+                <p className="text-xs text-slate-500">Track ball rolling / stopped time during observations</p>
+              </div>
+            </div>
+            <Switch
+              checked={includeBallRolling}
+              onCheckedChange={setIncludeBallRolling}
+              data-testid="include-ball-rolling-toggle"
+            />
+          </div>
+          
           <div className="text-sm text-slate-500">
             {interventions.length} interventions • {group1Descriptors.length + group2Descriptors.length} descriptors • {sessionParts.length} parts
           </div>

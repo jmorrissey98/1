@@ -5369,6 +5369,7 @@ class ObservationTemplateCreate(BaseModel):
     descriptor_group2: Optional[Dict[str, Any]] = None
     session_parts: List[Dict[str, Any]] = []
     is_default: bool = False
+    include_ball_rolling: bool = True  # New field - default True for backwards compatibility
 
 
 class ObservationTemplateUpdate(BaseModel):
@@ -5379,6 +5380,7 @@ class ObservationTemplateUpdate(BaseModel):
     descriptor_group2: Optional[Dict[str, Any]] = None
     session_parts: Optional[List[Dict[str, Any]]] = None
     is_default: Optional[bool] = None
+    include_ball_rolling: Optional[bool] = None  # New field
 
 
 @api_router.post("/observation-templates")
@@ -5411,6 +5413,7 @@ async def create_observation_template(data: ObservationTemplateCreate, request: 
         "name": data.name,
         "description": data.description,
         "observation_context": data.observation_context,
+        "include_ball_rolling": data.include_ball_rolling,
         "intervention_types": data.intervention_types,
         "descriptor_group1": data.descriptor_group1,
         "descriptor_group2": data.descriptor_group2,
@@ -5475,6 +5478,8 @@ async def update_observation_template(
         update_data["descriptor_group2"] = data.descriptor_group2
     if data.session_parts is not None:
         update_data["session_parts"] = data.session_parts
+    if data.include_ball_rolling is not None:
+        update_data["include_ball_rolling"] = data.include_ball_rolling
     
     # Handle is_default special case
     if data.is_default is not None:

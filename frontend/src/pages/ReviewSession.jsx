@@ -1470,49 +1470,55 @@ export default function ReviewSession() {
                   <div className="text-sm text-slate-500 mt-1">Total Events</div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <Circle className="w-5 h-5 text-orange-500 fill-current" />
-                    <span className="text-3xl font-bold text-slate-900" data-testid="ball-rolling-pct">
-                      {stats.ballRollingPct}%
-                    </span>
-                  </div>
-                  <div className="text-sm text-slate-500 mt-1">Ball Rolling</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <Square className="w-5 h-5 text-slate-500" />
-                    <span className="text-3xl font-bold text-slate-900">
-                      {100 - stats.ballRollingPct}%
-                    </span>
-                  </div>
-                  <div className="text-sm text-slate-500 mt-1">Ball Stopped</div>
-                </CardContent>
-              </Card>
+              {session.includeBallRolling !== false && (
+                <>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2">
+                        <Circle className="w-5 h-5 text-orange-500 fill-current" />
+                        <span className="text-3xl font-bold text-slate-900" data-testid="ball-rolling-pct">
+                          {stats.ballRollingPct}%
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-500 mt-1">Ball Rolling</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2">
+                        <Square className="w-5 h-5 text-slate-500" />
+                        <span className="text-3xl font-bold text-slate-900">
+                          {100 - stats.ballRollingPct}%
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-500 mt-1">Ball Stopped</div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
 
-            {/* Ball Rolling Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-['Manrope']">Ball Rolling Time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-orange-600 font-medium">
-                      Rolling: {formatTime(stats.ballRollingTime)}
-                    </span>
-                    <span className="text-slate-500">
-                      Stopped: {formatTime(stats.ballNotRollingTime)}
-                    </span>
+            {/* Ball Rolling Progress - Only show if ball rolling is enabled */}
+            {session.includeBallRolling !== false && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-['Manrope']">Ball Rolling Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-orange-600 font-medium">
+                        Rolling: {formatTime(stats.ballRollingTime)}
+                      </span>
+                      <span className="text-slate-500">
+                        Stopped: {formatTime(stats.ballNotRollingTime)}
+                      </span>
+                    </div>
+                    <Progress value={stats.ballRollingPct} className="h-3" />
                   </div>
-                  <Progress value={stats.ballRollingPct} className="h-3" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Intervention Breakdown - renamed from Events */}
             <Card>
@@ -2547,32 +2553,34 @@ export default function ReviewSession() {
 
           {/* Session Analysis Tab - Combines Activity and Charts */}
           <TabsContent value="analysis" className="space-y-6">
-            {/* Ball Rolling % - Compact at top */}
-            <Card>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-sm font-medium text-slate-700">Ball Rolling %</div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-green-500 rounded-full" 
-                          style={{ width: `${stats.ballRollingTime && (stats.ballRollingTime + stats.ballNotRollingTime) > 0 ? Math.round((stats.ballRollingTime / (stats.ballRollingTime + stats.ballNotRollingTime)) * 100) : 0}%` }}
-                        />
+            {/* Ball Rolling % - Compact at top - Only show if enabled */}
+            {session.includeBallRolling !== false && (
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm font-medium text-slate-700">Ball Rolling %</div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-green-500 rounded-full" 
+                            style={{ width: `${stats.ballRollingTime && (stats.ballRollingTime + stats.ballNotRollingTime) > 0 ? Math.round((stats.ballRollingTime / (stats.ballRollingTime + stats.ballNotRollingTime)) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <span className="text-lg font-bold text-green-600">
+                          {stats.ballRollingTime && (stats.ballRollingTime + stats.ballNotRollingTime) > 0 
+                            ? Math.round((stats.ballRollingTime / (stats.ballRollingTime + stats.ballNotRollingTime)) * 100) 
+                            : 0}%
+                        </span>
                       </div>
-                      <span className="text-lg font-bold text-green-600">
-                        {stats.ballRollingTime && (stats.ballRollingTime + stats.ballNotRollingTime) > 0 
-                          ? Math.round((stats.ballRollingTime / (stats.ballRollingTime + stats.ballNotRollingTime)) * 100) 
-                          : 0}%
-                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {formatTime(stats.ballRollingTime || 0)} rolling / {formatTime(stats.ballNotRollingTime || 0)} stopped
                     </div>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {formatTime(stats.ballRollingTime || 0)} rolling / {formatTime(stats.ballNotRollingTime || 0)} stopped
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Session Activity Density */}
             <Card>

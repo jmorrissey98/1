@@ -117,6 +117,7 @@ function toFrontendFormat(backendTemplate) {
     name: backendTemplate.name,
     description: backendTemplate.description,
     observationContext: backendTemplate.observation_context,
+    includeBallRolling: backendTemplate.include_ball_rolling !== false, // Default true
     interventionTypes: (backendTemplate.intervention_types || []).map(it => ({
       id: it.id,
       name: it.name,
@@ -217,6 +218,9 @@ function toBackendFormat(frontendTemplate, isPartial = false) {
   }
   if (frontendTemplate.isDefault !== undefined) {
     data.is_default = frontendTemplate.isDefault;
+  }
+  if (frontendTemplate.includeBallRolling !== undefined) {
+    data.include_ball_rolling = frontendTemplate.includeBallRolling;
   }
   
   return data;
