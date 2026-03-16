@@ -357,7 +357,99 @@ async def migrate_system_defaults_to_admin(request: Request):
             "total_created": len(created_templates),
             "total_skipped": len(skipped_templates)
         },
-        "next_steps": "New organizations will now see these global templates. You can optionally delete the duplicates from organization collections."
+        "next_steps": "New organizations will now see these global templates. Use the cleanup endpoint to remove duplicates."
+    }
+
+
+@router.post("/cleanup-duplicates")
+async def cleanup_duplicate_org_templates(request: Request, dry_run: bool = True):
+    """
+    Clean up duplicate organization templates after migration.
+    
+    This endpoint removes templates from observation_templates and reflection_templates
+    that have been migrated to admin_templates (matching by name).
+    
+    Parameters:
+    - dry_run: If True (default), only shows what would be deleted without actually deleting.
+               Set to False to perform the actual deletion.
+    
+    Safety: Only deletes templates marked as is_default=True that have a matching
+    global admin template. Custom templates created by organizations are preserved.
+    """
+    user = await require_admin(request)
+    
+    cleanup_results = {
+        "observation_templates": {"would_delete": 0, "deleted": 0, "templates": []},
+        "reflection_templates": {"would_delete": 0, "deleted": 0, "templates": []}
+    }
+    
+    # Get all global admin template names by category
+    admin_templates = await db.admin_templates.find(
+        {"is_admin_template": True, "is_global": True},
+        {"name": 1, "category": 1, "_id": 0}
+    ).to_list(100)
+    
+    obs_admin_names = {t["name"] for t in admin_templates if t["category"] == "observation"}
+    ref_admin_names = {t["name"] for t in admin_templates if t["category"] in ["coach_reflection", "coach_developer_reflection"]}
+    
+    # Find observation templates to delete (is_default=True and name matches admin template)
+    obs_to_delete = await db.observation_templates.find(
+        {"is_default": True, "name": {"$in": list(obs_admin_names)}},
+        {"_id": 1, "template_id": 1, "name": 1, "organization_id": 1}
+    ).to_list(1000)
+    
+    cleanup_results["observation_templates"]["would_delete"] = len(obs_to_delete)
+    cleanup_results["observation_templates"]["templates"] = [
+        {"name": t["name"], "org_id": t.get("organization_id", "unknown")[:12] + "..."}
+        for t in obs_to_delete[:10]  # Show first 10
+    ]
+    if len(obs_to_delete) > 10:
+        cleanup_results["observation_templates"]["templates"].append(
+            {"note": f"... and {len(obs_to_delete) - 10} more"}
+        )
+    
+    # Find reflection templates to delete
+    ref_to_delete = await db.reflection_templates.find(
+        {"is_default": True, "name": {"$in": list(ref_admin_names)}},
+        {"_id": 1, "template_id": 1, "name": 1, "organization_id": 1}
+    ).to_list(1000)
+    
+    cleanup_results["reflection_templates"]["would_delete"] = len(ref_to_delete)
+    cleanup_results["reflection_templates"]["templates"] = [
+        {"name": t["name"], "org_id": t.get("organization_id", "unknown")[:12] + "..."}
+        for t in ref_to_delete[:10]
+    ]
+    if len(ref_to_delete) > 10:
+        cleanup_results["reflection_templates"]["templates"].append(
+            {"note": f"... and {len(ref_to_delete) - 10} more"}
+        )
+    
+    if not dry_run:
+        # Actually delete the templates
+        if obs_to_delete:
+            obs_ids = [t["_id"] for t in obs_to_delete]
+            result = await db.observation_templates.delete_many({"_id": {"$in": obs_ids}})
+            cleanup_results["observation_templates"]["deleted"] = result.deleted_count
+        
+        if ref_to_delete:
+            ref_ids = [t["_id"] for t in ref_to_delete]
+            result = await db.reflection_templates.delete_many({"_id": {"$in": ref_ids}})
+            cleanup_results["reflection_templates"]["deleted"] = result.deleted_count
+        
+        logger.info(f"Cleanup completed by {user.user_id}: deleted {cleanup_results['observation_templates']['deleted']} obs templates, {cleanup_results['reflection_templates']['deleted']} ref templates")
+    
+    total_would_delete = cleanup_results["observation_templates"]["would_delete"] + cleanup_results["reflection_templates"]["would_delete"]
+    total_deleted = cleanup_results["observation_templates"]["deleted"] + cleanup_results["reflection_templates"]["deleted"]
+    
+    return {
+        "success": True,
+        "dry_run": dry_run,
+        "summary": {
+            "total_would_delete": total_would_delete,
+            "total_deleted": total_deleted if not dry_run else 0
+        },
+        "details": cleanup_results,
+        "message": "Dry run complete. Set dry_run=false to actually delete." if dry_run else f"Cleanup complete. Deleted {total_deleted} duplicate templates."
     }
 
 

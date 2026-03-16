@@ -739,42 +739,93 @@ export default function AdminTemplateManager() {
                       ) : (
                         <div className="space-y-3">
                           <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium text-amber-800">
-                                  Found {systemDefaults.filter(t => t.category === key).length} organization templates (may include duplicates)
-                                </p>
-                                <p className="text-xs text-amber-600 mt-1">
-                                  Click "Migrate All" to deduplicate and create one global admin template for each unique name
-                                </p>
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-amber-800">
+                                    Found {systemDefaults.filter(t => t.category === key).length} organization templates (may include duplicates)
+                                  </p>
+                                  <p className="text-xs text-amber-600 mt-1">
+                                    Step 1: Migrate to create global admin templates. Step 2: Cleanup to remove duplicates.
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    onClick={async () => {
+                                      try {
+                                        const response = await fetch(`${API_URL}/api/admin/templates/migrate-system-defaults`, {
+                                          method: 'POST',
+                                          headers: getAuthHeaders()
+                                        });
+                                        
+                                        if (response.ok) {
+                                          const result = await response.json();
+                                          toast.success(`Migration complete: ${result.summary.total_created} templates created, ${result.summary.total_skipped} skipped`);
+                                          loadTemplates();
+                                          loadStats();
+                                          loadSystemDefaults();
+                                        } else {
+                                          const error = await response.json();
+                                          toast.error(error.detail || 'Migration failed');
+                                        }
+                                      } catch (err) {
+                                        toast.error('Migration failed');
+                                      }
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Migrate All
+                                  </Button>
+                                  <Button
+                                    onClick={async () => {
+                                      // First do a dry run
+                                      try {
+                                        const dryRunResponse = await fetch(`${API_URL}/api/admin/templates/cleanup-duplicates?dry_run=true`, {
+                                          method: 'POST',
+                                          headers: getAuthHeaders()
+                                        });
+                                        
+                                        if (dryRunResponse.ok) {
+                                          const dryRunResult = await dryRunResponse.json();
+                                          const totalToDelete = dryRunResult.summary.total_would_delete;
+                                          
+                                          if (totalToDelete === 0) {
+                                            toast.info('No duplicates to clean up');
+                                            return;
+                                          }
+                                          
+                                          // Confirm with user
+                                          if (window.confirm(`This will delete ${totalToDelete} duplicate templates from organization collections. The global admin templates will remain. Continue?`)) {
+                                            // Actually delete
+                                            const deleteResponse = await fetch(`${API_URL}/api/admin/templates/cleanup-duplicates?dry_run=false`, {
+                                              method: 'POST',
+                                              headers: getAuthHeaders()
+                                            });
+                                            
+                                            if (deleteResponse.ok) {
+                                              const deleteResult = await deleteResponse.json();
+                                              toast.success(`Cleanup complete: ${deleteResult.summary.total_deleted} duplicate templates removed`);
+                                              loadSystemDefaults();
+                                            } else {
+                                              toast.error('Cleanup failed');
+                                            }
+                                          }
+                                        } else {
+                                          toast.error('Failed to check duplicates');
+                                        }
+                                      } catch (err) {
+                                        toast.error('Cleanup failed');
+                                      }
+                                    }}
+                                    variant="outline"
+                                    className="border-red-200 text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Cleanup Duplicates
+                                  </Button>
+                                </div>
                               </div>
-                              <Button
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch(`${API_URL}/api/admin/templates/migrate-system-defaults`, {
-                                      method: 'POST',
-                                      headers: getAuthHeaders()
-                                    });
-                                    
-                                    if (response.ok) {
-                                      const result = await response.json();
-                                      toast.success(`Migration complete: ${result.summary.total_created} templates created, ${result.summary.total_skipped} skipped`);
-                                      loadTemplates();
-                                      loadStats();
-                                      loadSystemDefaults();
-                                    } else {
-                                      const error = await response.json();
-                                      toast.error(error.detail || 'Migration failed');
-                                    }
-                                  } catch (err) {
-                                    toast.error('Migration failed');
-                                  }
-                                }}
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                              >
-                                <Upload className="w-4 h-4 mr-2" />
-                                Migrate All
-                              </Button>
                             </div>
                           </div>
                           {systemDefaults.filter(t => t.category === key).map(template => (
