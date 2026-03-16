@@ -134,6 +134,90 @@ export async function unsetTemplateAsDefault(templateId) {
 }
 
 /**
+ * Set an admin template as the user's default
+ * @param {string} templateId 
+ */
+export async function setAdminTemplateAsDefault(templateId) {
+  const response = await safeFetch(`${API_URL}/api/user/templates/set-default/${templateId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(response.data?.detail || 'Failed to set admin template as default');
+  }
+  
+  return response.data;
+}
+
+/**
+ * Remove an admin template from being user's default
+ * @param {string} templateId 
+ */
+export async function unsetAdminTemplateAsDefault(templateId) {
+  const response = await safeFetch(`${API_URL}/api/user/templates/unset-default/${templateId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(response.data?.detail || 'Failed to unset admin template as default');
+  }
+  
+  return response.data;
+}
+
+/**
+ * Hide an admin template from user's view
+ * @param {string} templateId 
+ */
+export async function hideAdminTemplate(templateId) {
+  const response = await safeFetch(`${API_URL}/api/user/templates/hide/${templateId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(response.data?.detail || 'Failed to hide template');
+  }
+  
+  return response.data;
+}
+
+/**
+ * Show a previously hidden admin template
+ * @param {string} templateId 
+ */
+export async function showAdminTemplate(templateId) {
+  const response = await safeFetch(`${API_URL}/api/user/templates/show/${templateId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(response.data?.detail || 'Failed to show template');
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get list of hidden templates
+ */
+export async function getHiddenTemplates() {
+  const response = await safeFetch(`${API_URL}/api/user/templates/hidden`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(response.data?.detail || 'Failed to fetch hidden templates');
+  }
+  
+  return response.data;
+}
+
+/**
  * Generate a unique question ID
  */
 export function generateQuestionId() {

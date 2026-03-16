@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Copy, ChevronDown, ChevronUp, Loader2, Star, StarOff, Eye, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Copy, ChevronDown, ChevronUp, Loader2, Star, StarOff, Eye, EyeOff, Edit2, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { toast } from 'sonner';
 import {
   fetchReflectionTemplates,
@@ -14,6 +15,11 @@ import {
   deleteReflectionTemplate,
   setTemplateAsDefault,
   unsetTemplateAsDefault,
+  setAdminTemplateAsDefault,
+  unsetAdminTemplateAsDefault,
+  hideAdminTemplate,
+  showAdminTemplate,
+  getHiddenTemplates,
   createQuestion
 } from '../lib/reflectionTemplatesApi';
 import ReflectionTemplateBuilder from './ReflectionTemplateBuilder';
@@ -34,6 +40,10 @@ export default function ReflectionTemplatesSection() {
   const [expandedId, setExpandedId] = useState(null);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [showBuilder, setShowBuilder] = useState(false);
+  
+  // Hidden templates state
+  const [hiddenTemplates, setHiddenTemplates] = useState([]);
+  const [showHiddenDialog, setShowHiddenDialog] = useState(false);
 
   // Fetch subscription tier on mount
   useEffect(() => {
@@ -122,16 +132,59 @@ export default function ReflectionTemplatesSection() {
 
   const handleToggleDefault = async (template) => {
     try {
-      if (template.is_default) {
-        await unsetTemplateAsDefault(template.template_id);
-        toast.success('Default status removed');
+      if (template.is_admin_template) {
+        // For admin templates, use user preference endpoints
+        if (template.is_default) {
+          await unsetAdminTemplateAsDefault(template.template_id);
+          toast.success('Default status removed');
+        } else {
+          await setAdminTemplateAsDefault(template.template_id);
+          toast.success('Template set as your default');
+        }
       } else {
-        await setTemplateAsDefault(template.template_id);
-        toast.success('Template set as default');
+        // For regular templates
+        if (template.is_default) {
+          await unsetTemplateAsDefault(template.template_id);
+          toast.success('Default status removed');
+        } else {
+          await setTemplateAsDefault(template.template_id);
+          toast.success('Template set as default');
+        }
       }
       loadTemplates();
     } catch (err) {
       toast.error(err.message || 'Failed to update default status');
+    }
+  };
+
+  const handleHideTemplate = async (template) => {
+    try {
+      await hideAdminTemplate(template.template_id);
+      setTemplates(prev => prev.filter(t => t.template_id !== template.template_id));
+      toast.success(`"${template.name}" has been hidden`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to hide template');
+    }
+  };
+
+  const handleShowTemplate = async (templateId) => {
+    try {
+      await showAdminTemplate(templateId);
+      await loadTemplates();
+      setHiddenTemplates(prev => prev.filter(t => t.template_id !== templateId));
+      toast.success('Template restored');
+    } catch (err) {
+      toast.error(err.message || 'Failed to restore template');
+    }
+  };
+
+  const handleOpenHiddenDialog = async () => {
+    try {
+      const result = await getHiddenTemplates();
+      setHiddenTemplates(result.hidden_templates || []);
+      setShowHiddenDialog(true);
+    } catch (err) {
+      toast.error('Failed to load hidden templates');
     }
   };
 
@@ -219,8 +272,18 @@ export default function ReflectionTemplatesSection() {
         </>
       )}
 
-      {/* Create Button */}
-      <div className="flex justify-end">
+      {/* Create Button and View Hidden */}
+      <div className="flex justify-between items-center">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleOpenHiddenDialog}
+          className="text-slate-500"
+          data-testid="view-hidden-reflection-btn"
+        >
+          <EyeOff className="w-4 h-4 mr-2" />
+          View Hidden
+        </Button>
         <Button onClick={handleCreateNew} data-testid="create-reflection-template-btn">
           <Plus className="w-4 h-4 mr-2" />
           New Template
@@ -254,7 +317,7 @@ export default function ReflectionTemplatesSection() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-lg">{template.name}</CardTitle>
                         {template.is_default && (
                           <Badge className="bg-amber-100 text-amber-700 border-amber-200">
@@ -262,6 +325,17 @@ export default function ReflectionTemplatesSection() {
                             Default
                           </Badge>
                         )}
+                        {template.is_global && (
+                          <Badge className="bg-purple-100 text-purple-700">Global</Badge>
+                        )}
+                        {template.is_admin_template && !template.is_global && (
+                          <Badge className="bg-blue-100 text-blue-700">Admin</Badge>
+                        )}
+                        {(template.qualification_tags || []).map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs bg-slate-50">
+                            {tag}
+                          </Badge>
+                        ))}
                       </div>
                       <CardDescription className="mt-1">
                         {template.questions?.length || 0} questions
@@ -274,6 +348,7 @@ export default function ReflectionTemplatesSection() {
                         variant="ghost"
                         onClick={() => handleToggleDefault(template)}
                         title={template.is_default ? 'Remove default' : 'Set as default'}
+                        className={template.is_admin_template ? 'text-purple-600 hover:text-purple-700' : ''}
                         data-testid={`toggle-default-${template.template_id}`}
                       >
                         {template.is_default ? (
@@ -291,40 +366,56 @@ export default function ReflectionTemplatesSection() {
                           )}
                         </Button>
                       </CollapsibleTrigger>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleEdit(template)}
-                        data-testid={`edit-reflection-${template.template_id}`}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+                      {!template.is_admin_template && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEdit(template)}
+                          data-testid={`edit-reflection-${template.template_id}`}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => handleDuplicate(template)}
+                        title={template.is_admin_template ? 'Make a copy to customize' : 'Duplicate template'}
                         data-testid={`duplicate-reflection-${template.template_id}`}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete &quot;{template.name}&quot;. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
+                      {template.is_admin_template && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleHideTemplate(template)}
+                          title="Hide this template"
+                          className="text-slate-400 hover:text-slate-600"
+                          data-testid={`hide-reflection-${template.template_id}`}
+                        >
+                          <EyeOff className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {!template.is_admin_template && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete &quot;{template.name}&quot;. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(template.template_id)}
@@ -336,6 +427,7 @@ export default function ReflectionTemplatesSection() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -398,6 +490,51 @@ export default function ReflectionTemplatesSection() {
           ))}
         </div>
       )}
+
+      {/* Hidden Templates Dialog */}
+      <Dialog open={showHiddenDialog} onOpenChange={setShowHiddenDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hidden Templates</DialogTitle>
+            <DialogDescription>
+              Global templates you&apos;ve hidden. Click restore to make them visible again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {hiddenTemplates.length === 0 ? (
+              <p className="text-center text-slate-500 py-4">No hidden templates</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {hiddenTemplates.filter(t => t.category === 'coach_reflection' || t.category === 'coach_developer_reflection').map((template) => (
+                  <div 
+                    key={template.template_id} 
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{template.name}</p>
+                      <p className="text-xs text-slate-500 capitalize">{template.category?.replace('_', ' ')}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleShowTemplate(template.template_id)}
+                      data-testid={`restore-reflection-${template.template_id}`}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowHiddenDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
