@@ -5288,19 +5288,36 @@ async def delete_reflection_template(template_id: str, request: Request):
         if org:
             org_id = org.get("org_id")
     
-    # CRITICAL: Find template that belongs to user's organization
-    query = {"template_id": template_id}
-    if org_id:
-        query["organization_id"] = org_id
-    else:
-        query["created_by"] = user.user_id
-    
-    template = await db.reflection_templates.find_one(query, {"_id": 0})
+    # First, check if template exists at all
+    template = await db.reflection_templates.find_one({"template_id": template_id}, {"_id": 0})
     
     if not template:
+        # Also check admin_templates collection
+        admin_tpl = await db.admin_templates.find_one({"template_id": template_id}, {"_id": 0})
+        if admin_tpl:
+            raise HTTPException(status_code=403, detail="Cannot delete admin templates from here. Use Admin Template Manager.")
         raise HTTPException(status_code=404, detail="Template not found")
     
+    # Check authorization: user must own the template or belong to the same org
+    template_org = template.get("organization_id")
+    template_creator = template.get("created_by")
+    
+    # Allow delete if:
+    # 1. User created the template
+    # 2. User belongs to the same organization
+    # 3. User is admin (superuser)
+    is_authorized = (
+        template_creator == user.user_id or
+        (org_id and template_org == org_id) or
+        user.role == "admin"
+    )
+    
+    if not is_authorized:
+        logger.warning(f"Delete template denied: user {user.user_id} (org: {org_id}) tried to delete template {template_id} (org: {template_org}, creator: {template_creator})")
+        raise HTTPException(status_code=403, detail="You don't have permission to delete this template")
+    
     await db.reflection_templates.delete_one({"template_id": template_id})
+    logger.info(f"Reflection template {template_id} deleted by {user.user_id}")
     
     return {"status": "deleted", "template_id": template_id}
 
@@ -5675,17 +5692,33 @@ async def delete_observation_template(template_id: str, request: Request):
         if org:
             org_id = org.get("org_id")
     
-    # CRITICAL: Find template that belongs to user's organization
-    query = {"template_id": template_id}
-    if org_id:
-        query["organization_id"] = org_id
-    else:
-        query["created_by"] = user.user_id
-    
-    template = await db.observation_templates.find_one(query, {"_id": 0})
+    # First, check if template exists at all
+    template = await db.observation_templates.find_one({"template_id": template_id}, {"_id": 0})
     
     if not template:
+        # Also check admin_templates collection
+        admin_tpl = await db.admin_templates.find_one({"template_id": template_id}, {"_id": 0})
+        if admin_tpl:
+            raise HTTPException(status_code=403, detail="Cannot delete admin templates from here. Use Admin Template Manager.")
         raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Check authorization: user must own the template or belong to the same org
+    template_org = template.get("organization_id")
+    template_creator = template.get("created_by")
+    
+    # Allow delete if:
+    # 1. User created the template
+    # 2. User belongs to the same organization
+    # 3. User is admin (superuser)
+    is_authorized = (
+        template_creator == user.user_id or
+        (org_id and template_org == org_id) or
+        user.role == "admin"
+    )
+    
+    if not is_authorized:
+        logger.warning(f"Delete template denied: user {user.user_id} (org: {org_id}) tried to delete template {template_id} (org: {template_org}, creator: {template_creator})")
+        raise HTTPException(status_code=403, detail="You don't have permission to delete this template")
     
     # Don't allow deleting if it's the only default template for that context
     if template.get("is_default"):
