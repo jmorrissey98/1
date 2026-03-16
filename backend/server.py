@@ -1049,6 +1049,20 @@ try:
 except Exception as e:
     logger.warning(f"Could not load trial routes: {e}")
 
+try:
+    from routes.admin_templates import router as admin_templates_router
+    api_router.include_router(admin_templates_router)
+    logger.info("Admin templates routes loaded from routes/admin_templates.py")
+except Exception as e:
+    logger.warning(f"Could not load admin templates routes: {e}")
+
+try:
+    from routes.template_overrides import router as template_overrides_router
+    api_router.include_router(template_overrides_router)
+    logger.info("Template overrides routes loaded from routes/template_overrides.py")
+except Exception as e:
+    logger.warning(f"Could not load template overrides routes: {e}")
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():

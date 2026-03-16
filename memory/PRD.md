@@ -3,6 +3,112 @@
 ## Overview
 "My Coach Developer" is a lightweight, iPad-first, offline-capable PWA for coach observations, featuring email/password authentication and distinct roles for "Coach Developer" (admin) and "Coach".
 
+## Recent Updates (March 16, 2026)
+
+### New Feature - Admin Template Management (IMPLEMENTED - March 16, 2026)
+
+**Admin Template Management System**
+- Admins can now create, manage, and distribute templates across the platform
+- Three template categories supported:
+  1. Coach Observations - Templates for observing coaching sessions
+  2. Coach Reflections - Templates for coaches to reflect on their sessions  
+  3. Coach Developer Reflections - Templates for coach developers to reflect on observations
+
+**Key Features:**
+- **Custom Qualification Tags**: Admin can create custom tags (e.g., UEFA B, CAIS) - no pre-populated tags
+- **Global Templates**: Set templates as global defaults that appear for all users automatically
+- **Targeted Assignment**: Assign templates to specific users or organizations
+- **User Override System**: Users can edit/delete personal copies without affecting the original
+- **Revert Capability**: Users can revert their changes back to the original admin version
+
+**Database Schema:**
+- New collection: `admin_templates` - Stores admin-created templates
+- New collection: `user_template_overrides` - Stores user personal copies
+
+**Backend Endpoints:**
+- `GET/POST /api/admin/templates` - List/create admin templates
+- `PUT/DELETE /api/admin/templates/{id}` - Update/delete templates
+- `POST /api/admin/templates/{id}/set-global` - Mark as global
+- `POST /api/admin/templates/{id}/assign` - Assign to users/orgs
+- `GET /api/admin/templates/tags` - List all qualification tags
+- `GET /api/admin/templates/stats/summary` - Template statistics
+- User override endpoints for personal copies and revert functionality
+
+**Frontend:**
+- New page: `/admin/templates` - Admin Template Manager
+- Tabbed interface for three categories
+- Create/Edit dialogs with tag management
+- Global toggle and assignment functionality
+- Statistics cards showing template counts
+
+**Important Notes:**
+- Existing user templates remain completely unchanged
+- Admin templates appear automatically when set as global
+- User-facing template page functionality preserved
+
+---
+
+## Recent Updates (March 15, 2026)
+
+### New Feature - Free Trial Flow (IMPLEMENTED - March 15, 2026)
+
+**1-Month Free Trial System**
+- Users can start a 1-month free trial on any monthly plan without credit card
+- Trial is calendar month based (e.g., March 12 → April 12)
+- Trial only available for monthly billing (annual goes direct to Stripe)
+
+**Trial Flow:**
+- Landing page shows "Start Free Trial" CTA
+- Plan selection modal with monthly/annual toggle
+- For monthly: Two options - "Start 1 Month Free Trial" OR "Subscribe Now"
+- For annual: Direct to Stripe checkout (no trial option)
+
+**Trial Features:**
+- Full tier access during trial period
+- Permanent banner showing days remaining
+- Color changes based on urgency (blue → amber → red)
+- "Subscribe Now" button in banner
+
+**Trial Expiry:**
+- User blocked behind TrialExpiredModal
+- All data preserved - nothing deleted
+- Can subscribe anytime to regain access
+
+**Email Notifications:**
+- Trial started confirmation
+- 7-day expiry warning
+- Trial expired notification with subscribe link
+
+**Backend Endpoints:**
+- `POST /api/trial/start` - Start free trial
+- `GET /api/trial/status` - Check trial status
+- `GET /api/billing/entitlement` - Updated to include trial info
+
+---
+
+### Landing Page Updates (March 15, 2026)
+
+**Video Section:**
+- Added below hero section
+- 16:9 aspect ratio placeholder
+- "Product demo video coming soon" label
+- Play button overlay
+
+**Audience Section:**
+- Full-width expandable panels
+- "For Coaches" panel (blue theme)
+- "For Coach Developers" panel (purple theme)
+- Accordion behavior - one panel open at a time
+- Benefits displayed in 3 cards per panel
+
+**Navigation Updates:**
+- Added "Coaches" and "Coach Developers" nav links
+- Click scrolls to section and expands relevant panel
+- Removed "Features" section (info now in audience panels)
+- Changed "Simple, Transparent Pricing" to "Get Started"
+
+---
+
 ## Recent Updates (March 12, 2026)
 
 ### Bug Fixes (March 12, 2026 - Latest Session)

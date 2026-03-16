@@ -49,6 +49,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminCreateClub from "./pages/AdminCreateClub";
 import AdminCreateUser from "./pages/AdminCreateUser";
 import AdminClubDetails from "./pages/AdminClubDetails";
+import AdminTemplateManager from "./pages/AdminTemplateManager";
 // Admin Tools
 import DataRecovery from "./pages/DataRecovery";
 // Legal Pages
@@ -249,6 +250,11 @@ function AppRouter() {
       <Route path="/admin/users/new" element={
         <ProtectedRoute requireAdmin>
           <AdminCreateUser />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/templates" element={
+        <ProtectedRoute requireAdmin>
+          <AdminTemplateManager />
         </ProtectedRoute>
       } />
     </Routes>
