@@ -5,6 +5,36 @@
 
 ## Recent Updates (March 16, 2026)
 
+### Unified Global & Bootstrap Templates (IMPLEMENTED - March 16, 2026)
+
+**Admin templates now have unified global/bootstrap behavior:**
+- When a template is marked as "Global", it is automatically visible to ALL current users AND gets copied to new organizations on signup
+- No separate "Bootstrap Default" concept - Global = affects current and future users
+- Simplified UI with single "Global" toggle
+
+**How it works:**
+1. Admin creates a template in Admin Template Manager
+2. Admin toggles the "Global" switch ON
+3. Template immediately appears for all existing users as read-only
+4. When new organizations sign up, they get a copy of all global templates
+
+**Backend Changes:**
+- `POST /api/admin/templates/{id}/set-global` now sets both `is_global: true` AND `is_bootstrap_default: true`
+- `POST /api/admin/templates/{id}/unset-global` sets both to `false`
+- `bootstrap_default_templates()` in utils.py copies from `admin_templates` collection with `is_bootstrap_default: true`
+- Falls back to hardcoded defaults if no admin bootstrap templates exist
+
+**Frontend Changes:**
+- Removed separate "Bootstrap Default" badge and toggle
+- Stats card shows "Global Templates - Available to all users & new orgs"
+- Simplified dropdown menu (removed bootstrap default option)
+
+**Migration:**
+- Script at `/app/backend/scripts/migrate_system_defaults_to_admin.py` creates initial admin templates
+- All existing global templates automatically synced to be bootstrap defaults
+
+---
+
 ### New Features Implemented - March 16, 2026
 
 #### 1. Ball Rolling Toggle Feature (IMPLEMENTED)

@@ -343,40 +343,50 @@ async def delete_admin_template(template_id: str, request: Request):
 async def set_template_global(template_id: str, request: Request):
     """
     Mark a template as global (appears for all users).
+    Also automatically sets is_bootstrap_default=True so new organizations get this template.
     """
     user = await require_admin(request)
     
     result = await db.admin_templates.update_one(
         {"template_id": template_id, "is_admin_template": True},
-        {"$set": {"is_global": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {
+            "is_global": True, 
+            "is_bootstrap_default": True,  # Global templates are always bootstrap defaults
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
     )
     
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Admin template not found")
     
-    logger.info(f"Admin template set as global: {template_id} by {user.user_id}")
+    logger.info(f"Admin template set as global (and bootstrap default): {template_id} by {user.user_id}")
     
-    return {"success": True, "template_id": template_id, "is_global": True}
+    return {"success": True, "template_id": template_id, "is_global": True, "is_bootstrap_default": True}
 
 
 @router.post("/{template_id}/unset-global")
 async def unset_template_global(template_id: str, request: Request):
     """
     Remove global status from a template.
+    Also removes bootstrap default status.
     """
     user = await require_admin(request)
     
     result = await db.admin_templates.update_one(
         {"template_id": template_id, "is_admin_template": True},
-        {"$set": {"is_global": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {
+            "is_global": False, 
+            "is_bootstrap_default": False,  # Non-global templates are not bootstrap defaults
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
     )
     
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Admin template not found")
     
-    logger.info(f"Admin template removed from global: {template_id} by {user.user_id}")
+    logger.info(f"Admin template removed from global (and bootstrap default): {template_id} by {user.user_id}")
     
-    return {"success": True, "template_id": template_id, "is_global": False}
+    return {"success": True, "template_id": template_id, "is_global": False, "is_bootstrap_default": False}
 
 
 @router.post("/{template_id}/assign")

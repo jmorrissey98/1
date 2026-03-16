@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Globe, Users, Building2, 
   Tag, Check, X, Loader2, ChevronDown, ChevronUp, Search,
-  Eye, FileText, ClipboardList, Copy, MoreVertical, Sparkles
+  Eye, FileText, ClipboardList, Copy, MoreVertical
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -299,7 +299,12 @@ export default function AdminTemplateManager() {
       );
 
       if (response.ok) {
-        toast.success(template.is_global ? 'Template removed from global' : 'Template set as global');
+        const newGlobalState = !template.is_global;
+        toast.success(
+          newGlobalState 
+            ? 'Template is now global and will be given to new organizations' 
+            : 'Template removed from global'
+        );
         loadTemplates();
         loadStats();
       } else {
@@ -341,36 +346,6 @@ export default function AdminTemplateManager() {
       toast.error('Failed to assign template');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleToggleBootstrapDefault = async (template) => {
-    try {
-      const newValue = !template.is_bootstrap_default;
-      const response = await fetch(
-        `${API_URL}/api/admin/templates/${template.template_id}`,
-        {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            is_bootstrap_default: newValue
-          })
-        }
-      );
-
-      if (response.ok) {
-        toast.success(
-          newValue 
-            ? 'Template will be copied to new organizations on signup' 
-            : 'Template removed from bootstrap defaults'
-        );
-        loadTemplates();
-        loadStats();
-      } else {
-        toast.error('Failed to update template');
-      }
-    } catch (err) {
-      toast.error('Failed to update template');
     }
   };
 
@@ -506,7 +481,7 @@ export default function AdminTemplateManager() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="p-4">
                 <div className="text-2xl font-bold text-slate-900">{stats.total_templates}</div>
@@ -517,12 +492,7 @@ export default function AdminTemplateManager() {
               <CardContent className="p-4">
                 <div className="text-2xl font-bold text-green-600">{stats.total_global}</div>
                 <div className="text-sm text-slate-500">Global Templates</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-amber-600">{stats.total_bootstrap_defaults || 0}</div>
-                <div className="text-sm text-slate-500">Bootstrap Defaults</div>
+                <div className="text-xs text-slate-400 mt-1">Available to all users & new orgs</div>
               </CardContent>
             </Card>
             <Card>
@@ -608,12 +578,6 @@ export default function AdminTemplateManager() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="font-medium text-slate-900">{template.name}</h3>
-                              {template.is_bootstrap_default && (
-                                <Badge className="bg-amber-100 text-amber-700 text-xs">
-                                  <Sparkles className="w-3 h-3 mr-1" />
-                                  Bootstrap Default
-                                </Badge>
-                              )}
                               {template.is_global && (
                                 <Badge className="bg-green-100 text-green-700 text-xs">
                                   <Globe className="w-3 h-3 mr-1" />
@@ -676,14 +640,6 @@ export default function AdminTemplateManager() {
                                 <DropdownMenuItem onClick={() => openAssignDialog(template)}>
                                   <Users className="w-4 h-4 mr-2" />
                                   Assign
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => handleToggleBootstrapDefault(template)}
-                                  className={template.is_bootstrap_default ? "text-amber-600" : ""}
-                                >
-                                  <Sparkles className="w-4 h-4 mr-2" />
-                                  {template.is_bootstrap_default ? 'Remove Bootstrap Default' : 'Set as Bootstrap Default'}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
