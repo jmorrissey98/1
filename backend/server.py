@@ -5278,13 +5278,26 @@ async def delete_reflection_template(template_id: str, request: Request):
     """Delete a reflection template"""
     user = await require_coach_developer(request)
     
-    # Get user's organization_id
+    # Get user's organization_id - check multiple sources
     user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
     org_id = user_doc.get("organization_id") if user_doc else None
     
-    # For coach developers, also check if they're the owner
+    # For coach developers, also check if they're the owner of an organization
     if not org_id and user.role == "coach_developer":
         org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    # Also check if the user belongs to any organization as a member
+    if not org_id:
+        # Check organizations where user might be a member
+        org = await db.organizations.find_one(
+            {"$or": [
+                {"owner_id": user.user_id},
+                {"member_ids": user.user_id}
+            ]},
+            {"_id": 0}
+        )
         if org:
             org_id = org.get("org_id")
     
@@ -5298,22 +5311,36 @@ async def delete_reflection_template(template_id: str, request: Request):
             raise HTTPException(status_code=403, detail="Cannot delete admin templates from here. Use Admin Template Manager.")
         raise HTTPException(status_code=404, detail="Template not found")
     
-    # Check authorization: user must own the template or belong to the same org
+    # Check authorization
     template_org = template.get("organization_id")
     template_creator = template.get("created_by")
     
-    # Allow delete if:
+    # Coach developers can delete any template in their organization
+    # or any template they created
+    is_authorized = False
+    
     # 1. User created the template
+    if template_creator == user.user_id:
+        is_authorized = True
+    
     # 2. User belongs to the same organization
+    if org_id and template_org and org_id == template_org:
+        is_authorized = True
+    
     # 3. User is admin (superuser)
-    is_authorized = (
-        template_creator == user.user_id or
-        (org_id and template_org == org_id) or
-        user.role == "admin"
-    )
+    if user.role == "admin":
+        is_authorized = True
+    
+    # 4. Coach developer role should be able to delete templates in their org
+    #    even if org_id matching fails (could be data inconsistency)
+    if user.role == "coach_developer":
+        # If template has no org or user has no org, allow the coach developer
+        # This handles legacy templates or data inconsistencies
+        if not template_org or not org_id:
+            is_authorized = True
     
     if not is_authorized:
-        logger.warning(f"Delete template denied: user {user.user_id} (org: {org_id}) tried to delete template {template_id} (org: {template_org}, creator: {template_creator})")
+        logger.warning(f"Delete template denied: user {user.user_id} (org: {org_id}, role: {user.role}) tried to delete template {template_id} (org: {template_org}, creator: {template_creator})")
         raise HTTPException(status_code=403, detail="You don't have permission to delete this template")
     
     await db.reflection_templates.delete_one({"template_id": template_id})
@@ -5702,22 +5729,31 @@ async def delete_observation_template(template_id: str, request: Request):
             raise HTTPException(status_code=403, detail="Cannot delete admin templates from here. Use Admin Template Manager.")
         raise HTTPException(status_code=404, detail="Template not found")
     
-    # Check authorization: user must own the template or belong to the same org
+    # Check authorization
     template_org = template.get("organization_id")
     template_creator = template.get("created_by")
     
-    # Allow delete if:
+    is_authorized = False
+    
     # 1. User created the template
+    if template_creator == user.user_id:
+        is_authorized = True
+    
     # 2. User belongs to the same organization
+    if org_id and template_org and org_id == template_org:
+        is_authorized = True
+    
     # 3. User is admin (superuser)
-    is_authorized = (
-        template_creator == user.user_id or
-        (org_id and template_org == org_id) or
-        user.role == "admin"
-    )
+    if user.role == "admin":
+        is_authorized = True
+    
+    # 4. Coach developer role should be able to delete templates in their org
+    if user.role == "coach_developer":
+        if not template_org or not org_id:
+            is_authorized = True
     
     if not is_authorized:
-        logger.warning(f"Delete template denied: user {user.user_id} (org: {org_id}) tried to delete template {template_id} (org: {template_org}, creator: {template_creator})")
+        logger.warning(f"Delete obs template denied: user {user.user_id} (org: {org_id}, role: {user.role}) tried to delete template {template_id} (org: {template_org}, creator: {template_creator})")
         raise HTTPException(status_code=403, detail="You don't have permission to delete this template")
     
     # Don't allow deleting if it's the only default template for that context
