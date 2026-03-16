@@ -68,7 +68,7 @@ INFO:     Finished server process [535]
 2026-03-12 16:55:46,517 - server - INFO - Observations routes loaded from routes/observations.py
 2026-03-12 16:55:46,520 - server - INFO - Organization routes loaded from routes/organization.py
 2026-03-12 16:55:46,532 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
-2026-03-12 16:55:46,554 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+2026-03-12 16:55:46,554 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://admin-templates-3.preview.emergentagent.com', 'https://admin-templates-3.preview.emergentagent.com']
 INFO:     Started server process [558]
 INFO:     Waiting for application startup.
 2026-03-12 16:55:46,578 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
@@ -85,7 +85,7 @@ INFO:     Finished server process [558]
 2026-03-12 16:55:53,140 - server - INFO - Observations routes loaded from routes/observations.py
 2026-03-12 16:55:53,142 - server - INFO - Organization routes loaded from routes/organization.py
 2026-03-12 16:55:53,155 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
-2026-03-12 16:55:53,177 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+2026-03-12 16:55:53,177 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://admin-templates-3.preview.emergentagent.com', 'https://admin-templates-3.preview.emergentagent.com']
 INFO:     Started server process [581]
 INFO:     Waiting for application startup.
 2026-03-12 16:55:53,201 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
@@ -118,7 +118,7 @@ INFO:     Finished server process [581]
 2026-03-12 17:18:08,989 - server - INFO - Observations routes loaded from routes/observations.py
 2026-03-12 17:18:08,991 - server - INFO - Organization routes loaded from routes/organization.py
 2026-03-12 17:18:09,004 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
-2026-03-12 17:18:09,026 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+2026-03-12 17:18:09,026 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://admin-templates-3.preview.emergentagent.com', 'https://admin-templates-3.preview.emergentagent.com']
 INFO:     Started server process [965]
 INFO:     Waiting for application startup.
 2026-03-12 17:18:09,050 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)
@@ -135,7 +135,7 @@ INFO:     Finished server process [965]
 2026-03-12 17:18:25,100 - server - INFO - Observations routes loaded from routes/observations.py
 2026-03-12 17:18:25,103 - server - INFO - Organization routes loaded from routes/organization.py
 2026-03-12 17:18:25,116 - server - INFO - Subscriptions routes loaded from routes/subscriptions.py
-2026-03-12 17:18:25,137 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://upload-repair-11.preview.emergentagent.com', 'https://f17dca53-88bc-48aa-a19f-ad8b01913972.preview.emergentagent.com']
+2026-03-12 17:18:25,137 - server - INFO - CORS allowed origins: ['https://mycoachdeveloper.com', 'https://www.mycoachdeveloper.com', 'https://coachwatch.emergent.host', 'http://localhost:3000', 'http://localhost:8001', 'https://admin-templates-3.preview.emergentagent.com', 'https://admin-templates-3.preview.emergentagent.com']
 INFO:     Started server process [1003]
 INFO:     Waiting for application startup.
 2026-03-12 17:18:25,161 - server - INFO - Admin user already configured: hello@mycoachdeveloper.com (role=admin)

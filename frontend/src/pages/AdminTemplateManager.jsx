@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { AdminObservationTemplateEditor, AdminReflectionTemplateEditor } from '../components/AdminTemplateEditors';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -50,22 +51,19 @@ export default function AdminTemplateManager() {
   const [stats, setStats] = useState(null);
   const [availableTags, setAvailableTags] = useState([]);
   
+  // View state - 'list' | 'editor'
+  const [view, setView] = useState('list');
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  
   // Dialog states
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [saving, setSaving] = useState(false);
   
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    qualification_tags: [],
-    is_global: false,
-    template_data: {}
-  });
+  // Tag state
+  const [tagFormData, setTagFormData] = useState({ qualification_tags: [], is_global: false });
   const [newTag, setNewTag] = useState('');
   
   // Assignment state
@@ -180,71 +178,83 @@ export default function AdminTemplateManager() {
     }
   };
 
-  const handleCreate = async () => {
-    if (!formData.name.trim()) {
-      toast.error('Template name is required');
-      return;
-    }
+  const handleCreateNew = () => {
+    setEditingTemplate(null);
+    setView('editor');
+  };
 
+  const handleEdit = (template) => {
+    setEditingTemplate(template);
+    setView('editor');
+  };
+
+  const handleSaveTemplate = async (templateData) => {
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/templates`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          category: activeCategory,
-          ...formData
-        })
-      });
+      if (editingTemplate?.template_id) {
+        // Update existing template
+        const response = await fetch(
+          `${API_URL}/api/admin/templates/${editingTemplate.template_id}`,
+          {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              name: templateData.name,
+              description: templateData.description,
+              template_data: templateData.template_data,
+              qualification_tags: editingTemplate.qualification_tags || [],
+              is_global: editingTemplate.is_global || false
+            })
+          }
+        );
 
-      if (response.ok) {
-        toast.success('Template created successfully');
-        setShowCreateDialog(false);
-        resetForm();
-        loadTemplates();
-        loadStats();
-        loadTags();
+        if (response.ok) {
+          toast.success('Template updated successfully');
+          setView('list');
+          setEditingTemplate(null);
+          loadTemplates();
+          loadTags();
+        } else {
+          const error = await response.json();
+          toast.error(error.detail || 'Failed to update template');
+        }
       } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to create template');
+        // Create new template
+        const response = await fetch(`${API_URL}/api/admin/templates`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            category: activeCategory,
+            name: templateData.name,
+            description: templateData.description,
+            template_data: templateData.template_data,
+            qualification_tags: [],
+            is_global: false
+          })
+        });
+
+        if (response.ok) {
+          toast.success('Template created successfully');
+          setView('list');
+          setEditingTemplate(null);
+          loadTemplates();
+          loadStats();
+          loadTags();
+        } else {
+          const error = await response.json();
+          toast.error(error.detail || 'Failed to create template');
+        }
       }
     } catch (err) {
-      toast.error('Failed to create template');
+      toast.error('Failed to save template');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUpdate = async () => {
-    if (!selectedTemplate) return;
-
-    setSaving(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/api/admin/templates/${selectedTemplate.template_id}`,
-        {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(formData)
-        }
-      );
-
-      if (response.ok) {
-        toast.success('Template updated successfully');
-        setShowEditDialog(false);
-        setSelectedTemplate(null);
-        resetForm();
-        loadTemplates();
-        loadTags();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to update template');
-      }
-    } catch (err) {
-      toast.error('Failed to update template');
-    } finally {
-      setSaving(false);
-    }
+  const handleCancelEdit = () => {
+    setView('list');
+    setEditingTemplate(null);
   };
 
   const handleDelete = async () => {
@@ -334,27 +344,13 @@ export default function AdminTemplateManager() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      qualification_tags: [],
-      is_global: false,
-      template_data: {}
-    });
-    setNewTag('');
-  };
-
-  const openEditDialog = (template) => {
+  const openTagDialog = (template) => {
     setSelectedTemplate(template);
-    setFormData({
-      name: template.name || '',
-      description: template.description || '',
+    setTagFormData({
       qualification_tags: template.qualification_tags || [],
-      is_global: template.is_global || false,
-      template_data: template.template_data || {}
+      is_global: template.is_global || false
     });
-    setShowEditDialog(true);
+    setShowTagDialog(true);
   };
 
   const openAssignDialog = (template) => {
@@ -368,24 +364,91 @@ export default function AdminTemplateManager() {
 
   const addTag = () => {
     const tag = newTag.trim().toUpperCase();
-    if (tag && !formData.qualification_tags.includes(tag)) {
-      setFormData({
-        ...formData,
-        qualification_tags: [...formData.qualification_tags, tag]
+    if (tag && !tagFormData.qualification_tags.includes(tag)) {
+      setTagFormData({
+        ...tagFormData,
+        qualification_tags: [...tagFormData.qualification_tags, tag]
       });
       setNewTag('');
     }
   };
 
   const removeTag = (tagToRemove) => {
-    setFormData({
-      ...formData,
-      qualification_tags: formData.qualification_tags.filter(t => t !== tagToRemove)
+    setTagFormData({
+      ...tagFormData,
+      qualification_tags: tagFormData.qualification_tags.filter(t => t !== tagToRemove)
     });
+  };
+
+  const handleSaveTags = async () => {
+    if (!selectedTemplate) return;
+
+    setSaving(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/admin/templates/${selectedTemplate.template_id}`,
+        {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            qualification_tags: tagFormData.qualification_tags,
+            is_global: tagFormData.is_global
+          })
+        }
+      );
+
+      if (response.ok) {
+        toast.success('Tags updated successfully');
+        setShowTagDialog(false);
+        setSelectedTemplate(null);
+        loadTemplates();
+        loadTags();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to update tags');
+      }
+    } catch (err) {
+      toast.error('Failed to update tags');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const CategoryIcon = CATEGORIES[activeCategory]?.icon || Eye;
 
+  // Show editor view
+  if (view === 'editor') {
+    if (activeCategory === 'observation') {
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <AdminObservationTemplateEditor
+              template={editingTemplate}
+              onSave={handleSaveTemplate}
+              onCancel={handleCancelEdit}
+              saving={saving}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <AdminReflectionTemplateEditor
+              template={editingTemplate}
+              targetRole={activeCategory}
+              onSave={handleSaveTemplate}
+              onCancel={handleCancelEdit}
+              saving={saving}
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // List view
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -402,7 +465,7 @@ export default function AdminTemplateManager() {
                 <p className="text-sm text-slate-500">Manage global and assigned templates</p>
               </div>
             </div>
-            <Button onClick={() => { resetForm(); setShowCreateDialog(true); }}>
+            <Button onClick={handleCreateNew}>
               <Plus className="w-4 h-4 mr-2" />
               New Template
             </Button>
@@ -493,7 +556,7 @@ export default function AdminTemplateManager() {
                       <Button 
                         variant="outline" 
                         className="mt-4"
-                        onClick={() => { resetForm(); setShowCreateDialog(true); }}
+                        onClick={handleCreateNew}
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Create First Template
@@ -560,9 +623,13 @@ export default function AdminTemplateManager() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(template)}>
+                                <DropdownMenuItem onClick={() => handleEdit(template)}>
                                   <Edit2 className="w-4 h-4 mr-2" />
-                                  Edit
+                                  Edit Template
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openTagDialog(template)}>
+                                  <Tag className="w-4 h-4 mr-2" />
+                                  Tags & Global
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openAssignDialog(template)}>
                                   <Users className="w-4 h-4 mr-2" />
@@ -590,36 +657,17 @@ export default function AdminTemplateManager() {
         </Tabs>
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      {/* Tags & Global Dialog */}
+      <Dialog open={showTagDialog} onOpenChange={setShowTagDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create New Template</DialogTitle>
+            <DialogTitle>Tags & Global Settings</DialogTitle>
             <DialogDescription>
-              Create a new {CATEGORIES[activeCategory]?.label.toLowerCase()} template
+              Manage qualification tags and global visibility for "{selectedTemplate?.name}"
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Template Name *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter template name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter template description"
-                rows={3}
-              />
-            </div>
-            
             <div className="space-y-2">
               <Label>Qualification Tags</Label>
               <div className="flex gap-2">
@@ -643,10 +691,10 @@ export default function AdminTemplateManager() {
                       size="sm"
                       className="h-6 text-xs px-2"
                       onClick={() => {
-                        if (!formData.qualification_tags.includes(tag)) {
-                          setFormData({
-                            ...formData,
-                            qualification_tags: [...formData.qualification_tags, tag]
+                        if (!tagFormData.qualification_tags.includes(tag)) {
+                          setTagFormData({
+                            ...tagFormData,
+                            qualification_tags: [...tagFormData.qualification_tags, tag]
                           });
                         }
                       }}
@@ -656,9 +704,9 @@ export default function AdminTemplateManager() {
                   ))}
                 </div>
               )}
-              {formData.qualification_tags.length > 0 && (
+              {tagFormData.qualification_tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {formData.qualification_tags.map(tag => (
+                  {tagFormData.qualification_tags.map(tag => (
                     <Badge key={tag} variant="secondary" className="pr-1">
                       {tag}
                       <button
@@ -679,103 +727,19 @@ export default function AdminTemplateManager() {
                 <p className="text-xs text-slate-500">Available to all users automatically</p>
               </div>
               <Switch
-                checked={formData.is_global}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_global: checked })}
+                checked={tagFormData.is_global}
+                onCheckedChange={(checked) => setTagFormData({ ...tagFormData, is_global: checked })}
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button variant="outline" onClick={() => setShowTagDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={saving}>
+            <Button onClick={handleSaveTags} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Create Template
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Template</DialogTitle>
-            <DialogDescription>
-              Update template details
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Template Name *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter template name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter template description"
-                rows={3}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Qualification Tags</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="Add tag (e.g., UEFA B)"
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                />
-                <Button type="button" variant="outline" onClick={addTag}>
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {formData.qualification_tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {formData.qualification_tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="pr-1">
-                      {tag}
-                      <button
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-              <div>
-                <Label className="text-sm font-medium">Set as Global Default</Label>
-                <p className="text-xs text-slate-500">Available to all users automatically</p>
-              </div>
-              <Switch
-                checked={formData.is_global}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_global: checked })}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Save Changes
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
