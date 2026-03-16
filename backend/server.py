@@ -5072,11 +5072,27 @@ async def list_reflection_templates(
         
         global_admin_templates = await db.admin_templates.find(admin_query, {"_id": 0}).to_list(100)
         
+        # Get user's template preferences (hidden templates and default admin templates)
+        user_prefs = await db.user_template_preferences.find_one(
+            {"user_id": user.user_id},
+            {"_id": 0}
+        )
+        hidden_template_ids = set(user_prefs.get("hidden_template_ids", [])) if user_prefs else set()
+        default_admin_templates = user_prefs.get("default_admin_templates", {}) if user_prefs else {}
+        
         # Convert admin templates to reflection template format
         for admin_tpl in global_admin_templates:
+            # Skip hidden templates
+            if admin_tpl["template_id"] in hidden_template_ids:
+                continue
+                
             template_data = admin_tpl.get("template_data", {})
             # Map admin category to target_role
             tpl_target_role = "coach_educator" if admin_tpl.get("category") == "coach_developer_reflection" else "coach"
+            
+            # Determine preference key for checking default status
+            pref_key = "coach_developer_reflection" if admin_tpl.get("category") == "coach_developer_reflection" else "coach_reflection"
+            is_user_default = default_admin_templates.get(pref_key) == admin_tpl["template_id"]
             
             converted = {
                 "template_id": admin_tpl["template_id"],
@@ -5084,7 +5100,7 @@ async def list_reflection_templates(
                 "description": admin_tpl.get("description"),
                 "target_role": tpl_target_role,
                 "questions": template_data.get("questions", []),
-                "is_default": False,
+                "is_default": is_user_default,  # Check user's default preference
                 "is_admin_template": True,  # Mark as admin template
                 "is_global": admin_tpl.get("is_global", False),
                 "qualification_tags": admin_tpl.get("qualification_tags", []),
@@ -5096,7 +5112,7 @@ async def list_reflection_templates(
             if not any(t.get("template_id") == converted["template_id"] for t in templates):
                 templates.append(converted)
         
-        logger.info(f"[reflection-templates] Found {len(templates)} templates (including {len(global_admin_templates)} admin templates) for user {user.user_id}")
+        logger.info(f"[reflection-templates] Found {len(templates)} templates (including admin templates, excluding {len(hidden_template_ids)} hidden) for user {user.user_id}")
     else:
         logger.info(f"[reflection-templates] Found {len(templates)} templates for user {user.user_id}")
     
@@ -5834,19 +5850,52 @@ async def set_admin_template_as_user_default(template_id: str, request: Request)
     category = admin_tpl.get("category")
     template_data = admin_tpl.get("template_data", {})
     
+    # Get user's organization
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    org_id = user_doc.get("organization_id") if user_doc else None
+    
+    # Build query to find all templates accessible to this user
+    if org_id:
+        user_templates_query = {
+            "$or": [
+                {"organization_id": org_id},
+                {"created_by": user.user_id},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": None}
+            ],
+            "is_default": True
+        }
+    else:
+        user_templates_query = {
+            "$or": [
+                {"created_by": user.user_id},
+                {"organization_id": {"$exists": False}},
+                {"organization_id": None}
+            ],
+            "is_default": True
+        }
+    
     # Determine the preference key based on category and context
     if category == "observation":
         obs_context = template_data.get("observationContext", "training")
         pref_key = f"observation_{obs_context}"
+        # Unset default from regular observation templates
+        user_templates_query["observation_context"] = obs_context
+        await db.observation_templates.update_many(user_templates_query, {"$set": {"is_default": False}})
     elif category == "coach_reflection":
         pref_key = "coach_reflection"
+        # Unset default from regular reflection templates (coach)
+        user_templates_query["target_role"] = "coach"
+        await db.reflection_templates.update_many(user_templates_query, {"$set": {"is_default": False}})
     elif category == "coach_developer_reflection":
         pref_key = "coach_developer_reflection"
+        # Unset default from regular reflection templates (coach_educator)
+        user_templates_query["target_role"] = "coach_educator"
+        await db.reflection_templates.update_many(user_templates_query, {"$set": {"is_default": False}})
     else:
         raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
     
-    # Update user preferences - unset any existing regular template default
-    # and set the admin template as the new default
+    # Update user preferences to set the admin template as the new default
     await db.user_template_preferences.update_one(
         {"user_id": user.user_id},
         {
