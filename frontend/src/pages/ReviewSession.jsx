@@ -553,6 +553,10 @@ export default function ReviewSession() {
   const [existingObserverResponses, setExistingObserverResponses] = useState({});
   const [existingCoachResponses, setExistingCoachResponses] = useState({});
   
+  // Edit mode for completed reflections
+  const [isEditingObserverReflection, setIsEditingObserverReflection] = useState(false);
+  const [isEditingCoachReflection, setIsEditingCoachReflection] = useState(false);
+  
   // Sharing state
   const [observerReflectionShared, setObserverReflectionShared] = useState(true);
   const [coachReflectionShared, setCoachReflectionShared] = useState(true);
@@ -1884,68 +1888,170 @@ export default function ReviewSession() {
                     Observer Reflection
                   </CardTitle>
                   <CardDescription>
-                    Complete your structured reflection using a template.
+                    {session.observerReflection?.completedAt 
+                      ? 'Your completed reflection for this session.'
+                      : 'Complete your structured reflection using a template.'
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Template Selector */}
-                  <div className="space-y-2">
-                    <Label>Reflection Template</Label>
-                    <Select 
-                      value={selectedTemplateId} 
-                      onValueChange={handleTemplateChange}
-                      disabled={loadingTemplates}
-                    >
-                      <SelectTrigger data-testid="reflection-template-select">
-                        <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {reflectionTemplates.map(t => (
-                          <SelectItem key={t.template_id} value={t.template_id}>
-                            {t.name} {t.is_default && <span className="text-blue-600">(Default)</span>}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {reflectionTemplates.length === 0 && !loadingTemplates && (
-                      <p className="text-sm text-slate-500">
-                        No reflection templates available. Create one in Templates.
-                      </p>
-                    )}
-                  </div>
+                  {/* COMPLETED REFLECTION VIEW */}
+                  {session.observerReflection?.completedAt && !isEditingObserverReflection && (
+                    <>
+                      {/* Completion header with Edit button */}
+                      <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-green-700">Reflection completed</span>
+                          <span className="text-sm text-green-600">
+                            {formatDateTime(session.observerReflection.completedAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">
+                              {observerReflectionShared ? 'Shared' : 'Private'}
+                            </span>
+                            <Switch
+                              checked={observerReflectionShared}
+                              onCheckedChange={handleToggleObserverSharing}
+                              disabled={togglingShare}
+                              data-testid="toggle-observer-sharing-saved"
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setIsEditingObserverReflection(true);
+                              // Load responses into edit state
+                              if (session.observerReflection?.responses) {
+                                setTemplateResponses(session.observerReflection.responses);
+                              }
+                              // Load the template if we have a template ID
+                              const templateId = session.observerReflection?.templateId || session.reflectionTemplateId;
+                              if (templateId) {
+                                setSelectedTemplateId(templateId);
+                                loadTemplateDetails(templateId);
+                              }
+                            }}
+                            data-testid="edit-observer-reflection-btn"
+                          >
+                            <Pencil className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
 
-                  {/* Template Questions */}
-                  {currentTemplate && (
-                    <div className="space-y-6 mt-4 pt-4 border-t">
-                      {currentTemplate.questions?.map((question, qIndex) => (
-                        <div key={question.question_id} className="space-y-2">
-                          <Label className="flex items-center gap-1">
-                            {question.question_text}
-                            {question.required && <span className="text-red-500">*</span>}
-                          </Label>
+                      {/* Display saved reflection responses */}
+                      {session.observerReflection.templateName && (
+                        <p className="text-sm text-slate-600 font-medium">
+                          Template: {session.observerReflection.templateName}
+                        </p>
+                      )}
+                      
+                      {/* Show all saved responses */}
+                      {currentTemplate?.questions && session.observerReflection?.responses && (
+                        <div className="space-y-4 mt-4 pt-4 border-t">
+                          {currentTemplate.questions.map((question, qIndex) => {
+                            const response = session.observerReflection.responses[question.question_id];
+                            return (
+                              <div key={question.question_id} className="space-y-1">
+                                <Label className="text-slate-600 text-sm">
+                                  {qIndex + 1}. {question.question_text}
+                                </Label>
+                                <div className="p-3 bg-slate-50 rounded-lg">
+                                  {question.question_type === 'scale' ? (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-lg font-semibold text-blue-600">{response || '-'}</span>
+                                      <span className="text-sm text-slate-500">
+                                        out of {question.scale_max || 5}
+                                      </span>
+                                    </div>
+                                  ) : question.question_type === 'checkbox' ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      {(response || []).map((item, i) => (
+                                        <Badge key={i} variant="secondary">{item}</Badge>
+                                      ))}
+                                      {(!response || response.length === 0) && (
+                                        <span className="text-slate-400 italic">No selection</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="text-slate-700 whitespace-pre-wrap">
+                                      {response || <span className="text-slate-400 italic">No response</span>}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                          {/* Text Input */}
-                          {question.question_type === 'text' && (
-                            <div className="flex gap-2">
-                              <Textarea
-                                value={templateResponses[question.question_id] || ''}
-                                onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
-                                placeholder="Enter your response..."
-                                className="min-h-[100px] flex-1"
-                                data-testid={`reflection-q-${qIndex}`}
-                              />
-                              <SpeechToTextButton
-                                onTranscribe={(text) => handleResponseChange(
-                                  question.question_id, 
-                                  (templateResponses[question.question_id] || '') + (templateResponses[question.question_id] ? ' ' : '') + text
-                                )}
-                                className="self-start mt-1"
-                              />
-                            </div>
-                          )}
+                  {/* EDIT MODE OR NEW REFLECTION */}
+                  {(!session.observerReflection?.completedAt || isEditingObserverReflection) && (
+                    <>
+                      {/* Template Selector */}
+                      <div className="space-y-2">
+                        <Label>Reflection Template</Label>
+                        <Select 
+                          value={selectedTemplateId} 
+                          onValueChange={handleTemplateChange}
+                          disabled={loadingTemplates}
+                        >
+                          <SelectTrigger data-testid="reflection-template-select">
+                            <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {reflectionTemplates.map(t => (
+                              <SelectItem key={t.template_id} value={t.template_id}>
+                                {t.name} {t.is_default && <span className="text-blue-600">(Default)</span>}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {reflectionTemplates.length === 0 && !loadingTemplates && (
+                          <p className="text-sm text-slate-500">
+                            No reflection templates available. Create one in Templates.
+                          </p>
+                        )}
+                      </div>
 
-                          {/* Scale Input */}
-                          {question.question_type === 'scale' && (
+                      {/* Template Questions */}
+                      {currentTemplate && (
+                        <div className="space-y-6 mt-4 pt-4 border-t">
+                          {currentTemplate.questions?.map((question, qIndex) => (
+                            <div key={question.question_id} className="space-y-2">
+                              <Label className="flex items-center gap-1">
+                                {question.question_text}
+                                {question.required && <span className="text-red-500">*</span>}
+                              </Label>
+
+                              {/* Text Input */}
+                              {question.question_type === 'text' && (
+                                <div className="flex gap-2">
+                                  <Textarea
+                                    value={templateResponses[question.question_id] || ''}
+                                    onChange={(e) => handleResponseChange(question.question_id, e.target.value)}
+                                    placeholder="Enter your response..."
+                                    className="min-h-[100px] flex-1"
+                                    data-testid={`reflection-q-${qIndex}`}
+                                  />
+                                  <SpeechToTextButton
+                                    onTranscribe={(text) => handleResponseChange(
+                                      question.question_id, 
+                                      (templateResponses[question.question_id] || '') + (templateResponses[question.question_id] ? ' ' : '') + text
+                                    )}
+                                    className="self-start mt-1"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Scale Input */}
+                              {question.question_type === 'scale' && (
                             <div className="space-y-2">
                               <div className="flex justify-between text-xs text-slate-500">
                                 <span>{question.scale_min_label || question.scale_min}</span>
@@ -2015,21 +2121,41 @@ export default function ReviewSession() {
                         </div>
                       ))}
 
-                      {/* Save Button */}
+                      {/* Save/Update Button */}
                       <div className="pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <Button 
-                          onClick={handleSaveTemplateReflection}
-                          disabled={savingReflection}
-                          className="w-full sm:w-auto"
-                          data-testid="save-reflection-btn"
-                        >
-                          {savingReflection ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <Check className="w-4 h-4 mr-2" />
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={async () => {
+                              await handleSaveTemplateReflection();
+                              setIsEditingObserverReflection(false);
+                            }}
+                            disabled={savingReflection}
+                            className="w-full sm:w-auto"
+                            data-testid="save-reflection-btn"
+                          >
+                            {savingReflection ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4 mr-2" />
+                            )}
+                            {isEditingObserverReflection ? 'Update Reflection' : 'Save Reflection'}
+                          </Button>
+                          {isEditingObserverReflection && (
+                            <Button 
+                              variant="outline"
+                              onClick={() => {
+                                setIsEditingObserverReflection(false);
+                                // Reset to saved responses
+                                if (session.observerReflection?.responses) {
+                                  setTemplateResponses(session.observerReflection.responses);
+                                }
+                              }}
+                              data-testid="cancel-edit-reflection-btn"
+                            >
+                              Cancel
+                            </Button>
                           )}
-                          Save Reflection
-                        </Button>
+                        </div>
                         
                         {/* Sharing toggle for observer */}
                         <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
@@ -2054,37 +2180,7 @@ export default function ReviewSession() {
                       </div>
                     </div>
                   )}
-
-                  {/* Show saved reflection if exists */}
-                  {session.observerReflection?.completedAt && (
-                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Check className="w-4 h-4 text-green-600" />
-                          <span className="font-medium text-green-700">Reflection completed</span>
-                          <span className="text-sm text-green-600">
-                            {formatDateTime(session.observerReflection.completedAt)}
-                          </span>
-                        </div>
-                        {/* Sharing toggle when reflection is already saved */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500">
-                            {observerReflectionShared ? 'Shared' : 'Private'}
-                          </span>
-                          <Switch
-                            checked={observerReflectionShared}
-                            onCheckedChange={handleToggleObserverSharing}
-                            disabled={togglingShare}
-                            data-testid="toggle-observer-sharing-saved"
-                          />
-                        </div>
-                      </div>
-                      {session.observerReflection.templateName && (
-                        <p className="text-sm text-slate-600">
-                          Template: {session.observerReflection.templateName}
-                        </p>
-                      )}
-                    </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -2261,39 +2357,84 @@ export default function ReviewSession() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Show completed template reflection if it exists */}
-                {session.coachReflection?.responses && (
-                  <div className="p-4 bg-green-50 rounded-lg space-y-4">
-                    <div className="flex items-center gap-2 text-green-700 font-medium">
-                      <Check className="w-4 h-4" />
-                      Reflection completed
-                      {session.coachReflection.templateName && (
-                        <Badge variant="outline" className="text-xs">
-                          {session.coachReflection.templateName}
-                        </Badge>
-                      )}
-                    </div>
-                    {/* Display saved template responses */}
-                    {currentTemplate?.questions?.map(q => {
-                      const response = session.coachReflection.responses[q.question_id];
-                      if (!response || (Array.isArray(response) && response.length === 0)) return null;
-                      return (
-                        <div key={q.question_id} className="space-y-1">
-                          <p className="text-xs font-medium text-slate-600">{q.question_text}</p>
-                          <p className="text-slate-800">
-                            {Array.isArray(response) ? response.join(', ') : response}
-                          </p>
+                {/* COMPLETED REFLECTION VIEW - Show saved responses with Edit button */}
+                {session.coachReflection?.responses && !isEditingCoachReflection && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-green-700 font-medium">
+                          <Check className="w-4 h-4" />
+                          Reflection completed
+                          {session.coachReflection.templateName && (
+                            <Badge variant="outline" className="text-xs">
+                              {session.coachReflection.templateName}
+                            </Badge>
+                          )}
                         </div>
-                      );
-                    })}
-                    <p className="text-xs text-slate-500">
-                      Completed: {formatDateTime(session.coachReflection.completedAt)}
-                    </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsEditingCoachReflection(true);
+                            // Load responses into edit state
+                            if (session.coachReflection?.responses) {
+                              setTemplateResponses(session.coachReflection.responses);
+                            }
+                          }}
+                          data-testid="edit-coach-reflection-btn"
+                        >
+                          <Pencil className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Completed: {formatDateTime(session.coachReflection.completedAt)}
+                      </p>
+                    </div>
+                    
+                    {/* Display saved template responses */}
+                    {currentTemplate?.questions && (
+                      <div className="space-y-4">
+                        {currentTemplate.questions.map((q, qIdx) => {
+                          const response = session.coachReflection.responses[q.question_id];
+                          return (
+                            <div key={q.question_id} className="space-y-1">
+                              <Label className="text-slate-600 text-sm">
+                                {qIdx + 1}. {q.question_text}
+                              </Label>
+                              <div className="p-3 bg-slate-50 rounded-lg">
+                                {q.question_type === 'scale' ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg font-semibold text-green-600">{response || '-'}</span>
+                                    <span className="text-sm text-slate-500">
+                                      out of {q.scale_max || 5}
+                                    </span>
+                                  </div>
+                                ) : q.question_type === 'checkbox' ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {(response || []).map((item, i) => (
+                                      <Badge key={i} variant="secondary">{item}</Badge>
+                                    ))}
+                                    {(!response || response.length === 0) && (
+                                      <span className="text-slate-400 italic">No selection</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-slate-700 whitespace-pre-wrap">
+                                    {response || <span className="text-slate-400 italic">No response</span>}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Show template form if template exists and reflection not yet completed */}
-                {currentTemplate && !session.coachReflection?.responses && (
+                {/* EDIT MODE OR NEW REFLECTION FORM */}
+                {currentTemplate && (!session.coachReflection?.responses || isEditingCoachReflection) && (
                   <div className="space-y-6">
                     {currentTemplate.questions?.map((question) => (
                       <div key={question.question_id} className="space-y-2">
@@ -2393,7 +2534,7 @@ export default function ReviewSession() {
                       </div>
                     ))}
 
-                    {/* Save Button */}
+                    {/* Save/Update Button */}
                     <div className="flex items-center justify-between pt-4 border-t">
                       <div className="flex items-center gap-2">
                         <Switch
@@ -2406,24 +2547,44 @@ export default function ReviewSession() {
                           Share with {session.observer_name || 'Coach Developer'}
                         </Label>
                       </div>
-                      <Button 
-                        onClick={handleSaveTemplateReflection}
-                        disabled={savingReflection}
-                        className="bg-green-600 hover:bg-green-700"
-                        data-testid="save-coach-reflection-btn"
-                      >
-                        {savingReflection ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4 mr-2" />
-                            Save Reflection
-                          </>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={async () => {
+                            await handleSaveTemplateReflection();
+                            setIsEditingCoachReflection(false);
+                          }}
+                          disabled={savingReflection}
+                          className="bg-green-600 hover:bg-green-700"
+                          data-testid="save-coach-reflection-btn"
+                        >
+                          {savingReflection ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4 mr-2" />
+                              {isEditingCoachReflection ? 'Update Reflection' : 'Save Reflection'}
+                            </>
+                          )}
+                        </Button>
+                        {isEditingCoachReflection && (
+                          <Button 
+                            variant="outline"
+                            onClick={() => {
+                              setIsEditingCoachReflection(false);
+                              // Reset to saved responses
+                              if (session.coachReflection?.responses) {
+                                setTemplateResponses(session.coachReflection.responses);
+                              }
+                            }}
+                            data-testid="cancel-edit-coach-reflection-btn"
+                          >
+                            Cancel
+                          </Button>
                         )}
-                      </Button>
+                      </div>
                     </div>
                   </div>
                 )}
