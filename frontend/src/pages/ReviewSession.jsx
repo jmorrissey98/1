@@ -2945,58 +2945,201 @@ export default function ReviewSession() {
               descriptorGroup2={session.descriptorGroup2}
             />
 
-            {/* Descriptor Charts */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {session.descriptorGroup1 && (
+            {/* Distribution Pie Charts - 3 Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Interventions Pie Chart */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup1.name}</CardTitle>
+                  <CardTitle className="text-base font-['Manrope']">Interventions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-40">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart 
-                        data={(session.descriptorGroup1.descriptors || []).map(d => ({
-                          name: d.name,
-                          count: stats.desc1Counts[d.id] || 0
-                        }))}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#38BDF8" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="h-52">
+                    {(() => {
+                      const interventionData = (session.interventionTypes || []).map((type, idx) => {
+                        const count = stats.eventCounts[type.id] || 0;
+                        return {
+                          name: type.name,
+                          value: count,
+                          color: CHART_COLORS[idx % CHART_COLORS.length]
+                        };
+                      }).filter(d => d.value > 0);
+                      
+                      const total = interventionData.reduce((sum, d) => sum + d.value, 0);
+                      
+                      if (total === 0) {
+                        return (
+                          <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                            No interventions recorded
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={interventionData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={35}
+                              outerRadius={70}
+                              paddingAngle={2}
+                              dataKey="value"
+                              label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                              labelLine={false}
+                            >
+                              {interventionData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
+                            />
+                            <Legend 
+                              layout="horizontal" 
+                              verticalAlign="bottom"
+                              wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Descriptor Group 1 (Content Focus) Pie Chart */}
+              {session.descriptorGroup1 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-sky-400" />
+                      {session.descriptorGroup1.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-52">
+                      {(() => {
+                        const DESC1_COLORS = ['#38BDF8', '#0EA5E9', '#0284C7', '#0369A1', '#075985'];
+                        const desc1Data = (session.descriptorGroup1.descriptors || []).map((desc, idx) => {
+                          const count = stats.desc1Counts[desc.id] || 0;
+                          return {
+                            name: desc.name,
+                            value: count,
+                            color: DESC1_COLORS[idx % DESC1_COLORS.length]
+                          };
+                        }).filter(d => d.value > 0);
+                        
+                        const total = desc1Data.reduce((sum, d) => sum + d.value, 0);
+                        
+                        if (total === 0) {
+                          return (
+                            <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                              No {session.descriptorGroup1.name.toLowerCase()} recorded
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={desc1Data}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={35}
+                                outerRadius={70}
+                                paddingAngle={2}
+                                dataKey="value"
+                                label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                                labelLine={false}
+                              >
+                                {desc1Data.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
+                              />
+                              <Legend 
+                                layout="horizontal" 
+                                verticalAlign="bottom"
+                                wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
+              {/* Descriptor Group 2 (Delivery Method) Pie Chart */}
               {session.descriptorGroup2 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-['Manrope']">{session.descriptorGroup2.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-40">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart 
-                        data={(session.descriptorGroup2.descriptors || []).map(d => ({
-                          name: d.name,
-                          count: stats.desc2Counts[d.id] || 0
-                        }))}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#4ADE80" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-['Manrope'] flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-green-400" />
+                      {session.descriptorGroup2.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-52">
+                      {(() => {
+                        const DESC2_COLORS = ['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534'];
+                        const desc2Data = (session.descriptorGroup2.descriptors || []).map((desc, idx) => {
+                          const count = stats.desc2Counts[desc.id] || 0;
+                          return {
+                            name: desc.name,
+                            value: count,
+                            color: DESC2_COLORS[idx % DESC2_COLORS.length]
+                          };
+                        }).filter(d => d.value > 0);
+                        
+                        const total = desc2Data.reduce((sum, d) => sum + d.value, 0);
+                        
+                        if (total === 0) {
+                          return (
+                            <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                              No {session.descriptorGroup2.name.toLowerCase()} recorded
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={desc2Data}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={35}
+                                outerRadius={70}
+                                paddingAngle={2}
+                                dataKey="value"
+                                label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                                labelLine={false}
+                              >
+                                {desc2Data.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(value, name) => [`${value} (${Math.round(value/total*100)}%)`, name]}
+                              />
+                              <Legend 
+                                layout="horizontal" 
+                                verticalAlign="bottom"
+                                wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </TabsContent>
