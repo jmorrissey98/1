@@ -26,13 +26,14 @@ import { useCloudSync } from '../contexts/CloudSyncContext';
 import { fetchReflectionTemplates, fetchReflectionTemplate } from '../lib/reflectionTemplatesApi';
 import { fetchLimitsSummary } from '../lib/subscriptionApi';
 import axios from 'axios';
-import { getAuthToken } from '../lib/safeFetch';
+import { getAuthToken, safePut } from '../lib/safeFetch';
 import { useSwipeTabs } from '../hooks/useSwipeNavigation';
 import { SessionEditTimeline } from '../components/SessionEditTimeline';
 import { SpeechToTextButton } from '../components/SpeechToTextButton';
 
 const BACKEND_URL = ''; // Relative URL - frontend and backend on same domain
 const API = '/api';
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 // New color palette matching the visual reference
 // Navy, Teal, Indigo, Slate Blue, and accent colors
@@ -541,6 +542,17 @@ export default function ReviewSession() {
   const [savingReflection, setSavingReflection] = useState(false);
   const [observerNotesExpanded, setObserverNotesExpanded] = useState(true);
   
+  // Coach reflection template state (for coach developer to manage coach's template)
+  const [coachReflectionTemplates, setCoachReflectionTemplates] = useState([]);
+  const [selectedCoachTemplateId, setSelectedCoachTemplateId] = useState('');
+  const [currentCoachTemplate, setCurrentCoachTemplate] = useState(null);
+  const [coachTemplateResponses, setCoachTemplateResponses] = useState({});
+  const [loadingCoachTemplates, setLoadingCoachTemplates] = useState(false);
+  
+  // Track if responses existed before template change (for non-destructive merge)
+  const [existingObserverResponses, setExistingObserverResponses] = useState({});
+  const [existingCoachResponses, setExistingCoachResponses] = useState({});
+  
   // Sharing state
   const [observerReflectionShared, setObserverReflectionShared] = useState(true);
   const [coachReflectionShared, setCoachReflectionShared] = useState(true);
@@ -632,6 +644,7 @@ export default function ReviewSession() {
         // Also check for existing coach reflection responses
         if (session?.coachReflection?.responses) {
           setTemplateResponses(session.coachReflection.responses);
+          setExistingCoachResponses(session.coachReflection.responses);
         }
       } else {
         // Coach Developer/Club viewing their observer reflection
@@ -640,6 +653,7 @@ export default function ReviewSession() {
         // Load observer reflection responses
         if (session?.observerReflection?.responses) {
           setTemplateResponses(session.observerReflection.responses);
+          setExistingObserverResponses(session.observerReflection.responses);
         }
       }
       
@@ -658,16 +672,70 @@ export default function ReviewSession() {
         const templates = await fetchReflectionTemplates(targetRole);
         setReflectionTemplates(templates);
         
-        const defaultTemplate = templates.find(t => t.is_default);
+        // Auto-select: If only 1 template, use it. Otherwise use marked default.
+        let defaultTemplate;
+        if (templates.length === 1) {
+          defaultTemplate = templates[0];
+        } else {
+          defaultTemplate = templates.find(t => t.is_default) || templates.find(t => t.is_user_default);
+        }
+        
         if (defaultTemplate) {
           setSelectedTemplateId(defaultTemplate.template_id);
           await loadTemplateDetails(defaultTemplate.template_id);
         }
       }
+      
+      // Coach Developer: Also load coach templates to manage coach's reflection
+      if (!isCoachView && !isIndividualCoachTier) {
+        await loadCoachReflectionTemplates();
+      }
     } catch (err) {
       console.error('Failed to load reflection templates:', err);
     } finally {
       setLoadingTemplates(false);
+    }
+  };
+
+  // Load coach reflection templates (for coach developer to manage)
+  const loadCoachReflectionTemplates = async () => {
+    setLoadingCoachTemplates(true);
+    try {
+      const templates = await fetchReflectionTemplates('coach');
+      setCoachReflectionTemplates(templates);
+      
+      // Check if session has a coach template assigned
+      const savedCoachTemplateId = session?.coachReflectionTemplateId || session?.coach_reflection_template_id;
+      
+      if (savedCoachTemplateId) {
+        setSelectedCoachTemplateId(savedCoachTemplateId);
+        const template = await fetchReflectionTemplate(savedCoachTemplateId);
+        setCurrentCoachTemplate(template);
+      } else if (templates.length > 0) {
+        // Auto-select: If only 1 template, use it. Otherwise use marked default.
+        let defaultTemplate;
+        if (templates.length === 1) {
+          defaultTemplate = templates[0];
+        } else {
+          defaultTemplate = templates.find(t => t.is_default) || templates.find(t => t.is_user_default);
+        }
+        
+        if (defaultTemplate) {
+          setSelectedCoachTemplateId(defaultTemplate.template_id);
+          const template = await fetchReflectionTemplate(defaultTemplate.template_id);
+          setCurrentCoachTemplate(template);
+        }
+      }
+      
+      // Load existing coach reflection responses
+      if (session?.coachReflection?.responses) {
+        setCoachTemplateResponses(session.coachReflection.responses);
+        setExistingCoachResponses(session.coachReflection.responses);
+      }
+    } catch (err) {
+      console.error('Failed to load coach reflection templates:', err);
+    } finally {
+      setLoadingCoachTemplates(false);
     }
   };
 
@@ -694,10 +762,75 @@ export default function ReviewSession() {
     }
   };
 
-  const handleTemplateChange = (templateId) => {
+  const handleTemplateChange = async (templateId) => {
     setSelectedTemplateId(templateId);
-    setTemplateResponses({}); // Reset responses when template changes
-    loadTemplateDetails(templateId);
+    
+    // Load new template details
+    try {
+      const template = await fetchReflectionTemplate(templateId);
+      setCurrentTemplate(template);
+      
+      // NON-DESTRUCTIVE: Preserve existing responses, only initialize new questions
+      const newResponses = { ...templateResponses };
+      template.questions?.forEach(q => {
+        // Only initialize if no existing response
+        if (newResponses[q.question_id] === undefined) {
+          if (q.question_type === 'checkbox') {
+            newResponses[q.question_id] = [];
+          } else {
+            newResponses[q.question_id] = '';
+          }
+        }
+      });
+      setTemplateResponses(newResponses);
+    } catch (err) {
+      console.error('Failed to load template:', err);
+      toast.error('Failed to load template');
+    }
+  };
+
+  // Handle coach template change (for coach developer managing coach's reflection)
+  const handleCoachTemplateChange = async (templateId) => {
+    setSelectedCoachTemplateId(templateId);
+    
+    try {
+      const template = await fetchReflectionTemplate(templateId);
+      setCurrentCoachTemplate(template);
+      
+      // NON-DESTRUCTIVE: Preserve existing coach responses
+      const newResponses = { ...coachTemplateResponses };
+      template.questions?.forEach(q => {
+        if (newResponses[q.question_id] === undefined) {
+          if (q.question_type === 'checkbox') {
+            newResponses[q.question_id] = [];
+          } else {
+            newResponses[q.question_id] = '';
+          }
+        }
+      });
+      setCoachTemplateResponses(newResponses);
+      
+      // Save the template assignment to the session
+      await saveCoachTemplateAssignment(templateId);
+    } catch (err) {
+      console.error('Failed to load coach template:', err);
+      toast.error('Failed to load coach template');
+    }
+  };
+
+  // Save coach template assignment to session
+  const saveCoachTemplateAssignment = async (templateId) => {
+    try {
+      const response = await safePut(`${API_URL}/api/sessions/${sessionId}`, {
+        coachReflectionTemplateId: templateId
+      });
+      
+      if (response.ok) {
+        toast.success('Coach reflection template updated');
+      }
+    } catch (err) {
+      console.error('Failed to save coach template assignment:', err);
+    }
   };
 
   const handleResponseChange = (questionId, value) => {
@@ -2019,6 +2152,79 @@ export default function ReviewSession() {
                 </Button>
               </CardContent>
             </Card>
+            )}
+
+            {/* Coach Reflection Template Selector - Only visible to coach developers */}
+            {canEditObserverContent && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-['Manrope'] flex items-center gap-2">
+                    <User className="w-5 h-5 text-green-600" />
+                    Coach Reflection Template
+                  </CardTitle>
+                  <CardDescription>
+                    Select which reflection template {session.coach_name || 'the coach'} should complete after this session.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Template Selector */}
+                  <div className="space-y-2">
+                    <Label>Reflection Template for Coach</Label>
+                    <Select 
+                      value={selectedCoachTemplateId} 
+                      onValueChange={handleCoachTemplateChange}
+                      disabled={loadingCoachTemplates}
+                    >
+                      <SelectTrigger data-testid="coach-reflection-template-select">
+                        <SelectValue placeholder={loadingCoachTemplates ? "Loading templates..." : "Select a template"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {coachReflectionTemplates.map(t => (
+                          <SelectItem key={t.template_id} value={t.template_id}>
+                            {t.name} {(t.is_default || t.is_user_default) && <span className="text-blue-600">(Default)</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {coachReflectionTemplates.length === 0 && !loadingCoachTemplates && (
+                      <p className="text-sm text-slate-500">
+                        No coach reflection templates available. Create one in Templates.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Show current coach template questions preview */}
+                  {currentCoachTemplate && (
+                    <div className="mt-4 p-4 bg-slate-50 rounded-lg border">
+                      <h4 className="font-medium text-slate-700 mb-2">Template Preview: {currentCoachTemplate.name}</h4>
+                      <ul className="space-y-1">
+                        {currentCoachTemplate.questions?.map((q, idx) => (
+                          <li key={q.question_id} className="text-sm text-slate-600 flex items-start gap-2">
+                            <span className="text-slate-400">{idx + 1}.</span>
+                            <span>{q.question_text} {q.required && <span className="text-red-500">*</span>}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Show if coach has already completed their reflection */}
+                  {session.coachReflection?.completedAt && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span className="font-medium text-green-700">Coach has completed their reflection</span>
+                      </div>
+                      <p className="text-sm text-green-600">
+                        Completed: {formatDateTime(session.coachReflection.completedAt)}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Changing the template will add additional questions for the coach to answer, preserving their existing responses.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* Coach's Own Reflection Form - Visible to coaches AND Individual Coach tier */}

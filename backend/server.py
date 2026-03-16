@@ -5123,15 +5123,41 @@ async def get_reflection_template(template_id: str, request: Request):
     """Get a specific reflection template"""
     user = await require_auth(request)
     
+    # First check regular reflection templates
     template = await db.reflection_templates.find_one(
         {"template_id": template_id},
         {"_id": 0}
     )
     
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+    if template:
+        return template
     
-    return template
+    # If not found, check admin templates
+    admin_tpl = await db.admin_templates.find_one(
+        {"template_id": template_id, "is_admin_template": True},
+        {"_id": 0}
+    )
+    
+    if admin_tpl:
+        # Convert admin template to reflection template format
+        template_data = admin_tpl.get("template_data", {})
+        tpl_target_role = "coach_educator" if admin_tpl.get("category") == "coach_developer_reflection" else "coach"
+        
+        return {
+            "template_id": admin_tpl["template_id"],
+            "name": admin_tpl["name"],
+            "description": admin_tpl.get("description"),
+            "target_role": tpl_target_role,
+            "questions": template_data.get("questions", []),
+            "is_default": False,
+            "is_admin_template": True,
+            "is_global": admin_tpl.get("is_global", False),
+            "created_by": admin_tpl.get("created_by"),
+            "created_at": admin_tpl.get("created_at"),
+            "updated_at": admin_tpl.get("updated_at")
+        }
+    
+    raise HTTPException(status_code=404, detail="Template not found")
 
 @api_router.post("/reflection-templates")
 async def create_reflection_template(data: ReflectionTemplateCreate, request: Request):
