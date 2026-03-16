@@ -225,90 +225,49 @@ def get_default_coach_reflection_template(org_id: str, user_id: str) -> dict:
 
 async def bootstrap_default_templates(org_id: str, user_id: str):
     """
-    Bootstrap all default templates for a new organization.
+    Bootstrap default templates for a new organization.
     Called during signup/organization creation.
     
-    This function copies templates from admin_templates that are marked as
-    is_bootstrap_default=True into the org's own observation_templates and
-    reflection_templates collections.
+    NEW BEHAVIOR (after migration):
+    If global admin templates exist, this function does NOTHING.
+    Users will see global admin templates directly - no copies needed.
     
-    If no admin bootstrap templates exist, falls back to hardcoded defaults.
+    LEGACY BEHAVIOR (fallback):
+    If no global admin templates exist, creates hardcoded default templates
+    for backward compatibility.
     """
     try:
-        now = datetime.now(timezone.utc).isoformat()
-        
-        # Try to get bootstrap default admin templates
-        admin_bootstrap_templates = await db.admin_templates.find({
+        # Check if global admin templates exist
+        global_admin_count = await db.admin_templates.count_documents({
             "is_admin_template": True,
-            "is_bootstrap_default": True
-        }).to_list(100)
+            "is_global": True
+        })
         
-        if admin_bootstrap_templates:
-            logger.info(f"Found {len(admin_bootstrap_templates)} admin bootstrap templates to copy")
-            
-            for admin_tpl in admin_bootstrap_templates:
-                category = admin_tpl.get("category", "")
-                template_data = admin_tpl.get("template_data", {})
-                
-                if category == "observation":
-                    # Create observation template from admin template
-                    obs_template = {
-                        "template_id": f"obs_tmpl_{uuid.uuid4().hex[:12]}",
-                        "name": admin_tpl.get("name"),
-                        "description": admin_tpl.get("description"),
-                        "observation_context": template_data.get("observationContext", "training"),
-                        "intervention_types": template_data.get("interventionTypes", DEFAULT_INTERVENTION_TYPES),
-                        "descriptor_group1": template_data.get("descriptorGroup1", DEFAULT_DESCRIPTOR_GROUP_1),
-                        "descriptor_group2": template_data.get("descriptorGroup2", DEFAULT_DESCRIPTOR_GROUP_2),
-                        "session_parts": template_data.get("sessionParts", []),
-                        "include_ball_rolling": template_data.get("includeBallRolling", True),
-                        "is_default": True,
-                        "organization_id": org_id,
-                        "created_by": user_id,
-                        "source_admin_template_id": admin_tpl.get("template_id"),
-                        "created_at": now,
-                        "updated_at": now
-                    }
-                    await db.observation_templates.insert_one(obs_template)
-                    logger.info(f"Created observation template: {obs_template['name']}")
-                    
-                elif category in ["coach_reflection", "coach_developer_reflection"]:
-                    # Create reflection template from admin template
-                    target_role = "coach" if category == "coach_reflection" else "coach_educator"
-                    ref_template = {
-                        "template_id": f"reftmpl_{uuid.uuid4().hex[:12]}",
-                        "name": admin_tpl.get("name"),
-                        "description": admin_tpl.get("description"),
-                        "target_role": template_data.get("targetRole", target_role),
-                        "questions": template_data.get("questions", []),
-                        "is_default": True,
-                        "organization_id": org_id,
-                        "created_by": user_id,
-                        "source_admin_template_id": admin_tpl.get("template_id"),
-                        "created_at": now,
-                        "updated_at": now
-                    }
-                    await db.reflection_templates.insert_one(ref_template)
-                    logger.info(f"Created reflection template: {ref_template['name']}")
-        else:
-            # Fallback to hardcoded defaults if no admin bootstrap templates exist
-            logger.info("No admin bootstrap templates found, using hardcoded defaults")
-            
-            # Create observation window templates
-            training_template = get_default_training_template(org_id, user_id)
-            match_day_template = get_default_match_day_template(org_id, user_id)
-            
-            await db.observation_templates.insert_one(training_template)
-            await db.observation_templates.insert_one(match_day_template)
-            
-            # Create reflection templates
-            coach_educator_template = get_default_coach_educator_reflection_template(org_id, user_id)
-            coach_template = get_default_coach_reflection_template(org_id, user_id)
-            
-            await db.reflection_templates.insert_one(coach_educator_template)
-            await db.reflection_templates.insert_one(coach_template)
+        if global_admin_count > 0:
+            # Global admin templates exist - users will see them directly
+            # No need to create copies for each organization
+            logger.info(f"Organization {org_id} will use {global_admin_count} global admin templates (no copies created)")
+            return True
         
-        logger.info(f"Bootstrapped default templates for organization {org_id}")
+        # Fallback: No global admin templates exist, create hardcoded defaults
+        # This maintains backward compatibility until migration is run
+        logger.info(f"No global admin templates found, creating legacy defaults for org {org_id}")
+        
+        # Create observation window templates
+        training_template = get_default_training_template(org_id, user_id)
+        match_day_template = get_default_match_day_template(org_id, user_id)
+        
+        await db.observation_templates.insert_one(training_template)
+        await db.observation_templates.insert_one(match_day_template)
+        
+        # Create reflection templates
+        coach_educator_template = get_default_coach_educator_reflection_template(org_id, user_id)
+        coach_template = get_default_coach_reflection_template(org_id, user_id)
+        
+        await db.reflection_templates.insert_one(coach_educator_template)
+        await db.reflection_templates.insert_one(coach_template)
+        
+        logger.info(f"Created legacy default templates for organization {org_id}")
         return True
     except Exception as e:
         logger.error(f"Failed to bootstrap templates for org {org_id}: {e}")

@@ -209,6 +209,158 @@ async def list_system_default_templates(request: Request, category: Optional[str
     }
 
 
+@router.post("/migrate-system-defaults")
+async def migrate_system_defaults_to_admin(request: Request):
+    """
+    Migrate and deduplicate system defaults into admin templates.
+    
+    This endpoint:
+    1. Finds all unique template names from observation_templates and reflection_templates
+    2. Creates ONE admin template for each unique name (picks the first/oldest one as source)
+    3. Marks them as global (so they're visible to all current users)
+    4. Marks them as bootstrap_default (so new orgs will get them)
+    5. Returns a summary of what was created
+    
+    After running this, the bootstrap_default_templates() function will use
+    admin templates instead of creating copies for each new org.
+    """
+    user = await require_admin(request)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    created_templates = []
+    skipped_templates = []
+    
+    # Get existing admin template names to avoid duplicates
+    existing_admin_templates = await db.admin_templates.find(
+        {"is_admin_template": True},
+        {"name": 1, "category": 1, "_id": 0}
+    ).to_list(100)
+    existing_names = {(t["name"], t["category"]) for t in existing_admin_templates}
+    
+    # Process observation templates - group by name and pick one
+    obs_pipeline = [
+        {"$match": {"is_default": True}},
+        {"$sort": {"created_at": 1}},  # Oldest first
+        {"$group": {
+            "_id": "$name",
+            "first_template": {"$first": "$$ROOT"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    obs_groups = await db.observation_templates.aggregate(obs_pipeline).to_list(50)
+    
+    for group in obs_groups:
+        template = group["first_template"]
+        name = template.get("name")
+        
+        if (name, "observation") in existing_names:
+            skipped_templates.append({"name": name, "category": "observation", "reason": "Already exists as admin template"})
+            continue
+        
+        # Create admin template
+        admin_template = {
+            "template_id": f"admin_tpl_{uuid.uuid4().hex[:12]}",
+            "is_admin_template": True,
+            "category": "observation",
+            "name": name,
+            "description": template.get("description", ""),
+            "qualification_tags": [],
+            "is_global": True,
+            "is_bootstrap_default": True,
+            "assigned_user_ids": [],
+            "assigned_org_ids": [],
+            "template_data": {
+                "observationContext": template.get("observation_context", "training"),
+                "includeBallRolling": template.get("include_ball_rolling", True),
+                "interventionTypes": template.get("intervention_types", []),
+                "descriptorGroup1": template.get("descriptor_group1", []),
+                "descriptorGroup2": template.get("descriptor_group2", []),
+                "sessionParts": template.get("session_parts", [])
+            },
+            "created_by": user.user_id,
+            "migrated_from": template.get("template_id"),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.admin_templates.insert_one(admin_template)
+        created_templates.append({
+            "name": name, 
+            "category": "observation", 
+            "template_id": admin_template["template_id"],
+            "duplicates_found": group["count"]
+        })
+    
+    # Process reflection templates - group by name and target_role
+    ref_pipeline = [
+        {"$match": {"is_default": True}},
+        {"$sort": {"created_at": 1}},
+        {"$group": {
+            "_id": {"name": "$name", "target_role": "$target_role"},
+            "first_template": {"$first": "$$ROOT"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    ref_groups = await db.reflection_templates.aggregate(ref_pipeline).to_list(50)
+    
+    for group in ref_groups:
+        template = group["first_template"]
+        name = template.get("name")
+        target_role = template.get("target_role", "coach")
+        
+        # Determine category based on target_role
+        category = "coach_reflection" if target_role == "coach" else "coach_developer_reflection"
+        
+        if (name, category) in existing_names:
+            skipped_templates.append({"name": name, "category": category, "reason": "Already exists as admin template"})
+            continue
+        
+        # Create admin template
+        admin_template = {
+            "template_id": f"admin_tpl_{uuid.uuid4().hex[:12]}",
+            "is_admin_template": True,
+            "category": category,
+            "name": name,
+            "description": template.get("description", ""),
+            "qualification_tags": [],
+            "is_global": True,
+            "is_bootstrap_default": True,
+            "assigned_user_ids": [],
+            "assigned_org_ids": [],
+            "template_data": {
+                "targetRole": target_role,
+                "questions": template.get("questions", [])
+            },
+            "created_by": user.user_id,
+            "migrated_from": template.get("template_id"),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.admin_templates.insert_one(admin_template)
+        created_templates.append({
+            "name": name, 
+            "category": category,
+            "template_id": admin_template["template_id"],
+            "duplicates_found": group["count"]
+        })
+    
+    logger.info(f"Migration completed by {user.user_id}: created {len(created_templates)} admin templates")
+    
+    return {
+        "success": True,
+        "created": created_templates,
+        "skipped": skipped_templates,
+        "summary": {
+            "total_created": len(created_templates),
+            "total_skipped": len(skipped_templates)
+        },
+        "next_steps": "New organizations will now see these global templates. You can optionally delete the duplicates from organization collections."
+    }
+
+
 @router.get("/{template_id}")
 async def get_admin_template(template_id: str, request: Request):
     """Get a specific admin template"""

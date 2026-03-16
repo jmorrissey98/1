@@ -704,10 +704,10 @@ export default function AdminTemplateManager() {
                         <div>
                           <CardTitle className="flex items-center gap-2 text-base">
                             <FileText className="w-5 h-5 text-amber-600" />
-                            Existing Organization Templates
+                            Existing Organization Templates (Legacy)
                           </CardTitle>
                           <CardDescription>
-                            Templates that were created in organizations (legacy system defaults)
+                            Templates created in organizations - migrate them to admin templates
                           </CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
@@ -733,14 +733,50 @@ export default function AdminTemplateManager() {
                       ) : systemDefaults.filter(t => t.category === key).length === 0 ? (
                         <div className="text-center py-8">
                           <FileText className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-                          <p className="text-sm text-slate-500">No existing templates found in this category</p>
-                          <p className="text-xs text-slate-400 mt-1">Create new admin templates above to distribute to all users</p>
+                          <p className="text-sm text-slate-500">No legacy templates found in this category</p>
+                          <p className="text-xs text-slate-400 mt-1">All templates have been migrated to admin templates above</p>
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          <p className="text-sm text-slate-500 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                            These templates exist in organization collections. Click "Promote to Global" to convert them into admin templates that will be available to all current and future users.
-                          </p>
+                          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-amber-800">
+                                  Found {systemDefaults.filter(t => t.category === key).length} organization templates (may include duplicates)
+                                </p>
+                                <p className="text-xs text-amber-600 mt-1">
+                                  Click "Migrate All" to deduplicate and create one global admin template for each unique name
+                                </p>
+                              </div>
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(`${API_URL}/api/admin/templates/migrate-system-defaults`, {
+                                      method: 'POST',
+                                      headers: getAuthHeaders()
+                                    });
+                                    
+                                    if (response.ok) {
+                                      const result = await response.json();
+                                      toast.success(`Migration complete: ${result.summary.total_created} templates created, ${result.summary.total_skipped} skipped`);
+                                      loadTemplates();
+                                      loadStats();
+                                      loadSystemDefaults();
+                                    } else {
+                                      const error = await response.json();
+                                      toast.error(error.detail || 'Migration failed');
+                                    }
+                                  } catch (err) {
+                                    toast.error('Migration failed');
+                                  }
+                                }}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                <Upload className="w-4 h-4 mr-2" />
+                                Migrate All
+                              </Button>
+                            </div>
+                          </div>
                           {systemDefaults.filter(t => t.category === key).map(template => (
                             <div
                               key={template.template_id}
