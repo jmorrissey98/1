@@ -6075,7 +6075,7 @@ allowed_origins = [
     "https://coachwatch.emergent.host",
     "http://localhost:3000",
     "http://localhost:8001",
-    "https://system-defaults-tab.preview.emergentagent.com",
+    "https://multi-tenant-core-6.preview.emergentagent.com",
 ]
 
 # Add APP_URL if set and not empty
