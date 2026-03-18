@@ -261,6 +261,12 @@ async def start_free_trial(data: StartTrialRequest, response: Response):
         if not is_valid:
             raise HTTPException(status_code=400, detail=error_msg)
         
+        # CRITICAL: Validate tier_key to prevent legacy tier assignment
+        valid_tier_keys = ['individual_coach', 'coach_developer', 'club']
+        if data.tier_key not in valid_tier_keys:
+            logger.error(f"Invalid tier_key '{data.tier_key}' attempted for trial signup. Valid keys: {valid_tier_keys}")
+            raise HTTPException(status_code=400, detail=f"Invalid tier selected. Please choose from: {', '.join(valid_tier_keys)}")
+        
         email_lower = data.email.lower()
         
         # Check if user already exists

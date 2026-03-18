@@ -292,6 +292,9 @@ async def resolve_organization_entitlements(
         legacy_tier_key = subscription.get("legacy_tier_key")
         pending_tier_key = subscription.get("pending_tier_key")
         
+        # DEBUG: Log subscription data
+        logger.info(f"resolve_entitlements: Found subscription for org {org_id}: current_tier_key={current_tier_key}, is_legacy_tier={is_legacy}, tier_id={subscription.get('tier_id')}, tier={subscription.get('tier')}")
+        
         # Parse period end
         period_end_str = subscription.get("current_period_end")
         if period_end_str:
