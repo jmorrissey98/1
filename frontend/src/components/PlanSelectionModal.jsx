@@ -151,6 +151,11 @@ export function PlanSelectionModal({ open, onOpenChange, onSuccess, initialIsAnn
       errors.password = 'Password must contain at least one number';
     }
     
+    // REQUIRED: Club/Organization name for data isolation
+    if (!formData.club_name?.trim()) {
+      errors.club_name = 'Organization name is required';
+    }
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -174,7 +179,7 @@ export function PlanSelectionModal({ open, onOpenChange, onSuccess, initialIsAnn
           password: formData.password,
           name: formData.name,
           tier_key: selectedTier.id,
-          club_name: formData.club_name || null
+          club_name: formData.club_name.trim()  // REQUIRED
         })
       });
       
@@ -455,16 +460,22 @@ export function PlanSelectionModal({ open, onOpenChange, onSuccess, initialIsAnn
             </p>
           </div>
 
-          {/* Club Name (Optional) */}
+          {/* Club Name (REQUIRED) */}
           <div className="space-y-2">
-            <Label htmlFor="club_name">Organization Name (Optional)</Label>
+            <Label htmlFor="club_name">
+              Organization Name <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="club_name"
               placeholder="My Football Club"
               value={formData.club_name}
               onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
               data-testid="signup-club-input"
+              className={formErrors.club_name ? 'border-red-500' : ''}
             />
+            {formErrors.club_name && (
+              <p className="text-sm text-red-500">{formErrors.club_name}</p>
+            )}
           </div>
         </div>
 

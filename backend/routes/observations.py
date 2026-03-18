@@ -126,8 +126,30 @@ async def list_observation_sessions(request: Request):
     """List all observation sessions for the authenticated Coach Developer"""
     user = await require_coach_developer(request)
     
+    # CRITICAL: Get user's organization_id for data isolation
+    org_id = user.organization_id
+    if not org_id:
+        # Try to find organization from ownership
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        org_id = org.get("org_id") if org else None
+    
+    # Build query with organization check for data isolation
+    query = {"observer_id": user.user_id}
+    
+    # If organization_id exists, add it as an additional filter for safety
+    # This prevents cross-organization data leakage even if observer_id somehow matches
+    if org_id:
+        # Also allow sessions from this organization (for backward compatibility)
+        query = {
+            "$or": [
+                {"observer_id": user.user_id, "organization_id": org_id},
+                {"observer_id": user.user_id, "organization_id": {"$exists": False}},  # Legacy sessions
+                {"observer_id": user.user_id, "organization_id": None}  # Legacy sessions
+            ]
+        }
+    
     sessions_cursor = db.observation_sessions.find(
-        {"observer_id": user.user_id},
+        query,
         {"_id": 0}
     ).sort("updated_at", -1)
     
@@ -330,6 +352,12 @@ async def create_observation_session(data: ObservationSessionCreate, request: Re
     
     logger.info(f"Creating/updating observation session: {data.session_id}, status: {data.status}")
     
+    # CRITICAL: Get user's organization_id for data isolation
+    org_id = user.organization_id
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        org_id = org.get("org_id") if org else None
+    
     # Check if session already exists (upsert)
     existing = await db.observation_sessions.find_one({"session_id": data.session_id})
     
@@ -360,6 +388,7 @@ async def create_observation_session(data: ObservationSessionCreate, request: Re
         "name": data.name,
         "coach_id": data.coach_id,
         "observer_id": user.user_id,
+        "organization_id": org_id,  # CRITICAL: Store for data isolation
         "observation_context": data.observation_context,
         "status": data.status,
         "planned_date": data.planned_date,

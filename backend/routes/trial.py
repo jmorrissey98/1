@@ -44,7 +44,7 @@ class StartTrialRequest(BaseModel):
     password: str
     name: str
     tier_key: str  # Which tier to trial
-    club_name: Optional[str] = None
+    club_name: str  # REQUIRED: Organization name for data isolation
     club_logo: Optional[str] = None
 
 

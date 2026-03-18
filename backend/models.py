@@ -105,7 +105,7 @@ class PaidSignupRequest(BaseModel):
     password: str
     name: str
     payment_session_id: str  # Stripe checkout session ID to verify payment
-    club_name: Optional[str] = None
+    club_name: str  # REQUIRED: Organization name for data isolation
     club_logo: Optional[str] = None
 
 class LoginRequest(BaseModel):

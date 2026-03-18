@@ -143,12 +143,19 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
+      // Validate club name is provided
+      if (!signUpClubName?.trim()) {
+        toast.error('Organization name is required');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const result = await safePost(`${API_URL}/api/auth/signup-paid`, {
         email: signUpEmail,
         password: signUpPassword,
         name: signUpName,
         payment_session_id: paymentSessionId,
-        club_name: signUpClubName || null
+        club_name: signUpClubName.trim()
       });
       
       if (result.networkError) {
