@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Badge } from '../components/ui/badge';
-import { ChevronRight, ChevronDown, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check, Play, Target, TrendingUp, Lightbulb, ClipboardCheck, LineChart, UsersRound } from 'lucide-react';
+import { ChevronRight, ChevronDown, Users, BarChart3, FileText, Star, Loader2, Eye, UserCog, Check, Target, TrendingUp, Lightbulb, ClipboardCheck, LineChart, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { PlanSelectionModal } from '../components/PlanSelectionModal';
 
@@ -371,22 +371,20 @@ export default function LandingPage() {
             A short demo showing how coaches gain insight into their coaching and how coach developers support their development.
           </p>
           
-          {/* Video Placeholder Container */}
+          {/* Demo Video */}
           <div className="mt-10 relative mx-auto max-w-3xl">
-            <div 
-              className="relative w-full bg-slate-100 rounded-2xl overflow-hidden shadow-lg"
-              style={{ paddingBottom: '56.25%' }} // 16:9 aspect ratio
-            >
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                {/* Play Button */}
-                <div className="w-20 h-20 rounded-full bg-slate-900/90 flex items-center justify-center mb-4 shadow-xl">
-                  <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
-                </div>
-                {/* Coming Soon Label */}
-                <span className="text-sm font-medium text-slate-500 bg-white/80 px-4 py-2 rounded-full">
-                  Product demo video coming soon
-                </span>
-              </div>
+            <div className="relative w-full rounded-2xl overflow-hidden shadow-lg">
+              <video
+                className="w-full"
+                controls
+                playsInline
+                preload="metadata"
+                poster=""
+                data-testid="demo-video"
+              >
+                <source src="https://customer-assets.emergentagent.com/job_5c2dbe8d-89e2-40da-9303-b969cfc08173/artifacts/tipzrujq_%20.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
         </div>
