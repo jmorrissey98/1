@@ -367,10 +367,6 @@ export default function LandingPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
             See how My Coach Developer works
           </h2>
-          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-            A short demo showing how coaches gain insight into their coaching and how coach developers support their development.
-          </p>
-          
           {/* Demo Video */}
           <div className="mt-10 relative mx-auto max-w-3xl">
             <div className="relative w-full rounded-2xl overflow-hidden shadow-lg">
