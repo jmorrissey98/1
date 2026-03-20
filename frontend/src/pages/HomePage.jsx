@@ -40,9 +40,9 @@ export default function HomePage() {
     try {
       // Try to load from cloud first
       const result = await fetchCloudSessions();
-      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-        // Convert cloud format to local format for display
-        const cloudSessions = result.data.map(s => ({
+      if (result.success) {
+        // Cloud fetch succeeded - use cloud data even if empty (new user = no sessions)
+        const cloudSessions = (Array.isArray(result.data) ? result.data : []).map(s => ({
           id: s.session_id,
           name: s.name,
           coachId: s.coach_id,
@@ -98,7 +98,7 @@ export default function HomePage() {
         setUpcomingObservations(upcoming);
         setSessions(regular);
       } else {
-        // Fall back to localStorage
+        // Cloud fetch FAILED (network error, offline) - fall back to localStorage
         const localSessions = storage.getSessions() || [];
         const sorted = localSessions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
         
