@@ -25,6 +25,9 @@ Migration Fields (stored on subscription documents):
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timezone
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionTier(str, Enum):
