@@ -359,21 +359,21 @@ export default function AdminClubDetails() {
                 {users.map((user) => (
                   <div 
                     key={user.user_id}
-                    className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg"
                     data-testid={`user-item-${user.user_id}`}
                   >
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-10 h-10">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="w-10 h-10 shrink-0">
                         <AvatarFallback className="bg-slate-200 text-slate-600">
                           {user.name?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <h3 className="font-medium text-slate-900">{user.name}</h3>
-                        <p className="text-sm text-slate-500">{user.email}</p>
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-slate-900 truncate">{user.name}</h3>
+                        <p className="text-sm text-slate-500 truncate">{user.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-wrap pl-13 sm:pl-0">
                       <Badge variant={user.role === 'coach_developer' ? 'default' : 'secondary'}>
                         {user.role?.replace('_', ' ')}
                       </Badge>

@@ -679,28 +679,28 @@ export default function AdminDashboard() {
                     data-testid={`org-card-${org.org_id}`}
                   >
                     <CardHeader className={`border-b ${isArchived ? 'bg-slate-100' : 'bg-slate-50'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-12 w-12">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0">
                             <AvatarImage src={org.club_logo} alt={org.name} />
                             <AvatarFallback className={`${isArchived ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
                               {(org.name || org.club_name || 'O')[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              {org.name || org.club_name || 'Unnamed Org'}
+                          <div className="min-w-0">
+                            <CardTitle className="text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                              <span className="truncate">{org.name || org.club_name || 'Unnamed Org'}</span>
                               {isArchived && (
-                                <Badge variant="secondary" className="bg-slate-200 text-slate-600">
+                                <Badge variant="secondary" className="bg-slate-200 text-slate-600 shrink-0">
                                   <Archive className="w-3 h-3 mr-1" />
                                   Archived
                                 </Badge>
                               )}
                             </CardTitle>
-                            <CardDescription>{org.owner_email}</CardDescription>
+                            <CardDescription className="truncate">{org.owner_email}</CardDescription>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {/* Tier Selector */}
                           <Select
                             value={org.subscription_tier || 'coach_developer'}
