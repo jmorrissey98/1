@@ -2485,10 +2485,12 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
     tiers = await db.subscription_tiers.find({}, {"_id": 0}).to_list(100)
     tier_map = {t["tier_id"]: t for t in tiers} if tiers else {}
     
-    # Default tier limits if not in DB
+    # Default tier limits if not in DB (includes both new and legacy keys)
     default_tiers = {
         "individual": {"coaches_limit": 5, "admins_limit": 1, "data_retention_months": 3},
+        "individual_coach": {"coaches_limit": 0, "admins_limit": 1, "data_retention_months": 3},
         "developer": {"coaches_limit": 10, "admins_limit": 1, "data_retention_months": None},
+        "coach_developer": {"coaches_limit": None, "admins_limit": 1, "data_retention_months": None},
         "club": {"coaches_limit": 30, "admins_limit": 5, "data_retention_months": None}
     }
     
@@ -2499,9 +2501,22 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
         owner_id = org.get("owner_id")
         
         # Get owner email
-        owner = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1, "subscription_tier": 1})
+        owner = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1})
         owner_email = owner.get("email") if owner else None
-        subscription_tier = org.get("subscription_tier") or (owner.get("subscription_tier") if owner else None) or "individual"
+        
+        # Get subscription tier from the subscriptions collection (source of truth)
+        subscription = await db.subscriptions.find_one(
+            {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+            {"_id": 0, "current_tier_key": 1, "is_legacy_tier": 1, "legacy_tier_key": 1, "tier_id": 1, "tier": 1}
+        )
+        
+        subscription_tier = None
+        if subscription:
+            subscription_tier = subscription.get("current_tier_key") or subscription.get("tier_id") or subscription.get("tier")
+        
+        # Fallback to org document fields, then default to coach_developer (NOT individual)
+        if not subscription_tier:
+            subscription_tier = org.get("subscription_tier_id") or org.get("subscription_tier") or "coach_developer"
         
         # Count users in this organization
         user_count = await db.users.count_documents({
@@ -2524,7 +2539,7 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
         
         # Calculate effective limits
         custom_limits = org.get("custom_limits", {})
-        tier_limits = tier_map.get(subscription_tier, default_tiers.get(subscription_tier, default_tiers["individual"]))
+        tier_limits = tier_map.get(subscription_tier, default_tiers.get(subscription_tier, default_tiers["coach_developer"]))
         
         effective_coaches_limit = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else tier_limits.get("coaches_limit", 5)
         effective_admins_limit = custom_limits.get("admins_limit") if custom_limits.get("admins_limit") is not None else tier_limits.get("admins_limit", 1)

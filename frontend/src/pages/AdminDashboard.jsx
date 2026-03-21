@@ -703,7 +703,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           {/* Tier Selector */}
                           <Select
-                            value={org.subscription_tier || 'individual'}
+                            value={org.subscription_tier || 'coach_developer'}
                             onValueChange={(value) => handleChangeTier(org.org_id, value)}
                             disabled={isArchived || changingTierOrg === org.org_id}
                           >

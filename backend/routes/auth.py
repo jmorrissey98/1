@@ -512,6 +512,8 @@ async def signup_paid(signup_data: PaidSignupRequest, response: Response):
             "user_id": user_id,
             "tier_id": tier_id,
             "tier": tier_id,  # For backwards compatibility
+            "current_tier_key": tier_id,  # New field for entitlement resolution
+            "is_legacy_tier": False,
             "tier_name": tier_id.capitalize(),
             "status": "active",
             "stripe_customer_id": stripe_customer_id,
