@@ -1465,6 +1465,47 @@ async def require_admin(request: Request) -> User:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+
+@api_router.get("/org/coach-developers")
+async def get_org_coach_developers(request: Request):
+    """Get all coach developers in the same organization as the requesting user"""
+    user = await require_coach_developer(request)
+    
+    org_id = user.organization_id
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
+        org_id = org.get("org_id") if org else None
+    
+    if not org_id:
+        return []
+    
+    # Get org owner
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0, "owner_id": 1})
+    owner_id = org.get("owner_id") if org else None
+    
+    # Find all coach_developer users in this org
+    users_cursor = db.users.find(
+        {"organization_id": org_id, "role": "coach_developer"},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1}
+    )
+    devs = await users_cursor.to_list(50)
+    
+    # Also include org owner if not already in the list
+    if owner_id:
+        owner_ids = [d["user_id"] for d in devs]
+        if owner_id not in owner_ids:
+            owner = await db.users.find_one(
+                {"user_id": owner_id},
+                {"_id": 0, "user_id": 1, "name": 1, "email": 1}
+            )
+            if owner:
+                devs.append(owner)
+    
+    # Sort: current user first, then alphabetical
+    devs.sort(key=lambda d: (0 if d["user_id"] == user.user_id else 1, d.get("name", "")))
+    
+    return devs
+
 # ============================================
 # AUTH API - MOVED TO routes/auth.py
 # ============================================

@@ -122,8 +122,9 @@ class ObservationSessionResponse(BaseModel):
 
 
 @router.get("")
-async def list_observation_sessions(request: Request):
-    """List all observation sessions for the authenticated Coach Developer"""
+async def list_observation_sessions(request: Request, observer_id: str = None):
+    """List all observation sessions for the authenticated Coach Developer.
+    Optionally pass ?observer_id=user_xxx to view another coach developer's sessions in the same org."""
     user = await require_coach_developer(request)
     
     # CRITICAL: Get user's organization_id for data isolation
@@ -133,8 +134,24 @@ async def list_observation_sessions(request: Request):
         org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0})
         org_id = org.get("org_id") if org else None
     
+    # Determine which observer's sessions to load
+    target_observer_id = user.user_id
+    if observer_id and observer_id != user.user_id:
+        # Verify the target observer is in the same organization
+        target_user = await db.users.find_one(
+            {"user_id": observer_id, "organization_id": org_id, "role": "coach_developer"},
+            {"_id": 0, "user_id": 1}
+        )
+        if not target_user and org_id:
+            # Also check if they're the org owner
+            org_doc = await db.organizations.find_one({"org_id": org_id, "owner_id": observer_id}, {"_id": 0})
+            if not org_doc:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=403, detail="Cannot view sessions for users outside your organization")
+        target_observer_id = observer_id
+    
     # Build query with organization check for data isolation
-    query = {"observer_id": user.user_id}
+    query = {"observer_id": target_observer_id}
     
     # If organization_id exists, add it as an additional filter for safety
     # This prevents cross-organization data leakage even if observer_id somehow matches
@@ -142,9 +159,9 @@ async def list_observation_sessions(request: Request):
         # Also allow sessions from this organization (for backward compatibility)
         query = {
             "$or": [
-                {"observer_id": user.user_id, "organization_id": org_id},
-                {"observer_id": user.user_id, "organization_id": {"$exists": False}},  # Legacy sessions
-                {"observer_id": user.user_id, "organization_id": None}  # Legacy sessions
+                {"observer_id": target_observer_id, "organization_id": org_id},
+                {"observer_id": target_observer_id, "organization_id": {"$exists": False}},  # Legacy sessions
+                {"observer_id": target_observer_id, "organization_id": None}  # Legacy sessions
             ]
         }
     

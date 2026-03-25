@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Trash2, FileText, User, LogOut, CalendarClock, Loader2, Cloud, Edit2, Cog } from 'lucide-react';
+import { Plus, Play, Eye, Trash2, FileText, User, LogOut, CalendarClock, Loader2, Cloud, Edit2, Cog, ChevronDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { storage, OBSERVATION_CONTEXTS } from '../lib/storage';
 import { fetchCloudSessions, deleteCloudSession, cloudToLocalSession } from '../lib/cloudSessionService';
 import { formatDate, formatTime } from '../lib/utils';
@@ -22,6 +23,8 @@ export default function HomePage() {
   const [upcomingObservations, setUpcomingObservations] = useState([]);
   const [loadingUpcoming, setLoadingUpcoming] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [coachDevs, setCoachDevs] = useState([]);
+  const [selectedObserverId, setSelectedObserverId] = useState(null);
 
   // Redirect coach users to their view
   useEffect(() => {
@@ -30,16 +33,27 @@ export default function HomePage() {
     }
   }, [user, navigate]);
 
+  // Load coach developers in the org
   useEffect(() => {
-    loadSessions();
-  }, []);
+    if (isCoachDeveloper) {
+      safeGet(`/api/org/coach-developers`).then(res => {
+        if (res.ok && Array.isArray(res.data)) {
+          setCoachDevs(res.data);
+        }
+      });
+    }
+  }, [isCoachDeveloper]);
 
-  const loadSessions = async () => {
+  useEffect(() => {
+    loadSessions(selectedObserverId);
+  }, [selectedObserverId]);
+
+  const loadSessions = async (observerId = null) => {
     setLoadingSessions(true);
     setLoadingUpcoming(true);
     try {
       // Try to load from cloud first
-      const result = await fetchCloudSessions();
+      const result = await fetchCloudSessions(observerId);
       if (result.success) {
         // Cloud fetch succeeded - use cloud data even if empty (new user = no sessions)
         const cloudSessions = (Array.isArray(result.data) ? result.data : []).map(s => ({
@@ -150,8 +164,8 @@ export default function HomePage() {
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
-    await loadSessions();
-  }, []);
+    await loadSessions(selectedObserverId);
+  }, [selectedObserverId]);
 
   return (
     <SwipeablePageWrapper>
@@ -305,9 +319,33 @@ export default function HomePage() {
 
         {/* Sessions List */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900 font-['Manrope']">
-            Your Sessions
-          </h2>
+          <div className="flex items-center gap-3">
+            {coachDevs.length > 1 ? (
+              <Select
+                value={selectedObserverId || user?.user_id || ''}
+                onValueChange={(val) => setSelectedObserverId(val === user?.user_id ? null : val)}
+              >
+                <SelectTrigger className="w-auto h-auto border-0 shadow-none p-0 gap-1.5 focus:ring-0" data-testid="observer-selector">
+                  <span className="text-lg font-semibold text-slate-900 font-['Manrope']">
+                    {selectedObserverId && selectedObserverId !== user?.user_id
+                      ? `${coachDevs.find(d => d.user_id === selectedObserverId)?.name || 'Unknown'}'s Sessions`
+                      : 'Your Sessions'}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {coachDevs.map(dev => (
+                    <SelectItem key={dev.user_id} value={dev.user_id}>
+                      {dev.user_id === user?.user_id ? `Your Sessions` : `${dev.name}'s Sessions`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <h2 className="text-lg font-semibold text-slate-900 font-['Manrope']">
+                Your Sessions
+              </h2>
+            )}
+          </div>
 
           {sessions.length === 0 ? (
             <Card>
@@ -336,7 +374,7 @@ export default function HomePage() {
                       <span>{formatTime(session.totalDuration || 0)} duration</span>
                     </div>
                     <div className="flex gap-2">
-                      {session.status === 'draft' && (
+                      {!selectedObserverId && session.status === 'draft' && (
                         <Button 
                           size="sm" 
                           onClick={() => navigate(`/session/${session.id}/setup`)}
@@ -346,7 +384,7 @@ export default function HomePage() {
                           Setup
                         </Button>
                       )}
-                      {(session.status === 'draft' || session.status === 'active') && (
+                      {!selectedObserverId && (session.status === 'draft' || session.status === 'active') && (
                         <Button 
                           size="sm"
                           className="bg-orange-500 hover:bg-orange-600"
@@ -368,7 +406,7 @@ export default function HomePage() {
                           Review
                         </Button>
                       )}
-                      {session.events?.length > 0 && session.status !== 'completed' && (
+                      {!selectedObserverId && session.events?.length > 0 && session.status !== 'completed' && (
                         <Button 
                           size="sm"
                           variant="outline"
@@ -379,6 +417,7 @@ export default function HomePage() {
                           View Data
                         </Button>
                       )}
+                      {!selectedObserverId && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -404,6 +443,7 @@ export default function HomePage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

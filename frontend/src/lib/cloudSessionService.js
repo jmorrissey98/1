@@ -288,7 +288,7 @@ export const isOnline = () => navigator.onLine;
 /**
  * Fetch all sessions from the cloud
  */
-export const fetchCloudSessions = async () => {
+export const fetchCloudSessions = async (observerId = null) => {
   if (!navigator.onLine) {
     setSyncStatus(SyncStatus.OFFLINE);
     return { success: false, error: 'offline', data: [] };
@@ -297,7 +297,10 @@ export const fetchCloudSessions = async () => {
   setSyncStatus(SyncStatus.SYNCING);
   
   try {
-    const result = await safeGet(`${API_URL}/api/observations`);
+    const url = observerId 
+      ? `${API_URL}/api/observations?observer_id=${encodeURIComponent(observerId)}`
+      : `${API_URL}/api/observations`;
+    const result = await safeGet(url);
     
     if (result.networkError) {
       setSyncStatus(SyncStatus.OFFLINE);
