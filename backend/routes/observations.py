@@ -221,11 +221,25 @@ async def get_observation_session(session_id: str, request: Request):
             {"_id": 0}
         )
     else:
-        # Coach developers can access their own observed sessions
-        session = await db.observation_sessions.find_one(
-            {"session_id": session_id, "observer_id": user.user_id},
-            {"_id": 0}
-        )
+        # Coach developers can access sessions within their organization
+        org_id = user.organization_id
+        if not org_id:
+            org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0, "org_id": 1})
+            org_id = org.get("org_id") if org else None
+        
+        if org_id:
+            session = await db.observation_sessions.find_one(
+                {"session_id": session_id, "$or": [
+                    {"organization_id": org_id},
+                    {"observer_id": user.user_id}  # Also match legacy sessions without org_id
+                ]},
+                {"_id": 0}
+            )
+        else:
+            session = await db.observation_sessions.find_one(
+                {"session_id": session_id, "observer_id": user.user_id},
+                {"_id": 0}
+            )
     
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
