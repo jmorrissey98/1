@@ -510,8 +510,19 @@ async def get_coach_sessions_by_id(coach_id: str, request: Request):
     # Get data retention info for the user
     retention_info = await get_data_retention_info(user.user_id)
     
-    # Build query - filter by date if user has limited retention
+    # Build query - filter by coach AND organization for data isolation
+    org_id = user.organization_id
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0, "org_id": 1})
+        org_id = org.get("org_id") if org else None
+    
     query = {"coach_id": coach_id}
+    if org_id:
+        query["$or"] = [
+            {"organization_id": org_id},
+            {"organization_id": {"$exists": False}},
+            {"organization_id": None}
+        ]
     if retention_info["is_limited"] and retention_info["cutoff_date"]:
         query["created_at"] = {"$gte": retention_info["cutoff_date"].isoformat()}
     
