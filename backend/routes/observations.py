@@ -20,6 +20,46 @@ from dependencies import (
 router = APIRouter(prefix="/observations", tags=["Observations"])
 
 
+async def _get_user_org_id(user):
+    """Get the organization_id for a user, checking user record then org ownership."""
+    org_id = user.organization_id
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0, "org_id": 1})
+        org_id = org.get("org_id") if org else None
+    return org_id
+
+
+async def _find_session_in_org(session_id, user):
+    """Find a session accessible to the user (own session or same org)."""
+    org_id = await _get_user_org_id(user)
+    if org_id:
+        session = await db.observation_sessions.find_one(
+            {"session_id": session_id, "$or": [
+                {"organization_id": org_id},
+                {"observer_id": user.user_id}
+            ]},
+            {"_id": 0}
+        )
+        # Fallback: check if observer is in the same org (legacy sessions without organization_id)
+        if not session:
+            session = await db.observation_sessions.find_one({"session_id": session_id}, {"_id": 0})
+            if session:
+                obs_id = session.get("observer_id")
+                in_org = await db.users.find_one({"user_id": obs_id, "organization_id": org_id}, {"_id": 0, "user_id": 1})
+                if not in_org:
+                    org_doc = await db.organizations.find_one({"org_id": org_id, "owner_id": obs_id}, {"_id": 0})
+                    if not org_doc:
+                        session = None
+        return session
+    else:
+        return await db.observation_sessions.find_one(
+            {"session_id": session_id, "observer_id": user.user_id},
+            {"_id": 0}
+        )
+
+
+
+
 # Request/Response Models
 class SessionListItem(BaseModel):
     session_id: str
@@ -222,24 +262,7 @@ async def get_observation_session(session_id: str, request: Request):
         )
     else:
         # Coach developers can access sessions within their organization
-        org_id = user.organization_id
-        if not org_id:
-            org = await db.organizations.find_one({"owner_id": user.user_id}, {"_id": 0, "org_id": 1})
-            org_id = org.get("org_id") if org else None
-        
-        if org_id:
-            session = await db.observation_sessions.find_one(
-                {"session_id": session_id, "$or": [
-                    {"organization_id": org_id},
-                    {"observer_id": user.user_id}  # Also match legacy sessions without org_id
-                ]},
-                {"_id": 0}
-            )
-        else:
-            session = await db.observation_sessions.find_one(
-                {"session_id": session_id, "observer_id": user.user_id},
-                {"_id": 0}
-            )
+        session = await _find_session_in_org(session_id, user)
     
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -491,10 +514,11 @@ async def update_observation_session(session_id: str, data: ObservationSessionCr
     """Update an existing observation session"""
     user = await require_coach_developer(request)
     
-    # Verify ownership
-    existing = await db.observation_sessions.find_one(
-        {"session_id": session_id, "observer_id": user.user_id}
-    )
+    # Verify access - owner or same organization
+    existing = await _find_session_in_org(session_id, user)
+    # Need _id for update, re-fetch without projection
+    if existing:
+        existing = await db.observation_sessions.find_one({"session_id": session_id})
     
     if not existing:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -598,13 +622,10 @@ class ReflectionSharingUpdate(BaseModel):
 
 @router.put("/{session_id}/observer-reflection-sharing")
 async def update_observer_reflection_sharing(session_id: str, data: ReflectionSharingUpdate, request: Request):
-    """Toggle observer reflection sharing - only coach developers can toggle their own sharing"""
+    """Toggle observer reflection sharing"""
     user = await require_coach_developer(request)
     
-    # Verify ownership
-    existing = await db.observation_sessions.find_one(
-        {"session_id": session_id, "observer_id": user.user_id}
-    )
+    existing = await _find_session_in_org(session_id, user)
     
     if not existing:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -653,10 +674,8 @@ async def save_observer_reflection(session_id: str, data: StructuredReflectionDa
     """Save observer's structured reflection"""
     user = await require_coach_developer(request)
     
-    # Verify ownership
-    existing = await db.observation_sessions.find_one(
-        {"session_id": session_id, "observer_id": user.user_id}
-    )
+    # Any coach developer in the org can save/update the observer reflection
+    existing = await _find_session_in_org(session_id, user)
     
     if not existing:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -718,9 +737,12 @@ async def delete_observation_session(session_id: str, request: Request):
     """Delete an observation session"""
     user = await require_coach_developer(request)
     
-    result = await db.observation_sessions.delete_one(
-        {"session_id": session_id, "observer_id": user.user_id}
-    )
+    # Verify access - any coach developer in the org can delete
+    existing = await _find_session_in_org(session_id, user)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    result = await db.observation_sessions.delete_one({"session_id": session_id})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Session not found")
