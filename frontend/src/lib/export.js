@@ -50,8 +50,23 @@ export const exportToPDF = async (session) => {
 
   // Calculate stats
   const eventCounts = countBy(session.events, 'eventTypeId');
-  const totalTime = session.ballRollingTime + session.ballNotRollingTime;
-  const ballRollingPct = calcPercentage(session.ballRollingTime, totalTime || session.totalDuration);
+  
+  // Calculate ball rolling from session parts (same logic as ReviewSession.jsx)
+  const parts = session.sessionParts || session.session_parts || [];
+  const partsWithBallTime = parts.filter(p => (p.ballRollingTime || 0) > 0 || (p.ballNotRollingTime || 0) > 0);
+  
+  let ballRollingTime, ballNotRollingTime, totalTime;
+  if (partsWithBallTime.length > 0) {
+    ballRollingTime = partsWithBallTime.reduce((sum, p) => sum + (p.ballRollingTime || 0), 0);
+    ballNotRollingTime = partsWithBallTime.reduce((sum, p) => sum + (p.ballNotRollingTime || 0), 0);
+    totalTime = ballRollingTime + ballNotRollingTime;
+  } else {
+    ballRollingTime = session.ballRollingTime || session.ball_rolling_time || 0;
+    ballNotRollingTime = session.ballNotRollingTime || session.ball_not_rolling_time || 0;
+    totalTime = ballRollingTime + ballNotRollingTime;
+  }
+  
+  const ballRollingPct = calcPercentage(ballRollingTime, totalTime || session.totalDuration || session.total_duration);
 
   // Metrics boxes
   const metricsData = [
@@ -91,8 +106,8 @@ export const exportToPDF = async (session) => {
   }
   
   yPos += barHeight + 5;
-  addText(`Rolling: ${formatTime(session.ballRollingTime || 0)}`, 14, yPos, { size: 9, color: '#F97316' });
-  addText(`Stopped: ${formatTime(session.ballNotRollingTime || 0)}`, pageWidth - 14, yPos, { size: 9, color: '#64748B', align: 'right' });
+  addText(`Rolling: ${formatTime(ballRollingTime || 0)}`, 14, yPos, { size: 9, color: '#F97316' });
+  addText(`Stopped: ${formatTime(ballNotRollingTime || 0)}`, pageWidth - 14, yPos, { size: 9, color: '#64748B', align: 'right' });
   yPos += 15;
 
   // Events by Type Table
@@ -341,9 +356,22 @@ export const exportToCSV = (session) => {
   rows.push(['Date', formatDateTime(session.createdAt)]);
   rows.push(['Total Duration (seconds)', session.totalDuration]);
   rows.push(['Total Events', session.events.length]);
-  rows.push(['Ball Rolling Time (seconds)', Math.round(session.ballRollingTime || 0)]);
-  rows.push(['Ball Not Rolling Time (seconds)', Math.round(session.ballNotRollingTime || 0)]);
-  rows.push(['Ball Rolling %', calcPercentage(session.ballRollingTime || 0, session.totalDuration)]);
+  // Calculate ball rolling from parts (consistent with PDF export)
+  const csvParts = session.sessionParts || session.session_parts || [];
+  const csvPartsWithBall = csvParts.filter(p => (p.ballRollingTime || 0) > 0 || (p.ballNotRollingTime || 0) > 0);
+  let csvBallRolling, csvBallNotRolling;
+  if (csvPartsWithBall.length > 0) {
+    csvBallRolling = csvPartsWithBall.reduce((sum, p) => sum + (p.ballRollingTime || 0), 0);
+    csvBallNotRolling = csvPartsWithBall.reduce((sum, p) => sum + (p.ballNotRollingTime || 0), 0);
+  } else {
+    csvBallRolling = session.ballRollingTime || session.ball_rolling_time || 0;
+    csvBallNotRolling = session.ballNotRollingTime || session.ball_not_rolling_time || 0;
+  }
+  const csvBallTotal = csvBallRolling + csvBallNotRolling;
+  
+  rows.push(['Ball Rolling Time (seconds)', Math.round(csvBallRolling)]);
+  rows.push(['Ball Not Rolling Time (seconds)', Math.round(csvBallNotRolling)]);
+  rows.push(['Ball Rolling %', calcPercentage(csvBallRolling, csvBallTotal || session.totalDuration)]);
 
   // Convert to CSV string
   const csvContent = [
