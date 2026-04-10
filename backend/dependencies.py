@@ -35,8 +35,12 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
     """
     # Default tier limits (fallback if DB is empty)
     DEFAULT_TIER_LIMITS = {
+        # Legacy tiers
         "individual": {"coaches": 5, "admins": 1},
         "developer": {"coaches": 10, "admins": 1},
+        # New tiers (mapped from SUBSCRIPTION_TIERS max_coach_developers)
+        "individual_coach": {"coaches": 0, "admins": 1},
+        "coach_developer": {"coaches": 999, "admins": 1},
         "club": {"coaches": 30, "admins": 5}
     }
     
@@ -119,10 +123,19 @@ async def get_subscription_limits(user_id: str) -> Tuple[int, int, str]:
                 )
     
     if subscription:
-        # Apply custom overrides if they exist
-        base_coaches = subscription.get("coaches_limit", DEFAULT_COACHES_LIMIT)
-        base_admins = subscription.get("admins_limit", DEFAULT_ADMINS_LIMIT)
-        tier = subscription.get("tier_id") or subscription.get("tier") or "unknown"
+        # Determine the tier key from the subscription
+        tier = subscription.get("current_tier_key") or subscription.get("tier_id") or subscription.get("tier") or "unknown"
+        
+        # Get limits from the tier config (prefer new SUBSCRIPTION_TIERS, fall back to DB/defaults)
+        tier_defaults = DEFAULT_TIER_LIMITS.get(tier, {})
+        base_coaches = subscription.get("coaches_limit") or tier_defaults.get("coaches", DEFAULT_COACHES_LIMIT)
+        base_admins = subscription.get("admins_limit") or tier_defaults.get("admins", DEFAULT_ADMINS_LIMIT)
+        
+        # Override with new tier config if the stored admins_limit is stale (e.g., legacy 1)
+        if tier in DEFAULT_TIER_LIMITS:
+            base_admins = max(base_admins, DEFAULT_TIER_LIMITS[tier]["admins"])
+            if DEFAULT_TIER_LIMITS[tier]["coaches"] == 999:
+                base_coaches = 999
         
         if custom_limits:
             coaches = custom_limits.get("coaches_limit") if custom_limits.get("coaches_limit") is not None else base_coaches
