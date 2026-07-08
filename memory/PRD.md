@@ -16,6 +16,8 @@ A coaching observation platform (MyCoachDeveloper) for sports coaching developme
 - Coach profiles with analytics (intervention patterns, variety score, ball rolling balance)
 - Admin template system (global/bootstrap defaults for new organizations)
 - Data isolation (organization_id filtering on all queries)
+- Trial Extension for Admins (extend/grant trials from Admin Dashboard)
+- Stripe subscription price auto-sync on admin tier changes and user early migrations
 
 ## Architecture
 - **Frontend**: React (CRA) with Shadcn/UI, Recharts
@@ -28,6 +30,7 @@ A coaching observation platform (MyCoachDeveloper) for sports coaching developme
 - Events `relativeTimestamp` and `ball_rolling_log` entries stored in MILLISECONDS
 - Admin templates (prefix `admin_tpl_`) serve as global defaults for all organizations
 - Session data strictly filtered by `organization_id` for multi-tenancy
+- Stripe subscription modifications filter out demo (`sub_demo_`) and trial (`sub_trial_`) subscription IDs
 
 ## What's Been Implemented (Chronological)
 - Full coaching observation platform with session recording
@@ -41,20 +44,25 @@ A coaching observation platform (MyCoachDeveloper) for sports coaching developme
 - **[March 2026]** Riverside Football Academy demo data seeding (36 sessions, 10 coaches)
 - **[March 2026]** Fixed reflection crash (response type mismatch with template question types)
 - **[March 2026]** Fixed impersonation data leak (localStorage fallback showing stale cross-org sessions)
+- **[July 2026]** Admin Trial Extension feature (extend/grant trials, UI + backend)
+- **[July 2026]** Fixed admin org list missing trial fields in MongoDB projection
+- **[July 2026]** Stripe subscription price auto-update on admin tier change & user early migration
 
 ## Pending Issues
-1. **P1 - Legacy Subscription Tier Bug**: New users assigned to incorrect legacy tiers
-2. **P2 - Production Sync Failure**: Long-standing infrastructure issue
-3. **P2 - Unoptimized DB Queries**: Performance optimization needed
+1. **P2 - Production Sync Failure**: Long-standing infrastructure issue
+2. **P2 - Unoptimized DB Queries**: Performance optimization needed
 
 ## Upcoming Tasks
 1. **P1 - Free Trial Emails**: Implement Trial Started, Expiring Soon, Expired notifications via Resend
 2. **P2 - Refactor ReviewSession.jsx**: Break 3000+ line component into smaller components
 3. **P2 - Full E2E Verification**: Complete platform testing
+4. **P3 - Refactor server.py**: Split admin routes into dedicated route files (6300+ lines)
 
 ## Key Files
 - `/app/backend/routes/observations.py` - Session CRUD with org_id filtering
-- `/app/backend/server.py` - Main backend with admin endpoints
+- `/app/backend/routes/subscriptions.py` - Stripe tier management, early migration with Stripe sync
+- `/app/backend/server.py` - Main backend with admin endpoints (trial extension, tier changes with Stripe sync)
+- `/app/frontend/src/pages/AdminDashboard.jsx` - Admin dashboard with trial extension UI
 - `/app/frontend/src/pages/HomePage.jsx` - Session list (fixed localStorage fallback)
 - `/app/frontend/src/pages/ReviewSession.jsx` - Session review (3000+ lines, needs refactor)
 - `/app/backend/scripts/seed_riverside_demo.py` - Demo data seed script
