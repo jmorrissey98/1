@@ -245,6 +245,10 @@ class AdminOrganizationListItem(BaseModel):
     effective_admins_limit: Optional[int] = None
     effective_data_retention_months: Optional[int] = None
     has_custom_limits: bool = False
+    # Trial info
+    is_trial: bool = False
+    trial_end_date: Optional[str] = None
+    subscription_status: Optional[str] = None
 
 class Invite(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -2603,7 +2607,10 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
             effective_coaches_limit=effective_coaches_limit,
             effective_admins_limit=effective_admins_limit,
             effective_data_retention_months=effective_data_retention,
-            has_custom_limits=has_custom_limits
+            has_custom_limits=has_custom_limits,
+            is_trial=bool(subscription and subscription.get("is_trial")),
+            trial_end_date=subscription.get("trial_end_date") if subscription else None,
+            subscription_status=subscription.get("subscription_status") or subscription.get("status") if subscription else None
         ))
     
     return result
@@ -3909,6 +3916,77 @@ async def admin_update_org_tier(org_id: str, request: Request):
         "org_id": org_id,
         "new_tier": new_tier,
         "is_legacy_tier": is_legacy_tier
+    }
+
+
+
+@api_router.post("/admin/organizations/{org_id}/extend-trial")
+async def admin_extend_trial(org_id: str, request: Request):
+    """Extend or restart a trial for an organization (Admin only).
+    Accepts { "days": 14 } to extend by that many days from now."""
+    await require_admin(request)
+    
+    org = await db.organizations.find_one({"org_id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    body = await request.json()
+    days = body.get("days")
+    if not days or not isinstance(days, (int, float)) or days < 1:
+        raise HTTPException(status_code=400, detail="days is required and must be a positive number")
+    
+    now = datetime.now(timezone.utc)
+    new_trial_end = now + timedelta(days=int(days))
+    
+    subscription = await db.subscriptions.find_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"_id": 0}
+    )
+    
+    if subscription:
+        update_fields = {
+            "is_trial": True,
+            "status": "trialing",
+            "subscription_status": "trial_active",
+            "trial_end_date": new_trial_end.isoformat(),
+            "updated_at": now.isoformat(),
+            "trial_extended_by": "admin",
+            "trial_extended_at": now.isoformat(),
+        }
+        # If trial was never started (e.g. paid user), set a trial start
+        if not subscription.get("trial_start_date"):
+            update_fields["trial_start_date"] = now.isoformat()
+        
+        await db.subscriptions.update_one(
+            {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+            {"$set": update_fields}
+        )
+    else:
+        # No subscription exists - create a trial one
+        tier_key = "coach_developer"
+        await db.subscriptions.insert_one({
+            "subscription_id": f"sub_trial_{uuid.uuid4().hex[:12]}",
+            "org_id": org_id,
+            "organization_id": org_id,
+            "user_id": org.get("owner_id"),
+            "is_trial": True,
+            "trial_start_date": now.isoformat(),
+            "trial_end_date": new_trial_end.isoformat(),
+            "trial_tier_key": tier_key,
+            "status": "trialing",
+            "subscription_status": "trial_active",
+            "current_tier_key": tier_key,
+            "is_legacy_tier": False,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
+            "trial_extended_by": "admin",
+        })
+    
+    return {
+        "message": f"Trial extended by {int(days)} days",
+        "org_id": org_id,
+        "new_trial_end": new_trial_end.isoformat(),
+        "days_remaining": int(days)
     }
 
 

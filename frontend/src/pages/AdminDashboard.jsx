@@ -120,6 +120,11 @@ export default function AdminDashboard() {
   const [loadingMigration, setLoadingMigration] = useState(false);
   const [applyingBulkMigration, setApplyingBulkMigration] = useState(false);
   const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'legacy', 'new'
+  
+  // Trial extension state
+  const [extendingTrialOrg, setExtendingTrialOrg] = useState(null);
+  const [trialDays, setTrialDays] = useState(14);
+  const [savingTrialExtension, setSavingTrialExtension] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -407,6 +412,29 @@ export default function AdminDashboard() {
       data_retention_months: tier.data_retention_months
     });
   };
+
+  // Extend trial for an organization
+  const handleExtendTrial = async (orgId) => {
+    setSavingTrialExtension(true);
+    try {
+      const result = await safePost(`${API_URL}/api/admin/organizations/${orgId}/extend-trial`, {
+        days: trialDays
+      });
+      if (result.ok) {
+        toast.success(`Trial extended by ${trialDays} days`);
+        setExtendingTrialOrg(null);
+        setTrialDays(14);
+        fetchData(); // Refresh org list
+      } else {
+        toast.error(result.data?.detail || 'Failed to extend trial');
+      }
+    } catch (e) {
+      toast.error('Failed to extend trial');
+    } finally {
+      setSavingTrialExtension(false);
+    }
+  };
+
 
   // Save tier changes
   const saveTierChanges = async (tierId) => {
@@ -777,6 +805,117 @@ export default function AdminDashboard() {
                           {org.effective_data_retention_months ? `${org.effective_data_retention_months}mo data` : 'Unlimited data'}
                         </Badge>
                       </div>
+                      
+                      {/* Trial Status & Extension */}
+                      {(org.is_trial || org.subscription_status === 'trial_active' || org.subscription_status === 'trial_expired') && (
+                        <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                          <Badge 
+                            variant="outline" 
+                            className={org.trial_end_date && new Date(org.trial_end_date) > new Date() 
+                              ? 'border-emerald-300 text-emerald-700 bg-emerald-50' 
+                              : 'border-red-300 text-red-700 bg-red-50'}
+                          >
+                            <Clock className="w-3 h-3 mr-1" />
+                            {org.trial_end_date && new Date(org.trial_end_date) > new Date()
+                              ? `Trial: ${Math.ceil((new Date(org.trial_end_date) - new Date()) / (1000*60*60*24))} days left`
+                              : 'Trial expired'}
+                          </Badge>
+                          {org.trial_end_date && (
+                            <span className="text-xs text-slate-500">
+                              Ends {new Date(org.trial_end_date).toLocaleDateString()}
+                            </span>
+                          )}
+                          
+                          {extendingTrialOrg === org.org_id ? (
+                            <div className="flex items-center gap-2 ml-auto">
+                              <Input
+                                type="number"
+                                min="1"
+                                max="365"
+                                value={trialDays}
+                                onChange={(e) => setTrialDays(parseInt(e.target.value) || 14)}
+                                className="w-20 h-8 text-sm"
+                                data-testid={`trial-days-${org.org_id}`}
+                              />
+                              <span className="text-xs text-slate-500">days</span>
+                              <Button
+                                size="sm"
+                                onClick={() => handleExtendTrial(org.org_id)}
+                                disabled={savingTrialExtension}
+                                className="h-8"
+                                data-testid={`confirm-extend-trial-${org.org_id}`}
+                              >
+                                {savingTrialExtension ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => { setExtendingTrialOrg(null); setTrialDays(14); }}
+                                className="h-8"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="ml-auto h-7 text-xs"
+                              onClick={() => { setExtendingTrialOrg(org.org_id); setTrialDays(14); }}
+                              data-testid={`extend-trial-${org.org_id}`}
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              Extend Trial
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Non-trial orgs - show extend trial option too */}
+                      {!org.is_trial && org.subscription_status !== 'trial_active' && org.subscription_status !== 'trial_expired' && !isArchived && (
+                        extendingTrialOrg === org.org_id ? (
+                          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                            <span className="text-xs text-slate-600 font-medium">Start trial for</span>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="365"
+                              value={trialDays}
+                              onChange={(e) => setTrialDays(parseInt(e.target.value) || 14)}
+                              className="w-20 h-8 text-sm"
+                            />
+                            <span className="text-xs text-slate-500">days</span>
+                            <Button
+                              size="sm"
+                              onClick={() => handleExtendTrial(org.org_id)}
+                              disabled={savingTrialExtension}
+                              className="h-8"
+                            >
+                              {savingTrialExtension ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Start'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { setExtendingTrialOrg(null); setTrialDays(14); }}
+                              className="h-8"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="mb-4">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs text-slate-500"
+                              onClick={() => { setExtendingTrialOrg(org.org_id); setTrialDays(14); }}
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              Grant Trial Extension
+                            </Button>
+                          </div>
+                        )
+                      )}
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div>
