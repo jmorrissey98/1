@@ -2552,7 +2552,7 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
         # Get subscription tier from the subscriptions collection (source of truth)
         subscription = await db.subscriptions.find_one(
             {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
-            {"_id": 0, "current_tier_key": 1, "is_legacy_tier": 1, "legacy_tier_key": 1, "tier_id": 1, "tier": 1}
+            {"_id": 0, "current_tier_key": 1, "is_legacy_tier": 1, "legacy_tier_key": 1, "tier_id": 1, "tier": 1, "is_trial": 1, "trial_end_date": 1, "subscription_status": 1, "status": 1}
         )
         
         subscription_tier = None
@@ -3911,11 +3911,44 @@ async def admin_update_org_tier(org_id: str, request: Request):
             {"$set": {"subscription_tier": new_tier}}
         )
     
+    # Update Stripe subscription price if there's an active Stripe subscription
+    stripe_updated = False
+    stripe_error = None
+    if existing_sub and new_tier in STRIPE_PRODUCTS:
+        stripe_sub_id = existing_sub.get("subscription_id", "")
+        if stripe_sub_id and stripe_sub_id.startswith("sub_") and not stripe_sub_id.startswith("sub_trial_") and not stripe_sub_id.startswith("sub_demo_"):
+            billing_period = existing_sub.get("billing_period", "monthly")
+            new_price_id = STRIPE_PRODUCTS[new_tier]["prices"].get(billing_period, {}).get("price_id")
+            if new_price_id:
+                try:
+                    stripe_sub = stripe.Subscription.retrieve(stripe_sub_id)
+                    if stripe_sub.get("items") and stripe_sub["items"].get("data"):
+                        subscription_item_id = stripe_sub["items"]["data"][0]["id"]
+                        stripe.Subscription.modify(
+                            stripe_sub_id,
+                            items=[{
+                                "id": subscription_item_id,
+                                "price": new_price_id
+                            }],
+                            proration_behavior="create_prorations"
+                        )
+                        await db.subscriptions.update_one(
+                            {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+                            {"$set": {"price_id": new_price_id, "billing_period": billing_period}}
+                        )
+                        stripe_updated = True
+                        logger.info(f"Admin tier change: Updated Stripe subscription {stripe_sub_id} to price {new_price_id} for org {org_id}")
+                except Exception as e:
+                    stripe_error = str(e)
+                    logger.error(f"Admin tier change: Failed to update Stripe subscription for org {org_id}: {e}")
+    
     return {
         "message": f"Organization tier updated to {new_tier}",
         "org_id": org_id,
         "new_tier": new_tier,
-        "is_legacy_tier": is_legacy_tier
+        "is_legacy_tier": is_legacy_tier,
+        "stripe_updated": stripe_updated,
+        "stripe_error": stripe_error
     }
 
 

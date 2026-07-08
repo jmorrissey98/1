@@ -9,9 +9,13 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 import logging
+import os
+import stripe
 
 import sys
 sys.path.insert(0, '/app/backend')
+
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
 from database import db, logger
 from dependencies import require_auth, require_coach_developer, require_admin
@@ -1021,13 +1025,44 @@ async def migrate_early(data: EarlyMigrationRequest, request: Request):
         
         new_tier_config = SUBSCRIPTION_TIERS.get(target_tier, {})
         
+        # Update Stripe subscription price if there's an active Stripe subscription
+        stripe_updated = False
+        stripe_sub_id = subscription.get("subscription_id", "")
+        if stripe_sub_id and stripe_sub_id.startswith("sub_") and not stripe_sub_id.startswith("sub_trial_") and not stripe_sub_id.startswith("sub_demo_"):
+            try:
+                from server import STRIPE_PRODUCTS
+                billing_period = subscription.get("billing_period", "monthly")
+                new_price_config = STRIPE_PRODUCTS.get(target_tier, {}).get("prices", {}).get(billing_period, {})
+                new_price_id = new_price_config.get("price_id")
+                if new_price_id:
+                    stripe_sub = stripe.Subscription.retrieve(stripe_sub_id)
+                    if stripe_sub.get("items") and stripe_sub["items"].get("data"):
+                        subscription_item_id = stripe_sub["items"]["data"][0]["id"]
+                        stripe.Subscription.modify(
+                            stripe_sub_id,
+                            items=[{
+                                "id": subscription_item_id,
+                                "price": new_price_id
+                            }],
+                            proration_behavior="create_prorations"
+                        )
+                        await db.subscriptions.update_one(
+                            {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+                            {"$set": {"price_id": new_price_id, "billing_period": billing_period}}
+                        )
+                        stripe_updated = True
+                        logger.info(f"Early migration: Updated Stripe subscription {stripe_sub_id} to price {new_price_id} for org {org_id}")
+            except Exception as e:
+                logger.error(f"Early migration: Failed to update Stripe subscription for org {org_id}: {e}")
+        
         return {
             "success": True,
             "message": f"Successfully migrated to {new_tier_config.get('name', target_tier)}",
             "old_tier": old_tier,
             "new_tier": target_tier,
             "new_tier_name": new_tier_config.get("name"),
-            "new_limits": new_tier_config.get("limits", {})
+            "new_limits": new_tier_config.get("limits", {}),
+            "stripe_updated": stripe_updated
         }
     else:
         return {

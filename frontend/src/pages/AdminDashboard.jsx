@@ -388,7 +388,14 @@ export default function AdminDashboard() {
     try {
       const result = await safePut(`${API_URL}/api/admin/organizations/${orgId}/tier`, { tier_id: newTier });
       if (result.ok) {
-        toast.success(`Subscription tier changed to ${newTier}`);
+        const msg = `Subscription tier changed to ${newTier}`;
+        if (result.data?.stripe_updated) {
+          toast.success(`${msg} (Stripe billing updated)`);
+        } else if (result.data?.stripe_error) {
+          toast.warning(`${msg} — Stripe billing NOT updated: ${result.data.stripe_error}`);
+        } else {
+          toast.success(msg);
+        }
         loadData();
       } else {
         toast.error(result.data?.detail || 'Failed to change tier');
@@ -424,7 +431,7 @@ export default function AdminDashboard() {
         toast.success(`Trial extended by ${trialDays} days`);
         setExtendingTrialOrg(null);
         setTrialDays(14);
-        fetchData(); // Refresh org list
+        loadData(); // Refresh org list
       } else {
         toast.error(result.data?.detail || 'Failed to extend trial');
       }

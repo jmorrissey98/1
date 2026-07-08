@@ -1,0 +1,89 @@
+{
+  "summary": "Trial Extension and Tier Change Features - All tests passed. Backend APIs (12/12 tests) and Frontend UI verified working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "trial_extension_api": {
+      "status": "PASS",
+      "details": "POST /api/admin/organizations/{org_id}/extend-trial correctly accepts {days: N} and returns new_trial_end, days_remaining, message, org_id"
+    },
+    "trial_extension_validation": {
+      "status": "PASS",
+      "details": "API correctly rejects invalid days (0, negative, missing) with 400 status"
+    },
+    "trial_extension_auth": {
+      "status": "PASS",
+      "details": "API correctly requires admin authentication (401 for unauthenticated)"
+    },
+    "tier_change_api": {
+      "status": "PASS",
+      "details": "PUT /api/admin/organizations/{org_id}/tier correctly updates tier and returns stripe_updated, stripe_error fields"
+    },
+    "tier_change_demo_org": {
+      "status": "PASS",
+      "details": "Demo orgs (sub_demo_ prefix) correctly skip Stripe updates - stripe_updated=false, stripe_error=null"
+    },
+    "tier_change_validation": {
+      "status": "PASS",
+      "details": "API correctly rejects invalid tier_id and missing tier_id with 400 status"
+    },
+    "admin_org_list_trial_fields": {
+      "status": "PASS",
+      "details": "GET /api/admin/organizations includes is_trial, trial_end_date, subscription_status fields"
+    },
+    "frontend_trial_badge": {
+      "status": "PASS",
+      "details": "Trial orgs show 'Trial: X days left' badge with end date"
+    },
+    "frontend_extend_trial_button": {
+      "status": "PASS",
+      "details": "Clicking 'Extend Trial' reveals days input and confirm/cancel buttons"
+    },
+    "frontend_extend_trial_flow": {
+      "status": "PASS",
+      "details": "Confirming trial extension calls API, shows success toast, and refreshes org card with updated trial info"
+    },
+    "frontend_grant_trial_extension": {
+      "status": "PASS",
+      "details": "Non-trial orgs show 'Grant Trial Extension' button that reveals 'Start trial for X days' form"
+    },
+    "frontend_tier_dropdown": {
+      "status": "PASS",
+      "details": "Tier dropdown shows all tier options (Individual Coach, Coach Developer, Club, legacy tiers) and changes tier on selection"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_trial_extension_and_tier_change.py",
+    "/app/test_reports/pytest/trial_extension_tier_change_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Trial extension and tier change implementations are well-structured with proper validation",
+    "MongoDB projection on line 2555 correctly includes trial-related fields (is_trial, trial_end_date, subscription_status)",
+    "Stripe sync correctly filters out demo (sub_demo_) and trial (sub_trial_) subscription IDs",
+    "Frontend handleExtendTrial correctly calls loadData() to refresh org list after extension"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_trial_extension_and_tier_change.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (all UI flows verified)"
+  },
+  "test_credentials": {
+    "admin_email": "hello@mycoachdeveloper.com",
+    "admin_password": "_mcDeveloper26!",
+    "demo_org_id": "org_demo_0725dd5e668a"
+  },
+  "seed_data_creation": "None - used existing demo org (Riverside Football Academy)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Trial extension feature fully working. Demo org (org_demo_0725dd5e668a - Riverside Football Academy) now has 21 days trial remaining (ends 7/29/2026). QPR Academy is a non-trial org that can be used to test 'Grant Trial Extension' flow. All tier change and Stripe sync features verified working."
+}
