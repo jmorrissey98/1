@@ -4032,6 +4032,219 @@ async def admin_extend_trial(org_id: str, request: Request):
     }
 
 
+@api_router.post("/admin/subscription/diagnose-repair")
+async def admin_diagnose_repair_subscription(request: Request):
+    """
+    Admin endpoint to diagnose and repair subscription issues.
+    Looks up a user by email, checks their org's subscription state,
+    queries Stripe for active subscriptions, and reconciles if needed.
+    
+    Accepts: { "email": "user@example.com", "repair": true/false }
+    """
+    await require_admin(request)
+    
+    body = await request.json()
+    email = body.get("email")
+    do_repair = body.get("repair", False)
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+    
+    # Step 1: Find the user
+    user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail=f"User not found: {email}")
+    
+    user_id = user_doc.get("user_id")
+    org_id = user_doc.get("organization_id")
+    
+    # Check if user owns an organization
+    if not org_id:
+        org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
+        if org:
+            org_id = org.get("org_id")
+    
+    if not org_id:
+        return {"error": "User has no organization", "user_id": user_id}
+    
+    # Step 2: Find ALL subscription docs for this org
+    all_subs = await db.subscriptions.find(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
+        {"_id": 0}
+    ).to_list(20)
+    
+    diagnosis = {
+        "user_email": email,
+        "user_id": user_id,
+        "org_id": org_id,
+        "local_subscriptions": [],
+        "stripe_subscriptions": [],
+        "issues_found": [],
+        "repairs_made": []
+    }
+    
+    for sub in all_subs:
+        diagnosis["local_subscriptions"].append({
+            "subscription_id": sub.get("subscription_id"),
+            "status": sub.get("status"),
+            "is_trial": sub.get("is_trial"),
+            "trial_end_date": sub.get("trial_end_date"),
+            "tier_id": sub.get("tier_id") or sub.get("current_tier_key"),
+            "customer_id": sub.get("customer_id"),
+            "current_period_end": sub.get("current_period_end"),
+            "subscription_status": sub.get("subscription_status"),
+        })
+    
+    # Step 3: Find Stripe customer ID from various sources
+    customer_id = user_doc.get("stripe_customer_id")
+    if not customer_id:
+        for sub in all_subs:
+            if sub.get("customer_id"):
+                customer_id = sub.get("customer_id")
+                break
+    if not customer_id:
+        transaction = await db.payment_transactions.find_one(
+            {"$or": [{"user_id": user_id}, {"metadata.user_id": user_id}], "customer_id": {"$exists": True, "$ne": None}},
+            {"_id": 0},
+            sort=[("created_at", -1)]
+        )
+        if transaction:
+            customer_id = transaction.get("customer_id")
+    
+    # Also check payment_transactions for this org
+    if not customer_id:
+        transaction = await db.payment_transactions.find_one(
+            {"metadata.organization_id": org_id, "customer_id": {"$exists": True, "$ne": None}},
+            {"_id": 0},
+            sort=[("created_at", -1)]
+        )
+        if transaction:
+            customer_id = transaction.get("customer_id")
+    
+    diagnosis["stripe_customer_id"] = customer_id
+    
+    # Step 4: Query Stripe for active subscriptions
+    if customer_id:
+        try:
+            import stripe as stripe_mod
+            stripe_mod.api_key = os.environ.get("STRIPE_SECRET_KEY")
+            stripe_subs = stripe_mod.Subscription.list(customer=customer_id, status="active", limit=10)
+            
+            for ss in stripe_subs.data:
+                items = ss.get("items", {}).get("data", [])
+                price_id = items[0].get("price", {}).get("id") if items else None
+                
+                diagnosis["stripe_subscriptions"].append({
+                    "id": ss.id,
+                    "status": ss.status,
+                    "price_id": price_id,
+                    "current_period_start": datetime.fromtimestamp(ss.current_period_start, timezone.utc).isoformat() if ss.current_period_start else None,
+                    "current_period_end": datetime.fromtimestamp(ss.current_period_end, timezone.utc).isoformat() if ss.current_period_end else None,
+                    "cancel_at_period_end": ss.cancel_at_period_end,
+                })
+                
+                # Check if this Stripe subscription exists in our DB
+                local_match = None
+                for sub in all_subs:
+                    if sub.get("subscription_id") == ss.id:
+                        local_match = sub
+                        break
+                
+                if not local_match:
+                    diagnosis["issues_found"].append(f"Active Stripe subscription {ss.id} not found in local DB")
+                    
+                    if do_repair:
+                        # Determine tier from price_id
+                        tier_id = "coach_developer"  # Default
+                        billing_period = "monthly"
+                        for tk, tp in STRIPE_PRODUCTS.items():
+                            for bp in ["monthly", "annual"]:
+                                if tp["prices"].get(bp, {}).get("price_id") == price_id:
+                                    tier_id = tk
+                                    billing_period = bp
+                                    break
+                        
+                        now = datetime.now(timezone.utc)
+                        new_sub = {
+                            "subscription_id": ss.id,
+                            "customer_id": customer_id,
+                            "org_id": org_id,
+                            "organization_id": org_id,
+                            "user_id": user_id,
+                            "status": ss.status,
+                            "tier_id": tier_id,
+                            "current_tier_key": tier_id,
+                            "tier_name": STRIPE_PRODUCTS.get(tier_id, {}).get("name", tier_id),
+                            "price_id": price_id,
+                            "billing_period": billing_period,
+                            "is_trial": False,
+                            "is_legacy_tier": False,
+                            "current_period_start": datetime.fromtimestamp(ss.current_period_start, timezone.utc).isoformat(),
+                            "current_period_end": datetime.fromtimestamp(ss.current_period_end, timezone.utc).isoformat(),
+                            "cancel_at_period_end": ss.cancel_at_period_end,
+                            "created_at": now.isoformat(),
+                            "updated_at": now.isoformat(),
+                            "repaired_by": "admin_diagnose_repair"
+                        }
+                        
+                        await db.subscriptions.update_one(
+                            {"subscription_id": ss.id},
+                            {"$set": new_sub},
+                            upsert=True
+                        )
+                        diagnosis["repairs_made"].append(f"Created/updated local subscription record for Stripe sub {ss.id} (tier={tier_id}, period={billing_period})")
+                        
+                        # Also clean up old trial subscriptions
+                        result = await db.subscriptions.update_many(
+                            {
+                                "$or": [{"organization_id": org_id}, {"org_id": org_id}],
+                                "subscription_id": {"$ne": ss.id},
+                                "is_trial": True
+                            },
+                            {"$set": {"is_trial": False, "subscription_status": "superseded_by_paid", "updated_at": now.isoformat()}}
+                        )
+                        if result.modified_count > 0:
+                            diagnosis["repairs_made"].append(f"Marked {result.modified_count} old trial subscription(s) as superseded")
+                        
+                        logger.info(f"Admin repair: Created subscription record for {ss.id}, org {org_id}, user {email}")
+            
+            # Also check for non-active but recent subscriptions
+            all_stripe_subs = stripe_mod.Subscription.list(customer=customer_id, limit=10)
+            for ss in all_stripe_subs.data:
+                if ss.status != "active" and not any(d["id"] == ss.id for d in diagnosis["stripe_subscriptions"]):
+                    items = ss.get("items", {}).get("data", [])
+                    price_id = items[0].get("price", {}).get("id") if items else None
+                    diagnosis["stripe_subscriptions"].append({
+                        "id": ss.id,
+                        "status": ss.status,
+                        "price_id": price_id,
+                        "current_period_end": datetime.fromtimestamp(ss.current_period_end, timezone.utc).isoformat() if ss.current_period_end else None,
+                    })
+                    
+        except Exception as e:
+            diagnosis["stripe_error"] = str(e)
+    else:
+        diagnosis["issues_found"].append("No Stripe customer_id found for this user/org")
+    
+    # Check for common issues
+    has_active_local = any(
+        not sub.get("is_trial") and sub.get("status") in ["active", "trialing"]
+        for sub in all_subs
+    )
+    has_expired_trial = any(
+        sub.get("is_trial") and sub.get("trial_end_date")
+        for sub in all_subs
+    )
+    
+    if has_expired_trial and not has_active_local and diagnosis["stripe_subscriptions"]:
+        diagnosis["issues_found"].append("Has active Stripe subscription but no matching active local subscription record - this causes 'trial expired' display")
+    
+    if not diagnosis["issues_found"]:
+        diagnosis["issues_found"].append("No issues detected")
+    
+    return diagnosis
+
+
 # ============================================
 # END ADMIN API ENDPOINTS
 # ============================================

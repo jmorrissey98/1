@@ -126,6 +126,11 @@ export default function AdminDashboard() {
   const [trialDays, setTrialDays] = useState(14);
   const [savingTrialExtension, setSavingTrialExtension] = useState(false);
 
+  // Subscription repair state
+  const [repairEmail, setRepairEmail] = useState('');
+  const [repairLoading, setRepairLoading] = useState(false);
+  const [repairResult, setRepairResult] = useState(null);
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -442,6 +447,36 @@ export default function AdminDashboard() {
     }
   };
 
+  // Diagnose and repair subscription
+  const handleRepairSubscription = async (doRepair = false) => {
+    if (!repairEmail.trim()) {
+      toast.error('Please enter a user email');
+      return;
+    }
+    setRepairLoading(true);
+    setRepairResult(null);
+    try {
+      const result = await safePost(`${API_URL}/api/admin/subscription/diagnose-repair`, {
+        email: repairEmail.trim(),
+        repair: doRepair
+      });
+      if (result.ok) {
+        setRepairResult(result.data);
+        if (doRepair && result.data.repairs_made?.length > 0) {
+          toast.success(`Repaired ${result.data.repairs_made.length} issue(s)`);
+          loadData();
+        } else if (doRepair) {
+          toast.info('No repairs needed');
+        }
+      } else {
+        toast.error(result.data?.detail || 'Diagnosis failed');
+      }
+    } catch (e) {
+      toast.error('Failed to diagnose subscription');
+    } finally {
+      setRepairLoading(false);
+    }
+  };
 
   // Save tier changes
   const saveTierChanges = async (tierId) => {
@@ -1386,7 +1421,7 @@ export default function AdminDashboard() {
                         <li>User account</li>
                         <li>Coach profile(s)</li>
                         <li>Pending invites</li>
-                        <li>User's reflections</li>
+                        <li>User&apos;s reflections</li>
                       </ul>
                     </div>
                   </div>
@@ -1415,6 +1450,114 @@ export default function AdminDashboard() {
                     </div>
                     {cleanupResult.note && (
                       <p className="mt-2 text-sm text-green-600">{cleanupResult.note}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Subscription Diagnose & Repair */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-500" />
+                  Subscription Diagnose & Repair
+                </CardTitle>
+                <CardDescription>
+                  Check a user&apos;s subscription state and sync with Stripe. Use when a user shows &ldquo;trial expired&rdquo; despite having an active subscription.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Input
+                      type="email"
+                      placeholder="Enter user email to diagnose..."
+                      value={repairEmail}
+                      onChange={(e) => setRepairEmail(e.target.value)}
+                      data-testid="repair-email-input"
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => handleRepairSubscription(false)}
+                    disabled={repairLoading || !repairEmail.trim()}
+                    variant="outline"
+                    data-testid="diagnose-btn"
+                  >
+                    {repairLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4 mr-2" />
+                    )}
+                    Diagnose
+                  </Button>
+                  <Button 
+                    onClick={() => handleRepairSubscription(true)}
+                    disabled={repairLoading || !repairEmail.trim()}
+                    data-testid="repair-btn"
+                  >
+                    {repairLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                    )}
+                    Diagnose & Repair
+                  </Button>
+                </div>
+
+                {repairResult && (
+                  <div className="space-y-3">
+                    <div className="p-4 bg-slate-50 rounded-lg border">
+                      <h4 className="font-medium text-slate-900 mb-2">Diagnosis for {repairResult.user_email}</h4>
+                      <div className="grid grid-cols-2 gap-1 text-sm mb-3">
+                        <span className="text-slate-600">Org ID:</span>
+                        <span className="font-mono text-xs">{repairResult.org_id}</span>
+                        <span className="text-slate-600">Stripe Customer:</span>
+                        <span className="font-mono text-xs">{repairResult.stripe_customer_id || 'None'}</span>
+                      </div>
+
+                      <h5 className="font-medium text-slate-800 text-sm mb-1">Local Subscriptions ({repairResult.local_subscriptions?.length || 0})</h5>
+                      {repairResult.local_subscriptions?.map((sub, i) => (
+                        <div key={i} className={`p-2 mb-1 rounded text-xs ${sub.is_trial ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+                          <span className="font-mono">{sub.subscription_id?.substring(0, 25)}</span>
+                          {' — '}
+                          <Badge variant="outline" className="text-xs">{sub.status}</Badge>
+                          {sub.is_trial && <Badge variant="outline" className="ml-1 text-xs border-amber-300 text-amber-700">Trial</Badge>}
+                          {' '}<span className="text-slate-500">tier: {sub.tier_id}</span>
+                        </div>
+                      ))}
+
+                      <h5 className="font-medium text-slate-800 text-sm mt-3 mb-1">Stripe Subscriptions ({repairResult.stripe_subscriptions?.length || 0})</h5>
+                      {repairResult.stripe_subscriptions?.length > 0 ? repairResult.stripe_subscriptions.map((sub, i) => (
+                        <div key={i} className="p-2 mb-1 rounded text-xs bg-blue-50 border border-blue-200">
+                          <span className="font-mono">{sub.id}</span>
+                          {' — '}
+                          <Badge variant="outline" className="text-xs">{sub.status}</Badge>
+                          {sub.current_period_end && <span className="text-slate-500 ml-2">ends: {new Date(sub.current_period_end).toLocaleDateString()}</span>}
+                        </div>
+                      )) : <p className="text-xs text-slate-500">No Stripe subscriptions found</p>}
+
+                      {repairResult.stripe_error && (
+                        <p className="text-xs text-red-600 mt-2">Stripe error: {repairResult.stripe_error}</p>
+                      )}
+                    </div>
+
+                    {repairResult.issues_found?.length > 0 && (
+                      <div className={`p-3 rounded-lg border ${repairResult.issues_found[0] === 'No issues detected' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                        <h5 className="font-medium text-sm mb-1">Issues</h5>
+                        {repairResult.issues_found.map((issue, i) => (
+                          <p key={i} className="text-xs">{issue}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    {repairResult.repairs_made?.length > 0 && (
+                      <div className="p-3 rounded-lg border bg-emerald-50 border-emerald-200">
+                        <h5 className="font-medium text-sm mb-1 text-emerald-800">Repairs Made</h5>
+                        {repairResult.repairs_made.map((repair, i) => (
+                          <p key={i} className="text-xs text-emerald-700">{repair}</p>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
