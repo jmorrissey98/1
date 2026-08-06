@@ -4039,26 +4039,34 @@ async def admin_diagnose_repair_subscription(request: Request):
     Looks up a user by email, checks their org's subscription state,
     queries Stripe for active subscriptions, and reconciles if needed.
     
-    Accepts: { "email": "user@example.com", "repair": true/false }
+    Accepts: { "email": "user@example.com", "repair": true/false, "stripe_subscription_id": "sub_xxx", "org_id": "org_xxx" }
     """
     await require_admin(request)
     
     body = await request.json()
     email = body.get("email")
     do_repair = body.get("repair", False)
+    manual_stripe_sub_id = body.get("stripe_subscription_id")
+    manual_org_id = body.get("org_id")
     
-    if not email:
-        raise HTTPException(status_code=400, detail="email is required")
+    if not email and not manual_org_id:
+        raise HTTPException(status_code=400, detail="email or org_id is required")
     
-    # Step 1: Find the user
-    user_doc = await db.users.find_one({"email": email}, {"_id": 0})
-    if not user_doc:
-        raise HTTPException(status_code=404, detail=f"User not found: {email}")
+    # Step 1: Find the user and org
+    user_doc = None
+    user_id = None
+    org_id = manual_org_id
     
-    user_id = user_doc.get("user_id")
-    org_id = user_doc.get("organization_id")
+    if email:
+        user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+        if not user_doc and not manual_org_id:
+            raise HTTPException(status_code=404, detail=f"User not found: {email}")
+        if user_doc:
+            user_id = user_doc.get("user_id")
+            if not org_id:
+                org_id = user_doc.get("organization_id")
     
-    # Check if user owns an organization
+    # Also check if user owns an organization
     if not org_id:
         org = await db.organizations.find_one({"owner_id": user_id}, {"_id": 0})
         if org:
@@ -4124,13 +4132,73 @@ async def admin_diagnose_repair_subscription(request: Request):
     diagnosis["stripe_customer_id"] = customer_id
     
     # Step 4: Query Stripe for active subscriptions
-    if customer_id:
+    # Method A: If we have a manual Stripe subscription ID, fetch it directly
+    # Method B: If we have a customer_id, list their subscriptions
+    # Method C: Search Stripe customers by email as fallback
+    
+    stripe_mod = stripe
+    found_stripe_subs = []
+    
+    if manual_stripe_sub_id:
         try:
-            import stripe as stripe_mod
-            stripe_mod.api_key = os.environ.get("STRIPE_SECRET_KEY")
+            ss = stripe_mod.Subscription.retrieve(manual_stripe_sub_id)
+            found_stripe_subs.append(ss)
+            if not customer_id:
+                customer_id = ss.get("customer")
+                diagnosis["stripe_customer_id"] = customer_id
+            diagnosis["lookup_method"] = "manual_subscription_id"
+        except Exception as e:
+            diagnosis["stripe_error"] = f"Could not retrieve subscription {manual_stripe_sub_id}: {str(e)}"
+    
+    if customer_id and not found_stripe_subs:
+        try:
             stripe_subs = stripe_mod.Subscription.list(customer=customer_id, status="active", limit=10)
-            
-            for ss in stripe_subs.data:
+            found_stripe_subs.extend(stripe_subs.data)
+            diagnosis["lookup_method"] = "customer_id"
+        except Exception as e:
+            diagnosis["stripe_error"] = str(e)
+    
+    # Fallback: search Stripe customers by email
+    if not found_stripe_subs and email:
+        try:
+            customers = stripe_mod.Customer.list(email=email, limit=5)
+            for cust in customers.data:
+                cust_subs = stripe_mod.Subscription.list(customer=cust.id, status="active", limit=5)
+                found_stripe_subs.extend(cust_subs.data)
+                if not customer_id and cust_subs.data:
+                    customer_id = cust.id
+                    diagnosis["stripe_customer_id"] = customer_id
+            if found_stripe_subs:
+                diagnosis["lookup_method"] = "email_search"
+        except Exception as e:
+            if not diagnosis.get("stripe_error"):
+                diagnosis["stripe_error"] = str(e)
+    
+    # Also search by all org member emails if still no results
+    if not found_stripe_subs and org_id:
+        try:
+            org_users = await db.users.find(
+                {"organization_id": org_id},
+                {"email": 1, "_id": 0}
+            ).to_list(20)
+            for ou in org_users:
+                if ou.get("email") and ou["email"] != email:
+                    customers = stripe_mod.Customer.list(email=ou["email"], limit=3)
+                    for cust in customers.data:
+                        cust_subs = stripe_mod.Subscription.list(customer=cust.id, status="active", limit=5)
+                        found_stripe_subs.extend(cust_subs.data)
+                        if not customer_id and cust_subs.data:
+                            customer_id = cust.id
+                            diagnosis["stripe_customer_id"] = customer_id
+                    if found_stripe_subs:
+                        diagnosis["lookup_method"] = f"org_member_email_search ({ou['email']})"
+                        break
+        except Exception as e:
+            logger.warning(f"Error searching org members for Stripe subs: {e}")
+
+    if found_stripe_subs:
+        try:
+            for ss in found_stripe_subs:
                 items = ss.get("items", {}).get("data", [])
                 price_id = items[0].get("price", {}).get("id") if items else None
                 
@@ -4224,7 +4292,7 @@ async def admin_diagnose_repair_subscription(request: Request):
         except Exception as e:
             diagnosis["stripe_error"] = str(e)
     else:
-        diagnosis["issues_found"].append("No Stripe customer_id found for this user/org")
+        diagnosis["issues_found"].append("No Stripe subscriptions found via customer_id, email search, or org member emails")
     
     # Check for common issues
     has_active_local = any(
@@ -4243,6 +4311,117 @@ async def admin_diagnose_repair_subscription(request: Request):
         diagnosis["issues_found"].append("No issues detected")
     
     return diagnosis
+
+
+@api_router.post("/admin/organizations/{org_id}/activate")
+async def admin_activate_subscription(org_id: str, request: Request):
+    """
+    Admin manually activates a subscription for an org.
+    Sets the subscription to 'active' status with the given tier.
+    Use when a user has paid via Stripe but the subscription isn't linked,
+    or to manually grant access.
+    
+    Accepts: { "tier_id": "coach_developer", "billing_period": "annual", "stripe_subscription_id": "sub_xxx" (optional) }
+    """
+    await require_admin(request)
+    
+    body = await request.json()
+    tier_id = body.get("tier_id", "coach_developer")
+    billing_period = body.get("billing_period", "annual")
+    stripe_sub_id = body.get("stripe_subscription_id")
+    
+    from subscription_config import SUBSCRIPTION_TIERS
+    
+    # Validate org exists
+    org = await db.organizations.find_one({"org_id": org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Build subscription record
+    sub_data = {
+        "status": "active",
+        "is_trial": False,
+        "subscription_status": "active",
+        "tier_id": tier_id,
+        "current_tier_key": tier_id,
+        "tier": tier_id,
+        "tier_name": SUBSCRIPTION_TIERS.get(tier_id, {}).get("name", tier_id),
+        "billing_period": billing_period,
+        "is_legacy_tier": False,
+        "updated_at": now.isoformat(),
+        "activated_by": "admin_manual"
+    }
+    
+    if stripe_sub_id:
+        sub_data["subscription_id"] = stripe_sub_id
+        # Try to fetch real Stripe data
+        try:
+            stripe_sub = stripe.Subscription.retrieve(stripe_sub_id)
+            sub_data["customer_id"] = stripe_sub.get("customer")
+            sub_data["status"] = stripe_sub.status
+            sub_data["current_period_start"] = datetime.fromtimestamp(stripe_sub.current_period_start, timezone.utc).isoformat()
+            sub_data["current_period_end"] = datetime.fromtimestamp(stripe_sub.current_period_end, timezone.utc).isoformat()
+            sub_data["cancel_at_period_end"] = stripe_sub.cancel_at_period_end
+            
+            items = stripe_sub.get("items", {}).get("data", [])
+            if items:
+                sub_data["price_id"] = items[0].get("price", {}).get("id")
+        except Exception as e:
+            logger.warning(f"Could not fetch Stripe subscription {stripe_sub_id}: {e}")
+    
+    # Find existing subscription for this org
+    existing = await db.subscriptions.find_one(
+        {"$or": [{"org_id": org_id}, {"organization_id": org_id}], "is_trial": {"$ne": True}}
+    )
+    
+    if existing:
+        # Update existing non-trial subscription
+        await db.subscriptions.update_one(
+            {"_id": existing["_id"]},
+            {"$set": sub_data}
+        )
+    else:
+        # Create new subscription record
+        sub_data["org_id"] = org_id
+        sub_data["organization_id"] = org_id
+        sub_data["created_at"] = now.isoformat()
+        if not stripe_sub_id:
+            sub_data["subscription_id"] = f"sub_admin_{uuid.uuid4().hex[:12]}"
+        
+        owner_id = org.get("owner_id")
+        if owner_id:
+            sub_data["user_id"] = owner_id
+        
+        await db.subscriptions.insert_one(sub_data)
+    
+    # Mark any trial subscriptions as superseded
+    await db.subscriptions.update_many(
+        {
+            "$or": [{"organization_id": org_id}, {"org_id": org_id}],
+            "is_trial": True
+        },
+        {"$set": {"is_trial": False, "subscription_status": "superseded_by_paid", "updated_at": now.isoformat()}}
+    )
+    
+    # Update org owner's user record
+    owner_id = org.get("owner_id")
+    if owner_id:
+        await db.users.update_one(
+            {"user_id": owner_id},
+            {"$set": {"subscription_tier": tier_id}}
+        )
+    
+    logger.info(f"Admin activated subscription for org {org_id}: tier={tier_id}, billing={billing_period}, stripe_sub={stripe_sub_id}")
+    
+    return {
+        "message": f"Subscription activated for {org.get('club_name', org_id)}",
+        "org_id": org_id,
+        "tier_id": tier_id,
+        "status": "active",
+        "stripe_subscription_id": stripe_sub_id
+    }
 
 
 # ============================================
@@ -4819,6 +4998,12 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Payment system not configured")
     
+    # Get current user context for linking subscription to org
+    user = await get_current_user(request)
+    user_id = user.user_id if user else None
+    org_id = user.organization_id if user else None
+    user_email = user.email if user else None
+    
     # Validate tier
     if data.tier_id not in STRIPE_PRODUCTS:
         raise HTTPException(status_code=400, detail="Invalid pricing tier")
@@ -4865,13 +5050,18 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
                 "tier_name": product["name"],
                 "billing_period": data.billing_period,
                 "coaches_limit": str(product["coaches"]),
-                "admins_limit": str(product["admins"])
+                "admins_limit": str(product["admins"]),
+                "organization_id": org_id or "",
+                "user_id": user_id or "",
+                "user_email": user_email or ""
             },
             "subscription_data": {
                 "metadata": {
                     "tier_id": data.tier_id,
                     "coaches_limit": str(product["coaches"]),
-                    "admins_limit": str(product["admins"])
+                    "admins_limit": str(product["admins"]),
+                    "organization_id": org_id or "",
+                    "user_id": user_id or ""
                 }
             }
         }
@@ -4906,9 +5096,14 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
             "currency": "gbp",
             "payment_status": "pending",
             "status": "initiated",
+            "user_id": user_id,
+            "organization_id": org_id,
+            "customer_email": user_email,
             "metadata": {
                 "coaches_limit": product["coaches"],
-                "admins_limit": product["admins"]
+                "admins_limit": product["admins"],
+                "organization_id": org_id,
+                "user_id": user_id
             },
             "created_at": datetime.now(timezone.utc).isoformat()
         }
@@ -5018,8 +5213,35 @@ async def stripe_webhook(request: Request):
                 metadata = dict(session.get("metadata", {}))
                 
                 # Get the organization_id from metadata or user
-                org_id = metadata.get("organization_id")
-                user_id = metadata.get("user_id")
+                org_id = metadata.get("organization_id") or None
+                user_id = metadata.get("user_id") or None
+                
+                # Fallback: if org_id/user_id missing from metadata, try to find from customer email
+                if not org_id or not user_id:
+                    customer_email = session.get("customer_email") or session.get("customer_details", {}).get("email")
+                    if customer_email:
+                        # Try to find user by email
+                        checkout_user = await db.users.find_one({"email": customer_email})
+                        if checkout_user:
+                            if not user_id:
+                                user_id = checkout_user.get("user_id")
+                            if not org_id:
+                                org_id = checkout_user.get("organization_id")
+                    
+                    # If still no org_id but we have user_id, look up their org
+                    if not org_id and user_id:
+                        org_user = await db.users.find_one({"user_id": user_id})
+                        if org_user:
+                            org_id = org_user.get("organization_id")
+                        if not org_id:
+                            org_doc = await db.organizations.find_one({"owner_id": user_id})
+                            if org_doc:
+                                org_id = org_doc.get("org_id")
+                    
+                    if org_id:
+                        logger.info(f"Webhook: Resolved org_id={org_id} via fallback lookup for subscription {session.get('subscription')}")
+                    else:
+                        logger.warning(f"Webhook: Could not resolve org_id for subscription {session.get('subscription')} customer_email={session.get('customer_email')}")
                 
                 sub_record = {
                     "subscription_id": session.get("subscription"),

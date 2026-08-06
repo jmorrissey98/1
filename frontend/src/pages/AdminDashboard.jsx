@@ -133,6 +133,10 @@ export default function AdminDashboard() {
   const [repairLoading, setRepairLoading] = useState(false);
   const [repairResult, setRepairResult] = useState(null);
 
+  // Activate subscription state
+  const [activatingOrg, setActivatingOrg] = useState(null);
+  const [activateLoading, setActivateLoading] = useState(false);
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -477,6 +481,29 @@ export default function AdminDashboard() {
       toast.error('Failed to diagnose subscription');
     } finally {
       setRepairLoading(false);
+    }
+  };
+
+  // Activate subscription for an org
+  const handleActivateSubscription = async (orgId, orgName) => {
+    if (!confirm(`Activate subscription for "${orgName}"? This will set the org to an active Coach Developer plan and clear any trial status.`)) return;
+    setActivateLoading(true);
+    try {
+      const result = await safePost(`${API_URL}/api/admin/organizations/${orgId}/activate`, {
+        tier_id: 'coach_developer',
+        billing_period: 'annual'
+      });
+      if (result.ok) {
+        toast.success(`Subscription activated for ${orgName}`);
+        setActivatingOrg(null);
+        loadData();
+      } else {
+        toast.error(result.data?.detail || 'Failed to activate subscription');
+      }
+    } catch (e) {
+      toast.error('Failed to activate subscription');
+    } finally {
+      setActivateLoading(false);
     }
   };
 
@@ -913,6 +940,17 @@ export default function AdminDashboard() {
                               Extend Trial
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-7 text-xs"
+                            onClick={() => handleActivateSubscription(org.org_id, org.club_name)}
+                            disabled={activateLoading}
+                            data-testid={`activate-sub-${org.org_id}`}
+                          >
+                            {activateLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+                            Activate Subscription
+                          </Button>
                         </div>
                       )}
 

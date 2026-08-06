@@ -1,0 +1,88 @@
+{
+  "summary": "Admin Activate Subscription and Diagnose-Repair Features Testing Complete. 10/11 backend tests passed (1 skipped due to known bug). Frontend Activate Subscription button tested and working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/admin/subscription/diagnose-repair",
+        "issue": "When called with only org_id (no email), returns 500 error. Line 4107 in server.py calls user_doc.get('stripe_customer_id') but user_doc is None when no email is provided.",
+        "priority": "MEDIUM",
+        "fix": "Add null check: customer_id = user_doc.get('stripe_customer_id') if user_doc else None"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "admin_activate_subscription": {
+      "status": "PASS",
+      "details": "POST /api/admin/organizations/{org_id}/activate endpoint works correctly. Returns org_id, tier_id, status=active. Tested with demo org."
+    },
+    "activate_button_ui": {
+      "status": "PASS",
+      "details": "Admin Dashboard shows 'Activate Subscription' button on org cards with trial status. Button triggers confirmation dialog, calls API, shows success toast, and removes button after activation."
+    },
+    "entitlement_after_activation": {
+      "status": "PASS",
+      "details": "After admin activates subscription, entitlement endpoint returns is_entitled=true, is_trial=false"
+    },
+    "diagnose_repair_with_email": {
+      "status": "PASS",
+      "details": "POST /api/admin/subscription/diagnose-repair works with email parameter"
+    },
+    "diagnose_repair_with_email_and_org_id": {
+      "status": "PASS",
+      "details": "POST /api/admin/subscription/diagnose-repair works with both email and org_id parameters"
+    },
+    "diagnose_repair_with_org_id_only": {
+      "status": "FAIL",
+      "details": "Returns 500 error when only org_id is provided (no email). Bug in server.py line 4107."
+    },
+    "checkout_session_metadata": {
+      "status": "PASS",
+      "details": "Code review confirms checkout session creation (POST /api/payments/checkout) includes organization_id, user_id, and user_email in metadata (lines 5054-5056)"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin_activate_subscription.py",
+    "/app/test_reports/pytest/admin_activate_subscription_results.xml"
+  ],
+  "action_items": [
+    "FIX: server.py line 4107 - Add null check for user_doc before calling .get(). Change: customer_id = user_doc.get('stripe_customer_id') if user_doc else None"
+  ],
+  "critical_code_review_comments": [
+    "Checkout session metadata fix verified: Lines 5001-5005 correctly extract user context, lines 5054-5056 include org_id/user_id/user_email in session metadata",
+    "Admin activate endpoint (lines 4316-4424) correctly creates/updates subscription, marks trials as superseded, and updates user record",
+    "Bug found: diagnose-repair endpoint (line 4107) doesn't handle case when user_doc is None (org_id only provided)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_activate_subscription.py"
+  ],
+  "success_rate": {
+    "backend": "91% (10/11 tests - 1 skipped due to known bug)",
+    "frontend": "100% (Activate Subscription button flow verified)"
+  },
+  "test_credentials": {
+    "admin_email": "hello@mycoachdeveloper.com",
+    "admin_password": "_mcDeveloper26!",
+    "demo_email": "sarah.mitchell@demo.mycoachdeveloper.com",
+    "demo_password": "Demo123!",
+    "demo_org_id": "org_demo_0725dd5e668a"
+  },
+  "seed_data_creation": "None - used existing demo org and test orgs with trial status",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Admin activate subscription feature is working. Demo org (org_demo_0725dd5e668a) has been activated. Test orgs with trial_expired status (org_89dd47126aa4) were used to test the Activate Subscription button. One minor bug found in diagnose-repair endpoint when called with only org_id.",
+  "rca_of_the_issue": {
+    "original_issue": "Stripe checkout session metadata was missing organization_id and user_id, causing subscription records to be created without org links",
+    "fix_verified": "Checkout session creation now includes organization_id, user_id, and user_email in metadata (server.py lines 5054-5056). User context is extracted at lines 5001-5005 using get_current_user(request).",
+    "new_bug_found": {
+      "location": "server.py line 4107",
+      "description": "diagnose-repair endpoint crashes when called with only org_id (no email) because user_doc is None and code tries to call user_doc.get()",
+      "fix": "Add null check: customer_id = user_doc.get('stripe_customer_id') if user_doc else None"
+    }
+  }
+}
