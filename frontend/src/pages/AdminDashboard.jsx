@@ -79,6 +79,8 @@ const LEGACY_TIERS = [
   { tier_id: 'free', name: 'Free (Legacy)', monthly_price: 0, annual_price: 0 }
 ];
 
+const DEPLOY_VERSION = 'v2.5.0';
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -613,6 +615,7 @@ export default function AdminDashboard() {
               <h1 className="text-xl font-bold font-['Manrope']">Admin Dashboard</h1>
               <p className="text-sm text-slate-400">My Coach Developer System Admin</p>
             </div>
+            <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono self-start mt-1">{DEPLOY_VERSION}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={loadData} className="border-slate-600 text-slate-200 hover:bg-slate-800">
