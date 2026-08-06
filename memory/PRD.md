@@ -31,6 +31,7 @@ A coaching observation platform (MyCoachDeveloper) for sports coaching developme
 - Admin templates (prefix `admin_tpl_`) serve as global defaults for all organizations
 - Session data strictly filtered by `organization_id` for multi-tenancy
 - Stripe subscription modifications filter out demo (`sub_demo_`) and trial (`sub_trial_`) subscription IDs
+- **Subscription priority**: When multiple subscription docs exist for an org (e.g. expired trial + active paid), active non-trial subscriptions take precedence
 
 ## What's Been Implemented (Chronological)
 - Full coaching observation platform with session recording
@@ -47,6 +48,7 @@ A coaching observation platform (MyCoachDeveloper) for sports coaching developme
 - **[July 2026]** Admin Trial Extension feature (extend/grant trials, UI + backend)
 - **[July 2026]** Fixed admin org list missing trial fields in MongoDB projection
 - **[July 2026]** Stripe subscription price auto-update on admin tier change & user early migration
+- **[August 2026]** CRITICAL FIX: Trial-to-paid subscription entitlement bug. Users who subscribed after trial still saw "trial expired". Root cause: checkout webhook created a new subscription doc while old trial doc remained; find_one() returned the stale trial doc. Fixed with subscription priority logic across entitlement check, admin org list, and webhook cleanup.
 
 ## Pending Issues
 1. **P2 - Production Sync Failure**: Long-standing infrastructure issue
@@ -61,7 +63,7 @@ A coaching observation platform (MyCoachDeveloper) for sports coaching developme
 ## Key Files
 - `/app/backend/routes/observations.py` - Session CRUD with org_id filtering
 - `/app/backend/routes/subscriptions.py` - Stripe tier management, early migration with Stripe sync
-- `/app/backend/server.py` - Main backend with admin endpoints (trial extension, tier changes with Stripe sync)
+- `/app/backend/server.py` - Main backend with admin endpoints, entitlement check, Stripe webhooks
 - `/app/frontend/src/pages/AdminDashboard.jsx` - Admin dashboard with trial extension UI
 - `/app/frontend/src/pages/HomePage.jsx` - Session list (fixed localStorage fallback)
 - `/app/frontend/src/pages/ReviewSession.jsx` - Session review (3000+ lines, needs refactor)
