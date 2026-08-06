@@ -2550,10 +2550,19 @@ async def admin_list_organizations(request: Request, include_archived: bool = Fa
         owner_email = owner.get("email") if owner else None
         
         # Get subscription tier from the subscriptions collection (source of truth)
-        subscription = await db.subscriptions.find_one(
+        # Find ALL subs for this org, prioritize active non-trial over expired trial
+        all_org_subs = await db.subscriptions.find(
             {"$or": [{"org_id": org_id}, {"organization_id": org_id}]},
             {"_id": 0, "current_tier_key": 1, "is_legacy_tier": 1, "legacy_tier_key": 1, "tier_id": 1, "tier": 1, "is_trial": 1, "trial_end_date": 1, "subscription_status": 1, "status": 1}
-        )
+        ).to_list(10)
+        
+        subscription = None
+        for sub in all_org_subs:
+            if not sub.get("is_trial") and sub.get("status") in ["active", "trialing"]:
+                subscription = sub
+                break
+        if not subscription and all_org_subs:
+            subscription = all_org_subs[0]
         
         subscription_tier = None
         if subscription:
@@ -4328,11 +4337,27 @@ async def get_billing_entitlement(request: Request):
             logger.info(f"Entitlement check for {user.user_id}: NOT entitled (no organization)")
             return response
         
-        # Check subscriptions collection
-        subscription = await db.subscriptions.find_one(
+        # Check subscriptions collection - find ALL subs for this org,
+        # prioritize active non-trial subscriptions over expired trials
+        all_subscriptions = await db.subscriptions.find(
             {"$or": [{"organization_id": org_id}, {"org_id": org_id}]},
             {"_id": 0}
-        )
+        ).to_list(10)
+        
+        # Pick the best subscription: prefer active non-trial over trial
+        subscription = None
+        for sub in all_subscriptions:
+            if not sub.get("is_trial") and sub.get("status") in ["active", "trialing"]:
+                subscription = sub
+                break
+        if not subscription:
+            # Fall back to any subscription with a subscription_id
+            for sub in all_subscriptions:
+                if sub.get("subscription_id"):
+                    subscription = sub
+                    break
+        if not subscription and all_subscriptions:
+            subscription = all_subscriptions[0]
         
         if subscription and subscription.get("subscription_id"):
             status = subscription.get("status", "").lower()
@@ -4809,6 +4834,22 @@ async def stripe_webhook(request: Request):
                     {"$set": sub_record},
                     upsert=True
                 )
+                
+                # Clean up old trial subscriptions for this org now that a real subscription exists
+                if org_id:
+                    await db.subscriptions.update_many(
+                        {
+                            "$or": [{"organization_id": org_id}, {"org_id": org_id}],
+                            "subscription_id": {"$ne": session.get("subscription")},
+                            "is_trial": True
+                        },
+                        {"$set": {
+                            "is_trial": False,
+                            "subscription_status": "superseded_by_paid",
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                    logger.info(f"Cleaned up trial subscriptions for org {org_id} after real subscription created")
                 
                 # Also store customer_id on user if we have user_id
                 if user_id:

@@ -1,0 +1,79 @@
+{
+  "summary": "Subscription Priority Bug Fix Verified - All 15 backend tests pass. The critical bug where entitlement returned 'trial_expired' instead of 'status_active' when an org has both expired trial AND active paid subscription is FIXED.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "entitlement_priority_logic": {
+      "status": "PASS",
+      "details": "GET /api/billing/entitlement correctly prioritizes active non-trial subscriptions over expired trials. When org has both expired trial AND active paid subscription, returns is_entitled=true with reason='status_active'"
+    },
+    "admin_org_list_priority": {
+      "status": "PASS",
+      "details": "GET /api/admin/organizations correctly shows subscription_status='active' and is_trial=false when org has both expired trial and active paid subscription"
+    },
+    "trial_active_entitlement": {
+      "status": "PASS",
+      "details": "When only active trial exists, entitlement correctly returns is_entitled=true, reason='trial_active', with trial_days_remaining"
+    },
+    "paid_active_entitlement": {
+      "status": "PASS",
+      "details": "When only active paid subscription exists, entitlement correctly returns is_entitled=true, reason='status_active'"
+    },
+    "webhook_endpoint": {
+      "status": "PASS",
+      "details": "POST /api/webhook/stripe endpoint exists and returns proper error for invalid signature (not 404)"
+    },
+    "bug_reproduction_test": {
+      "status": "PASS",
+      "details": "Direct MongoDB test: Inserted expired trial + active paid subscription for same org, verified entitlement returns is_entitled=true, reason='status_active' (not 'trial_expired')"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_subscription_priority.py",
+    "/app/backend/tests/test_subscription_priority_mongodb.py",
+    "/app/test_reports/pytest/subscription_priority_results.xml",
+    "/app/test_reports/pytest/subscription_priority_mongodb_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix correctly implemented: server.py lines 4342-4360 now use find().to_list(10) instead of find_one(), with priority logic to prefer active non-trial subscriptions",
+    "Admin org list (lines 2554-2565) has same priority logic applied",
+    "Checkout webhook (lines 4839-4851) correctly cleans up old trial subscriptions when real subscription is created",
+    "All three fix locations verified working correctly"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_subscription_priority.py",
+    "/app/backend/tests/test_subscription_priority_mongodb.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed - 10 API tests + 5 MongoDB tests)",
+    "frontend": "100% (Admin dashboard and demo user dashboard verified working)"
+  },
+  "test_credentials": {
+    "admin_email": "hello@mycoachdeveloper.com",
+    "admin_password": "_mcDeveloper26!",
+    "demo_email": "sarah.mitchell@demo.mycoachdeveloper.com",
+    "demo_password": "Demo123!",
+    "demo_org_id": "org_demo_0725dd5e668a"
+  },
+  "seed_data_creation": "MongoDB tests create temporary test subscriptions (sub_test_expired_trial_*, sub_test_active_paid_*) and clean them up after each test",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Subscription priority bug fix verified. Demo org (org_demo_0725dd5e668a - Riverside Football Academy) currently has active trial with 13 days remaining. The fix ensures that when a user subscribes via Stripe after trial, the active paid subscription takes precedence over any expired trial subscription documents.",
+  "rca_of_the_issue": {
+    "root_cause": "When a user subscribes via Stripe after a trial, the checkout.session.completed webhook creates a NEW subscription document (matched by subscription_id, not org_id). The old trial subscription document remains with is_trial=True and an expired trial_end_date. The entitlement check used find_one() which could return the old trial doc first, resulting in 'trial_expired' even though the user has an active paid subscription.",
+    "fix_applied": [
+      "1. Entitlement check (server.py ~line 4342): Changed from find_one to find().to_list(10), with priority logic to prefer active non-trial subscriptions over trial ones",
+      "2. Checkout webhook (server.py ~line 4839): Added cleanup that sets is_trial=False on old trial subscriptions when a real subscription is created for the same org",
+      "3. Admin org list (server.py ~line 2554): Same priority logic as entitlement check"
+    ],
+    "verification": "Direct MongoDB test inserted both expired trial and active paid subscription for same org, verified entitlement correctly returns is_entitled=true with reason='status_active'"
+  }
+}
