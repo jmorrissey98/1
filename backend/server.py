@@ -4104,7 +4104,7 @@ async def admin_diagnose_repair_subscription(request: Request):
         })
     
     # Step 3: Find Stripe customer ID from various sources
-    customer_id = user_doc.get("stripe_customer_id")
+    customer_id = user_doc.get("stripe_customer_id") if user_doc else None
     if not customer_id:
         for sub in all_subs:
             if sub.get("customer_id"):
